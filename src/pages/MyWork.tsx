@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/store/currentUser";
 import { displayTitle, formatHours } from "@/lib/utils";
 import { ListChecks, ArrowRight } from "lucide-react";
+import { DisciplineStatusChip } from "@/features/tickets/DisciplineStatusChip";
+import type { DisciplineStatus } from "@/lib/types";
 
 interface Row {
   id: string;
@@ -11,6 +13,8 @@ interface Row {
   title: string;
   ticket_type: "Standard" | "Bug" | "CR";
   status_id: string | null;
+  fe_status: DisciplineStatus;
+  be_status: DisciplineStatus;
   est_frontend_hours: number;
   est_backend_hours: number;
   actual_frontend_hours: number;
@@ -29,7 +33,7 @@ export default function MyWork() {
     supabase
       .from("ticket_assignees")
       .select(
-        "slot,ticket:tickets(id,formatted_id,title,ticket_type,status_id,est_frontend_hours,est_backend_hours,actual_frontend_hours,actual_backend_hours,project:projects(id,name,acronym),status:statuses(name,color,category))"
+        "slot,ticket:tickets(id,formatted_id,title,ticket_type,status_id,fe_status,be_status,est_frontend_hours,est_backend_hours,actual_frontend_hours,actual_backend_hours,project:projects(id,name,acronym),status:statuses(name,color,category))"
       )
       .eq("user_id", user.id)
       .then(({ data }) => {
