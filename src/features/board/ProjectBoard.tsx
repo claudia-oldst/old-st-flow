@@ -104,22 +104,16 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
   }, [visible, user, showAll]);
 
   const byDisciplineStatus = useMemo(() => {
-    const map: Record<DisciplineColumnKey, DisciplineCard[]> = {
-      backlog: [],
+    const map: Record<DisciplineStatus, DisciplineCard[]> = {
       todo: [],
       in_progress: [],
       done: [],
     };
-    disciplineCards.forEach((c) => {
-      if (c.unassigned) map.backlog.push(c);
-      else map[c.status].push(c);
-    });
+    disciplineCards.forEach((c) => map[c.status].push(c));
     return map;
   }, [disciplineCards]);
 
-  const disciplineColumns: DisciplineColumnKey[] = showAll
-    ? ["backlog", ...DISCIPLINE_STATUSES]
-    : DISCIPLINE_STATUSES;
+  const disciplineColumns: DisciplineStatus[] = DISCIPLINE_STATUSES;
 
   const activeTicket =
     activeId && mode === "project"
