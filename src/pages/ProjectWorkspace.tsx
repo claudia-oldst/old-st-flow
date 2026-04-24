@@ -38,7 +38,7 @@ export default function ProjectWorkspace() {
         <div className="font-mono text-xs px-2 py-1 rounded-md bg-white/5 hairline text-dim">
           {project?.acronym ?? "..."}
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight">{project?.name ?? "Loading..."}</h1>
+        <h1 className="font-display text-2xl font-semibold tracking-tight">{project?.name ?? "Loading..."}</h1>
       </div>
 
       <nav className="flex gap-1 hairline-b mb-6">
