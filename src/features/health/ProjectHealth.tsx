@@ -45,6 +45,9 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
     return tickets.filter((t) => !doneIds.has(t.status_id ?? ""));
   }, [tickets, statuses]);
 
+  // Unassigned uses project-level status; member capacity uses per-discipline status.
+  const unassignedOpen = openTickets;
+
   const totals = useMemo(() => {
     return tickets.reduce(
       (acc, t) => {
@@ -64,18 +67,22 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
   const overall = healthRatio(totalAct, totalEst);
   const profitabilityPct = totalEst > 0 ? Math.round((totalAct / totalEst) * 100) : 0;
 
-  const unassignedCount = openTickets.filter((t) => t.assignees.length === 0).length;
+  const unassignedCount = unassignedOpen.filter((t) => t.assignees.length === 0).length;
 
+  // A ticket counts toward a member's capacity only if THEIR discipline slot is not done.
   const ticketsByMember = useMemo(() => {
     const map: Record<string, number> = {};
     members.forEach((m) => (map[m.user_id] = 0));
-    openTickets.forEach((t) => {
+    tickets.forEach((t) => {
       t.assignees.forEach((a) => {
-        map[a.user_id] = (map[a.user_id] ?? 0) + 1;
+        const slotStatus = a.slot === "FE" ? t.fe_status : t.be_status;
+        if (slotStatus !== "done") {
+          map[a.user_id] = (map[a.user_id] ?? 0) + 1;
+        }
       });
     });
     return map;
-  }, [openTickets, members]);
+  }, [tickets, members]);
 
   return (
     <div className="space-y-6">
