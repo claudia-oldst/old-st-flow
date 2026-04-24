@@ -118,23 +118,32 @@ export type Database = {
       projects: {
         Row: {
           acronym: string
+          client_name: string | null
           created_at: string
           id: string
+          links: Json
           name: string
+          rate_per_hour: number
           updated_at: string
         }
         Insert: {
           acronym: string
+          client_name?: string | null
           created_at?: string
           id?: string
+          links?: Json
           name: string
+          rate_per_hour?: number
           updated_at?: string
         }
         Update: {
           acronym?: string
+          client_name?: string | null
           created_at?: string
           id?: string
+          links?: Json
           name?: string
+          rate_per_hour?: number
           updated_at?: string
         }
         Relationships: []

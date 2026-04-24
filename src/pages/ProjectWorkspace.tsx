@@ -4,14 +4,17 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Project } from "@/lib/types";
 
 import { ProjectTickets } from "@/features/tickets/ProjectTickets";
-import { ProjectTeam } from "@/features/team/ProjectTeam";
 import { ProjectHealth } from "@/features/health/ProjectHealth";
+import { ProjectSettingsDialog } from "@/features/project/ProjectSettingsDialog";
+import { useProjectRole, isPMBA } from "@/features/team/useProjectRole";
 import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function ProjectWorkspace() {
   const { id } = useParams<{ id: string }>();
   const [project, setProject] = useState<Project | null>(null);
+  const role = useProjectRole(id);
+  const canEdit = isPMBA(role);
 
   useEffect(() => {
     if (!id) return;
@@ -21,7 +24,6 @@ export default function ProjectWorkspace() {
   const tabs = useMemo(
     () => [
       { to: "", label: "Tickets", end: true },
-      { to: "team", label: "Team" },
       { to: "health", label: "Health" },
     ],
     []
@@ -39,6 +41,18 @@ export default function ProjectWorkspace() {
           {project?.acronym ?? "..."}
         </div>
         <h1 className="font-display text-2xl font-semibold tracking-tight">{project?.name ?? "Loading..."}</h1>
+        {project?.client_name && (
+          <span className="text-sm text-dim">· {project.client_name}</span>
+        )}
+        <div className="ml-auto">
+          {project && (
+            <ProjectSettingsDialog
+              project={project}
+              canEdit={canEdit}
+              onUpdated={(p) => setProject(p)}
+            />
+          )}
+        </div>
       </div>
 
       <nav className="flex gap-1 hairline-b mb-6">
@@ -66,7 +80,6 @@ export default function ProjectWorkspace() {
 
       <Routes>
         <Route index element={<ProjectTickets projectId={id} />} />
-        <Route path="team" element={<ProjectTeam projectId={id} />} />
         <Route path="health" element={<ProjectHealth projectId={id} />} />
       </Routes>
     </div>
