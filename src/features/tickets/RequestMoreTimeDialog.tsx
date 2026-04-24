@@ -28,6 +28,8 @@ interface Props {
   ticketId: string;
   currentFE: number;
   currentBE: number;
+  actualFE: number;
+  actualBE: number;
   /** Disciplines the user is allowed to request changes for. */
   allowedSlots: Array<"FE" | "BE">;
   defaultSlot?: "FE" | "BE";
@@ -40,6 +42,8 @@ export function RequestMoreTimeDialog({
   ticketId,
   currentFE,
   currentBE,
+  actualFE,
+  actualBE,
   allowedSlots,
   defaultSlot,
   onSaved,
@@ -140,8 +144,17 @@ export function RequestMoreTimeDialog({
               onChange={(e) => setHours(e.target.value)}
               placeholder="e.g. 4"
             />
-            <div className="text-[11px] text-dim">
-              {formatHours(previous)} → <span className="text-foreground font-mono">{formatHours(next)}</span>
+            <div className="flex items-center justify-between text-[11px] text-dim">
+              <span>
+                {formatHours(previous)} →{" "}
+                <span className="text-foreground font-mono">{formatHours(next)}</span>
+              </span>
+              <span className="text-dimmer">
+                Used so far:{" "}
+                <span className="text-foreground font-mono">
+                  {formatHours(slot === "FE" ? actualFE : actualBE)}
+                </span>
+              </span>
             </div>
           </div>
 
