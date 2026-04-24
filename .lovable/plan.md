@@ -1,164 +1,81 @@
-# The Old St Tracker — Build Plan
+## Two-tier status model
 
-A premium, dark-mode Agency Resource Management tool replacing ClickUp + Clockify. Built around dual FE/BE estimates and role-aware time logging so devs barely think about tracking.
+Today every ticket has a single `status_id` (the column on the Kanban board). We'll split this into:
 
-## v1 Scope Decisions (locked)
+- **Discipline status** — one for FE, one for BE. Each developer working on that discipline shares the same status. Drawn from a small fixed list: `To-do`, `In progress`, `Done`.
+- **Project status** — the existing Admin-defined status list (Backlog / Active / Done categories). Auto-derived from the FE+BE discipline statuses, but a PMBA can pin/override it.
 
-- **No auth.** Single shared workspace; "current user" picked from a header dropdown of seeded team members. Google OAuth added in a later pass.
-- **Time logging:** Both a live start/stop timer (persistent floating chip, realtime) AND a manual hours entry modal.
-- **Assignees:** Tickets support multiple assignees — typically one FE dev + one BE dev. **Only PMBAs assign devs.** A dev must be a project member to be assignable.
-- **Kanban columns = ticket statuses.** Statuses are **global** (shared across all projects); the Kanban board on every project renders one column per status in the configured order.
-- **CSV import:** Fixed columns only (Title, Type, FE Estimate, BE Estimate). Mapper UI deferred.
+A ticket can therefore be `BE: To-do`, `FE: Done`, `Project: In progress` simultaneously.
 
-## Visual Identity
+---
 
-- Background `#0A0A0A`, surfaces with subtle glass blur, borders `border-white/10`.
-- Inter / Geist typography, crisp white text, muted gray secondary.
-- Lucide-React icons (thin stroke).
-- Color-coded health: green (under estimate), yellow (80–100%), red (over).
+## Data model changes
 
-## Pages & Navigation
+Add to `tickets`:
+- `fe_status` (text, default `'todo'`) — values: `todo` | `in_progress` | `done`
+- `be_status` (text, default `'todo'`) — same values
+- `project_status_override` (boolean, default `false`) — when true, PMBA has manually set `status_id` and auto-derivation is suspended
+
+Keep the existing `status_id` column — it now represents the **project status** (the board column).
+
+### Auto-derivation rule (applied via DB trigger on `tickets` insert/update of fe_status/be_status, only when `project_status_override = false`)
 
 ```text
-┌─ Top bar ──────────────────────────────────────────────┐
-│  Old St Tracker   Projects ▾   [User: Maya ▾]   ⏱ 00:42 │
-└────────────────────────────────────────────────────────┘
-   /                → Projects list
-   /projects/:id    → Project workspace
-        tabs:  Board · Tickets · Team · Health
-   /admin           → Team members + Statuses + global settings
-   /my-work         → Current user's assigned tickets across projects
+both done            → first status in 'done'   category (lowest position)
+either in_progress   → first status in 'active' category
+both todo            → first status in 'backlog' category
 ```
 
-Floating timer chip lives in the top bar whenever a timer is running.
+The trigger looks up the appropriate status by category + lowest position. If the project's PMBA later changes `status_id` directly, set `project_status_override = true`. A "Reset to auto" action clears the override and re-derives.
 
-## Role Capabilities
+Discipline statuses are NOT in the Admin > Statuses list — they are a fixed enum, simpler and decoupled.
 
-| Action | PMBA | Frontend / Backend / Fullstack | QA |
-|---|---|---|---|
-| Create project, set acronym | ✓ | — | — |
-| Add/remove project members + set role | ✓ | — | — |
-| Manage global statuses (add / rename / reorder / delete) | ✓ (admin area) | — | — |
-| Create / import tickets | ✓ | — | — |
-| Assign devs to tickets | ✓ | — | — |
-| Log time on assigned tickets | ✓ (overhead) | ✓ | ✓ (overhead) |
-| Move ticket between statuses | ✓ | ✓ (own tickets) | ✓ (own tickets) |
-| View project health dashboard | ✓ | view-only | view-only |
+---
 
-## Core Flows
+## UI changes
 
-### 1. Project setup (PMBA)
-- Create project: name + 3–5 char acronym (validated unique, uppercase).
-- Project automatically uses the **global status set**.
-- Team tab: add team members + role (Frontend / Backend / Fullstack / QA / PMBA).
+### TicketDetailSheet
+- New "Discipline status" section with two segmented controls (FE / BE), each cycling `To-do → In progress → Done`. Visible to all; editable by the assignee for their slot, and by PMBA for both.
+- "Project status" stays as today, plus a small "Auto" badge when not overridden, and an "Override" / "Reset to auto" toggle for PMBA.
 
-### 2. Global status management (PMBA, in `/admin`)
-- Single global list of statuses used by every project.
-- Each status has: name, position, optional color/accent, **category** (`backlog` / `active` / `done`):
-  - `backlog`: triggers "Move to active?" prompt on first time-log.
-  - `active`: normal in-progress states.
-  - `done`: ticket excluded from "open work" counts and capacity views.
-- Drag-to-reorder. Add / rename / recolor / change category.
-- Delete a status: only allowed if **no ticket in any project** uses it; otherwise PMBA must reassign first (inline picker).
-- Must always have at least one `backlog`, one `active`, one `done` status.
-- Seeded defaults on first run: **To-Do (backlog) · In Progress (active) · In Review (active) · Done (done)**.
-- Changes apply to every project's board immediately (realtime).
+### Project Kanban board (`ProjectBoard.tsx`)
+- Add a small toggle in the toolbar (next to All / My tickets):
+  - **Project view** (default) — columns are the Admin statuses, ticket placed by `status_id`. Dragging a card sets `status_id` and `project_status_override = true`.
+  - **My view** — columns are the three discipline statuses (`To-do / In progress / Done`). Tickets are filtered to those where the current user is assigned, and grouped by **their** slot's discipline status (FE assignee → `fe_status`; BE assignee → `be_status`; if assigned to both, the ticket appears once per slot). Dragging updates the corresponding discipline status.
 
-### 3. Kanban board
-- Renders **one column per global status**, in the configured order. Reordering or renaming statuses updates every project's board live.
-- Drag tickets between columns to change status.
-- Card shows: formatted ID, title (with prefix), assignee avatars (FE + BE), **two stacked progress bars** (FE actual/estimate, BE actual/estimate) with health color.
-- Filter chips: "My tickets" (default for devs), "All" (default for PMBAs), per-assignee filter.
-- First time-log on a `backlog`-category ticket prompts: "Move to {first active status}?" — one click confirms.
+### TicketCard
+- Show two small chips: `FE · <status>` and `BE · <status>` with subtle color coding (gray / blue / green), only when that slot has assignees.
 
-### 4. Ticket creation (PMBA)
-- **Manual quick-add:** inline row at the bottom of each Kanban column — title + type + FE est + BE est, Enter to create. New ticket inherits that column's status.
-- **CSV import:** upload `.csv` with columns `Title, Type, FE Estimate, BE Estimate`. Imported tickets land in the lowest-position `backlog` status. Preview first 5 rows, confirm, bulk insert. Auto-numbered `{ACRONYM}-001`, `-002`…
-- **Title prefixing:** `Bug` → `[BUG] Title`, `CR` → `[CR] Title`, else plain.
+### My Work page
+- Each row already shows the project status. Add the user's own discipline status chip alongside it (based on the row's `slot`).
 
-### 5. Ticket assignment (PMBA only)
-- Open a ticket → "Assignees" section with two slots: **Frontend dev** and **Backend dev**.
-- Picker only lists project members whose role matches the slot:
-  - FE slot → `Frontend` or `Fullstack`.
-  - BE slot → `Backend` or `Fullstack`.
-- Assigning surfaces the ticket on each dev's `/my-work` view and on the board with their avatar.
+### TicketsList (table)
+- Add `FE status` and `BE status` columns (toggleable via existing column controls if present; otherwise just appended).
+- Existing "Group by" dropdown gains `FE status` and `BE status` options.
 
-### 6. Time logging
-A dev can only "Log Time" on tickets they are assigned to (button disabled with tooltip otherwise). PMBAs can log overhead on any ticket.
+---
 
-Modal with two tabs:
+## CSV import
 
-**Live Timer tab** — big start button; closes to a top-bar chip; on stop, confirm hours + optional note.
+Extend the CSV template with two optional columns: `FE Status`, `BE Status` (values `todo` / `in_progress` / `done`, default `todo`). Project status remains auto-derived on insert.
 
-**Manual Entry tab** — hours + optional note + date.
+---
 
-**Discipline routing:**
-- `Frontend` → `actual_frontend_hours`
-- `Backend` → `actual_backend_hours`
-- `Fullstack` → `FE | BE` segmented toggle (defaults to the slot they're assigned to)
-- `QA` / `PMBA` → project overhead bucket
+## Files to change
 
-Only one timer per user.
+- **Migration** (new): add columns + trigger function `derive_project_status()` + trigger on `tickets`
+- `src/features/tickets/useProjectTickets.ts` — select the new columns, expose in `TicketRow`
+- `src/features/tickets/TicketCard.tsx` — discipline status chips
+- `src/features/tickets/TicketDetailSheet.tsx` — discipline status controls + override toggle
+- `src/features/tickets/TicketsList.tsx` — new columns + group-by options
+- `src/features/board/ProjectBoard.tsx` — view toggle + per-discipline grouping/drag handler
+- `src/features/tickets/ProjectTickets.tsx` — CSV template + import parser
+- `src/pages/MyWork.tsx` — discipline status chip
+- `src/lib/types.ts` — add `DisciplineStatus` type
 
-### 7. PMBA Health Dashboard (`/projects/:id` → Health tab)
-- **Global Progress:** two big rings — Total FE Actual vs Estimate, Total BE Actual vs Estimate.
-- **Profitability indicator:** green / yellow / red pill.
-- **Member capacity:** project members with assigned ticket count + hours logged this week.
-- **Overhead bucket:** QA/PMBA hours.
-- **Unassigned backlog:** count + quick link.
-- "Open work" metrics exclude tickets in `done`-category statuses.
+No changes to the Admin > Statuses screen (project statuses keep working as today).
 
-## Data Model (Supabase)
+## Out of scope
 
-- `team_members` (id, name, email, avatar_color)
-- `projects` (id, name, acronym unique, created_at)
-- `project_members` (project_id, user_id, role) — composite PK
-- `statuses` (id, name unique, position int, color, category ['backlog'|'active'|'done'], created_at) — **global table**
-- `tickets` (id, project_id, ticket_number serial, formatted_id, title, ticket_type, status_id → statuses, est_frontend_hours, est_backend_hours, actual_frontend_hours, actual_backend_hours, actual_overhead_hours, created_at)
-- `ticket_assignees` (ticket_id, user_id, slot ['FE'|'BE']) — composite PK
-- `time_logs` (id, ticket_id, user_id, discipline ['FE'|'BE'|'Overhead'], hours, note, logged_at, source ['timer'|'manual'])
-- `active_timers` (user_id PK, ticket_id, started_at, discipline)
-
-DB triggers / constraints:
-- Seed `statuses` on first migration (To-Do/backlog, In Progress/active, In Review/active, Done/done).
-- On `tickets` insert: auto-set `formatted_id`; default `status_id` = lowest-position `backlog` status.
-- On `ticket_assignees` insert: validate user is in `project_members` for the ticket's project AND role compatible with slot.
-- On `project_members` delete: cascade-remove from `ticket_assignees`.
-- On `statuses` delete: reject if any ticket references it.
-- On `time_logs` insert: increment matching `actual_*_hours`.
-
-RLS: enabled, permissive in v1 (no auth). Tightened with OAuth pass.
-
-## Technical Stack
-
-- React + Vite + TypeScript + Tailwind.
-- shadcn/ui styled dark/glass.
-- Lucide-React icons.
-- Lovable Cloud (Supabase) + Realtime for timers, ticket changes, and global status changes.
-- Zustand for active timer + current-user selection.
-- `@dnd-kit` for Kanban drag-and-drop AND status reordering.
-- `papaparse` for CSV.
-
-## Build Order
-
-1. Design tokens: rewrite `index.css` + `tailwind.config.ts` for the Old St dark theme.
-2. Cloud setup: tables (incl. global `statuses` seeded), triggers, realtime, seed demo team members.
-3. Shell: top bar, current-user dropdown, routes, projects list, project tabs, `/admin`, `/my-work`.
-4. **Global statuses admin UI:** CRUD + drag-reorder + category + delete-guard.
-5. Project create + team management.
-6. Tickets: data layer, manual quick-add, CSV import, formatted IDs, prefixing.
-7. Assignment UI (PMBA-only) with role-filtered pickers.
-8. Kanban: columns from global statuses, drag-drop tickets, dual progress bars, assignee avatars, filters, backlog→active prompt.
-9. Time logging: modal, discipline routing, fullstack toggle, floating timer chip with realtime, assignment gating.
-10. Health dashboard: rings, profitability, capacity, overhead, unassigned backlog.
-11. Polish: empty states, loading skeletons, health color thresholds, responsive check.
-
-## Out of Scope for v1
-
-- Authentication (Google OAuth next).
-- Per-project status overrides.
-- CSV column mapper / assignee in CSV.
-- Server-enforced role permissions (UI-gated only in v1).
-- Reporting exports, invoicing, client-facing views.
-- Sprint/iteration grouping, sub-tasks, comments.
-- Per-status WIP limits.
+- Notifications when a discipline finishes
+- Per-assignee (per-person) status — we agreed on per-discipline only
