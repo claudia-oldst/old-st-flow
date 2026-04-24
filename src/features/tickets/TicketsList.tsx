@@ -4,7 +4,7 @@ import { useStatuses } from "@/features/statuses/useStatuses";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { displayTitle, formatHours, cn } from "@/lib/utils";
 
-export type GroupBy = "none" | "status" | "assignee" | "type";
+export type GroupBy = "none" | "status" | "assignee" | "type" | "epic";
 
 interface Group {
   key: string;
