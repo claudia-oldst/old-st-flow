@@ -73,11 +73,15 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
   const showAll = !filterMine;
   const disciplineCards: DisciplineCard[] = useMemo(() => {
     if (!user && !showAll) return [];
+    // In "All" mode, restrict slots based on the viewer's role:
+    // Frontend → FE only, Backend → BE only, PMBA/Fullstack/QA → both.
+    const showFE = role !== "Backend";
+    const showBE = role !== "Frontend";
     const out: DisciplineCard[] = [];
     visible.forEach((t) => {
       if (showAll) {
-        out.push({ ticket: t, slot: "FE", status: t.fe_status });
-        out.push({ ticket: t, slot: "BE", status: t.be_status });
+        if (showFE) out.push({ ticket: t, slot: "FE", status: t.fe_status });
+        if (showBE) out.push({ ticket: t, slot: "BE", status: t.be_status });
       } else {
         const slots = new Set(
           t.assignees.filter((a) => a.user_id === user!.id).map((a) => a.slot)
@@ -92,7 +96,7 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
       }
     });
     return out;
-  }, [visible, user, showAll]);
+  }, [visible, user, showAll, role]);
 
   const byDisciplineStatus = useMemo(() => {
     const map: Record<DisciplineStatus, DisciplineCard[]> = {
