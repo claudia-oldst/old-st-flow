@@ -106,6 +106,8 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
         const feCol = findCol("FE Estimate", "FE", "Frontend", "fe estimate");
         const beCol = findCol("BE Estimate", "BE", "Backend", "be estimate");
         const epicCol = findCol("Epic", "epic", "Epic Name");
+        const feStatusCol = findCol("FE Status", "fe status", "Frontend Status");
+        const beStatusCol = findCol("BE Status", "be status", "Backend Status");
 
         if (!titleCol) {
           toast.error("CSV must include a Title column");
@@ -123,12 +125,16 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
           const fe = feCol ? parseFloat(r[feCol]) || 0 : 0;
           const be = beCol ? parseFloat(r[beCol]) || 0 : 0;
           const epic = epicCol ? (r[epicCol] ?? "").trim() : "";
+          const fe_status = parseDiscipline(feStatusCol ? r[feStatusCol] : undefined);
+          const be_status = parseDiscipline(beStatusCol ? r[beStatusCol] : undefined);
           return {
             title: titleRaw,
             type,
             fe,
             be,
             epic,
+            fe_status,
+            be_status,
             error: !titleRaw ? "Missing title" : undefined,
           };
         });
