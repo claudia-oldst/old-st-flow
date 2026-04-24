@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { useDroppable, useDraggable } from "@dnd-kit/core";
 import { useStatuses } from "@/features/statuses/useStatuses";
@@ -18,12 +18,15 @@ import {
 } from "@/lib/types";
 
 type BoardMode = "project" | "discipline";
+type DisciplineColumnKey = "backlog" | DisciplineStatus;
 const DISCIPLINE_STATUSES: DisciplineStatus[] = ["todo", "in_progress", "done"];
+const BACKLOG_COLOR = "#64748b";
 
 interface DisciplineCard {
   ticket: TicketRow;
   slot: "FE" | "BE";
   status: DisciplineStatus;
+  unassigned?: boolean; // true → render in the Backlog column
 }
 
 export function ProjectBoard({ projectId }: { projectId: string }) {
@@ -31,10 +34,24 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
   const { tickets, reload } = useProjectTickets(projectId);
   const role = useProjectRole(projectId);
   const user = useCurrentUser((s) => s.user);
-  const [filterMine, setFilterMine] = useState<boolean>(!isPMBA(role));
-  const [mode, setMode] = useState<BoardMode>("project");
+  const pmba = isPMBA(role);
+  const [filterMine, setFilterMine] = useState<boolean>(true);
+  const [mode, setMode] = useState<BoardMode>("discipline");
+  const [touched, setTouched] = useState(false);
   const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
+
+  // Apply role-based defaults once we know the role (until the user changes a toggle)
+  useEffect(() => {
+    if (touched || role === null) return;
+    if (pmba) {
+      setMode("project");
+      setFilterMine(false);
+    } else {
+      setMode("discipline");
+      setFilterMine(true);
+    }
+  }, [role, pmba, touched]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
@@ -53,44 +70,56 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
     return map;
   }, [visible, statuses]);
 
-  // Discipline-mode: produce one card per (ticket, slot the user works on)
+  // Discipline-mode: produce one card per (ticket, slot)
+  // - "My tickets": only slots the current user is assigned to
+  // - "All" (PMBA): both FE and BE for every ticket; slots with no assignee → backlog column
+  const showAll = !filterMine;
   const disciplineCards: DisciplineCard[] = useMemo(() => {
-    if (!user) return [];
+    if (!user && !showAll) return [];
     const out: DisciplineCard[] = [];
+    const buildCard = (t: TicketRow, slot: "FE" | "BE"): DisciplineCard => {
+      const assigned = t.assignees.some((a) => a.slot === slot);
+      const status = slot === "FE" ? t.fe_status : t.be_status;
+      return { ticket: t, slot, status, unassigned: !assigned };
+    };
     visible.forEach((t) => {
-      const slots = new Set(
-        t.assignees.filter((a) => a.user_id === user.id).map((a) => a.slot)
-      );
-      // PMBA viewing "All" sees both slots when relevant
-      if (slots.size === 0 && isPMBA(role) && !filterMine) {
-        if (t.assignees.some((a) => a.slot === "FE") || t.est_frontend_hours > 0) {
-          out.push({ ticket: t, slot: "FE", status: t.fe_status });
-        }
-        if (t.assignees.some((a) => a.slot === "BE") || t.est_backend_hours > 0) {
-          out.push({ ticket: t, slot: "BE", status: t.be_status });
-        }
+      if (showAll) {
+        out.push(buildCard(t, "FE"));
+        out.push(buildCard(t, "BE"));
       } else {
+        const slots = new Set(
+          t.assignees.filter((a) => a.user_id === user!.id).map((a) => a.slot)
+        );
         slots.forEach((slot) => {
           out.push({
             ticket: t,
             slot,
             status: slot === "FE" ? t.fe_status : t.be_status,
+            unassigned: false,
           });
         });
       }
     });
     return out;
-  }, [visible, user, role, filterMine]);
+  }, [visible, user, showAll]);
 
   const byDisciplineStatus = useMemo(() => {
-    const map: Record<DisciplineStatus, DisciplineCard[]> = {
+    const map: Record<DisciplineColumnKey, DisciplineCard[]> = {
+      backlog: [],
       todo: [],
       in_progress: [],
       done: [],
     };
-    disciplineCards.forEach((c) => map[c.status].push(c));
+    disciplineCards.forEach((c) => {
+      if (c.unassigned) map.backlog.push(c);
+      else map[c.status].push(c);
+    });
     return map;
   }, [disciplineCards]);
+
+  const disciplineColumns: DisciplineColumnKey[] = showAll
+    ? ["backlog", ...DISCIPLINE_STATUSES]
+    : DISCIPLINE_STATUSES;
 
   const activeTicket =
     activeId && mode === "project"
@@ -142,7 +171,7 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
       <div className="flex items-center gap-2 mb-4 flex-wrap">
         <div className="flex gap-1 p-1 rounded-lg bg-white/5 hairline">
           <button
-            onClick={() => setMode("project")}
+            onClick={() => { setTouched(true); setMode("project"); }}
             className={cn(
               "px-3 py-1 text-xs rounded-md transition",
               mode === "project" ? "bg-foreground text-background" : "text-dim hover:text-foreground"
@@ -151,7 +180,7 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
             Project status
           </button>
           <button
-            onClick={() => setMode("discipline")}
+            onClick={() => { setTouched(true); setMode("discipline"); }}
             className={cn(
               "px-3 py-1 text-xs rounded-md transition",
               mode === "discipline" ? "bg-foreground text-background" : "text-dim hover:text-foreground"
@@ -163,13 +192,13 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
 
         <div className="flex gap-1 p-1 rounded-lg bg-white/5 hairline">
           <button
-            onClick={() => setFilterMine(false)}
+            onClick={() => { setTouched(true); setFilterMine(false); }}
             className={cn("px-3 py-1 text-xs rounded-md transition", !filterMine ? "bg-foreground text-background" : "text-dim hover:text-foreground")}
           >
             All
           </button>
           <button
-            onClick={() => setFilterMine(true)}
+            onClick={() => { setTouched(true); setFilterMine(true); }}
             className={cn("px-3 py-1 text-xs rounded-md transition", filterMine ? "bg-foreground text-background" : "text-dim hover:text-foreground")}
           >
             My tickets
@@ -199,10 +228,10 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
           </div>
         ) : (
           <div className="flex gap-3 overflow-x-auto pb-4">
-            {DISCIPLINE_STATUSES.map((s) => (
+            {disciplineColumns.map((s) => (
               <DisciplineColumn
                 key={s}
-                status={s}
+                column={s}
                 cards={byDisciplineStatus[s]}
                 onCardClick={(c) => setOpenTicket(c.ticket)}
               />
@@ -269,16 +298,18 @@ function Column({
 }
 
 function DisciplineColumn({
-  status,
+  column,
   cards,
   onCardClick,
 }: {
-  status: DisciplineStatus;
+  column: DisciplineColumnKey;
   cards: DisciplineCard[];
   onCardClick: (c: DisciplineCard) => void;
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id: status });
-  const color = DISCIPLINE_STATUS_COLOR[status];
+  const { setNodeRef, isOver } = useDroppable({ id: column });
+  const isBacklog = column === "backlog";
+  const color = isBacklog ? BACKLOG_COLOR : DISCIPLINE_STATUS_COLOR[column];
+  const label = isBacklog ? "Backlog" : DISCIPLINE_STATUS_LABEL[column];
   return (
     <div
       ref={setNodeRef}
@@ -290,7 +321,10 @@ function DisciplineColumn({
       <div className="flex items-center justify-between px-1.5 pb-2 mb-2 hairline-b">
         <div className="flex items-center gap-2">
           <div className="h-2 w-2 rounded-full" style={{ background: color }} />
-          <div className="text-sm font-medium">{DISCIPLINE_STATUS_LABEL[status]}</div>
+          <div className="text-sm font-medium">{label}</div>
+          {isBacklog && (
+            <span className="text-[10px] uppercase tracking-wider text-dimmer">unassigned</span>
+          )}
         </div>
         <div className="text-xs text-dimmer font-mono">{cards.length}</div>
       </div>
