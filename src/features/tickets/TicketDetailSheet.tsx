@@ -123,14 +123,55 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
   const handleSaveEdit = async () => {
     const fe = parseFloat(feEst) || 0;
     const be = parseFloat(beEst) || 0;
+    const prevFE = ticket.current_fe_estimate;
+    const prevBE = ticket.current_be_estimate;
+
     const { error } = await supabase
       .from("tickets")
-      .update({ title: title.trim(), est_frontend_hours: fe, est_backend_hours: be })
+      .update({
+        title: title.trim(),
+        current_fe_estimate: fe,
+        current_be_estimate: be,
+      })
       .eq("id", ticket.id);
     if (error) return toast.error(error.message);
+
+    // Log changes for any discipline that actually moved.
+    const audit: any[] = [];
+    if (fe !== prevFE) {
+      audit.push({
+        ticket_id: ticket.id,
+        user_id: user?.id,
+        discipline: "FE",
+        previous_hours: prevFE,
+        new_hours: fe,
+        reason: "PMBA edit",
+        status: "approved",
+        decided_by: user?.id,
+        decided_at: new Date().toISOString(),
+      });
+    }
+    if (be !== prevBE) {
+      audit.push({
+        ticket_id: ticket.id,
+        user_id: user?.id,
+        discipline: "BE",
+        previous_hours: prevBE,
+        new_hours: be,
+        reason: "PMBA edit",
+        status: "approved",
+        decided_by: user?.id,
+        decided_at: new Date().toISOString(),
+      });
+    }
+    if (audit.length && user?.id) {
+      await supabase.from("ticket_estimate_changes").insert(audit);
+    }
+
     toast.success("Saved");
     setEditing(false);
     onChange();
+    reloadChanges();
   };
 
   const handleDelete = async () => {
