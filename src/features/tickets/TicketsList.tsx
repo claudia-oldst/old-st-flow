@@ -147,6 +147,12 @@ export function TicketsList({
                     {groupBy !== "status" && (
                       <th className="px-4 py-2.5 font-normal w-32">Status</th>
                     )}
+                    {groupBy !== "fe_status" && (
+                      <th className="px-4 py-2.5 font-normal w-28">FE status</th>
+                    )}
+                    {groupBy !== "be_status" && (
+                      <th className="px-4 py-2.5 font-normal w-28">BE status</th>
+                    )}
                     <th className="px-4 py-2.5 font-normal text-right w-24">FE</th>
                     <th className="px-4 py-2.5 font-normal text-right w-24">BE</th>
                     {groupBy !== "assignee" && (
@@ -180,6 +186,16 @@ export function TicketsList({
                                 {status.name}
                               </span>
                             )}
+                          </td>
+                        )}
+                        {groupBy !== "fe_status" && (
+                          <td className="px-4 py-3">
+                            <DisciplineStatusChip slot="FE" status={t.fe_status} />
+                          </td>
+                        )}
+                        {groupBy !== "be_status" && (
+                          <td className="px-4 py-3">
+                            <DisciplineStatusChip slot="BE" status={t.be_status} />
                           </td>
                         )}
                         <td className="px-4 py-3 text-right text-xs font-mono text-dim">
