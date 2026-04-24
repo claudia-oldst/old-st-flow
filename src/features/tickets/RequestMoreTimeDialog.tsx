@@ -144,8 +144,17 @@ export function RequestMoreTimeDialog({
               onChange={(e) => setHours(e.target.value)}
               placeholder="e.g. 4"
             />
-            <div className="text-[11px] text-dim">
-              {formatHours(previous)} → <span className="text-foreground font-mono">{formatHours(next)}</span>
+            <div className="flex items-center justify-between text-[11px] text-dim">
+              <span>
+                {formatHours(previous)} →{" "}
+                <span className="text-foreground font-mono">{formatHours(next)}</span>
+              </span>
+              <span className="text-dimmer">
+                Used so far:{" "}
+                <span className="text-foreground font-mono">
+                  {formatHours(slot === "FE" ? actualFE : actualBE)}
+                </span>
+              </span>
             </div>
           </div>
 
