@@ -309,21 +309,41 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
             <div>
               <div className="flex items-center justify-between mb-2">
                 <div className="text-xs uppercase tracking-wider text-dimmer">Estimates & actuals</div>
-                {isPMBA(role) && !editing && (
-                  <Button variant="ghost" size="sm" onClick={() => setEditing(true)} className="gap-1 text-xs">
-                    <Edit3 className="h-3 w-3" /> Edit
-                  </Button>
-                )}
+                <div className="flex items-center gap-1">
+                  {!editing && (canEditFE || canEditBE) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        // Default to user's slot if they only have one
+                        if (canEditFE && !canEditBE) setRequestSlot("FE");
+                        else if (canEditBE && !canEditFE) setRequestSlot("BE");
+                        else setRequestSlot(undefined);
+                        setRequestOpen(true);
+                      }}
+                      className="gap-1 text-xs"
+                    >
+                      <TrendingUp className="h-3 w-3" /> Request more time
+                    </Button>
+                  )}
+                  {isPMBA(role) && !editing && (
+                    <Button variant="ghost" size="sm" onClick={() => setEditing(true)} className="gap-1 text-xs">
+                      <Edit3 className="h-3 w-3" /> Edit
+                    </Button>
+                  )}
+                </div>
               </div>
               {editing ? (
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs">FE estimate (hrs)</Label>
                     <Input type="number" step="0.5" value={feEst} onChange={(e) => setFeEst(e.target.value)} />
+                    <div className="text-[10px] text-dimmer">Original: {formatHours(ticket.original_fe_estimate)}</div>
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">BE estimate (hrs)</Label>
                     <Input type="number" step="0.5" value={beEst} onChange={(e) => setBeEst(e.target.value)} />
+                    <div className="text-[10px] text-dimmer">Original: {formatHours(ticket.original_be_estimate)}</div>
                   </div>
                   <div className="col-span-2 flex gap-2 justify-end">
                     <Button variant="ghost" size="sm" onClick={() => setEditing(false)}>Cancel</Button>
@@ -332,13 +352,68 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-3">
-                  <Stat label="Frontend" actual={ticket.actual_frontend_hours} estimate={ticket.est_frontend_hours} />
-                  <Stat label="Backend" actual={ticket.actual_backend_hours} estimate={ticket.est_backend_hours} />
+                  <Stat
+                    label="Frontend"
+                    actual={ticket.actual_frontend_hours}
+                    estimate={ticket.current_fe_estimate}
+                    original={ticket.original_fe_estimate}
+                  />
+                  <Stat
+                    label="Backend"
+                    actual={ticket.actual_backend_hours}
+                    estimate={ticket.current_be_estimate}
+                    original={ticket.original_be_estimate}
+                  />
                 </div>
               )}
               {ticket.actual_overhead_hours > 0 && (
                 <div className="mt-3 text-xs text-dim">
                   Overhead logged: <span className="text-foreground font-mono">{formatHours(ticket.actual_overhead_hours)}</span>
+                </div>
+              )}
+
+              {/* Estimate change history */}
+              {estimateChanges.length > 0 && (
+                <div className="mt-4 rounded-lg bg-white/[0.02] hairline p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-[11px] text-dimmer uppercase tracking-wider inline-flex items-center gap-1.5">
+                      <History className="h-3 w-3" /> Estimate changes ({estimateChanges.length})
+                    </div>
+                    {estimateChanges.length > 3 && (
+                      <button
+                        onClick={() => setShowAllChanges((v) => !v)}
+                        className="text-[10px] text-dim hover:text-foreground transition"
+                      >
+                        {showAllChanges ? "Show less" : "View all"}
+                      </button>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    {(showAllChanges ? estimateChanges : estimateChanges.slice(0, 3)).map((c) => {
+                      const sign = c.delta > 0 ? "+" : "";
+                      const color =
+                        c.delta > 0
+                          ? "text-health-warn"
+                          : c.delta < 0
+                          ? "text-health-good"
+                          : "text-dim";
+                      return (
+                        <div key={c.id} className="flex items-start gap-2 text-xs">
+                          <span className={`font-mono font-semibold ${color} w-12 shrink-0`}>
+                            {sign}{formatHours(c.delta)}
+                          </span>
+                          <span className="text-dim shrink-0">{c.discipline}</span>
+                          <span className="flex-1 min-w-0 text-dim truncate">
+                            {c.user?.name ?? "—"}
+                            {c.reason && <span className="text-dimmer"> — {c.reason}</span>}
+                          </span>
+                          <span className="text-[10px] text-dimmer shrink-0">
+                            {new Date(c.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>
