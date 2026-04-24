@@ -90,6 +90,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
         const typeCol = findCol("Type", "type");
         const feCol = findCol("FE Estimate", "FE", "Frontend", "fe estimate");
         const beCol = findCol("BE Estimate", "BE", "Backend", "be estimate");
+        const epicCol = findCol("Epic", "epic", "Epic Name");
 
         if (!titleCol) {
           toast.error("CSV must include a Title column");
@@ -106,11 +107,13 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
           else if (tl === "cr" || tl === "change request") type = "CR";
           const fe = feCol ? parseFloat(r[feCol]) || 0 : 0;
           const be = beCol ? parseFloat(r[beCol]) || 0 : 0;
+          const epic = epicCol ? (r[epicCol] ?? "").trim() : "";
           return {
             title: titleRaw,
             type,
             fe,
             be,
+            epic,
             error: !titleRaw ? "Missing title" : undefined,
           };
         });
