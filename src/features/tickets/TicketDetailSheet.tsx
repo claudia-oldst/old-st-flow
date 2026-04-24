@@ -16,8 +16,9 @@ import { useCurrentUser } from "@/store/currentUser";
 import { displayTitle, formatHours } from "@/lib/utils";
 import { AssignDialog } from "@/features/tickets/AssignDialog";
 import { LogTimeModal } from "@/features/timelog/LogTimeModal";
+import { EpicSelect } from "@/features/epics/EpicSelect";
 import { MemberAvatar } from "@/components/MemberAvatar";
-import { Clock, Users, Trash2, Edit3 } from "lucide-react";
+import { Clock, Users, Trash2, Edit3, Bookmark } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
