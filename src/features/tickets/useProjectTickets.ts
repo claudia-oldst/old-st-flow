@@ -31,7 +31,7 @@ export function useProjectTickets(projectId: string | undefined) {
     setLoading(true);
     const { data: tix } = await supabase
       .from("tickets")
-      .select("*")
+      .select("*, epic:project_epics(epic_name)")
       .eq("project_id", projectId)
       .order("position", { ascending: true })
       .order("ticket_number", { ascending: true });
@@ -53,13 +53,23 @@ export function useProjectTickets(projectId: string | undefined) {
     });
 
     setTickets(
-      (tix ?? []).map((t) => ({
-        ...t,
+      (tix ?? []).map((t: any) => ({
+        id: t.id,
+        project_id: t.project_id,
+        ticket_number: t.ticket_number,
+        formatted_id: t.formatted_id,
+        title: t.title,
+        ticket_type: t.ticket_type,
+        status_id: t.status_id,
+        epic_id: t.epic_id ?? null,
+        epic_name: t.epic?.epic_name ?? null,
         est_frontend_hours: Number(t.est_frontend_hours),
         est_backend_hours: Number(t.est_backend_hours),
         actual_frontend_hours: Number(t.actual_frontend_hours),
         actual_backend_hours: Number(t.actual_backend_hours),
         actual_overhead_hours: Number(t.actual_overhead_hours),
+        position: t.position,
+        created_at: t.created_at,
         assignees: grouped[t.id] ?? [],
       }))
     );
