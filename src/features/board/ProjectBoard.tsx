@@ -26,6 +26,7 @@ interface DisciplineCard {
   ticket: TicketRow;
   slot: "FE" | "BE";
   status: DisciplineStatus;
+  unassigned?: boolean; // true → render in the Backlog column
 }
 
 export function ProjectBoard({ projectId }: { projectId: string }) {
