@@ -1,81 +1,116 @@
-## Two-tier status model
+## Goal
 
-Today every ticket has a single `status_id` (the column on the Kanban board). We'll split this into:
+Let developers request additional time per ticket, log every estimate change as an audit trail, and add an Epic-level estimate-evolution chart in the Health section that can be filtered by date so PMBAs can see how estimates vs actuals evolved compared to the original baseline.
 
-- **Discipline status** — one for FE, one for BE. Each developer working on that discipline shares the same status. Drawn from a small fixed list: `To-do`, `In progress`, `Done`.
-- **Project status** — the existing Admin-defined status list (Backlog / Active / Done categories). Auto-derived from the FE+BE discipline statuses, but a PMBA can pin/override it.
+The legacy `est_frontend_hours` / `est_backend_hours` columns are fully replaced by `original_*_estimate` (immutable baseline) + `current_*_estimate` (live, mutable).
 
-A ticket can therefore be `BE: To-do`, `FE: Done`, `Project: In progress` simultaneously.
+## Database changes (migration)
 
----
+**1. Tickets — add baseline + current estimate columns, drop legacy**
 
-## Data model changes
+```sql
+ALTER TABLE public.tickets
+  ADD COLUMN original_fe_estimate numeric NOT NULL DEFAULT 0,
+  ADD COLUMN original_be_estimate numeric NOT NULL DEFAULT 0,
+  ADD COLUMN current_fe_estimate  numeric NOT NULL DEFAULT 0,
+  ADD COLUMN current_be_estimate  numeric NOT NULL DEFAULT 0;
 
-Add to `tickets`:
-- `fe_status` (text, default `'todo'`) — values: `todo` | `in_progress` | `done`
-- `be_status` (text, default `'todo'`) — same values
-- `project_status_override` (boolean, default `false`) — when true, PMBA has manually set `status_id` and auto-derivation is suspended
+-- Backfill from existing values
+UPDATE public.tickets
+   SET original_fe_estimate = est_frontend_hours,
+       current_fe_estimate  = est_frontend_hours,
+       original_be_estimate = est_backend_hours,
+       current_be_estimate  = est_backend_hours;
 
-Keep the existing `status_id` column — it now represents the **project status** (the board column).
-
-### Auto-derivation rule (applied via DB trigger on `tickets` insert/update of fe_status/be_status, only when `project_status_override = false`)
-
-```text
-both done            → first status in 'done'   category (lowest position)
-either in_progress   → first status in 'active' category
-both todo            → first status in 'backlog' category
+ALTER TABLE public.tickets
+  DROP COLUMN est_frontend_hours,
+  DROP COLUMN est_backend_hours;
 ```
 
-The trigger looks up the appropriate status by category + lowest position. If the project's PMBA later changes `status_id` directly, set `project_status_override = true`. A "Reset to auto" action clears the override and re-derives.
+**2. New table `ticket_estimate_changes` (audit log)**
 
-Discipline statuses are NOT in the Admin > Statuses list — they are a fixed enum, simpler and decoupled.
+```sql
+CREATE TABLE public.ticket_estimate_changes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  ticket_id uuid NOT NULL,
+  user_id uuid NOT NULL,             -- requester
+  discipline assignee_slot NOT NULL, -- 'FE' | 'BE'
+  previous_hours numeric NOT NULL,
+  new_hours numeric NOT NULL,
+  delta numeric GENERATED ALWAYS AS (new_hours - previous_hours) STORED,
+  reason text,
+  status text NOT NULL DEFAULT 'approved', -- 'approved' | 'pending' | 'rejected'
+  decided_by uuid,
+  decided_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.ticket_estimate_changes ENABLE ROW LEVEL SECURITY;
+-- Public read/insert/update policies (matches existing project pattern)
+```
 
----
+**3. Seed initial baseline change rows** (optional but useful for the trend chart) — one row per existing ticket with `previous_hours = 0`, `new_hours = original_*_estimate`, `created_at = ticket.created_at`, so the time-series has a starting point.
 
-## UI changes
+## Code refactor: replace `est_*_hours` everywhere
 
-### TicketDetailSheet
-- New "Discipline status" section with two segmented controls (FE / BE), each cycling `To-do → In progress → Done`. Visible to all; editable by the assignee for their slot, and by PMBA for both.
-- "Project status" stays as today, plus a small "Auto" badge when not overridden, and an "Override" / "Reset to auto" toggle for PMBA.
+Every reference becomes `current_*_estimate` (since that's what burn/health and "what is this ticket estimated at right now" should reflect). The original is shown alongside only where useful (ticket detail).
 
-### Project Kanban board (`ProjectBoard.tsx`)
-- Add a small toggle in the toolbar (next to All / My tickets):
-  - **Project view** (default) — columns are the Admin statuses, ticket placed by `status_id`. Dragging a card sets `status_id` and `project_status_override = true`.
-  - **My view** — columns are the three discipline statuses (`To-do / In progress / Done`). Tickets are filtered to those where the current user is assigned, and grouped by **their** slot's discipline status (FE assignee → `fe_status`; BE assignee → `be_status`; if assigned to both, the ticket appears once per slot). Dragging updates the corresponding discipline status.
+Files to edit:
 
-### TicketCard
-- Show two small chips: `FE · <status>` and `BE · <status>` with subtle color coding (gray / blue / green), only when that slot has assignees.
+- `src/features/tickets/useProjectTickets.ts` — `TicketRow` gets `original_fe_estimate`, `original_be_estimate`, `current_fe_estimate`, `current_be_estimate`. Drop `est_*_hours`.
+- `src/features/tickets/TicketCard.tsx` — read `current_*_estimate` for the FE/BE bars.
+- `src/features/tickets/TicketsList.tsx` — show `current_*_estimate` in columns.
+- `src/features/tickets/TicketDetailSheet.tsx` — show current as headline; show "originally Xh" in muted text when `current ≠ original`. Edit form writes both `original_*_estimate` and `current_*_estimate` on initial PMBA edit only when... see "Edit semantics" below.
+- `src/features/tickets/QuickAddRow.tsx` — insert sets both `original_*_estimate` and `current_*_estimate` to the entered value.
+- `src/features/tickets/ProjectTickets.tsx` (CSV/import path at line 192–193) — same: write to both original and current.
+- `src/features/health/ProjectHealth.tsx` — burn rings sum `current_*_estimate`.
+- `src/pages/MyWork.tsx` — select + display `current_*_estimate`.
 
-### My Work page
-- Each row already shows the project status. Add the user's own discipline status chip alongside it (based on the row's `slot`).
+**Edit semantics for PMBA "Edit estimates" in TicketDetailSheet:**
+- Editing updates `current_*_estimate` only and writes a `ticket_estimate_changes` row with `status='approved'`, `user_id = current user`, `reason = 'PMBA edit'` (or whatever they typed). Original stays locked after creation.
 
-### TicketsList (table)
-- Add `FE status` and `BE status` columns (toggleable via existing column controls if present; otherwise just appended).
-- Existing "Group by" dropdown gains `FE status` and `BE status` options.
+## Dev-facing UI: request more time
 
----
+In `TicketDetailSheet.tsx`, "Estimates & actuals" block:
 
-## CSV import
+- Headline shows `current_*_estimate`. Underneath in muted text: "originally {original}h" when they differ.
+- New **"Request more time"** button visible to:
+  - Devs assigned to FE slot (FE only), assigned to BE (BE only)
+  - PMBAs (either)
+- Opens new `RequestMoreTimeDialog`: discipline (locked for devs, picker for PMBA), additional hours (number, can be negative for PMBA), reason (textarea, required).
+- Submit:
+  1. Insert `ticket_estimate_changes` (`previous_hours = current`, `new_hours = current + additional`, `status='approved'`).
+  2. Update ticket `current_*_estimate`.
+- Below the estimate, show last 3 change-log entries ("+4h FE — Kyle, 12 Apr — 'API scope grew'") with "View all" expanding the full list.
 
-Extend the CSV template with two optional columns: `FE Status`, `BE Status` (values `todo` / `in_progress` / `done`, default `todo`). Project status remains auto-derived on insert.
+## Epic-level estimate analytics in Health
 
----
+New component `EstimateEvolution.tsx` rendered at the bottom of `ProjectHealth.tsx`:
 
-## Files to change
+- **"As of" date picker** at the top, defaults to today.
+- For the chosen date, computes per epic (and "No epic" bucket), only including tickets where `created_at <= asOf`:
+  - **Original**: sum `original_fe_estimate + original_be_estimate`.
+  - **Estimate as of date**: original + sum of approved `ticket_estimate_changes.delta` where `created_at <= asOf`.
+  - **Actuals as of date**: sum `time_logs.hours` (FE+BE, excluding overhead) where `logged_at <= asOf`.
+- Renders horizontal bar group per epic: three bars (Original / Current estimate / Actual) plus delta chips ("+6h scope", "92% burned").
+- Below that, a **trend chart** (Recharts `LineChart`) for a selected epic (dropdown, defaults to "All epics aggregated"): three lines — Original, Current Estimate, Actual — sampled daily from project's first ticket `created_at` up to the "as of" date.
 
-- **Migration** (new): add columns + trigger function `derive_project_status()` + trigger on `tickets`
-- `src/features/tickets/useProjectTickets.ts` — select the new columns, expose in `TicketRow`
-- `src/features/tickets/TicketCard.tsx` — discipline status chips
-- `src/features/tickets/TicketDetailSheet.tsx` — discipline status controls + override toggle
-- `src/features/tickets/TicketsList.tsx` — new columns + group-by options
-- `src/features/board/ProjectBoard.tsx` — view toggle + per-discipline grouping/drag handler
-- `src/features/tickets/ProjectTickets.tsx` — CSV template + import parser
-- `src/pages/MyWork.tsx` — discipline status chip
-- `src/lib/types.ts` — add `DisciplineStatus` type
+Visible to all roles read-only.
 
-No changes to the Admin > Statuses screen (project statuses keep working as today).
+## New files
 
-## Out of scope
+- `src/features/tickets/RequestMoreTimeDialog.tsx`
+- `src/features/estimates/useEstimateChanges.ts` — fetch + realtime subscription for `ticket_estimate_changes` filtered by project (joined via tickets).
+- `src/features/health/EstimateEvolution.tsx` — date picker, per-epic bars, trend chart.
 
-- Notifications when a discipline finishes
-- Per-assignee (per-person) status — we agreed on per-discipline only
+## Technical notes
+
+- Recharts already wired via `src/components/ui/chart.tsx`.
+- After dropping the legacy columns, `src/integrations/supabase/types.ts` is regenerated automatically — do not hand-edit.
+- Trend chart computes daily buckets client-side: cheap at project scale.
+- `assignee_slot` enum already exists, reused for `discipline` on the audit table.
+
+## Open questions
+
+1. **Approval workflow** — Auto-apply dev requests (current plan) or require PMBA approval before `current_*_estimate` changes?
+2. **Date filter** — Single "as of" date (current plan), or a date *range* with start + end?
+3. **Negative adjustments** — Allow devs to request *less* time, or only PMBAs can reduce?
