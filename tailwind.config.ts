@@ -13,6 +13,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        display: ['Poppins', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
       },
       colors: {
@@ -58,6 +59,13 @@ export default {
           good: "hsl(var(--health-good))",
           warn: "hsl(var(--health-warn))",
           bad:  "hsl(var(--health-bad))",
+        },
+        brand: {
+          navy: "hsl(var(--brand-navy))",
+          coral: "hsl(var(--brand-coral))",
+          "coral-strong": "hsl(var(--brand-coral-strong))",
+          gold: "hsl(var(--brand-gold))",
+          "gold-soft": "hsl(var(--brand-gold-soft))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
