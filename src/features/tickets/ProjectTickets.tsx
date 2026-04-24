@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import Papa from "papaparse";
 import { Button } from "@/components/ui/button";
-import { Upload, FileText, AlertCircle } from "lucide-react";
+import { Upload, FileText, AlertCircle, LayoutGrid, List } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -10,12 +10,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { useProjectTickets, type TicketRow } from "@/features/tickets/useProjectTickets";
 import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
-import { useStatuses } from "@/features/statuses/useStatuses";
+import { TicketsList, type GroupBy } from "@/features/tickets/TicketsList";
+import { ProjectBoard } from "@/features/board/ProjectBoard";
 import { useProjectRole, isPMBA } from "@/features/team/useProjectRole";
-import { displayTitle, formatHours } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import type { TicketType } from "@/lib/types";
 
 interface ParsedRow {
@@ -26,15 +34,18 @@ interface ParsedRow {
   error?: string;
 }
 
+type ViewMode = "board" | "list";
+
 export function ProjectTickets({ projectId }: { projectId: string }) {
   const role = useProjectRole(projectId);
   const { tickets, reload } = useProjectTickets(projectId);
-  const { statuses } = useStatuses();
   const fileRef = useRef<HTMLInputElement>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [importing, setImporting] = useState(false);
   const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
+  const [view, setView] = useState<ViewMode>("board");
+  const [groupBy, setGroupBy] = useState<GroupBy>("status");
 
   const handleFile = (file: File) => {
     Papa.parse<Record<string, string>>(file, {
@@ -102,77 +113,77 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <div className="text-dim text-sm">All tickets in this project.</div>
-        {isPMBA(role) && (
-          <>
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".csv"
-              hidden
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) handleFile(f);
-                e.target.value = "";
-              }}
-            />
-            <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()} className="gap-2">
-              <Upload className="h-4 w-4" /> Import CSV
-            </Button>
-          </>
+      <div className="flex items-center gap-3 mb-4 flex-wrap">
+        <div className="flex gap-1 p-1 rounded-lg bg-white/5 hairline">
+          <button
+            onClick={() => setView("board")}
+            className={cn(
+              "px-3 py-1 text-xs rounded-md transition inline-flex items-center gap-1.5",
+              view === "board" ? "bg-foreground text-background" : "text-dim hover:text-foreground"
+            )}
+          >
+            <LayoutGrid className="h-3 w-3" /> Board
+          </button>
+          <button
+            onClick={() => setView("list")}
+            className={cn(
+              "px-3 py-1 text-xs rounded-md transition inline-flex items-center gap-1.5",
+              view === "list" ? "bg-foreground text-background" : "text-dim hover:text-foreground"
+            )}
+          >
+            <List className="h-3 w-3" /> List
+          </button>
+        </div>
+
+        {view === "list" && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-dim">Group by</span>
+            <Select value={groupBy} onValueChange={(v) => setGroupBy(v as GroupBy)}>
+              <SelectTrigger className="h-8 w-[140px] text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                <SelectItem value="status">Status</SelectItem>
+                <SelectItem value="assignee">Assignee</SelectItem>
+                <SelectItem value="type">Type</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         )}
+
+        <div className="ml-auto flex items-center gap-2">
+          {isPMBA(role) && (
+            <>
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".csv"
+                hidden
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleFile(f);
+                  e.target.value = "";
+                }}
+              />
+              <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()} className="gap-2">
+                <Upload className="h-4 w-4" /> Import CSV
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
-      {tickets.length === 0 ? (
+      {view === "board" ? (
+        <ProjectBoard projectId={projectId} />
+      ) : tickets.length === 0 ? (
         <div className="glass rounded-2xl p-12 text-center">
           <FileText className="h-8 w-8 mx-auto text-dimmer mb-3" />
           <div className="font-medium">No tickets yet</div>
           <div className="text-dim text-sm mt-1">Add tickets from the Board, or import a CSV.</div>
         </div>
       ) : (
-        <div className="glass rounded-2xl overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="text-left text-xs text-dimmer uppercase tracking-wider">
-              <tr className="hairline-b">
-                <th className="px-4 py-3 font-normal">ID</th>
-                <th className="px-4 py-3 font-normal">Title</th>
-                <th className="px-4 py-3 font-normal">Status</th>
-                <th className="px-4 py-3 font-normal text-right">FE</th>
-                <th className="px-4 py-3 font-normal text-right">BE</th>
-                <th className="px-4 py-3 font-normal">Assignees</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tickets.map((t) => {
-                const status = statuses.find((s) => s.id === t.status_id);
-                return (
-                  <tr key={t.id} onClick={() => setOpenTicket(t)} className="cursor-pointer hover:bg-white/[0.02] transition hairline-b last:border-b-0">
-                    <td className="px-4 py-3 font-mono text-xs text-dimmer">{t.formatted_id}</td>
-                    <td className="px-4 py-3">{displayTitle(t.title, t.ticket_type)}</td>
-                    <td className="px-4 py-3">
-                      {status && (
-                        <span className="inline-flex items-center gap-1.5 text-xs">
-                          <span className="h-1.5 w-1.5 rounded-full" style={{ background: status.color }} />
-                          {status.name}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right text-xs font-mono text-dim">
-                      {formatHours(t.actual_frontend_hours)} / {formatHours(t.est_frontend_hours)}
-                    </td>
-                    <td className="px-4 py-3 text-right text-xs font-mono text-dim">
-                      {formatHours(t.actual_backend_hours)} / {formatHours(t.est_backend_hours)}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-dim">
-                      {t.assignees.length === 0 ? "—" : t.assignees.map((a) => a.member.name).join(", ")}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <TicketsList tickets={tickets} groupBy={groupBy} onOpen={setOpenTicket} />
       )}
 
       <Dialog open={importOpen} onOpenChange={setImportOpen}>

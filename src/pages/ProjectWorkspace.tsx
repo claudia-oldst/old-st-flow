@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, NavLink, Route, Routes, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Project } from "@/lib/types";
-import { ProjectBoard } from "@/features/board/ProjectBoard";
+
 import { ProjectTickets } from "@/features/tickets/ProjectTickets";
 import { ProjectTeam } from "@/features/team/ProjectTeam";
 import { ProjectHealth } from "@/features/health/ProjectHealth";
@@ -20,8 +20,7 @@ export default function ProjectWorkspace() {
 
   const tabs = useMemo(
     () => [
-      { to: "", label: "Board", end: true },
-      { to: "tickets", label: "Tickets" },
+      { to: "", label: "Tickets", end: true },
       { to: "team", label: "Team" },
       { to: "health", label: "Health" },
     ],
@@ -66,8 +65,7 @@ export default function ProjectWorkspace() {
       </nav>
 
       <Routes>
-        <Route index element={<ProjectBoard projectId={id} />} />
-        <Route path="tickets" element={<ProjectTickets projectId={id} />} />
+        <Route index element={<ProjectTickets projectId={id} />} />
         <Route path="team" element={<ProjectTeam projectId={id} />} />
         <Route path="health" element={<ProjectHealth projectId={id} />} />
       </Routes>
