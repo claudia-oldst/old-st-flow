@@ -15,8 +15,10 @@ export interface TicketRow {
   project_status_override: boolean;
   epic_id: number | null;
   epic_name: string | null;
-  est_frontend_hours: number;
-  est_backend_hours: number;
+  original_fe_estimate: number;
+  original_be_estimate: number;
+  current_fe_estimate: number;
+  current_be_estimate: number;
   actual_frontend_hours: number;
   actual_backend_hours: number;
   actual_overhead_hours: number;
@@ -69,8 +71,10 @@ export function useProjectTickets(projectId: string | undefined) {
         project_status_override: !!t.project_status_override,
         epic_id: t.epic_id ?? null,
         epic_name: t.epic?.epic_name ?? null,
-        est_frontend_hours: Number(t.est_frontend_hours),
-        est_backend_hours: Number(t.est_backend_hours),
+        original_fe_estimate: Number(t.original_fe_estimate),
+        original_be_estimate: Number(t.original_be_estimate),
+        current_fe_estimate: Number(t.current_fe_estimate),
+        current_be_estimate: Number(t.current_be_estimate),
         actual_frontend_hours: Number(t.actual_frontend_hours),
         actual_backend_hours: Number(t.actual_backend_hours),
         actual_overhead_hours: Number(t.actual_overhead_hours),

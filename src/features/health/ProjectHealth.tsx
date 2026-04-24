@@ -51,8 +51,8 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
   const totals = useMemo(() => {
     return tickets.reduce(
       (acc, t) => {
-        acc.feEst += t.est_frontend_hours;
-        acc.beEst += t.est_backend_hours;
+        acc.feEst += t.current_fe_estimate;
+        acc.beEst += t.current_be_estimate;
         acc.feAct += t.actual_frontend_hours;
         acc.beAct += t.actual_backend_hours;
         acc.over += t.actual_overhead_hours;
