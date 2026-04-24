@@ -50,6 +50,35 @@ export type Database = {
           },
         ]
       }
+      project_epics: {
+        Row: {
+          created_at: string
+          epic_name: string | null
+          id: number
+          project_id: string
+        }
+        Insert: {
+          created_at?: string
+          epic_name?: string | null
+          id?: number
+          project_id: string
+        }
+        Update: {
+          created_at?: string
+          epic_name?: string | null
+          id?: number
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_epics_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_members: {
         Row: {
           created_at: string
