@@ -20,8 +20,7 @@ export default function ProjectWorkspace() {
 
   const tabs = useMemo(
     () => [
-      { to: "", label: "Board", end: true },
-      { to: "tickets", label: "Tickets" },
+      { to: "", label: "Tickets", end: true },
       { to: "team", label: "Team" },
       { to: "health", label: "Health" },
     ],
