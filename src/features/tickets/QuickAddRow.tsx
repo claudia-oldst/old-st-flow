@@ -40,6 +40,9 @@ export function QuickAddRow({
       status_id: statusId,
       est_frontend_hours: parseFloat(fe) || 0,
       est_backend_hours: parseFloat(be) || 0,
+      // ticket_number + formatted_id are filled by the before-insert trigger
+      ticket_number: 0,
+      formatted_id: "",
     });
     setBusy(false);
     if (error) return toast.error(error.message);
