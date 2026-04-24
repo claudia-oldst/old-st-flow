@@ -18,15 +18,12 @@ import {
 } from "@/lib/types";
 
 type BoardMode = "project" | "discipline";
-type DisciplineColumnKey = "backlog" | DisciplineStatus;
 const DISCIPLINE_STATUSES: DisciplineStatus[] = ["todo", "in_progress", "done"];
-const BACKLOG_COLOR = "#64748b";
 
 interface DisciplineCard {
   ticket: TicketRow;
   slot: "FE" | "BE";
   status: DisciplineStatus;
-  unassigned?: boolean; // true → render in the Backlog column
 }
 
 export function ProjectBoard({ projectId }: { projectId: string }) {
@@ -72,20 +69,15 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
 
   // Discipline-mode: produce one card per (ticket, slot)
   // - "My tickets": only slots the current user is assigned to
-  // - "All" (PMBA): both FE and BE for every ticket; slots with no assignee → backlog column
+  // - "All" (PMBA): both FE and BE for every ticket, bucketed by their fe_status / be_status
   const showAll = !filterMine;
   const disciplineCards: DisciplineCard[] = useMemo(() => {
     if (!user && !showAll) return [];
     const out: DisciplineCard[] = [];
-    const buildCard = (t: TicketRow, slot: "FE" | "BE"): DisciplineCard => {
-      const assigned = t.assignees.some((a) => a.slot === slot);
-      const status = slot === "FE" ? t.fe_status : t.be_status;
-      return { ticket: t, slot, status, unassigned: !assigned };
-    };
     visible.forEach((t) => {
       if (showAll) {
-        out.push(buildCard(t, "FE"));
-        out.push(buildCard(t, "BE"));
+        out.push({ ticket: t, slot: "FE", status: t.fe_status });
+        out.push({ ticket: t, slot: "BE", status: t.be_status });
       } else {
         const slots = new Set(
           t.assignees.filter((a) => a.user_id === user!.id).map((a) => a.slot)
@@ -95,7 +87,6 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
             ticket: t,
             slot,
             status: slot === "FE" ? t.fe_status : t.be_status,
-            unassigned: false,
           });
         });
       }
@@ -104,22 +95,16 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
   }, [visible, user, showAll]);
 
   const byDisciplineStatus = useMemo(() => {
-    const map: Record<DisciplineColumnKey, DisciplineCard[]> = {
-      backlog: [],
+    const map: Record<DisciplineStatus, DisciplineCard[]> = {
       todo: [],
       in_progress: [],
       done: [],
     };
-    disciplineCards.forEach((c) => {
-      if (c.unassigned) map.backlog.push(c);
-      else map[c.status].push(c);
-    });
+    disciplineCards.forEach((c) => map[c.status].push(c));
     return map;
   }, [disciplineCards]);
 
-  const disciplineColumns: DisciplineColumnKey[] = showAll
-    ? ["backlog", ...DISCIPLINE_STATUSES]
-    : DISCIPLINE_STATUSES;
+  const disciplineColumns: DisciplineStatus[] = DISCIPLINE_STATUSES;
 
   const activeTicket =
     activeId && mode === "project"
@@ -302,14 +287,13 @@ function DisciplineColumn({
   cards,
   onCardClick,
 }: {
-  column: DisciplineColumnKey;
+  column: DisciplineStatus;
   cards: DisciplineCard[];
   onCardClick: (c: DisciplineCard) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: column });
-  const isBacklog = column === "backlog";
-  const color = isBacklog ? BACKLOG_COLOR : DISCIPLINE_STATUS_COLOR[column];
-  const label = isBacklog ? "Backlog" : DISCIPLINE_STATUS_LABEL[column];
+  const color = DISCIPLINE_STATUS_COLOR[column];
+  const label = DISCIPLINE_STATUS_LABEL[column];
   return (
     <div
       ref={setNodeRef}
@@ -322,9 +306,6 @@ function DisciplineColumn({
         <div className="flex items-center gap-2">
           <div className="h-2 w-2 rounded-full" style={{ background: color }} />
           <div className="text-sm font-medium">{label}</div>
-          {isBacklog && (
-            <span className="text-[10px] uppercase tracking-wider text-dimmer">unassigned</span>
-          )}
         </div>
         <div className="text-xs text-dimmer font-mono">{cards.length}</div>
       </div>
