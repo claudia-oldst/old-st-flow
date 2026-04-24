@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { useDroppable, useDraggable } from "@dnd-kit/core";
 import { useStatuses } from "@/features/statuses/useStatuses";
@@ -18,7 +18,9 @@ import {
 } from "@/lib/types";
 
 type BoardMode = "project" | "discipline";
+type DisciplineColumnKey = "backlog" | DisciplineStatus;
 const DISCIPLINE_STATUSES: DisciplineStatus[] = ["todo", "in_progress", "done"];
+const BACKLOG_COLOR = "#64748b";
 
 interface DisciplineCard {
   ticket: TicketRow;
