@@ -32,7 +32,22 @@ interface ParsedRow {
   fe: number;
   be: number;
   epic: string;
+  fe_status: "todo" | "in_progress" | "done";
+  be_status: "todo" | "in_progress" | "done";
   error?: string;
+}
+
+function parseDiscipline(raw: string | undefined): "todo" | "in_progress" | "done" {
+  const v = (raw ?? "").trim().toLowerCase().replace(/[\s_-]+/g, "");
+  if (v === "done" || v === "complete" || v === "completed") return "done";
+  if (
+    v === "inprogress" ||
+    v === "doing" ||
+    v === "active" ||
+    v === "wip"
+  )
+    return "in_progress";
+  return "todo";
 }
 
 type ViewMode = "board" | "list";
@@ -58,10 +73,10 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
 
   const downloadTemplate = () => {
     const csv =
-      "Title,Type,FE Estimate,BE Estimate,Epic\n" +
-      "Example: build login page,Standard,4,2,Authentication\n" +
-      "Example: fix header overflow,Bug,1,0,UI polish\n" +
-      "Example: add export endpoint,CR,0,3,Reporting\n";
+      "Title,Type,FE Estimate,BE Estimate,Epic,FE Status,BE Status\n" +
+      "Example: build login page,Standard,4,2,Authentication,todo,todo\n" +
+      "Example: fix header overflow,Bug,1,0,UI polish,in_progress,todo\n" +
+      "Example: add export endpoint,CR,0,3,Reporting,todo,done\n";
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
