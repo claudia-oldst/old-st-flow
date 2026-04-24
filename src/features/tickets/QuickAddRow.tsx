@@ -91,6 +91,7 @@ export function QuickAddRow({
         <Input value={fe} onChange={(e) => setFe(e.target.value)} placeholder="FE" className="h-7 text-xs w-12" type="number" step="0.5" />
         <Input value={be} onChange={(e) => setBe(e.target.value)} placeholder="BE" className="h-7 text-xs w-12" type="number" step="0.5" />
       </div>
+      <EpicSelect projectId={projectId} value={epicId} onChange={setEpicId} size="sm" />
       <div className="flex justify-end gap-1">
         <Button size="sm" variant="ghost" onClick={() => setOpen(false)} className="h-6 text-xs px-2">Cancel</Button>
         <Button size="sm" onClick={submit} disabled={busy || !title.trim()} className="h-6 text-xs px-2">Add</Button>
