@@ -69,20 +69,15 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
 
   // Discipline-mode: produce one card per (ticket, slot)
   // - "My tickets": only slots the current user is assigned to
-  // - "All" (PMBA): both FE and BE for every ticket; slots with no assignee → backlog column
+  // - "All" (PMBA): both FE and BE for every ticket, bucketed by their fe_status / be_status
   const showAll = !filterMine;
   const disciplineCards: DisciplineCard[] = useMemo(() => {
     if (!user && !showAll) return [];
     const out: DisciplineCard[] = [];
-    const buildCard = (t: TicketRow, slot: "FE" | "BE"): DisciplineCard => {
-      const assigned = t.assignees.some((a) => a.slot === slot);
-      const status = slot === "FE" ? t.fe_status : t.be_status;
-      return { ticket: t, slot, status, unassigned: !assigned };
-    };
     visible.forEach((t) => {
       if (showAll) {
-        out.push(buildCard(t, "FE"));
-        out.push(buildCard(t, "BE"));
+        out.push({ ticket: t, slot: "FE", status: t.fe_status });
+        out.push({ ticket: t, slot: "BE", status: t.be_status });
       } else {
         const slots = new Set(
           t.assignees.filter((a) => a.user_id === user!.id).map((a) => a.slot)
@@ -92,7 +87,6 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
             ticket: t,
             slot,
             status: slot === "FE" ? t.fe_status : t.be_status,
-            unassigned: false,
           });
         });
       }
