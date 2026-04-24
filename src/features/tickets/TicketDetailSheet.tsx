@@ -85,8 +85,8 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
   const canEditBE = isPMBA(role) || myBE;
 
   const updateDiscipline = async (slot: "FE" | "BE", value: DisciplineStatus) => {
-    const col = slot === "FE" ? "fe_status" : "be_status";
-    const { error } = await supabase.from("tickets").update({ [col]: value }).eq("id", ticket.id);
+    const patch = slot === "FE" ? { fe_status: value } : { be_status: value };
+    const { error } = await supabase.from("tickets").update(patch).eq("id", ticket.id);
     if (error) return toast.error(error.message);
     onChange();
   };
