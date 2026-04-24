@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import type { Status, StatusCategory, TeamMember } from "@/lib/types";
+import type { ProjectRole, Status, StatusCategory, TeamMember } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,6 +30,8 @@ const CATEGORIES: { value: StatusCategory; label: string; description: string }[
 ];
 
 const PRESET_COLORS = ["#94a3b8", "#3b82f6", "#a855f7", "#22c55e", "#f59e0b", "#ec4899", "#06b6d4", "#ef4444"];
+
+const ROLES: ProjectRole[] = ["Frontend", "Backend", "Fullstack", "QA", "PMBA"];
 
 export default function Admin() {
   const [tab, setTab] = useState<"team" | "statuses">("team");
@@ -87,6 +89,7 @@ function TeamAdmin() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [color, setColor] = useState(PRESET_COLORS[1]);
+  const [role, setRole] = useState<ProjectRole>("Fullstack");
 
   const load = async () => {
     const { data } = await supabase.from("team_members").select("*").order("name");
@@ -102,12 +105,21 @@ function TeamAdmin() {
       name: name.trim(),
       email: email.trim().toLowerCase(),
       avatar_color: color,
+      role,
     });
     if (error) return toast.error(error.message);
     toast.success("Added");
     setOpen(false);
     setName("");
     setEmail("");
+    setRole("Fullstack");
+    load();
+  };
+
+  const handleRoleChange = async (id: string, newRole: ProjectRole) => {
+    const { error } = await supabase.from("team_members").update({ role: newRole }).eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Role updated");
     load();
   };
 
@@ -138,6 +150,17 @@ function TeamAdmin() {
                 <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
               </div>
               <div className="space-y-2">
+                <Label>Role</Label>
+                <Select value={role} onValueChange={(v) => setRole(v as ProjectRole)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {ROLES.map((r) => (
+                      <SelectItem key={r} value={r}>{r}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
                 <Label>Avatar color</Label>
                 <div className="flex flex-wrap gap-2">
                   {PRESET_COLORS.map((c) => (
@@ -164,10 +187,20 @@ function TeamAdmin() {
           {members.map((m) => (
             <div key={m.id} className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] transition">
               <MemberAvatar name={m.name} color={m.avatar_color} size="md" />
-              <div className="flex-1">
-                <div className="font-medium">{m.name}</div>
-                <div className="text-xs text-dim">{m.email}</div>
+              <div className="flex-1 min-w-0">
+                <div className="font-medium truncate">{m.name}</div>
+                <div className="text-xs text-dim truncate">{m.email}</div>
               </div>
+              <Select value={m.role} onValueChange={(v) => handleRoleChange(m.id, v as ProjectRole)}>
+                <SelectTrigger className="h-8 w-[130px] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ROLES.map((r) => (
+                    <SelectItem key={r} value={r}>{r}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button variant="ghost" size="icon" className="text-dimmer hover:text-destructive" onClick={() => handleRemove(m.id)}>
                 <Trash2 className="h-4 w-4" />
               </Button>
