@@ -70,44 +70,56 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
     return map;
   }, [visible, statuses]);
 
-  // Discipline-mode: produce one card per (ticket, slot the user works on)
+  // Discipline-mode: produce one card per (ticket, slot)
+  // - "My tickets": only slots the current user is assigned to
+  // - "All" (PMBA): both FE and BE for every ticket; slots with no assignee → backlog column
+  const showAll = !filterMine;
   const disciplineCards: DisciplineCard[] = useMemo(() => {
-    if (!user) return [];
+    if (!user && !showAll) return [];
     const out: DisciplineCard[] = [];
+    const buildCard = (t: TicketRow, slot: "FE" | "BE"): DisciplineCard => {
+      const assigned = t.assignees.some((a) => a.slot === slot);
+      const status = slot === "FE" ? t.fe_status : t.be_status;
+      return { ticket: t, slot, status, unassigned: !assigned };
+    };
     visible.forEach((t) => {
-      const slots = new Set(
-        t.assignees.filter((a) => a.user_id === user.id).map((a) => a.slot)
-      );
-      // PMBA viewing "All" sees both slots when relevant
-      if (slots.size === 0 && isPMBA(role) && !filterMine) {
-        if (t.assignees.some((a) => a.slot === "FE") || t.est_frontend_hours > 0) {
-          out.push({ ticket: t, slot: "FE", status: t.fe_status });
-        }
-        if (t.assignees.some((a) => a.slot === "BE") || t.est_backend_hours > 0) {
-          out.push({ ticket: t, slot: "BE", status: t.be_status });
-        }
+      if (showAll) {
+        out.push(buildCard(t, "FE"));
+        out.push(buildCard(t, "BE"));
       } else {
+        const slots = new Set(
+          t.assignees.filter((a) => a.user_id === user!.id).map((a) => a.slot)
+        );
         slots.forEach((slot) => {
           out.push({
             ticket: t,
             slot,
             status: slot === "FE" ? t.fe_status : t.be_status,
+            unassigned: false,
           });
         });
       }
     });
     return out;
-  }, [visible, user, role, filterMine]);
+  }, [visible, user, showAll]);
 
   const byDisciplineStatus = useMemo(() => {
-    const map: Record<DisciplineStatus, DisciplineCard[]> = {
+    const map: Record<DisciplineColumnKey, DisciplineCard[]> = {
+      backlog: [],
       todo: [],
       in_progress: [],
       done: [],
     };
-    disciplineCards.forEach((c) => map[c.status].push(c));
+    disciplineCards.forEach((c) => {
+      if (c.unassigned) map.backlog.push(c);
+      else map[c.status].push(c);
+    });
     return map;
   }, [disciplineCards]);
+
+  const disciplineColumns: DisciplineColumnKey[] = showAll
+    ? ["backlog", ...DISCIPLINE_STATUSES]
+    : DISCIPLINE_STATUSES;
 
   const activeTicket =
     activeId && mode === "project"
