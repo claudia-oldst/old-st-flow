@@ -31,6 +31,8 @@ const CATEGORIES: { value: StatusCategory; label: string; description: string }[
 
 const PRESET_COLORS = ["#94a3b8", "#3b82f6", "#a855f7", "#22c55e", "#f59e0b", "#ec4899", "#06b6d4", "#ef4444"];
 
+const ROLES: ProjectRole[] = ["Frontend", "Backend", "Fullstack", "QA", "PMBA"];
+
 export default function Admin() {
   const [tab, setTab] = useState<"team" | "statuses">("team");
   return (
