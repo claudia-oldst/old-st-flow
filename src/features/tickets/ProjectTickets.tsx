@@ -219,6 +219,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
                 <SelectItem value="status">Status</SelectItem>
                 <SelectItem value="assignee">Assignee</SelectItem>
                 <SelectItem value="type">Type</SelectItem>
+                <SelectItem value="epic">Epic</SelectItem>
               </SelectContent>
             </Select>
           </div>
