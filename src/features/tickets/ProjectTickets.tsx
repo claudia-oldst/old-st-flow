@@ -130,12 +130,47 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
     const valid = rows.filter((r) => !r.error);
     if (valid.length === 0) return toast.error("No valid rows to import");
     setImporting(true);
+
+    // Resolve / create epics referenced in the CSV
+    const epicNames = Array.from(
+      new Set(valid.map((r) => r.epic.trim()).filter(Boolean))
+    );
+    const epicMap = new Map<string, number>(); // key = lowercase name
+
+    if (epicNames.length > 0) {
+      const { data: existing } = await supabase
+        .from("project_epics")
+        .select("id, epic_name")
+        .eq("project_id", projectId);
+      (existing ?? []).forEach((e: any) => {
+        if (e.epic_name) epicMap.set(e.epic_name.trim().toLowerCase(), e.id);
+      });
+
+      const toCreate = epicNames.filter(
+        (n) => !epicMap.has(n.toLowerCase())
+      );
+      if (toCreate.length > 0) {
+        const { data: created, error: epicErr } = await supabase
+          .from("project_epics")
+          .insert(toCreate.map((name) => ({ project_id: projectId, epic_name: name })))
+          .select("id, epic_name");
+        if (epicErr) {
+          setImporting(false);
+          return toast.error("Failed to create epics: " + epicErr.message);
+        }
+        (created ?? []).forEach((e: any) => {
+          if (e.epic_name) epicMap.set(e.epic_name.trim().toLowerCase(), e.id);
+        });
+      }
+    }
+
     const payload = valid.map((r) => ({
       project_id: projectId,
       title: r.title,
       ticket_type: r.type,
       est_frontend_hours: r.fe,
       est_backend_hours: r.be,
+      epic_id: r.epic.trim() ? epicMap.get(r.epic.trim().toLowerCase()) ?? null : null,
       ticket_number: 0,
       formatted_id: "",
     }));
