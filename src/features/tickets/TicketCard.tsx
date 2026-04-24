@@ -2,6 +2,7 @@ import { cn, displayTitle, formatHours, healthRatio } from "@/lib/utils";
 import { MemberAvatar } from "@/components/MemberAvatar";
 import { Bug, GitPullRequest, FileText } from "lucide-react";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
+import { DisciplineStatusChip } from "@/features/tickets/DisciplineStatusChip";
 
 const HEALTH_BG: Record<string, string> = {
   good: "bg-health-good",
@@ -67,9 +68,16 @@ export function TicketCard({
         <TypeIcon type={ticket.ticket_type} />
         <span className="font-mono text-[10px] text-dimmer">{ticket.formatted_id}</span>
       </div>
-      <div className="text-sm leading-snug mb-3 line-clamp-2">
+      <div className="text-sm leading-snug mb-2 line-clamp-2">
         {displayTitle(ticket.title, ticket.ticket_type)}
       </div>
+
+      {(showFE || showBE) && (
+        <div className="flex flex-wrap gap-1 mb-2.5">
+          {showFE && <DisciplineStatusChip slot="FE" status={ticket.fe_status} />}
+          {showBE && <DisciplineStatusChip slot="BE" status={ticket.be_status} />}
+        </div>
+      )}
 
       <div className="space-y-1.5 mb-3">
         {showFE && <Bar label="FE" actual={ticket.actual_frontend_hours} estimate={ticket.est_frontend_hours} />}
