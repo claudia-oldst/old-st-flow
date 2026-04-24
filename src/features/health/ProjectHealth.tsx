@@ -45,6 +45,9 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
     return tickets.filter((t) => !doneIds.has(t.status_id ?? ""));
   }, [tickets, statuses]);
 
+  // Unassigned uses project-level status; member capacity uses per-discipline status.
+  const unassignedOpen = openTickets;
+
   const totals = useMemo(() => {
     return tickets.reduce(
       (acc, t) => {
