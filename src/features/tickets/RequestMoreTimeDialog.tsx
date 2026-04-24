@@ -28,6 +28,8 @@ interface Props {
   ticketId: string;
   currentFE: number;
   currentBE: number;
+  actualFE: number;
+  actualBE: number;
   /** Disciplines the user is allowed to request changes for. */
   allowedSlots: Array<"FE" | "BE">;
   defaultSlot?: "FE" | "BE";
@@ -40,6 +42,8 @@ export function RequestMoreTimeDialog({
   ticketId,
   currentFE,
   currentBE,
+  actualFE,
+  actualBE,
   allowedSlots,
   defaultSlot,
   onSaved,
