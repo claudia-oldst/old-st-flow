@@ -1,0 +1,382 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import type { Project, ProjectMember, ProjectRole, TeamMember } from "@/lib/types";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import { MemberAvatar } from "@/components/MemberAvatar";
+import { Plus, Settings, Trash2, ExternalLink, Eye } from "lucide-react";
+import { toast } from "sonner";
+
+const ROLES: ProjectRole[] = ["Frontend", "Backend", "Fullstack", "QA", "PMBA"];
+
+const ROLE_COLORS: Record<ProjectRole, string> = {
+  Frontend: "bg-blue-500/15 text-blue-300 ring-blue-400/20",
+  Backend: "bg-emerald-500/15 text-emerald-300 ring-emerald-400/20",
+  Fullstack: "bg-purple-500/15 text-purple-300 ring-purple-400/20",
+  QA: "bg-amber-500/15 text-amber-300 ring-amber-400/20",
+  PMBA: "bg-pink-500/15 text-pink-300 ring-pink-400/20",
+};
+
+export interface ProjectLink {
+  name: string;
+  url: string;
+}
+
+interface Props {
+  project: Project;
+  canEdit: boolean;
+  onUpdated?: (p: Project) => void;
+}
+
+export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(project.name);
+  const [acronym, setAcronym] = useState(project.acronym);
+  const [clientName, setClientName] = useState((project as any).client_name ?? "");
+  const [rate, setRate] = useState<string>(String((project as any).rate_per_hour ?? 0));
+  const [links, setLinks] = useState<ProjectLink[]>(
+    Array.isArray((project as any).links) ? ((project as any).links as ProjectLink[]) : []
+  );
+
+  const [members, setMembers] = useState<(ProjectMember & { member: TeamMember })[]>([]);
+  const [allMembers, setAllMembers] = useState<TeamMember[]>([]);
+  const [pickedUser, setPickedUser] = useState<string>("");
+  const [pickedRole, setPickedRole] = useState<ProjectRole>("Frontend");
+
+  const loadMembers = async () => {
+    const [{ data: pm }, { data: all }] = await Promise.all([
+      supabase
+        .from("project_members")
+        .select("*, member:team_members(*)")
+        .eq("project_id", project.id),
+      supabase.from("team_members").select("*").order("name"),
+    ]);
+    setMembers((pm as any) ?? []);
+    setAllMembers(all ?? []);
+  };
+
+  useEffect(() => {
+    if (open) {
+      loadMembers();
+      setName(project.name);
+      setAcronym(project.acronym);
+      setClientName((project as any).client_name ?? "");
+      setRate(String((project as any).rate_per_hour ?? 0));
+      setLinks(Array.isArray((project as any).links) ? ((project as any).links as ProjectLink[]) : []);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, project.id]);
+
+  const available = allMembers.filter((m) => !members.some((pm) => pm.user_id === m.id));
+
+  const handleSaveDetails = async () => {
+    if (!canEdit) return;
+    const trimmedName = name.trim();
+    if (!trimmedName) return toast.error("Project name is required");
+    const numericRate = Number(rate);
+    if (Number.isNaN(numericRate) || numericRate < 0) return toast.error("Rate must be a positive number");
+    const cleanedLinks = links
+      .map((l) => ({ name: l.name.trim(), url: l.url.trim() }))
+      .filter((l) => l.url.length > 0);
+
+    const { data, error } = await supabase
+      .from("projects")
+      .update({
+        name: trimmedName,
+        acronym: acronym.trim().toUpperCase(),
+        client_name: clientName.trim() || null,
+        rate_per_hour: numericRate,
+        links: cleanedLinks as any,
+      } as any)
+      .eq("id", project.id)
+      .select("*")
+      .single();
+
+    if (error) return toast.error(error.message);
+    toast.success("Project updated");
+    onUpdated?.(data as Project);
+  };
+
+  const handleAdd = async () => {
+    if (!pickedUser) return toast.error("Pick a user");
+    const { error } = await supabase
+      .from("project_members")
+      .insert({ project_id: project.id, user_id: pickedUser, role: pickedRole });
+    if (error) return toast.error(error.message);
+    toast.success("Member added");
+    setPickedUser("");
+    setPickedRole("Frontend");
+    loadMembers();
+  };
+
+  const handleRoleChange = async (userId: string, role: ProjectRole) => {
+    const { error } = await supabase
+      .from("project_members")
+      .update({ role })
+      .eq("project_id", project.id)
+      .eq("user_id", userId);
+    if (error) return toast.error(error.message);
+    loadMembers();
+  };
+
+  const handleRemove = async (userId: string) => {
+    const { error } = await supabase
+      .from("project_members")
+      .delete()
+      .eq("project_id", project.id)
+      .eq("user_id", userId);
+    if (error) return toast.error(error.message);
+    loadMembers();
+  };
+
+  const updateLink = (idx: number, key: keyof ProjectLink, value: string) => {
+    setLinks((prev) => prev.map((l, i) => (i === idx ? { ...l, [key]: value } : l)));
+  };
+
+  const addLink = () => setLinks((prev) => [...prev, { name: "", url: "" }]);
+  const removeLink = (idx: number) => setLinks((prev) => prev.filter((_, i) => i !== idx));
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-dim hover:text-foreground"
+          title={canEdit ? "Project settings" : "View project info"}
+          aria-label={canEdit ? "Project settings" : "View project info"}
+        >
+          {canEdit ? <Settings className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="glass-strong max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="font-display">
+            {canEdit ? "Project settings" : "Project info"}
+          </DialogTitle>
+        </DialogHeader>
+
+        <Tabs defaultValue="details" className="mt-2">
+          <TabsList className="grid grid-cols-2 w-full">
+            <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="team">Team</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="details" className="space-y-4 mt-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="proj-name">Project name</Label>
+                <Input
+                  id="proj-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  disabled={!canEdit}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="proj-acronym">Acronym</Label>
+                <Input
+                  id="proj-acronym"
+                  value={acronym}
+                  onChange={(e) => setAcronym(e.target.value.toUpperCase())}
+                  disabled={!canEdit}
+                  maxLength={6}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="proj-client">Client name</Label>
+                <Input
+                  id="proj-client"
+                  value={clientName}
+                  onChange={(e) => setClientName(e.target.value)}
+                  disabled={!canEdit}
+                  placeholder="e.g. Acme Ltd"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="proj-rate">Rate (£/hr)</Label>
+                <Input
+                  id="proj-rate"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={rate}
+                  onChange={(e) => setRate(e.target.value)}
+                  disabled={!canEdit}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Project links</Label>
+                {canEdit && (
+                  <Button variant="ghost" size="sm" onClick={addLink} className="h-7 gap-1">
+                    <Plus className="h-3.5 w-3.5" /> Add link
+                  </Button>
+                )}
+              </div>
+              {links.length === 0 ? (
+                <div className="text-xs text-dim italic px-2 py-3">No links yet.</div>
+              ) : (
+                <div className="space-y-2">
+                  {links.map((link, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <Input
+                        placeholder="Name (e.g. Figma)"
+                        value={link.name}
+                        onChange={(e) => updateLink(idx, "name", e.target.value)}
+                        disabled={!canEdit}
+                        className="w-1/3"
+                      />
+                      <Input
+                        placeholder="https://..."
+                        value={link.url}
+                        onChange={(e) => updateLink(idx, "url", e.target.value)}
+                        disabled={!canEdit}
+                        className="flex-1"
+                      />
+                      {!canEdit && link.url && (
+                        <a
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-dim hover:text-foreground"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      )}
+                      {canEdit && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-dimmer hover:text-destructive"
+                          onClick={() => removeLink(idx)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {canEdit && (
+              <DialogFooter className="pt-2">
+                <Button variant="ghost" onClick={() => setOpen(false)}>Close</Button>
+                <Button onClick={handleSaveDetails}>Save changes</Button>
+              </DialogFooter>
+            )}
+          </TabsContent>
+
+          <TabsContent value="team" className="space-y-4 mt-4">
+            <div className="text-dim text-sm">
+              Members assigned to this project. Roles drive who can be assigned to ticket FE/BE slots.
+            </div>
+
+            {canEdit && (
+              <div className="glass rounded-xl p-3 space-y-3">
+                <div className="text-xs uppercase tracking-wider text-dimmer">Add member</div>
+                <div className="flex items-end gap-2">
+                  <div className="flex-1">
+                    <Select value={pickedUser} onValueChange={setPickedUser}>
+                      <SelectTrigger><SelectValue placeholder="Pick a team member" /></SelectTrigger>
+                      <SelectContent>
+                        {available.map((m) => (
+                          <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="w-[160px]">
+                    <Select value={pickedRole} onValueChange={(v) => setPickedRole(v as ProjectRole)}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button onClick={handleAdd} disabled={!pickedUser} className="gap-1">
+                    <Plus className="h-4 w-4" /> Add
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {members.length === 0 ? (
+              <div className="text-center text-dim text-sm py-6">No members on this project yet.</div>
+            ) : (
+              <div className="glass rounded-xl overflow-hidden">
+                <div className="divide-y divide-white/5">
+                  {members.map((pm) => (
+                    <div key={pm.user_id} className="flex items-center gap-3 px-3 py-2.5">
+                      <MemberAvatar name={pm.member.name} color={pm.member.avatar_color} size="md" />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate">{pm.member.name}</div>
+                        <div className="text-xs text-dim truncate">{pm.member.email}</div>
+                      </div>
+                      {canEdit ? (
+                        <Select value={pm.role} onValueChange={(v) => handleRoleChange(pm.user_id, v as ProjectRole)}>
+                          <SelectTrigger className="w-[140px] h-8">
+                            <SelectValue>
+                              <span className={`px-2 py-0.5 rounded-full text-xs ring-1 ${ROLE_COLORS[pm.role]}`}>
+                                {pm.role}
+                              </span>
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <span className={`px-2 py-0.5 rounded-full text-xs ring-1 ${ROLE_COLORS[pm.role]}`}>
+                          {pm.role}
+                        </span>
+                      )}
+                      {canEdit && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-dimmer hover:text-destructive"
+                          onClick={() => handleRemove(pm.user_id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
+  );
+}
