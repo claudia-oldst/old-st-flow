@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import type { TicketType } from "@/lib/types";
+import { EpicSelect } from "@/features/epics/EpicSelect";
 import { toast } from "sonner";
 
 export function QuickAddRow({
