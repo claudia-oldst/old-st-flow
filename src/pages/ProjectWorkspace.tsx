@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, NavLink, Route, Routes, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Project } from "@/lib/types";
-import { ProjectBoard } from "@/features/board/ProjectBoard";
+
 import { ProjectTickets } from "@/features/tickets/ProjectTickets";
 import { ProjectTeam } from "@/features/team/ProjectTeam";
 import { ProjectHealth } from "@/features/health/ProjectHealth";
