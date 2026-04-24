@@ -79,6 +79,38 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
   const status = statuses.find((s) => s.id === ticket.status_id);
   const isMine = !!user && ticket.assignees.some((a) => a.user_id === user.id);
   const canLog = isMine || isPMBA(role);
+  const myFE = !!user && ticket.assignees.some((a) => a.user_id === user.id && a.slot === "FE");
+  const myBE = !!user && ticket.assignees.some((a) => a.user_id === user.id && a.slot === "BE");
+  const canEditFE = isPMBA(role) || myFE;
+  const canEditBE = isPMBA(role) || myBE;
+
+  const updateDiscipline = async (slot: "FE" | "BE", value: DisciplineStatus) => {
+    const col = slot === "FE" ? "fe_status" : "be_status";
+    const { error } = await supabase.from("tickets").update({ [col]: value }).eq("id", ticket.id);
+    if (error) return toast.error(error.message);
+    onChange();
+  };
+
+  const setProjectStatus = async (statusId: string) => {
+    const { error } = await supabase
+      .from("tickets")
+      .update({ status_id: statusId })
+      .eq("id", ticket.id);
+    if (error) return toast.error(error.message);
+    onChange();
+  };
+
+  const resetProjectStatusToAuto = async () => {
+    // Clearing the override re-runs the derive trigger on next fe/be touch.
+    // We force a re-derive by toggling override off and writing the same fe_status.
+    const { error } = await supabase
+      .from("tickets")
+      .update({ project_status_override: false, fe_status: ticket.fe_status })
+      .eq("id", ticket.id);
+    if (error) return toast.error(error.message);
+    toast.success("Project status set to auto");
+    onChange();
+  };
 
   const handleSaveEdit = async () => {
     const fe = parseFloat(feEst) || 0;
