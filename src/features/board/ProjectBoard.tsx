@@ -34,10 +34,24 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
   const { tickets, reload } = useProjectTickets(projectId);
   const role = useProjectRole(projectId);
   const user = useCurrentUser((s) => s.user);
-  const [filterMine, setFilterMine] = useState<boolean>(!isPMBA(role));
-  const [mode, setMode] = useState<BoardMode>("project");
+  const pmba = isPMBA(role);
+  const [filterMine, setFilterMine] = useState<boolean>(true);
+  const [mode, setMode] = useState<BoardMode>("discipline");
+  const [touched, setTouched] = useState(false);
   const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
+
+  // Apply role-based defaults once we know the role (until the user changes a toggle)
+  useEffect(() => {
+    if (touched || role === null) return;
+    if (pmba) {
+      setMode("project");
+      setFilterMine(false);
+    } else {
+      setMode("discipline");
+      setFilterMine(true);
+    }
+  }, [role, pmba, touched]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
