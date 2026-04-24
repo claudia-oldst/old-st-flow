@@ -10,6 +10,8 @@ export interface TicketRow {
   title: string;
   ticket_type: "Standard" | "Bug" | "CR";
   status_id: string | null;
+  epic_id: number | null;
+  epic_name: string | null;
   est_frontend_hours: number;
   est_backend_hours: number;
   actual_frontend_hours: number;
