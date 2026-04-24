@@ -3,8 +3,12 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { useStatuses } from "@/features/statuses/useStatuses";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { displayTitle, formatHours, cn } from "@/lib/utils";
+import { DisciplineStatusChip } from "@/features/tickets/DisciplineStatusChip";
+import { DISCIPLINE_STATUS_LABEL, type DisciplineStatus } from "@/lib/types";
 
-export type GroupBy = "none" | "status" | "assignee" | "type" | "epic";
+export type GroupBy = "none" | "status" | "assignee" | "type" | "epic" | "fe_status" | "be_status";
+
+const DISC_OPTS: DisciplineStatus[] = ["todo", "in_progress", "done"];
 
 interface Group {
   key: string;
@@ -71,6 +75,17 @@ export function TicketsList({
       const out = [...map.values()].sort((a, b) => a.label.localeCompare(b.label));
       if (noEpic.tickets.length) out.push(noEpic);
       return out;
+    }
+    if (groupBy === "fe_status" || groupBy === "be_status") {
+      const map = new Map<string, Group>();
+      DISC_OPTS.forEach((s) =>
+        map.set(s, { key: s, label: DISCIPLINE_STATUS_LABEL[s], tickets: [] })
+      );
+      tickets.forEach((t) => {
+        const v = groupBy === "fe_status" ? t.fe_status : t.be_status;
+        map.get(v)?.tickets.push(t);
+      });
+      return [...map.values()].filter((g) => g.tickets.length);
     }
     // assignee
     const map = new Map<string, Group>();
