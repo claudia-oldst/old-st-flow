@@ -241,6 +241,7 @@ export type Database = {
           actual_frontend_hours: number
           actual_overhead_hours: number
           created_at: string
+          epic_id: number | null
           est_backend_hours: number
           est_frontend_hours: number
           formatted_id: string
@@ -258,6 +259,7 @@ export type Database = {
           actual_frontend_hours?: number
           actual_overhead_hours?: number
           created_at?: string
+          epic_id?: number | null
           est_backend_hours?: number
           est_frontend_hours?: number
           formatted_id: string
@@ -275,6 +277,7 @@ export type Database = {
           actual_frontend_hours?: number
           actual_overhead_hours?: number
           created_at?: string
+          epic_id?: number | null
           est_backend_hours?: number
           est_frontend_hours?: number
           formatted_id?: string
@@ -288,6 +291,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "tickets_epic_id_fkey"
+            columns: ["epic_id"]
+            isOneToOne: false
+            referencedRelation: "project_epics"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tickets_project_id_fkey"
             columns: ["project_id"]
