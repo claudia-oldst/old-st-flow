@@ -191,6 +191,8 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
       ticket_type: r.type,
       est_frontend_hours: r.fe,
       est_backend_hours: r.be,
+      fe_status: r.fe_status,
+      be_status: r.be_status,
       epic_id: r.epic.trim() ? epicMap.get(r.epic.trim().toLowerCase()) ?? null : null,
       ticket_number: 0,
       formatted_id: "",
@@ -241,6 +243,8 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
                 <SelectItem value="assignee">Assignee</SelectItem>
                 <SelectItem value="type">Type</SelectItem>
                 <SelectItem value="epic">Epic</SelectItem>
+                <SelectItem value="fe_status">FE status</SelectItem>
+                <SelectItem value="be_status">BE status</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -279,7 +283,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
             <DialogTitle>Import tickets from CSV</DialogTitle>
             <div className="text-xs text-dim mt-1">
               Expected columns:{" "}
-              <span className="font-mono text-foreground">Title, Type, FE Estimate, BE Estimate, Epic</span>
+              <span className="font-mono text-foreground">Title, Type, FE Estimate, BE Estimate, Epic, FE Status, BE Status</span>
             </div>
           </DialogHeader>
 
