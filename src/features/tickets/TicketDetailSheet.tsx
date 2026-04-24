@@ -16,8 +16,9 @@ import { useCurrentUser } from "@/store/currentUser";
 import { displayTitle, formatHours } from "@/lib/utils";
 import { AssignDialog } from "@/features/tickets/AssignDialog";
 import { LogTimeModal } from "@/features/timelog/LogTimeModal";
+import { EpicSelect } from "@/features/epics/EpicSelect";
 import { MemberAvatar } from "@/components/MemberAvatar";
-import { Clock, Users, Trash2, Edit3 } from "lucide-react";
+import { Clock, Users, Trash2, Edit3, Bookmark } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -107,6 +108,11 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
               {ticket.ticket_type !== "Standard" && (
                 <span className="px-2 py-0.5 rounded-full text-[10px] bg-white/5 hairline">{ticket.ticket_type}</span>
               )}
+              {ticket.epic_name && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-white/5 hairline">
+                  <Bookmark className="h-2.5 w-2.5" /> {ticket.epic_name}
+                </span>
+              )}
             </div>
             <SheetTitle className="text-left text-xl">
               {editing ? (
@@ -118,6 +124,25 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
           </SheetHeader>
 
           <div className="mt-6 space-y-6">
+            {/* Epic */}
+            {isPMBA(role) && (
+              <div>
+                <div className="text-xs uppercase tracking-wider text-dimmer mb-2">Epic</div>
+                <EpicSelect
+                  projectId={projectId}
+                  value={ticket.epic_id}
+                  onChange={async (id) => {
+                    const { error } = await supabase
+                      .from("tickets")
+                      .update({ epic_id: id })
+                      .eq("id", ticket.id);
+                    if (error) return toast.error(error.message);
+                    onChange();
+                  }}
+                />
+              </div>
+            )}
+
             {/* Estimates */}
             <div>
               <div className="flex items-center justify-between mb-2">

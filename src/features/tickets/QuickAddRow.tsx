@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import type { TicketType } from "@/lib/types";
+import { EpicSelect } from "@/features/epics/EpicSelect";
 import { toast } from "sonner";
 
 export function QuickAddRow({
@@ -27,6 +28,7 @@ export function QuickAddRow({
   const [type, setType] = useState<TicketType>("Standard");
   const [fe, setFe] = useState("");
   const [be, setBe] = useState("");
+  const [epicId, setEpicId] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
 
   const submit = async () => {
@@ -38,6 +40,7 @@ export function QuickAddRow({
       title: t,
       ticket_type: type,
       status_id: statusId,
+      epic_id: epicId,
       est_frontend_hours: parseFloat(fe) || 0,
       est_backend_hours: parseFloat(be) || 0,
       // ticket_number + formatted_id are filled by the before-insert trigger
@@ -50,6 +53,7 @@ export function QuickAddRow({
     setFe("");
     setBe("");
     setType("Standard");
+    setEpicId(null);
     onCreated();
   };
 
@@ -87,6 +91,7 @@ export function QuickAddRow({
         <Input value={fe} onChange={(e) => setFe(e.target.value)} placeholder="FE" className="h-7 text-xs w-12" type="number" step="0.5" />
         <Input value={be} onChange={(e) => setBe(e.target.value)} placeholder="BE" className="h-7 text-xs w-12" type="number" step="0.5" />
       </div>
+      <EpicSelect projectId={projectId} value={epicId} onChange={setEpicId} size="sm" />
       <div className="flex justify-end gap-1">
         <Button size="sm" variant="ghost" onClick={() => setOpen(false)} className="h-6 text-xs px-2">Cancel</Button>
         <Button size="sm" onClick={submit} disabled={busy || !title.trim()} className="h-6 text-xs px-2">Add</Button>

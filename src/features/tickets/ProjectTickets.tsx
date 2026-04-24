@@ -31,6 +31,7 @@ interface ParsedRow {
   type: TicketType;
   fe: number;
   be: number;
+  epic: string;
   error?: string;
 }
 
@@ -57,10 +58,10 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
 
   const downloadTemplate = () => {
     const csv =
-      "Title,Type,FE Estimate,BE Estimate\n" +
-      "Example: build login page,Standard,4,2\n" +
-      "Example: fix header overflow,Bug,1,0\n" +
-      "Example: add export endpoint,CR,0,3\n";
+      "Title,Type,FE Estimate,BE Estimate,Epic\n" +
+      "Example: build login page,Standard,4,2,Authentication\n" +
+      "Example: fix header overflow,Bug,1,0,UI polish\n" +
+      "Example: add export endpoint,CR,0,3,Reporting\n";
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -89,6 +90,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
         const typeCol = findCol("Type", "type");
         const feCol = findCol("FE Estimate", "FE", "Frontend", "fe estimate");
         const beCol = findCol("BE Estimate", "BE", "Backend", "be estimate");
+        const epicCol = findCol("Epic", "epic", "Epic Name");
 
         if (!titleCol) {
           toast.error("CSV must include a Title column");
@@ -105,11 +107,13 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
           else if (tl === "cr" || tl === "change request") type = "CR";
           const fe = feCol ? parseFloat(r[feCol]) || 0 : 0;
           const be = beCol ? parseFloat(r[beCol]) || 0 : 0;
+          const epic = epicCol ? (r[epicCol] ?? "").trim() : "";
           return {
             title: titleRaw,
             type,
             fe,
             be,
+            epic,
             error: !titleRaw ? "Missing title" : undefined,
           };
         });
@@ -126,12 +130,47 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
     const valid = rows.filter((r) => !r.error);
     if (valid.length === 0) return toast.error("No valid rows to import");
     setImporting(true);
+
+    // Resolve / create epics referenced in the CSV
+    const epicNames = Array.from(
+      new Set(valid.map((r) => r.epic.trim()).filter(Boolean))
+    );
+    const epicMap = new Map<string, number>(); // key = lowercase name
+
+    if (epicNames.length > 0) {
+      const { data: existing } = await supabase
+        .from("project_epics")
+        .select("id, epic_name")
+        .eq("project_id", projectId);
+      (existing ?? []).forEach((e: any) => {
+        if (e.epic_name) epicMap.set(e.epic_name.trim().toLowerCase(), e.id);
+      });
+
+      const toCreate = epicNames.filter(
+        (n) => !epicMap.has(n.toLowerCase())
+      );
+      if (toCreate.length > 0) {
+        const { data: created, error: epicErr } = await supabase
+          .from("project_epics")
+          .insert(toCreate.map((name) => ({ project_id: projectId, epic_name: name })))
+          .select("id, epic_name");
+        if (epicErr) {
+          setImporting(false);
+          return toast.error("Failed to create epics: " + epicErr.message);
+        }
+        (created ?? []).forEach((e: any) => {
+          if (e.epic_name) epicMap.set(e.epic_name.trim().toLowerCase(), e.id);
+        });
+      }
+    }
+
     const payload = valid.map((r) => ({
       project_id: projectId,
       title: r.title,
       ticket_type: r.type,
       est_frontend_hours: r.fe,
       est_backend_hours: r.be,
+      epic_id: r.epic.trim() ? epicMap.get(r.epic.trim().toLowerCase()) ?? null : null,
       ticket_number: 0,
       formatted_id: "",
     }));
@@ -180,6 +219,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
                 <SelectItem value="status">Status</SelectItem>
                 <SelectItem value="assignee">Assignee</SelectItem>
                 <SelectItem value="type">Type</SelectItem>
+                <SelectItem value="epic">Epic</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -218,7 +258,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
             <DialogTitle>Import tickets from CSV</DialogTitle>
             <div className="text-xs text-dim mt-1">
               Expected columns:{" "}
-              <span className="font-mono text-foreground">Title, Type, FE Estimate, BE Estimate</span>
+              <span className="font-mono text-foreground">Title, Type, FE Estimate, BE Estimate, Epic</span>
             </div>
           </DialogHeader>
 
@@ -310,6 +350,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
                       <th className="px-3 py-2 font-normal">Type</th>
                       <th className="px-3 py-2 font-normal text-right">FE</th>
                       <th className="px-3 py-2 font-normal text-right">BE</th>
+                      <th className="px-3 py-2 font-normal">Epic</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -329,6 +370,9 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
                         </td>
                         <td className="px-3 py-2 text-right font-mono text-xs">{r.fe}h</td>
                         <td className="px-3 py-2 text-right font-mono text-xs">{r.be}h</td>
+                        <td className="px-3 py-2 text-xs text-dim">
+                          {r.epic || <span className="text-dimmer">—</span>}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

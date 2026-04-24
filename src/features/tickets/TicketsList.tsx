@@ -4,7 +4,7 @@ import { useStatuses } from "@/features/statuses/useStatuses";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { displayTitle, formatHours, cn } from "@/lib/utils";
 
-export type GroupBy = "none" | "status" | "assignee" | "type";
+export type GroupBy = "none" | "status" | "assignee" | "type" | "epic";
 
 interface Group {
   key: string;
@@ -50,6 +50,27 @@ export function TicketsList({
       );
       tickets.forEach((t) => map.get(t.ticket_type)?.tickets.push(t));
       return [...map.values()].filter((g) => g.tickets.length);
+    }
+    if (groupBy === "epic") {
+      const map = new Map<string, Group>();
+      const noEpic: Group = { key: "_no_epic", label: "No epic", tickets: [] };
+      tickets.forEach((t) => {
+        if (!t.epic_id) {
+          noEpic.tickets.push(t);
+          return;
+        }
+        const key = String(t.epic_id);
+        const g = map.get(key) ?? {
+          key,
+          label: t.epic_name ?? "Epic",
+          tickets: [],
+        };
+        g.tickets.push(t);
+        map.set(key, g);
+      });
+      const out = [...map.values()].sort((a, b) => a.label.localeCompare(b.label));
+      if (noEpic.tickets.length) out.push(noEpic);
+      return out;
     }
     // assignee
     const map = new Map<string, Group>();
