@@ -42,10 +42,35 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [rows, setRows] = useState<ParsedRow[]>([]);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
   const [importing, setImporting] = useState(false);
   const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
   const [view, setView] = useState<ViewMode>("board");
   const [groupBy, setGroupBy] = useState<GroupBy>("status");
+
+  const resetImport = () => {
+    setRows([]);
+    setFileName(null);
+    setDragOver(false);
+  };
+
+  const downloadTemplate = () => {
+    const csv =
+      "Title,Type,FE Estimate,BE Estimate\n" +
+      "Example: build login page,Standard,4,2\n" +
+      "Example: fix header overflow,Bug,1,0\n" +
+      "Example: add export endpoint,CR,0,3\n";
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "tickets-template.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   const handleFile = (file: File) => {
     Papa.parse<Record<string, string>>(file, {
