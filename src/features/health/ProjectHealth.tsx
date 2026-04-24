@@ -162,6 +162,8 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
           </div>
         </div>
       </div>
+
+      <EstimateEvolution projectId={projectId} />
     </div>
   );
 }
