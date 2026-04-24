@@ -5,6 +5,7 @@ import { useCurrentUser } from "@/store/currentUser";
 import { useTimerStore } from "@/store/timer";
 import type { TeamMember } from "@/lib/types";
 import { MemberAvatar } from "@/components/MemberAvatar";
+import oldStLogo from "@/assets/oldst-logo.png";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -133,14 +134,17 @@ export function TopBar() {
   ];
 
   return (
-    <header className="sticky top-0 z-40 hairline-b backdrop-blur-xl bg-background/70">
+    <header className="sticky top-0 z-40 hairline-b backdrop-blur-xl bg-background/80">
       <div className="mx-auto max-w-[1480px] px-4 sm:px-6 h-14 flex items-center gap-6">
-        <Link to="/" className="flex items-center gap-2 group">
-          <div className="h-6 w-6 rounded-md bg-foreground text-background flex items-center justify-center font-bold text-[10px]">
-            ◯
-          </div>
-          <div className="font-semibold tracking-tight">
-            Old St <span className="text-dim">Tracker</span>
+        <Link to="/" className="flex items-center gap-2.5 group">
+          <img
+            src={oldStLogo}
+            alt="Old St Labs"
+            className="h-7 w-auto select-none"
+            draggable={false}
+          />
+          <div className="font-display font-semibold tracking-tight text-[15px] leading-none">
+            Old.St <span className="text-dim font-normal">Tracker</span>
           </div>
         </Link>
 

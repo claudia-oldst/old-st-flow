@@ -72,7 +72,7 @@ export default function Projects() {
       <div className="flex items-end justify-between mb-8">
         <div>
           <div className="text-xs uppercase tracking-[0.18em] text-dimmer mb-2">Workspace</div>
-          <h1 className="text-3xl font-semibold tracking-tight">Projects</h1>
+          <h1 className="font-display text-3xl font-semibold tracking-tight">Projects</h1>
           <p className="text-dim mt-1">Active client engagements and internal builds.</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>

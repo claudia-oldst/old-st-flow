@@ -4,70 +4,79 @@
 
 /* ==========================================================
    THE OLD ST TRACKER — Design System
-   Premium dark mode, glassmorphism, ultra-thin borders.
+   Brand-matched to old.st: deep navy, coral accent, gold sparkle.
    All colors HSL.
    ========================================================== */
 
 @layer base {
   :root {
-    /* Surfaces */
-    --background: 0 0% 4%;            /* #0A0A0A */
+    /* ---- Brand surfaces (Old.St navy family) ----
+       Hero on old.st sits around #2C3357 (227 33% 26%).
+       Body card around #3B446B (227 30% 33%). */
+    --background: 227 33% 16%;          /* deeper than hero for app shell */
     --foreground: 0 0% 98%;
-    --surface-1: 0 0% 6%;
-    --surface-2: 0 0% 8%;
-    --surface-3: 0 0% 11%;
+    --surface-1: 227 33% 19%;
+    --surface-2: 227 30% 23%;           /* hero navy */
+    --surface-3: 227 28% 28%;           /* card navy */
 
-    --card: 0 0% 6%;
+    --card: 227 30% 22%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 0 0% 7%;
+    --popover: 227 32% 18%;
     --popover-foreground: 0 0% 98%;
 
-    /* Brand: crisp white as primary on dark */
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 6%;
+    /* Brand colours */
+    --brand-navy: 227 30% 33%;          /* #3B446B */
+    --brand-coral: 5 90% 67%;           /* #F76C5E – primary CTA */
+    --brand-coral-strong: 5 80% 60%;
+    --brand-gold: 36 100% 72%;          /* #FFCD71 – logo + sparkle */
+    --brand-gold-soft: 36 100% 85%;
 
-    --secondary: 0 0% 12%;
-    --secondary-foreground: 0 0% 92%;
+    /* Primary = coral CTA on dark navy */
+    --primary: 5 90% 67%;
+    --primary-foreground: 0 0% 100%;
 
-    --muted: 0 0% 10%;
-    --muted-foreground: 0 0% 60%;
+    --secondary: 227 28% 28%;
+    --secondary-foreground: 0 0% 95%;
 
-    --accent: 220 90% 60%;            /* electric blue accent */
-    --accent-foreground: 0 0% 98%;
+    --muted: 227 25% 26%;
+    --muted-foreground: 227 15% 72%;
 
-    --destructive: 0 72% 55%;
-    --destructive-foreground: 0 0% 98%;
+    --accent: 36 100% 72%;              /* gold accent (logo) */
+    --accent-foreground: 227 40% 14%;
 
-    /* Health colors */
-    --health-good: 142 71% 45%;
-    --health-warn: 38 92% 55%;
-    --health-bad:  0 72% 55%;
+    --destructive: 5 80% 58%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Health colors — kept distinct, slightly tuned to fit navy ground */
+    --health-good: 152 60% 50%;
+    --health-warn: 36 100% 65%;
+    --health-bad:  5 85% 62%;
 
     /* Borders / inputs */
-    --border: 0 0% 100% / 0.08;
-    --border-strong: 0 0% 100% / 0.14;
-    --input: 0 0% 100% / 0.08;
-    --ring: 220 90% 60%;
+    --border: 0 0% 100% / 0.10;
+    --border-strong: 0 0% 100% / 0.18;
+    --input: 0 0% 100% / 0.10;
+    --ring: 5 90% 67%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;                   /* old.st uses crisper corners */
 
     /* Glass */
-    --glass-bg: 0 0% 100% / 0.03;
+    --glass-bg: 0 0% 100% / 0.04;
     --glass-blur: 14px;
 
     /* Shadows */
-    --shadow-elev: 0 20px 60px -20px hsl(0 0% 0% / 0.8);
-    --shadow-glow: 0 0 0 1px hsl(0 0% 100% / 0.06), 0 30px 80px -30px hsl(220 90% 60% / 0.3);
+    --shadow-elev: 0 24px 60px -24px hsl(227 50% 5% / 0.7);
+    --shadow-glow: 0 0 0 1px hsl(0 0% 100% / 0.06), 0 30px 80px -30px hsl(5 90% 67% / 0.35);
 
-    --sidebar-background: 0 0% 5%;
-    --sidebar-foreground: 0 0% 80%;
-    --sidebar-primary: 0 0% 98%;
-    --sidebar-primary-foreground: 0 0% 6%;
-    --sidebar-accent: 0 0% 10%;
+    --sidebar-background: 227 35% 14%;
+    --sidebar-foreground: 0 0% 85%;
+    --sidebar-primary: 5 90% 67%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 227 30% 22%;
     --sidebar-accent-foreground: 0 0% 95%;
-    --sidebar-border: 0 0% 100% / 0.06;
-    --sidebar-ring: 220 90% 60%;
+    --sidebar-border: 0 0% 100% / 0.08;
+    --sidebar-ring: 5 90% 67%;
   }
 
   /* Force dark by default — Old St is dark-only */
@@ -87,24 +96,30 @@
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
     background:
-      radial-gradient(1200px 600px at 80% -10%, hsl(220 90% 60% / 0.06), transparent 60%),
-      radial-gradient(900px 500px at 0% 100%, hsl(280 90% 60% / 0.04), transparent 60%),
+      radial-gradient(1200px 600px at 80% -10%, hsl(36 100% 72% / 0.06), transparent 60%),
+      radial-gradient(900px 500px at 0% 100%, hsl(5 90% 67% / 0.05), transparent 60%),
       hsl(var(--background));
     background-attachment: fixed;
   }
 
+  h1, h2, h3, h4, .font-display {
+    font-family: 'Poppins', 'Inter', ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: -0.01em;
+  }
+
   ::selection {
-    background: hsl(var(--accent) / 0.4);
+    background: hsl(var(--accent) / 0.45);
+    color: hsl(var(--accent-foreground));
   }
 
   /* Scrollbar */
   ::-webkit-scrollbar { width: 10px; height: 10px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
-    background: hsl(0 0% 100% / 0.06);
+    background: hsl(0 0% 100% / 0.08);
     border-radius: 999px;
   }
-  ::-webkit-scrollbar-thumb:hover { background: hsl(0 0% 100% / 0.12); }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(0 0% 100% / 0.14); }
 
   .font-mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
 }
@@ -114,33 +129,43 @@
     background: hsl(var(--glass-bg));
     backdrop-filter: blur(var(--glass-blur)) saturate(140%);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
-    border: 1px solid hsl(0 0% 100% / 0.06);
+    border: 1px solid hsl(0 0% 100% / 0.08);
   }
 
   .glass-strong {
-    background: hsl(0 0% 8% / 0.7);
+    background: hsl(227 32% 14% / 0.78);
     backdrop-filter: blur(20px) saturate(160%);
     -webkit-backdrop-filter: blur(20px) saturate(160%);
-    border: 1px solid hsl(0 0% 100% / 0.08);
+    border: 1px solid hsl(0 0% 100% / 0.10);
   }
 
   .hairline {
-    border: 1px solid hsl(0 0% 100% / 0.08);
+    border: 1px solid hsl(0 0% 100% / 0.10);
   }
 
-  .hairline-b { border-bottom: 1px solid hsl(0 0% 100% / 0.08); }
-  .hairline-t { border-top: 1px solid hsl(0 0% 100% / 0.08); }
-  .hairline-r { border-right: 1px solid hsl(0 0% 100% / 0.08); }
+  .hairline-b { border-bottom: 1px solid hsl(0 0% 100% / 0.10); }
+  .hairline-t { border-top: 1px solid hsl(0 0% 100% / 0.10); }
+  .hairline-r { border-right: 1px solid hsl(0 0% 100% / 0.10); }
 
-  .text-dim { color: hsl(0 0% 60%); }
-  .text-dimmer { color: hsl(0 0% 45%); }
+  .text-dim { color: hsl(227 15% 75%); }
+  .text-dimmer { color: hsl(227 12% 60%); }
 
   .focus-ring {
-    @apply outline-none ring-1 ring-transparent focus-visible:ring-2 focus-visible:ring-accent/60;
+    @apply outline-none ring-1 ring-transparent focus-visible:ring-2 focus-visible:ring-primary/60;
   }
 
   .ticker {
     font-variant-numeric: tabular-nums;
     letter-spacing: 0.02em;
+  }
+
+  /* Old.St-style coral CTA pill */
+  .btn-coral {
+    background: hsl(var(--brand-coral));
+    color: hsl(var(--primary-foreground));
+    transition: background 150ms ease, transform 150ms ease;
+  }
+  .btn-coral:hover {
+    background: hsl(var(--brand-coral-strong));
   }
 }
