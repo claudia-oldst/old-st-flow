@@ -376,6 +376,8 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
                       <th className="px-3 py-2 font-normal text-right">FE</th>
                       <th className="px-3 py-2 font-normal text-right">BE</th>
                       <th className="px-3 py-2 font-normal">Epic</th>
+                      <th className="px-3 py-2 font-normal">FE st.</th>
+                      <th className="px-3 py-2 font-normal">BE st.</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -398,6 +400,8 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
                         <td className="px-3 py-2 text-xs text-dim">
                           {r.epic || <span className="text-dimmer">—</span>}
                         </td>
+                        <td className="px-3 py-2 text-[10px] text-dim">{r.fe_status}</td>
+                        <td className="px-3 py-2 text-[10px] text-dim">{r.be_status}</td>
                       </tr>
                     ))}
                   </tbody>
