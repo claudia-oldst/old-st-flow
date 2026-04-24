@@ -18,7 +18,16 @@ import { AssignDialog } from "@/features/tickets/AssignDialog";
 import { LogTimeModal } from "@/features/timelog/LogTimeModal";
 import { EpicSelect } from "@/features/epics/EpicSelect";
 import { MemberAvatar } from "@/components/MemberAvatar";
-import { Clock, Users, Trash2, Edit3, Bookmark } from "lucide-react";
+import { DisciplineStatusChip } from "@/features/tickets/DisciplineStatusChip";
+import { DISCIPLINE_STATUS_LABEL, type DisciplineStatus } from "@/lib/types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Clock, Users, Trash2, Edit3, Bookmark, Sparkles, Pin } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
