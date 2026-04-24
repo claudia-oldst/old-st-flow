@@ -15,7 +15,7 @@ export function useStatuses() {
   useEffect(() => {
     load();
     const ch = supabase
-      .channel("statuses-global")
+      .channel(`statuses-global-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "statuses" }, () => load())
       .subscribe();
     return () => {

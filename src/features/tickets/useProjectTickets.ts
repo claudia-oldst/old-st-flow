@@ -72,7 +72,7 @@ export function useProjectTickets(projectId: string | undefined) {
   useEffect(() => {
     if (!projectId) return;
     const ch = supabase
-      .channel(`tickets-${projectId}`)
+      .channel(`tickets-${projectId}-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "tickets", filter: `project_id=eq.${projectId}` }, () => load())
       .on("postgres_changes", { event: "*", schema: "public", table: "ticket_assignees" }, () => load())
       .subscribe();
