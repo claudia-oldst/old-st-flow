@@ -31,6 +31,7 @@ interface ParsedRow {
   type: TicketType;
   fe: number;
   be: number;
+  epic: string;
   error?: string;
 }
 
