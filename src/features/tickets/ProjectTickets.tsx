@@ -73,6 +73,11 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
   };
 
   const handleFile = (file: File) => {
+    if (!file.name.toLowerCase().endsWith(".csv")) {
+      toast.error("Please upload a .csv file");
+      return;
+    }
+    setFileName(file.name);
     Papa.parse<Record<string, string>>(file, {
       header: true,
       skipEmptyLines: true,
@@ -87,6 +92,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
 
         if (!titleCol) {
           toast.error("CSV must include a Title column");
+          setFileName(null);
           return;
         }
 
@@ -108,9 +114,11 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
           };
         });
         setRows(parsed);
-        setImportOpen(true);
       },
-      error: (err) => toast.error("Failed to parse CSV: " + err.message),
+      error: (err) => {
+        toast.error("Failed to parse CSV: " + err.message);
+        setFileName(null);
+      },
     });
   };
 
