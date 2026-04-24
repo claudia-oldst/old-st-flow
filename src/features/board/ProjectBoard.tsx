@@ -287,14 +287,13 @@ function DisciplineColumn({
   cards,
   onCardClick,
 }: {
-  column: DisciplineColumnKey;
+  column: DisciplineStatus;
   cards: DisciplineCard[];
   onCardClick: (c: DisciplineCard) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: column });
-  const isBacklog = column === "backlog";
-  const color = isBacklog ? BACKLOG_COLOR : DISCIPLINE_STATUS_COLOR[column];
-  const label = isBacklog ? "Backlog" : DISCIPLINE_STATUS_LABEL[column];
+  const color = DISCIPLINE_STATUS_COLOR[column];
+  const label = DISCIPLINE_STATUS_LABEL[column];
   return (
     <div
       ref={setNodeRef}
@@ -307,9 +306,6 @@ function DisciplineColumn({
         <div className="flex items-center gap-2">
           <div className="h-2 w-2 rounded-full" style={{ background: color }} />
           <div className="text-sm font-medium">{label}</div>
-          {isBacklog && (
-            <span className="text-[10px] uppercase tracking-wider text-dimmer">unassigned</span>
-          )}
         </div>
         <div className="text-xs text-dimmer font-mono">{cards.length}</div>
       </div>
