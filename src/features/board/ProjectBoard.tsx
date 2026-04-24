@@ -228,10 +228,10 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
           </div>
         ) : (
           <div className="flex gap-3 overflow-x-auto pb-4">
-            {DISCIPLINE_STATUSES.map((s) => (
+            {disciplineColumns.map((s) => (
               <DisciplineColumn
                 key={s}
-                status={s}
+                column={s}
                 cards={byDisciplineStatus[s]}
                 onCardClick={(c) => setOpenTicket(c.ticket)}
               />
