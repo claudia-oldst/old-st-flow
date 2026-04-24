@@ -171,7 +171,7 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
       <div className="flex items-center gap-2 mb-4 flex-wrap">
         <div className="flex gap-1 p-1 rounded-lg bg-white/5 hairline">
           <button
-            onClick={() => setMode("project")}
+            onClick={() => { setTouched(true); setMode("project"); }}
             className={cn(
               "px-3 py-1 text-xs rounded-md transition",
               mode === "project" ? "bg-foreground text-background" : "text-dim hover:text-foreground"
@@ -180,7 +180,7 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
             Project status
           </button>
           <button
-            onClick={() => setMode("discipline")}
+            onClick={() => { setTouched(true); setMode("discipline"); }}
             className={cn(
               "px-3 py-1 text-xs rounded-md transition",
               mode === "discipline" ? "bg-foreground text-background" : "text-dim hover:text-foreground"
@@ -192,13 +192,13 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
 
         <div className="flex gap-1 p-1 rounded-lg bg-white/5 hairline">
           <button
-            onClick={() => setFilterMine(false)}
+            onClick={() => { setTouched(true); setFilterMine(false); }}
             className={cn("px-3 py-1 text-xs rounded-md transition", !filterMine ? "bg-foreground text-background" : "text-dim hover:text-foreground")}
           >
             All
           </button>
           <button
-            onClick={() => setFilterMine(true)}
+            onClick={() => { setTouched(true); setFilterMine(true); }}
             className={cn("px-3 py-1 text-xs rounded-md transition", filterMine ? "bg-foreground text-background" : "text-dim hover:text-foreground")}
           >
             My tickets
