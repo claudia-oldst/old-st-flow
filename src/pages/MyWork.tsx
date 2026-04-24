@@ -94,7 +94,7 @@ export default function MyWork() {
                       </span>
                     </div>
                   </div>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] bg-white/5 hairline">{r.slot}</span>
+                  <DisciplineStatusChip slot={r.slot} status={isFE ? r.fe_status : r.be_status} />
                   <div className="text-xs font-mono text-dim w-24 text-right">
                     {formatHours(actual)} / {formatHours(estimate)}
                   </div>
