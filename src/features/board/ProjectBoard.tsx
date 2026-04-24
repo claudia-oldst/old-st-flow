@@ -96,7 +96,7 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
       }
     });
     return out;
-  }, [visible, user, showAll]);
+  }, [visible, user, showAll, role]);
 
   const byDisciplineStatus = useMemo(() => {
     const map: Record<DisciplineStatus, DisciplineCard[]> = {
