@@ -140,7 +140,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
     if (error) return toast.error(error.message);
     toast.success(`Imported ${valid.length} ticket${valid.length === 1 ? "" : "s"}`);
     setImportOpen(false);
-    setRows([]);
+    resetImport();
     reload();
   };
 
