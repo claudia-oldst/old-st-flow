@@ -244,6 +244,51 @@ export type Database = {
           },
         ]
       }
+      ticket_estimate_changes: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          delta: number | null
+          discipline: Database["public"]["Enums"]["assignee_slot"]
+          id: string
+          new_hours: number
+          previous_hours: number
+          reason: string | null
+          status: string
+          ticket_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          delta?: number | null
+          discipline: Database["public"]["Enums"]["assignee_slot"]
+          id?: string
+          new_hours: number
+          previous_hours: number
+          reason?: string | null
+          status?: string
+          ticket_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          delta?: number | null
+          discipline?: Database["public"]["Enums"]["assignee_slot"]
+          id?: string
+          new_hours?: number
+          previous_hours?: number
+          reason?: string | null
+          status?: string
+          ticket_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       tickets: {
         Row: {
           actual_backend_hours: number
@@ -251,12 +296,14 @@ export type Database = {
           actual_overhead_hours: number
           be_status: Database["public"]["Enums"]["discipline_status"]
           created_at: string
+          current_be_estimate: number
+          current_fe_estimate: number
           epic_id: number | null
-          est_backend_hours: number
-          est_frontend_hours: number
           fe_status: Database["public"]["Enums"]["discipline_status"]
           formatted_id: string
           id: string
+          original_be_estimate: number
+          original_fe_estimate: number
           position: number
           project_id: string
           project_status_override: boolean
@@ -272,12 +319,14 @@ export type Database = {
           actual_overhead_hours?: number
           be_status?: Database["public"]["Enums"]["discipline_status"]
           created_at?: string
+          current_be_estimate?: number
+          current_fe_estimate?: number
           epic_id?: number | null
-          est_backend_hours?: number
-          est_frontend_hours?: number
           fe_status?: Database["public"]["Enums"]["discipline_status"]
           formatted_id: string
           id?: string
+          original_be_estimate?: number
+          original_fe_estimate?: number
           position?: number
           project_id: string
           project_status_override?: boolean
@@ -293,12 +342,14 @@ export type Database = {
           actual_overhead_hours?: number
           be_status?: Database["public"]["Enums"]["discipline_status"]
           created_at?: string
+          current_be_estimate?: number
+          current_fe_estimate?: number
           epic_id?: number | null
-          est_backend_hours?: number
-          est_frontend_hours?: number
           fe_status?: Database["public"]["Enums"]["discipline_status"]
           formatted_id?: string
           id?: string
+          original_be_estimate?: number
+          original_fe_estimate?: number
           position?: number
           project_id?: string
           project_status_override?: boolean

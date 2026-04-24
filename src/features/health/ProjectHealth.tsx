@@ -5,6 +5,7 @@ import { useStatuses } from "@/features/statuses/useStatuses";
 import { formatHours, healthRatio } from "@/lib/utils";
 import { MemberAvatar } from "@/components/MemberAvatar";
 import { TrendingUp, AlertTriangle, CheckCircle2, Activity } from "lucide-react";
+import { EstimateEvolution } from "@/features/health/EstimateEvolution";
 
 export function ProjectHealth({ projectId }: { projectId: string }) {
   const { tickets } = useProjectTickets(projectId);
@@ -51,8 +52,8 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
   const totals = useMemo(() => {
     return tickets.reduce(
       (acc, t) => {
-        acc.feEst += t.est_frontend_hours;
-        acc.beEst += t.est_backend_hours;
+        acc.feEst += t.current_fe_estimate;
+        acc.beEst += t.current_be_estimate;
         acc.feAct += t.actual_frontend_hours;
         acc.beAct += t.actual_backend_hours;
         acc.over += t.actual_overhead_hours;
@@ -161,6 +162,8 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
           </div>
         </div>
       </div>
+
+      <EstimateEvolution projectId={projectId} />
     </div>
   );
 }

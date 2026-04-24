@@ -41,8 +41,10 @@ export function QuickAddRow({
       ticket_type: type,
       status_id: statusId,
       epic_id: epicId,
-      est_frontend_hours: parseFloat(fe) || 0,
-      est_backend_hours: parseFloat(be) || 0,
+      original_fe_estimate: parseFloat(fe) || 0,
+      original_be_estimate: parseFloat(be) || 0,
+      current_fe_estimate: parseFloat(fe) || 0,
+      current_be_estimate: parseFloat(be) || 0,
       // ticket_number + formatted_id are filled by the before-insert trigger
       ticket_number: 0,
       formatted_id: "",

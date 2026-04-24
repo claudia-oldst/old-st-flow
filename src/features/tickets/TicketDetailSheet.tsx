@@ -19,6 +19,8 @@ import { LogTimeModal } from "@/features/timelog/LogTimeModal";
 import { EpicSelect } from "@/features/epics/EpicSelect";
 import { MemberAvatar } from "@/components/MemberAvatar";
 import { DisciplineStatusChip } from "@/features/tickets/DisciplineStatusChip";
+import { RequestMoreTimeDialog } from "@/features/tickets/RequestMoreTimeDialog";
+import { useTicketEstimateChanges } from "@/features/estimates/useEstimateChanges";
 import { DISCIPLINE_STATUS_LABEL, type DisciplineStatus } from "@/lib/types";
 import {
   Select,
@@ -27,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Clock, Users, Trash2, Edit3, Bookmark, Sparkles, Pin } from "lucide-react";
+import { Clock, Users, Trash2, Edit3, Bookmark, Sparkles, Pin, TrendingUp, History } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -54,18 +56,24 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
   const { statuses } = useStatuses();
   const [assignOpen, setAssignOpen] = useState(false);
   const [logOpen, setLogOpen] = useState(false);
+  const [requestOpen, setRequestOpen] = useState(false);
+  const [requestSlot, setRequestSlot] = useState<"FE" | "BE" | undefined>(undefined);
+  const [showAllChanges, setShowAllChanges] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState("");
   const [feEst, setFeEst] = useState("");
   const [beEst, setBeEst] = useState("");
+  const { changes: estimateChanges, reload: reloadChanges } =
+    useTicketEstimateChanges(ticket?.id);
 
   useEffect(() => {
     if (!ticket) return;
     setTitle(ticket.title);
-    setFeEst(String(ticket.est_frontend_hours));
-    setBeEst(String(ticket.est_backend_hours));
+    setFeEst(String(ticket.current_fe_estimate));
+    setBeEst(String(ticket.current_be_estimate));
     setEditing(false);
+    setShowAllChanges(false);
     supabase
       .from("time_logs")
       .select("id,hours,discipline,note,logged_at,source,user:team_members(name,avatar_color)")
@@ -115,14 +123,55 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
   const handleSaveEdit = async () => {
     const fe = parseFloat(feEst) || 0;
     const be = parseFloat(beEst) || 0;
+    const prevFE = ticket.current_fe_estimate;
+    const prevBE = ticket.current_be_estimate;
+
     const { error } = await supabase
       .from("tickets")
-      .update({ title: title.trim(), est_frontend_hours: fe, est_backend_hours: be })
+      .update({
+        title: title.trim(),
+        current_fe_estimate: fe,
+        current_be_estimate: be,
+      })
       .eq("id", ticket.id);
     if (error) return toast.error(error.message);
+
+    // Log changes for any discipline that actually moved.
+    const audit: any[] = [];
+    if (fe !== prevFE) {
+      audit.push({
+        ticket_id: ticket.id,
+        user_id: user?.id,
+        discipline: "FE",
+        previous_hours: prevFE,
+        new_hours: fe,
+        reason: "PMBA edit",
+        status: "approved",
+        decided_by: user?.id,
+        decided_at: new Date().toISOString(),
+      });
+    }
+    if (be !== prevBE) {
+      audit.push({
+        ticket_id: ticket.id,
+        user_id: user?.id,
+        discipline: "BE",
+        previous_hours: prevBE,
+        new_hours: be,
+        reason: "PMBA edit",
+        status: "approved",
+        decided_by: user?.id,
+        decided_at: new Date().toISOString(),
+      });
+    }
+    if (audit.length && user?.id) {
+      await supabase.from("ticket_estimate_changes").insert(audit);
+    }
+
     toast.success("Saved");
     setEditing(false);
     onChange();
+    reloadChanges();
   };
 
   const handleDelete = async () => {
@@ -260,21 +309,41 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
             <div>
               <div className="flex items-center justify-between mb-2">
                 <div className="text-xs uppercase tracking-wider text-dimmer">Estimates & actuals</div>
-                {isPMBA(role) && !editing && (
-                  <Button variant="ghost" size="sm" onClick={() => setEditing(true)} className="gap-1 text-xs">
-                    <Edit3 className="h-3 w-3" /> Edit
-                  </Button>
-                )}
+                <div className="flex items-center gap-1">
+                  {!editing && (canEditFE || canEditBE) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        // Default to user's slot if they only have one
+                        if (canEditFE && !canEditBE) setRequestSlot("FE");
+                        else if (canEditBE && !canEditFE) setRequestSlot("BE");
+                        else setRequestSlot(undefined);
+                        setRequestOpen(true);
+                      }}
+                      className="gap-1 text-xs"
+                    >
+                      <TrendingUp className="h-3 w-3" /> Request more time
+                    </Button>
+                  )}
+                  {isPMBA(role) && !editing && (
+                    <Button variant="ghost" size="sm" onClick={() => setEditing(true)} className="gap-1 text-xs">
+                      <Edit3 className="h-3 w-3" /> Edit
+                    </Button>
+                  )}
+                </div>
               </div>
               {editing ? (
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs">FE estimate (hrs)</Label>
                     <Input type="number" step="0.5" value={feEst} onChange={(e) => setFeEst(e.target.value)} />
+                    <div className="text-[10px] text-dimmer">Original: {formatHours(ticket.original_fe_estimate)}</div>
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">BE estimate (hrs)</Label>
                     <Input type="number" step="0.5" value={beEst} onChange={(e) => setBeEst(e.target.value)} />
+                    <div className="text-[10px] text-dimmer">Original: {formatHours(ticket.original_be_estimate)}</div>
                   </div>
                   <div className="col-span-2 flex gap-2 justify-end">
                     <Button variant="ghost" size="sm" onClick={() => setEditing(false)}>Cancel</Button>
@@ -283,13 +352,68 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-3">
-                  <Stat label="Frontend" actual={ticket.actual_frontend_hours} estimate={ticket.est_frontend_hours} />
-                  <Stat label="Backend" actual={ticket.actual_backend_hours} estimate={ticket.est_backend_hours} />
+                  <Stat
+                    label="Frontend"
+                    actual={ticket.actual_frontend_hours}
+                    estimate={ticket.current_fe_estimate}
+                    original={ticket.original_fe_estimate}
+                  />
+                  <Stat
+                    label="Backend"
+                    actual={ticket.actual_backend_hours}
+                    estimate={ticket.current_be_estimate}
+                    original={ticket.original_be_estimate}
+                  />
                 </div>
               )}
               {ticket.actual_overhead_hours > 0 && (
                 <div className="mt-3 text-xs text-dim">
                   Overhead logged: <span className="text-foreground font-mono">{formatHours(ticket.actual_overhead_hours)}</span>
+                </div>
+              )}
+
+              {/* Estimate change history */}
+              {estimateChanges.length > 0 && (
+                <div className="mt-4 rounded-lg bg-white/[0.02] hairline p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-[11px] text-dimmer uppercase tracking-wider inline-flex items-center gap-1.5">
+                      <History className="h-3 w-3" /> Estimate changes ({estimateChanges.length})
+                    </div>
+                    {estimateChanges.length > 3 && (
+                      <button
+                        onClick={() => setShowAllChanges((v) => !v)}
+                        className="text-[10px] text-dim hover:text-foreground transition"
+                      >
+                        {showAllChanges ? "Show less" : "View all"}
+                      </button>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    {(showAllChanges ? estimateChanges : estimateChanges.slice(0, 3)).map((c) => {
+                      const sign = c.delta > 0 ? "+" : "";
+                      const color =
+                        c.delta > 0
+                          ? "text-health-warn"
+                          : c.delta < 0
+                          ? "text-health-good"
+                          : "text-dim";
+                      return (
+                        <div key={c.id} className="flex items-start gap-2 text-xs">
+                          <span className={`font-mono font-semibold ${color} w-12 shrink-0`}>
+                            {sign}{formatHours(c.delta)}
+                          </span>
+                          <span className="text-dim shrink-0">{c.discipline}</span>
+                          <span className="flex-1 min-w-0 text-dim truncate">
+                            {c.user?.name ?? "—"}
+                            {c.reason && <span className="text-dimmer"> — {c.reason}</span>}
+                          </span>
+                          <span className="text-[10px] text-dimmer shrink-0">
+                            {new Date(c.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>
@@ -380,13 +504,44 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
           }}
         />
       )}
+
+      {ticket && (canEditFE || canEditBE) && (
+        <RequestMoreTimeDialog
+          open={requestOpen}
+          onOpenChange={setRequestOpen}
+          ticketId={ticket.id}
+          currentFE={ticket.current_fe_estimate}
+          currentBE={ticket.current_be_estimate}
+          allowedSlots={[
+            ...(canEditFE ? (["FE"] as const) : []),
+            ...(canEditBE ? (["BE"] as const) : []),
+          ]}
+          defaultSlot={requestSlot}
+          onSaved={() => {
+            onChange();
+            reloadChanges();
+          }}
+        />
+      )}
     </>
   );
 }
 
-function Stat({ label, actual, estimate }: { label: string; actual: number; estimate: number }) {
+function Stat({
+  label,
+  actual,
+  estimate,
+  original,
+}: {
+  label: string;
+  actual: number;
+  estimate: number;
+  original: number;
+}) {
   const r = estimate > 0 ? actual / estimate : 0;
   const color = r >= 1 ? "text-health-bad" : r >= 0.8 ? "text-health-warn" : "text-health-good";
+  const changed = estimate !== original;
+  const delta = estimate - original;
   return (
     <div className="rounded-lg bg-white/[0.02] hairline p-3">
       <div className="text-xs text-dimmer">{label}</div>
@@ -394,6 +549,14 @@ function Stat({ label, actual, estimate }: { label: string; actual: number; esti
         <span className={`text-lg font-mono font-semibold ${actual > 0 ? color : "text-foreground"}`}>{formatHours(actual)}</span>
         <span className="text-xs text-dimmer">/ {formatHours(estimate)}</span>
       </div>
+      {changed && (
+        <div className="mt-1 text-[10px] text-dimmer">
+          Originally {formatHours(original)}{" "}
+          <span className={delta > 0 ? "text-health-warn" : "text-health-good"}>
+            ({delta > 0 ? "+" : ""}{formatHours(delta)})
+          </span>
+        </div>
+      )}
     </div>
   );
 }

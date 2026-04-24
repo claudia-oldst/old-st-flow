@@ -200,11 +200,11 @@ export function TicketsList({
                         )}
                         <td className="px-4 py-3 text-right text-xs font-mono text-dim">
                           {formatHours(t.actual_frontend_hours)} /{" "}
-                          {formatHours(t.est_frontend_hours)}
+                          {formatHours(t.current_fe_estimate)}
                         </td>
                         <td className="px-4 py-3 text-right text-xs font-mono text-dim">
                           {formatHours(t.actual_backend_hours)} /{" "}
-                          {formatHours(t.est_backend_hours)}
+                          {formatHours(t.current_be_estimate)}
                         </td>
                         {groupBy !== "assignee" && (
                           <td className="px-4 py-3 text-xs text-dim">

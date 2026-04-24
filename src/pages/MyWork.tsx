@@ -15,8 +15,8 @@ interface Row {
   status_id: string | null;
   fe_status: DisciplineStatus;
   be_status: DisciplineStatus;
-  est_frontend_hours: number;
-  est_backend_hours: number;
+  current_fe_estimate: number;
+  current_be_estimate: number;
   actual_frontend_hours: number;
   actual_backend_hours: number;
   project: { id: string; name: string; acronym: string };
@@ -33,7 +33,7 @@ export default function MyWork() {
     supabase
       .from("ticket_assignees")
       .select(
-        "slot,ticket:tickets(id,formatted_id,title,ticket_type,status_id,fe_status,be_status,est_frontend_hours,est_backend_hours,actual_frontend_hours,actual_backend_hours,project:projects(id,name,acronym),status:statuses(name,color,category))"
+        "slot,ticket:tickets(id,formatted_id,title,ticket_type,status_id,fe_status,be_status,current_fe_estimate,current_be_estimate,actual_frontend_hours,actual_backend_hours,project:projects(id,name,acronym),status:statuses(name,color,category))"
       )
       .eq("user_id", user.id)
       .then(({ data }) => {
@@ -43,8 +43,8 @@ export default function MyWork() {
             project: d.ticket.project,
             status: d.ticket.status,
             slot: d.slot,
-            est_frontend_hours: Number(d.ticket.est_frontend_hours),
-            est_backend_hours: Number(d.ticket.est_backend_hours),
+            current_fe_estimate: Number(d.ticket.current_fe_estimate),
+            current_be_estimate: Number(d.ticket.current_be_estimate),
             actual_frontend_hours: Number(d.ticket.actual_frontend_hours),
             actual_backend_hours: Number(d.ticket.actual_backend_hours),
           })) ?? [];
@@ -75,7 +75,7 @@ export default function MyWork() {
             {rows.map((r) => {
               const isFE = r.slot === "FE";
               const actual = isFE ? r.actual_frontend_hours : r.actual_backend_hours;
-              const estimate = isFE ? r.est_frontend_hours : r.est_backend_hours;
+              const estimate = isFE ? r.current_fe_estimate : r.current_be_estimate;
               return (
                 <Link
                   key={`${r.id}-${r.slot}`}

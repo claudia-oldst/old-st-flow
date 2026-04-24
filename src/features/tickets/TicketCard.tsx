@@ -52,8 +52,8 @@ export function TicketCard({
 }) {
   const fe = ticket.assignees.filter((a) => a.slot === "FE").map((a) => a.member);
   const be = ticket.assignees.filter((a) => a.slot === "BE").map((a) => a.member);
-  const showFE = ticket.est_frontend_hours > 0 || ticket.actual_frontend_hours > 0 || fe.length > 0;
-  const showBE = ticket.est_backend_hours > 0 || ticket.actual_backend_hours > 0 || be.length > 0;
+  const showFE = ticket.current_fe_estimate > 0 || ticket.actual_frontend_hours > 0 || fe.length > 0;
+  const showBE = ticket.current_be_estimate > 0 || ticket.actual_backend_hours > 0 || be.length > 0;
 
   return (
     <div
@@ -80,8 +80,8 @@ export function TicketCard({
       )}
 
       <div className="space-y-1.5 mb-3">
-        {showFE && <Bar label="FE" actual={ticket.actual_frontend_hours} estimate={ticket.est_frontend_hours} />}
-        {showBE && <Bar label="BE" actual={ticket.actual_backend_hours} estimate={ticket.est_backend_hours} />}
+        {showFE && <Bar label="FE" actual={ticket.actual_frontend_hours} estimate={ticket.current_fe_estimate} />}
+        {showBE && <Bar label="BE" actual={ticket.actual_backend_hours} estimate={ticket.current_be_estimate} />}
       </div>
 
       <div className="flex items-center justify-between">
