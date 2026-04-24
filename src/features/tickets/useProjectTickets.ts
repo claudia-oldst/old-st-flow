@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import type { TeamMember, TicketAssignee } from "@/lib/types";
+import type { DisciplineStatus, TeamMember, TicketAssignee } from "@/lib/types";
 
 export interface TicketRow {
   id: string;
@@ -10,6 +10,9 @@ export interface TicketRow {
   title: string;
   ticket_type: "Standard" | "Bug" | "CR";
   status_id: string | null;
+  fe_status: DisciplineStatus;
+  be_status: DisciplineStatus;
+  project_status_override: boolean;
   epic_id: number | null;
   epic_name: string | null;
   est_frontend_hours: number;
@@ -61,6 +64,9 @@ export function useProjectTickets(projectId: string | undefined) {
         title: t.title,
         ticket_type: t.ticket_type,
         status_id: t.status_id,
+        fe_status: (t.fe_status ?? "todo") as DisciplineStatus,
+        be_status: (t.be_status ?? "todo") as DisciplineStatus,
+        project_status_override: !!t.project_status_override,
         epic_id: t.epic_id ?? null,
         epic_name: t.epic?.epic_name ?? null,
         est_frontend_hours: Number(t.est_frontend_hours),

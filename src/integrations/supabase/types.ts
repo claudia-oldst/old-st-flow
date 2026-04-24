@@ -240,14 +240,17 @@ export type Database = {
           actual_backend_hours: number
           actual_frontend_hours: number
           actual_overhead_hours: number
+          be_status: Database["public"]["Enums"]["discipline_status"]
           created_at: string
           epic_id: number | null
           est_backend_hours: number
           est_frontend_hours: number
+          fe_status: Database["public"]["Enums"]["discipline_status"]
           formatted_id: string
           id: string
           position: number
           project_id: string
+          project_status_override: boolean
           status_id: string | null
           ticket_number: number
           ticket_type: Database["public"]["Enums"]["ticket_type"]
@@ -258,14 +261,17 @@ export type Database = {
           actual_backend_hours?: number
           actual_frontend_hours?: number
           actual_overhead_hours?: number
+          be_status?: Database["public"]["Enums"]["discipline_status"]
           created_at?: string
           epic_id?: number | null
           est_backend_hours?: number
           est_frontend_hours?: number
+          fe_status?: Database["public"]["Enums"]["discipline_status"]
           formatted_id: string
           id?: string
           position?: number
           project_id: string
+          project_status_override?: boolean
           status_id?: string | null
           ticket_number: number
           ticket_type?: Database["public"]["Enums"]["ticket_type"]
@@ -276,14 +282,17 @@ export type Database = {
           actual_backend_hours?: number
           actual_frontend_hours?: number
           actual_overhead_hours?: number
+          be_status?: Database["public"]["Enums"]["discipline_status"]
           created_at?: string
           epic_id?: number | null
           est_backend_hours?: number
           est_frontend_hours?: number
+          fe_status?: Database["public"]["Enums"]["discipline_status"]
           formatted_id?: string
           id?: string
           position?: number
           project_id?: string
+          project_status_override?: boolean
           status_id?: string | null
           ticket_number?: number
           ticket_type?: Database["public"]["Enums"]["ticket_type"]
@@ -370,10 +379,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      first_status_in_category: {
+        Args: { _cat: Database["public"]["Enums"]["status_category"] }
+        Returns: string
+      }
     }
     Enums: {
       assignee_slot: "FE" | "BE"
+      discipline_status: "todo" | "in_progress" | "done"
       log_discipline: "FE" | "BE" | "Overhead"
       log_source: "timer" | "manual"
       project_role: "Frontend" | "Backend" | "Fullstack" | "QA" | "PMBA"
@@ -507,6 +520,7 @@ export const Constants = {
   public: {
     Enums: {
       assignee_slot: ["FE", "BE"],
+      discipline_status: ["todo", "in_progress", "done"],
       log_discipline: ["FE", "BE", "Overhead"],
       log_source: ["timer", "manual"],
       project_role: ["Frontend", "Backend", "Fullstack", "QA", "PMBA"],

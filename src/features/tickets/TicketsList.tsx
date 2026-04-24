@@ -3,8 +3,12 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { useStatuses } from "@/features/statuses/useStatuses";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { displayTitle, formatHours, cn } from "@/lib/utils";
+import { DisciplineStatusChip } from "@/features/tickets/DisciplineStatusChip";
+import { DISCIPLINE_STATUS_LABEL, type DisciplineStatus } from "@/lib/types";
 
-export type GroupBy = "none" | "status" | "assignee" | "type" | "epic";
+export type GroupBy = "none" | "status" | "assignee" | "type" | "epic" | "fe_status" | "be_status";
+
+const DISC_OPTS: DisciplineStatus[] = ["todo", "in_progress", "done"];
 
 interface Group {
   key: string;
@@ -72,6 +76,17 @@ export function TicketsList({
       if (noEpic.tickets.length) out.push(noEpic);
       return out;
     }
+    if (groupBy === "fe_status" || groupBy === "be_status") {
+      const map = new Map<string, Group>();
+      DISC_OPTS.forEach((s) =>
+        map.set(s, { key: s, label: DISCIPLINE_STATUS_LABEL[s], tickets: [] })
+      );
+      tickets.forEach((t) => {
+        const v = groupBy === "fe_status" ? t.fe_status : t.be_status;
+        map.get(v)?.tickets.push(t);
+      });
+      return [...map.values()].filter((g) => g.tickets.length);
+    }
     // assignee
     const map = new Map<string, Group>();
     const unassigned: Group = { key: "_unassigned", label: "Unassigned", tickets: [] };
@@ -132,6 +147,12 @@ export function TicketsList({
                     {groupBy !== "status" && (
                       <th className="px-4 py-2.5 font-normal w-32">Status</th>
                     )}
+                    {groupBy !== "fe_status" && (
+                      <th className="px-4 py-2.5 font-normal w-28">FE status</th>
+                    )}
+                    {groupBy !== "be_status" && (
+                      <th className="px-4 py-2.5 font-normal w-28">BE status</th>
+                    )}
                     <th className="px-4 py-2.5 font-normal text-right w-24">FE</th>
                     <th className="px-4 py-2.5 font-normal text-right w-24">BE</th>
                     {groupBy !== "assignee" && (
@@ -165,6 +186,16 @@ export function TicketsList({
                                 {status.name}
                               </span>
                             )}
+                          </td>
+                        )}
+                        {groupBy !== "fe_status" && (
+                          <td className="px-4 py-3">
+                            <DisciplineStatusChip slot="FE" status={t.fe_status} />
+                          </td>
+                        )}
+                        {groupBy !== "be_status" && (
+                          <td className="px-4 py-3">
+                            <DisciplineStatusChip slot="BE" status={t.be_status} />
                           </td>
                         )}
                         <td className="px-4 py-3 text-right text-xs font-mono text-dim">

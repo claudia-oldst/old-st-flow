@@ -18,7 +18,16 @@ import { AssignDialog } from "@/features/tickets/AssignDialog";
 import { LogTimeModal } from "@/features/timelog/LogTimeModal";
 import { EpicSelect } from "@/features/epics/EpicSelect";
 import { MemberAvatar } from "@/components/MemberAvatar";
-import { Clock, Users, Trash2, Edit3, Bookmark } from "lucide-react";
+import { DisciplineStatusChip } from "@/features/tickets/DisciplineStatusChip";
+import { DISCIPLINE_STATUS_LABEL, type DisciplineStatus } from "@/lib/types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Clock, Users, Trash2, Edit3, Bookmark, Sparkles, Pin } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -70,6 +79,38 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
   const status = statuses.find((s) => s.id === ticket.status_id);
   const isMine = !!user && ticket.assignees.some((a) => a.user_id === user.id);
   const canLog = isMine || isPMBA(role);
+  const myFE = !!user && ticket.assignees.some((a) => a.user_id === user.id && a.slot === "FE");
+  const myBE = !!user && ticket.assignees.some((a) => a.user_id === user.id && a.slot === "BE");
+  const canEditFE = isPMBA(role) || myFE;
+  const canEditBE = isPMBA(role) || myBE;
+
+  const updateDiscipline = async (slot: "FE" | "BE", value: DisciplineStatus) => {
+    const patch = slot === "FE" ? { fe_status: value } : { be_status: value };
+    const { error } = await supabase.from("tickets").update(patch).eq("id", ticket.id);
+    if (error) return toast.error(error.message);
+    onChange();
+  };
+
+  const setProjectStatus = async (statusId: string) => {
+    const { error } = await supabase
+      .from("tickets")
+      .update({ status_id: statusId })
+      .eq("id", ticket.id);
+    if (error) return toast.error(error.message);
+    onChange();
+  };
+
+  const resetProjectStatusToAuto = async () => {
+    // Clearing the override re-runs the derive trigger on next fe/be touch.
+    // We force a re-derive by toggling override off and writing the same fe_status.
+    const { error } = await supabase
+      .from("tickets")
+      .update({ project_status_override: false, fe_status: ticket.fe_status })
+      .eq("id", ticket.id);
+    if (error) return toast.error(error.message);
+    toast.success("Project status set to auto");
+    onChange();
+  };
 
   const handleSaveEdit = async () => {
     const fe = parseFloat(feEst) || 0;
@@ -101,8 +142,11 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
             <div className="flex items-center gap-2 text-xs">
               <span className="font-mono text-dimmer">{ticket.formatted_id}</span>
               {status && (
-                <span className="px-2 py-0.5 rounded-full text-[10px] ring-1 ring-white/10" style={{ background: `${status.color}22`, color: status.color }}>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] ring-1 ring-white/10" style={{ background: `${status.color}22`, color: status.color }}>
                   {status.name}
+                  {!ticket.project_status_override && (
+                    <Sparkles className="h-2.5 w-2.5 opacity-70" />
+                  )}
                 </span>
               )}
               {ticket.ticket_type !== "Standard" && (
@@ -142,6 +186,75 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
                 />
               </div>
             )}
+
+            {/* Status */}
+            <div className="space-y-3">
+              <div className="text-xs uppercase tracking-wider text-dimmer">Status</div>
+
+              <div className="rounded-xl hairline bg-white/[0.02] p-3 space-y-2.5">
+                <div className="flex items-center gap-2 text-[11px] text-dimmer uppercase tracking-wider">
+                  Discipline
+                </div>
+                <DisciplineRow
+                  slot="FE"
+                  value={ticket.fe_status}
+                  canEdit={canEditFE}
+                  onChange={(v) => updateDiscipline("FE", v)}
+                />
+                <DisciplineRow
+                  slot="BE"
+                  value={ticket.be_status}
+                  canEdit={canEditBE}
+                  onChange={(v) => updateDiscipline("BE", v)}
+                />
+              </div>
+
+              <div className="rounded-xl hairline bg-white/[0.02] p-3 space-y-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-[11px] text-dimmer uppercase tracking-wider">Project status</div>
+                  {ticket.project_status_override ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] text-amber-300/80">
+                      <Pin className="h-2.5 w-2.5" /> Manual override
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[10px] text-dim">
+                      <Sparkles className="h-2.5 w-2.5" /> Auto from FE/BE
+                    </span>
+                  )}
+                </div>
+                {isPMBA(role) ? (
+                  <div className="flex items-center gap-2">
+                    <Select value={ticket.status_id ?? undefined} onValueChange={setProjectStatus}>
+                      <SelectTrigger className="h-8 text-xs flex-1">
+                        <SelectValue placeholder="Pick a status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {statuses.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            <span className="inline-flex items-center gap-2">
+                              <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.color }} />
+                              {s.name}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {ticket.project_status_override && (
+                      <Button variant="ghost" size="sm" className="text-xs gap-1" onClick={resetProjectStatusToAuto}>
+                        <Sparkles className="h-3 w-3" /> Auto
+                      </Button>
+                    )}
+                  </div>
+                ) : status ? (
+                  <span className="inline-flex items-center gap-1.5 text-xs">
+                    <span className="h-1.5 w-1.5 rounded-full" style={{ background: status.color }} />
+                    {status.name}
+                  </span>
+                ) : (
+                  <span className="text-xs text-dimmer">—</span>
+                )}
+              </div>
+            </div>
 
             {/* Estimates */}
             <div>
@@ -281,6 +394,45 @@ function Stat({ label, actual, estimate }: { label: string; actual: number; esti
         <span className={`text-lg font-mono font-semibold ${actual > 0 ? color : "text-foreground"}`}>{formatHours(actual)}</span>
         <span className="text-xs text-dimmer">/ {formatHours(estimate)}</span>
       </div>
+    </div>
+  );
+}
+
+const DISCIPLINE_OPTIONS: DisciplineStatus[] = ["todo", "in_progress", "done"];
+
+function DisciplineRow({
+  slot,
+  value,
+  canEdit,
+  onChange,
+}: {
+  slot: "FE" | "BE";
+  value: DisciplineStatus;
+  canEdit: boolean;
+  onChange: (v: DisciplineStatus) => void;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="w-10 text-xs font-semibold text-dim">{slot}</div>
+      {canEdit ? (
+        <div className="flex gap-1 p-0.5 rounded-lg bg-white/5 hairline flex-1">
+          {DISCIPLINE_OPTIONS.map((opt) => (
+            <button
+              key={opt}
+              onClick={() => onChange(opt)}
+              className={`flex-1 px-2 py-1 text-[11px] rounded-md transition ${
+                value === opt
+                  ? "bg-foreground text-background"
+                  : "text-dim hover:text-foreground"
+              }`}
+            >
+              {DISCIPLINE_STATUS_LABEL[opt]}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <DisciplineStatusChip slot={slot} status={value} size="sm" />
+      )}
     </div>
   );
 }
