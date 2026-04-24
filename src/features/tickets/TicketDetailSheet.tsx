@@ -124,6 +124,25 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
           </SheetHeader>
 
           <div className="mt-6 space-y-6">
+            {/* Epic */}
+            {isPMBA(role) && (
+              <div>
+                <div className="text-xs uppercase tracking-wider text-dimmer mb-2">Epic</div>
+                <EpicSelect
+                  projectId={projectId}
+                  value={ticket.epic_id}
+                  onChange={async (id) => {
+                    const { error } = await supabase
+                      .from("tickets")
+                      .update({ epic_id: id })
+                      .eq("id", ticket.id);
+                    if (error) return toast.error(error.message);
+                    onChange();
+                  }}
+                />
+              </div>
+            )}
+
             {/* Estimates */}
             <div>
               <div className="flex items-center justify-between mb-2">
