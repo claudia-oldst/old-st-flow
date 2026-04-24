@@ -512,6 +512,8 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
           ticketId={ticket.id}
           currentFE={ticket.current_fe_estimate}
           currentBE={ticket.current_be_estimate}
+          actualFE={ticket.actual_frontend_hours}
+          actualBE={ticket.actual_backend_hours}
           allowedSlots={[
             ...(canEditFE ? (["FE"] as const) : []),
             ...(canEditBE ? (["BE"] as const) : []),
