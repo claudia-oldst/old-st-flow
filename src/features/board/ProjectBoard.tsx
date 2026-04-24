@@ -18,15 +18,12 @@ import {
 } from "@/lib/types";
 
 type BoardMode = "project" | "discipline";
-type DisciplineColumnKey = "backlog" | DisciplineStatus;
 const DISCIPLINE_STATUSES: DisciplineStatus[] = ["todo", "in_progress", "done"];
-const BACKLOG_COLOR = "#64748b";
 
 interface DisciplineCard {
   ticket: TicketRow;
   slot: "FE" | "BE";
   status: DisciplineStatus;
-  unassigned?: boolean; // true → render in the Backlog column
 }
 
 export function ProjectBoard({ projectId }: { projectId: string }) {
