@@ -19,6 +19,8 @@ import { LogTimeModal } from "@/features/timelog/LogTimeModal";
 import { EpicSelect } from "@/features/epics/EpicSelect";
 import { MemberAvatar } from "@/components/MemberAvatar";
 import { DisciplineStatusChip } from "@/features/tickets/DisciplineStatusChip";
+import { RequestMoreTimeDialog } from "@/features/tickets/RequestMoreTimeDialog";
+import { useTicketEstimateChanges } from "@/features/estimates/useEstimateChanges";
 import { DISCIPLINE_STATUS_LABEL, type DisciplineStatus } from "@/lib/types";
 import {
   Select,
@@ -27,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Clock, Users, Trash2, Edit3, Bookmark, Sparkles, Pin } from "lucide-react";
+import { Clock, Users, Trash2, Edit3, Bookmark, Sparkles, Pin, TrendingUp, History } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -54,18 +56,24 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
   const { statuses } = useStatuses();
   const [assignOpen, setAssignOpen] = useState(false);
   const [logOpen, setLogOpen] = useState(false);
+  const [requestOpen, setRequestOpen] = useState(false);
+  const [requestSlot, setRequestSlot] = useState<"FE" | "BE" | undefined>(undefined);
+  const [showAllChanges, setShowAllChanges] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState("");
   const [feEst, setFeEst] = useState("");
   const [beEst, setBeEst] = useState("");
+  const { changes: estimateChanges, reload: reloadChanges } =
+    useTicketEstimateChanges(ticket?.id);
 
   useEffect(() => {
     if (!ticket) return;
     setTitle(ticket.title);
-    setFeEst(String(ticket.est_frontend_hours));
-    setBeEst(String(ticket.est_backend_hours));
+    setFeEst(String(ticket.current_fe_estimate));
+    setBeEst(String(ticket.current_be_estimate));
     setEditing(false);
+    setShowAllChanges(false);
     supabase
       .from("time_logs")
       .select("id,hours,discipline,note,logged_at,source,user:team_members(name,avatar_color)")
