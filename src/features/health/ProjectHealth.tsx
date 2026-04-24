@@ -5,6 +5,7 @@ import { useStatuses } from "@/features/statuses/useStatuses";
 import { formatHours, healthRatio } from "@/lib/utils";
 import { MemberAvatar } from "@/components/MemberAvatar";
 import { TrendingUp, AlertTriangle, CheckCircle2, Activity } from "lucide-react";
+import { EstimateEvolution } from "@/features/health/EstimateEvolution";
 
 export function ProjectHealth({ projectId }: { projectId: string }) {
   const { tickets } = useProjectTickets(projectId);
