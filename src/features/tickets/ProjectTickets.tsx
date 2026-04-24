@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import Papa from "papaparse";
 import { Button } from "@/components/ui/button";
-import { Upload, FileText, AlertCircle, LayoutGrid, List } from "lucide-react";
+import { Upload, FileText, AlertCircle, LayoutGrid, List, Download, X, FileUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
