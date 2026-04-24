@@ -65,8 +65,7 @@ export default function ProjectWorkspace() {
       </nav>
 
       <Routes>
-        <Route index element={<ProjectBoard projectId={id} />} />
-        <Route path="tickets" element={<ProjectTickets projectId={id} />} />
+        <Route index element={<ProjectTickets projectId={id} />} />
         <Route path="team" element={<ProjectTeam projectId={id} />} />
         <Route path="health" element={<ProjectHealth projectId={id} />} />
       </Routes>
