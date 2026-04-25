@@ -56,8 +56,14 @@ export function applyFilters(tickets: TicketRow[], f: TicketFilters): TicketRow[
       const key = t.status_id ?? "_none";
       if (!f.statusIds.includes(key)) return false;
     }
-    if (f.feStatuses.length && !f.feStatuses.includes(t.fe_status)) return false;
-    if (f.beStatuses.length && !f.beStatuses.includes(t.be_status)) return false;
+    if (f.feStatuses.length) {
+      const hasFE = t.assignees.some((a) => a.slot === "FE");
+      if (!hasFE || !f.feStatuses.includes(t.fe_status)) return false;
+    }
+    if (f.beStatuses.length) {
+      const hasBE = t.assignees.some((a) => a.slot === "BE");
+      if (!hasBE || !f.beStatuses.includes(t.be_status)) return false;
+    }
     if (f.assigneeIds.length) {
       if (t.assignees.length === 0) {
         if (!f.assigneeIds.includes("_unassigned")) return false;

@@ -65,6 +65,16 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, current,
         return;
       }
     }
+    // If a slot lost its last assignee in this save, reset that slot's status to "todo"
+    // so an unassigned slot can't keep influencing the auto-derived project status.
+    const hadFE = current.some((c) => c.slot === "FE");
+    const hadBE = current.some((c) => c.slot === "BE");
+    const patch: { fe_status?: "todo"; be_status?: "todo" } = {};
+    if (hadFE && feUserIds.size === 0) patch.fe_status = "todo";
+    if (hadBE && beUserIds.size === 0) patch.be_status = "todo";
+    if (Object.keys(patch).length) {
+      await supabase.from("tickets").update(patch).eq("id", ticketId);
+    }
     setBusy(false);
     toast.success("Assignees updated");
     onSaved();

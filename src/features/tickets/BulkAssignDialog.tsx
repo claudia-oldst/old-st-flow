@@ -112,6 +112,28 @@ export function BulkAssignDialog({
       }
     }
 
+    // After mutating assignees, reset fe_status/be_status to "todo" on any
+    // ticket whose slot now has zero assignees, so unassigned slots can't
+    // ghost-influence the auto-derived project status.
+    const { data: finalAssignees } = await supabase
+      .from("ticket_assignees")
+      .select("ticket_id, slot")
+      .in("ticket_id", ticketIds);
+    const haveFE = new Set<string>();
+    const haveBE = new Set<string>();
+    (finalAssignees ?? []).forEach((a) => {
+      if (a.slot === "FE") haveFE.add(a.ticket_id);
+      else if (a.slot === "BE") haveBE.add(a.ticket_id);
+    });
+    const resetFEIds = ticketIds.filter((id) => !haveFE.has(id));
+    const resetBEIds = ticketIds.filter((id) => !haveBE.has(id));
+    if (resetFEIds.length) {
+      await supabase.from("tickets").update({ fe_status: "todo" }).in("id", resetFEIds);
+    }
+    if (resetBEIds.length) {
+      await supabase.from("tickets").update({ be_status: "todo" }).in("id", resetBEIds);
+    }
+
     setBusy(false);
     toast.success(
       mode === "replace"

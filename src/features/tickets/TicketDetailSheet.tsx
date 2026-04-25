@@ -89,8 +89,11 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
   const canLog = isMine || isPMBA(role);
   const myFE = !!user && ticket.assignees.some((a) => a.user_id === user.id && a.slot === "FE");
   const myBE = !!user && ticket.assignees.some((a) => a.user_id === user.id && a.slot === "BE");
-  const canEditFE = isPMBA(role) || myFE;
-  const canEditBE = isPMBA(role) || myBE;
+  // A discipline only "exists" on a ticket once someone is assigned for that role.
+  const hasFE = ticket.assignees.some((a) => a.slot === "FE");
+  const hasBE = ticket.assignees.some((a) => a.slot === "BE");
+  const canEditFE = hasFE && (isPMBA(role) || myFE);
+  const canEditBE = hasBE && (isPMBA(role) || myBE);
 
   const updateDiscipline = async (slot: "FE" | "BE", value: DisciplineStatus) => {
     const patch = slot === "FE" ? { fe_status: value } : { be_status: value };
@@ -282,12 +285,16 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
                   slot="FE"
                   value={ticket.fe_status}
                   canEdit={canEditFE}
+                  hasAssignee={hasFE}
+                  onAssign={isPMBA(role) ? () => setAssignOpen(true) : undefined}
                   onChange={(v) => updateDiscipline("FE", v)}
                 />
                 <DisciplineRow
                   slot="BE"
                   value={ticket.be_status}
                   canEdit={canEditBE}
+                  hasAssignee={hasBE}
+                  onAssign={isPMBA(role) ? () => setAssignOpen(true) : undefined}
                   onChange={(v) => updateDiscipline("BE", v)}
                 />
               </div>
@@ -603,17 +610,36 @@ function DisciplineRow({
   slot,
   value,
   canEdit,
+  hasAssignee,
+  onAssign,
   onChange,
 }: {
   slot: "FE" | "BE";
   value: DisciplineStatus;
   canEdit: boolean;
+  hasAssignee: boolean;
+  onAssign?: () => void;
   onChange: (v: DisciplineStatus) => void;
 }) {
   return (
     <div className="flex items-center gap-3">
       <div className="w-10 text-xs font-semibold text-dim">{slot}</div>
-      {canEdit ? (
+      {!hasAssignee ? (
+        <div className="flex-1 flex items-center justify-between gap-2 px-2.5 py-1 rounded-lg bg-white/[0.02] hairline">
+          <span className="text-[11px] text-dimmer">
+            No {slot === "FE" ? "frontend" : "backend"} assignee — status not applicable
+          </span>
+          {onAssign && (
+            <button
+              type="button"
+              onClick={onAssign}
+              className="text-[11px] text-dim hover:text-foreground transition underline-offset-2 hover:underline"
+            >
+              Assign
+            </button>
+          )}
+        </div>
+      ) : canEdit ? (
         <div className="flex gap-1 p-0.5 rounded-lg bg-white/5 hairline flex-1">
           {DISCIPLINE_OPTIONS.map((opt) => (
             <button
