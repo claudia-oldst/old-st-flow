@@ -55,6 +55,8 @@ type ViewMode = "board" | "list";
 
 export function ProjectTickets({ projectId }: { projectId: string }) {
   const role = useProjectRole(projectId);
+  const user = useCurrentUser((s) => s.user);
+  const pmba = isPMBA(role);
   const { tickets, reload } = useProjectTickets(projectId);
   const fileRef = useRef<HTMLInputElement>(null);
   const [importOpen, setImportOpen] = useState(false);
@@ -65,6 +67,19 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
   const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
   const [view, setView] = useState<ViewMode>("board");
   const [groupBy, setGroupBy] = useState<GroupBy>("status");
+  const [filterMine, setFilterMine] = useState<boolean>(true);
+  const [touched, setTouched] = useState(false);
+
+  // Role-based default: PMBA → All, others → My tickets
+  useEffect(() => {
+    if (touched || role === null) return;
+    setFilterMine(!pmba);
+  }, [role, pmba, touched]);
+
+  const visibleTickets = useMemo(() => {
+    if (!filterMine || !user) return tickets;
+    return tickets.filter((t) => t.assignees.some((a) => a.user_id === user.id));
+  }, [tickets, filterMine, user]);
 
   const resetImport = () => {
     setRows([]);
