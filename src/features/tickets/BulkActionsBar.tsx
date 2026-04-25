@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Trash2, Tag, Layers, Hash, Code2 } from "lucide-react";
+import { X, Trash2, Tag, Layers, Hash, Code2, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useStatuses } from "@/features/statuses/useStatuses";
@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DISCIPLINE_STATUS_LABEL, type DisciplineStatus } from "@/lib/types";
+import { BulkAssignDialog } from "@/features/tickets/BulkAssignDialog";
 
 const DISC_OPTS: DisciplineStatus[] = ["todo", "in_progress", "done"];
 
@@ -42,6 +43,7 @@ export function BulkActionsBar({
   const [versionOpen, setVersionOpen] = useState(false);
   const [versionVal, setVersionVal] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
   if (selectedIds.length === 0) return null;
@@ -94,6 +96,15 @@ export function BulkActionsBar({
 
           {canEdit && (
             <>
+              {/* Assign */}
+              <button
+                disabled={busy}
+                onClick={() => setAssignOpen(true)}
+                className="px-3 py-1.5 rounded-lg text-xs hover:bg-white/5 transition inline-flex items-center gap-1.5 text-dim hover:text-foreground"
+              >
+                <Users className="h-3.5 w-3.5" /> Assign
+              </button>
+
               {/* Status */}
               <Popover>
                 <PopoverTrigger asChild>
@@ -252,6 +263,14 @@ export function BulkActionsBar({
           </button>
         </div>
       </div>
+
+      <BulkAssignDialog
+        open={assignOpen}
+        onOpenChange={setAssignOpen}
+        projectId={projectId}
+        ticketIds={selectedIds}
+        onSaved={() => {}}
+      />
 
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>
