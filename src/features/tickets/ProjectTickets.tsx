@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { useProjectTickets, type TicketRow } from "@/features/tickets/useProjectTickets";
 import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
 import { TicketsList, type GroupBy } from "@/features/tickets/TicketsList";
+import { BulkActionsBar } from "@/features/tickets/BulkActionsBar";
 import {
   TicketsFilter,
   EMPTY_FILTERS,
@@ -78,6 +79,8 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
   const [filterMine, setFilterMine] = useState<boolean>(true);
   const [touched, setTouched] = useState(false);
   const [filters, setFilters] = useState<TicketFilters>(EMPTY_FILTERS);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
 
   // Role-based default: PMBA → All, others → My tickets
   useEffect(() => {
@@ -92,6 +95,57 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
     }
     return applyFilters(out, filters);
   }, [tickets, filterMine, user, filters]);
+
+  // Drop selections that are no longer visible (filter change, deletion, view switch)
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      if (prev.size === 0) return prev;
+      const visibleSet = new Set(visibleTickets.map((t) => t.id));
+      const next = new Set<string>();
+      prev.forEach((id) => visibleSet.has(id) && next.add(id));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [visibleTickets]);
+
+  // Clear selection when leaving list view
+  useEffect(() => {
+    if (view !== "list") {
+      setSelectedIds(new Set());
+      setLastSelectedId(null);
+    }
+  }, [view]);
+
+  const toggleSelect = (id: string, shiftKey: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (shiftKey && lastSelectedId && lastSelectedId !== id) {
+        const ids = visibleTickets.map((t) => t.id);
+        const a = ids.indexOf(lastSelectedId);
+        const b = ids.indexOf(id);
+        if (a !== -1 && b !== -1) {
+          const [from, to] = a < b ? [a, b] : [b, a];
+          const shouldSelect = !prev.has(id);
+          for (let i = from; i <= to; i++) {
+            if (shouldSelect) next.add(ids[i]);
+            else next.delete(ids[i]);
+          }
+          return next;
+        }
+      }
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+    setLastSelectedId(id);
+  };
+
+  const toggleSelectAll = (ids: string[], select: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      ids.forEach((id) => (select ? next.add(id) : next.delete(id)));
+      return next;
+    });
+  };
 
   const resetImport = () => {
     setRows([]);
@@ -370,8 +424,26 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
           </div>
         </div>
       ) : (
-        <TicketsList tickets={visibleTickets} groupBy={groupBy} onOpen={setOpenTicket} />
+        <TicketsList
+          tickets={visibleTickets}
+          groupBy={groupBy}
+          onOpen={setOpenTicket}
+          selectedIds={selectedIds}
+          onToggleSelect={toggleSelect}
+          onToggleSelectAll={toggleSelectAll}
+        />
       )}
+
+      {view === "list" && (
+        <BulkActionsBar
+          projectId={projectId}
+          selectedIds={Array.from(selectedIds)}
+          onClear={() => {
+            setSelectedIds(new Set());
+            setLastSelectedId(null);
+          }}
+          canEdit={pmba}
+        />)}
 
       <Dialog
         open={importOpen}
