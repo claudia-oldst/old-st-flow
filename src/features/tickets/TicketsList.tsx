@@ -205,12 +205,16 @@ export function TicketsList({
       return out;
     }
     if (groupBy === "fe_status" || groupBy === "be_status") {
+      const slot: "FE" | "BE" = groupBy === "fe_status" ? "FE" : "BE";
       const map = new Map<string, Group>();
       DISC_OPTS.forEach((s) =>
         map.set(s, { key: s, label: DISCIPLINE_STATUS_LABEL[s], tickets: [] })
       );
       tickets.forEach((t) => {
-        const v = groupBy === "fe_status" ? t.fe_status : t.be_status;
+        // Only tickets that have an assignee for this discipline have a status here.
+        const hasSlot = t.assignees.some((a) => a.slot === slot);
+        if (!hasSlot) return;
+        const v = slot === "FE" ? t.fe_status : t.be_status;
         map.get(v)?.tickets.push(t);
       });
       return [...map.values()].filter((g) => g.tickets.length);
