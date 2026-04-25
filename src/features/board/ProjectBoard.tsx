@@ -147,6 +147,9 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
     if (!DISCIPLINE_STATUSES.includes(newStatus)) return;
     const t = tickets.find((x) => x.id === ticketId);
     if (!t) return;
+    // Defensive: if the slot has no assignees (race with realtime), don't allow status changes.
+    const hasSlot = t.assignees.some((a) => a.slot === slot);
+    if (!hasSlot) return;
     const current = slot === "FE" ? t.fe_status : t.be_status;
     if (current === newStatus) return;
     const patch =
