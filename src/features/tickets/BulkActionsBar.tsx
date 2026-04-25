@@ -264,6 +264,14 @@ export function BulkActionsBar({
         </div>
       </div>
 
+      <BulkAssignDialog
+        open={assignOpen}
+        onOpenChange={setAssignOpen}
+        projectId={projectId}
+        ticketIds={selectedIds}
+        onSaved={() => {}}
+      />
+
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>
           <AlertDialogHeader>
