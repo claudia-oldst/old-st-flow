@@ -134,35 +134,42 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
       {/* Second row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="glass rounded-2xl p-5 md:col-span-2">
-          <div className="flex items-center justify-between mb-4">
+          <div className="mb-3">
             <div className="text-xs uppercase tracking-wider text-dimmer">Member capacity</div>
-            <div className="text-xs text-dim">Open tix · remaining · this week</div>
           </div>
           {members.length === 0 ? (
             <div className="text-sm text-dim">No members yet.</div>
           ) : (
-            <div className="space-y-2">
-              {members.map((m) => (
-                <div key={m.user_id} className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-white/[0.02] transition">
-                  <MemberAvatar name={m.member.name} color={m.member.avatar_color} size="sm" />
-                  <div className="flex-1">
-                    <div className="text-sm">{m.member.name}</div>
-                    <div className="text-[10px] text-dimmer">{m.role}</div>
+            <>
+              {/* Column headers */}
+              <div className="flex items-center gap-3 px-2 pb-2 border-b border-white/5 text-[10px] uppercase tracking-wider text-dimmer">
+                <div className="w-7 shrink-0" />
+                <div className="flex-1">Member</div>
+                <div className="w-14 text-right">Open tix</div>
+                <div className="w-20 text-right">Assigned</div>
+                <div className="w-16 text-right">Logged</div>
+              </div>
+              <div className="space-y-2 pt-2">
+                {members.map((m) => (
+                  <div key={m.user_id} className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-white/[0.02] transition">
+                    <MemberAvatar name={m.member.name} color={m.member.avatar_color} size="sm" />
+                    <div className="flex-1">
+                      <div className="text-sm">{m.member.name}</div>
+                      <div className="text-[10px] text-dimmer">{m.role}</div>
+                    </div>
+                    <div className="text-xs font-mono text-dim w-14 text-right" title="Open tickets assigned to this member">
+                      <span className="text-foreground">{ticketsByMember[m.user_id] ?? 0}</span>
+                    </div>
+                    <div className="text-xs font-mono text-dim w-20 text-right" title="Remaining hours on assigned active tickets">
+                      <span className="text-foreground">{formatHours(remainingByMember[m.user_id] ?? 0)}</span>
+                    </div>
+                    <div className="text-xs font-mono text-dim w-16 text-right" title="Hours logged in the last 7 days">
+                      {formatHours(weekHours[m.user_id] ?? 0)}
+                    </div>
                   </div>
-                  <div className="text-xs font-mono text-dim w-14 text-right">
-                    <span className="text-foreground">{ticketsByMember[m.user_id] ?? 0}</span>
-                    <span className="text-dimmer ml-1">tix</span>
-                  </div>
-                  <div className="text-xs font-mono text-dim w-20 text-right" title="Remaining hours on assigned active tickets">
-                    <span className="text-foreground">{formatHours(remainingByMember[m.user_id] ?? 0)}</span>
-                    <span className="text-dimmer ml-1">left</span>
-                  </div>
-                  <div className="text-xs font-mono text-dim w-16 text-right" title="Hours logged in the last 7 days">
-                    {formatHours(weekHours[m.user_id] ?? 0)}
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
 
