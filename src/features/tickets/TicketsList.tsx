@@ -313,146 +313,149 @@ export function TicketsList({
   };
 
   return (
-    <div className="flex flex-col gap-3">
-      {groups.map((g) => {
-        const isCollapsed = collapsed[g.key];
-        return (
-          <div key={g.key} className="glass rounded-2xl overflow-hidden">
-            {groupBy !== "none" && (
-              <button
-                onClick={() => setCollapsed((c) => ({ ...c, [g.key]: !c[g.key] }))}
-                className="w-full flex items-center gap-2 px-4 py-3 hairline-b hover:bg-white/[0.02] transition text-left"
-              >
-                {isCollapsed ? (
-                  <ChevronRight className="h-3.5 w-3.5 text-dimmer" />
-                ) : (
-                  <ChevronDown className="h-3.5 w-3.5 text-dimmer" />
-                )}
-                {g.color && (
-                  <span className="h-2 w-2 rounded-full" style={{ background: g.color }} />
-                )}
-                <span className="text-sm font-medium">{g.label}</span>
-                <span className="text-xs text-dimmer font-mono ml-1">
-                  {g.tickets.length}
-                </span>
-              </button>
-            )}
-            {!isCollapsed && (
-              <div className="overflow-x-auto">
-                <table
-                  className="text-sm table-fixed"
-                  style={{ width: Math.max(totalWidth, 0), minWidth: "100%" }}
+    <TooltipProvider>
+      <div className="flex flex-col gap-3">
+        {groups.map((g) => {
+          const isCollapsed = collapsed[g.key];
+          return (
+            <div key={g.key} className="glass rounded-2xl overflow-hidden">
+              {groupBy !== "none" && (
+                <button
+                  onClick={() => setCollapsed((c) => ({ ...c, [g.key]: !c[g.key] }))}
+                  className="w-full flex items-center gap-2 px-4 py-3 hairline-b hover:bg-white/[0.02] transition text-left"
                 >
-                  <colgroup>
-                    {selectionEnabled && <col style={{ width: 36 }} />}
-                    {visibleCols.map((k) => (
-                      <col key={k} style={{ width: widthFor(k) }} />
-                    ))}
-                  </colgroup>
-                  <thead className="text-left text-xs text-dimmer uppercase tracking-wider">
-                    <tr className="hairline-b">
-                      {selectionEnabled && (() => {
-                        const ids = g.tickets.map((t) => t.id);
-                        const allChecked = ids.length > 0 && ids.every((id) => selectedIds!.has(id));
-                        const someChecked = !allChecked && ids.some((id) => selectedIds!.has(id));
-                        return (
-                          <th className="pl-4 pr-1 py-2.5 font-normal">
-                            <input
-                              type="checkbox"
-                              aria-label="Select all in group"
-                              checked={allChecked}
-                              ref={(el) => {
-                                if (el) el.indeterminate = someChecked;
-                              }}
-                              onChange={(e) => {
-                                e.stopPropagation();
-                                onToggleSelectAll?.(ids, e.target.checked);
-                              }}
-                              onClick={(e) => e.stopPropagation()}
-                              className="h-3.5 w-3.5 rounded border-white/20 bg-transparent accent-accent cursor-pointer"
-                            />
-                          </th>
-                        );
-                      })()}
-                      {visibleCols.map((k, idx) => {
-                        const c = COLS[k];
-                        const isLast = idx === visibleCols.length - 1;
-                        return (
-                          <th
-                            key={k}
-                            className={cn(
-                              "px-4 py-2.5 font-normal relative select-none",
-                              c.align === "right" && "text-right"
-                            )}
-                          >
-                            <span className="truncate block">{c.label}</span>
-                            {!isLast && (
-                              <span
-                                onMouseDown={onResizeStart(k)}
-                                onClick={(e) => e.stopPropagation()}
-                                className="absolute top-0 right-0 h-full w-1.5 cursor-col-resize group flex items-center justify-center"
-                                aria-label={`Resize ${c.label} column`}
-                                role="separator"
-                              >
-                                <span className="h-4 w-px bg-white/10 group-hover:bg-accent transition" />
-                              </span>
-                            )}
-                          </th>
-                        );
-                      })}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {g.tickets.map((t) => {
-                      const isSelected = selectionEnabled && selectedIds!.has(t.id);
-                      return (
-                        <tr
-                          key={`${g.key}-${t.id}`}
-                          onClick={() => onOpen(t)}
-                          className={cn(
-                            "cursor-pointer transition hairline-b last:border-b-0",
-                            isSelected ? "bg-accent/10 hover:bg-accent/15" : "hover:bg-white/[0.02]"
-                          )}
-                        >
-                          {selectionEnabled && (
-                            <td className="pl-4 pr-1 align-middle">
+                  {isCollapsed ? (
+                    <ChevronRight className="h-3.5 w-3.5 text-dimmer" />
+                  ) : (
+                    <ChevronDown className="h-3.5 w-3.5 text-dimmer" />
+                  )}
+                  {g.color && (
+                    <span className="h-2 w-2 rounded-full" style={{ background: g.color }} />
+                  )}
+                  <span className="text-sm font-medium">{g.label}</span>
+                  <span className="text-xs text-dimmer font-mono ml-1">
+                    {g.tickets.length}
+                  </span>
+                </button>
+              )}
+              {!isCollapsed && (
+                <div className="overflow-x-auto">
+                  <table
+                    className="text-sm table-fixed"
+                    style={{ width: Math.max(totalWidth, 0), minWidth: "100%" }}
+                  >
+                    <colgroup>
+                      {selectionEnabled && <col style={{ width: 36 }} />}
+                      {visibleCols.map((k) => (
+                        <col key={k} style={{ width: widthFor(k) }} />
+                      ))}
+                    </colgroup>
+                    <thead className="text-left text-xs text-dimmer uppercase tracking-wider">
+                      <tr className="hairline-b">
+                        {selectionEnabled && (() => {
+                          const ids = g.tickets.map((t) => t.id);
+                          const allChecked = ids.length > 0 && ids.every((id) => selectedIds!.has(id));
+                          const someChecked = !allChecked && ids.some((id) => selectedIds!.has(id));
+                          return (
+                            <th className="pl-4 pr-1 py-2.5 font-normal">
                               <input
                                 type="checkbox"
-                                aria-label={`Select ticket ${t.formatted_id}`}
-                                checked={isSelected}
-                                onChange={() => {}}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onToggleSelect!(t.id, (e as unknown as React.MouseEvent).shiftKey);
+                                aria-label="Select all in group"
+                                checked={allChecked}
+                                ref={(el) => {
+                                  if (el) el.indeterminate = someChecked;
                                 }}
+                                onChange={(e) => {
+                                  e.stopPropagation();
+                                  onToggleSelectAll?.(id, e.target.checked);
+                                  onToggleSelectAll?.(ids, e.target.checked);
+                                }}
+                                onClick={(e) => e.stopPropagation()}
                                 className="h-3.5 w-3.5 rounded border-white/20 bg-transparent accent-accent cursor-pointer"
                               />
-                            </td>
-                          )}
-                          {visibleCols.map((k) => {
-                            const c = COLS[k];
-                            return (
-                              <td
-                                key={k}
-                                className={cn(
-                                  "px-4 py-3 align-middle overflow-hidden",
-                                  c.align === "right" && "text-right"
-                                )}
-                              >
-                                {renderCell(k, t)}
+                            </th>
+                          );
+                        })()}
+                        {visibleCols.map((k, idx) => {
+                          const c = COLS[k];
+                          const isLast = idx === visibleCols.length - 1;
+                          return (
+                            <th
+                              key={k}
+                              className={cn(
+                                "px-4 py-2.5 font-normal relative select-none",
+                                c.align === "right" && "text-right"
+                              )}
+                            >
+                              <span className="truncate block">{c.label}</span>
+                              {!isLast && (
+                                <span
+                                  onMouseDown={onResizeStart(k)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="absolute top-0 right-0 h-full w-1.5 cursor-col-resize group flex items-center justify-center"
+                                  aria-label={`Resize ${c.label} column`}
+                                  role="separator"
+                                >
+                                  <span className="h-4 w-px bg-white/10 group-hover:bg-accent transition" />
+                                </span>
+                              )}
+                            </th>
+                          );
+                        })}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {g.tickets.map((t) => {
+                        const isSelected = selectionEnabled && selectedIds!.has(t.id);
+                        return (
+                          <tr
+                            key={`${g.key}-${t.id}`}
+                            onClick={() => onOpen(t)}
+                            className={cn(
+                              "cursor-pointer transition hairline-b last:border-b-0",
+                              isSelected ? "bg-accent/10 hover:bg-accent/15" : "hover:bg-white/[0.02]"
+                            )}
+                          >
+                            {selectionEnabled && (
+                              <td className="pl-4 pr-1 align-middle">
+                                <input
+                                  type="checkbox"
+                                  aria-label={`Select ticket ${t.formatted_id}`}
+                                  checked={isSelected}
+                                  onChange={() => {}}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onToggleSelect!(t.id, (e as unknown as React.MouseEvent).shiftKey);
+                                  }}
+                                  className="h-3.5 w-3.5 rounded border-white/20 bg-transparent accent-accent cursor-pointer"
+                                />
                               </td>
-                            );
-                          })}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
+                            )}
+                            {visibleCols.map((k) => {
+                              const c = COLS[k];
+                              return (
+                                <td
+                                  key={k}
+                                  className={cn(
+                                    "px-4 py-3 align-middle overflow-hidden",
+                                    c.align === "right" && "text-right"
+                                  )}
+                                >
+                                  {renderCell(k, t)}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </TooltipProvider>
   );
 }
