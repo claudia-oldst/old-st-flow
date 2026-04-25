@@ -81,17 +81,30 @@ export function BulkAssignDialog({
       }
     }
 
-    const rows: { ticket_id: string; user_id: string; slot: "FE" | "BE" }[] = [];
+    let rows: { ticket_id: string; user_id: string; slot: "FE" | "BE" }[] = [];
     ticketIds.forEach((tid) => {
       feUserIds.forEach((uid) => rows.push({ ticket_id: tid, user_id: uid, slot: "FE" }));
       beUserIds.forEach((uid) => rows.push({ ticket_id: tid, user_id: uid, slot: "BE" }));
     });
 
-    if (rows.length) {
-      // upsert avoids duplicate-key errors when the user is already assigned in "add" mode
-      const { error } = await supabase
+    // In "add" mode, skip rows that already exist to avoid duplicate-key errors.
+    if (mode === "add" && rows.length) {
+      const { data: existing, error: exErr } = await supabase
         .from("ticket_assignees")
-        .upsert(rows, { onConflict: "ticket_id,user_id,slot", ignoreDuplicates: true });
+        .select("ticket_id, user_id, slot")
+        .in("ticket_id", ticketIds);
+      if (exErr) {
+        setBusy(false);
+        return toast.error(exErr.message);
+      }
+      const seen = new Set(
+        (existing ?? []).map((e) => `${e.ticket_id}|${e.user_id}|${e.slot}`)
+      );
+      rows = rows.filter((r) => !seen.has(`${r.ticket_id}|${r.user_id}|${r.slot}`));
+    }
+
+    if (rows.length) {
+      const { error } = await supabase.from("ticket_assignees").insert(rows);
       if (error) {
         toast.error(error.message);
         setBusy(false);
