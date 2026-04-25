@@ -6,7 +6,7 @@ import { displayTitle, formatHours, cn } from "@/lib/utils";
 import { DisciplineStatusChip } from "@/features/tickets/DisciplineStatusChip";
 import { DISCIPLINE_STATUS_LABEL, type DisciplineStatus } from "@/lib/types";
 
-export type GroupBy = "none" | "status" | "assignee" | "type" | "epic" | "fe_status" | "be_status";
+export type GroupBy = "none" | "status" | "assignee" | "type" | "epic" | "version" | "fe_status" | "be_status";
 
 const DISC_OPTS: DisciplineStatus[] = ["todo", "in_progress", "done"];
 
@@ -21,6 +21,7 @@ type ColKey =
   | "id"
   | "title"
   | "epic"
+  | "version"
   | "status"
   | "dev_status"
   | "fe"
@@ -39,6 +40,7 @@ const COLS: Record<ColKey, ColDef> = {
   id: { key: "id", label: "ID", default: 90, min: 70 },
   title: { key: "title", label: "Title", default: 320, min: 160 },
   epic: { key: "epic", label: "Epic", default: 160, min: 100 },
+  version: { key: "version", label: "Version", default: 110, min: 80 },
   status: { key: "status", label: "Status", default: 140, min: 100 },
   dev_status: { key: "dev_status", label: "Dev status", default: 200, min: 140 },
   fe: { key: "fe", label: "FE", default: 110, min: 80, align: "right" },
@@ -81,6 +83,7 @@ export function TicketsList({
   const visibleCols: ColKey[] = useMemo(() => {
     const out: ColKey[] = ["id", "title"];
     if (groupBy !== "epic") out.push("epic");
+    if (groupBy !== "version") out.push("version");
     if (groupBy !== "status") out.push("status");
     out.push("dev_status");
     out.push("fe", "be");
