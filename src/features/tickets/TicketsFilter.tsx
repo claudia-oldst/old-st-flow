@@ -104,6 +104,15 @@ export function TicketsFilter({
     return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
   }, [tickets]);
 
+  const versionOptions = useMemo(() => {
+    const set = new Set<string>();
+    tickets.forEach((t) => {
+      const v = t.version?.trim();
+      if (v) set.add(v);
+    });
+    return [...set].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  }, [tickets]);
+
   const count = activeFilterCount(filters);
 
   function toggle<K extends keyof TicketFilters>(key: K, value: string) {
