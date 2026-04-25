@@ -15,6 +15,7 @@ export interface TicketRow {
   project_status_override: boolean;
   epic_id: number | null;
   epic_name: string | null;
+  version: string | null;
   original_fe_estimate: number;
   original_be_estimate: number;
   current_fe_estimate: number;
@@ -71,6 +72,7 @@ export function useProjectTickets(projectId: string | undefined) {
         project_status_override: !!t.project_status_override,
         epic_id: t.epic_id ?? null,
         epic_name: t.epic?.epic_name ?? null,
+        version: t.version ?? null,
         original_fe_estimate: Number(t.original_fe_estimate),
         original_be_estimate: Number(t.original_be_estimate),
         current_fe_estimate: Number(t.current_fe_estimate),

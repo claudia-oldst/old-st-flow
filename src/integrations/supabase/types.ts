@@ -327,6 +327,7 @@ export type Database = {
           ticket_type: Database["public"]["Enums"]["ticket_type"]
           title: string
           updated_at: string
+          version: string | null
         }
         Insert: {
           actual_backend_hours?: number
@@ -350,6 +351,7 @@ export type Database = {
           ticket_type?: Database["public"]["Enums"]["ticket_type"]
           title: string
           updated_at?: string
+          version?: string | null
         }
         Update: {
           actual_backend_hours?: number
@@ -373,6 +375,7 @@ export type Database = {
           ticket_type?: Database["public"]["Enums"]["ticket_type"]
           title?: string
           updated_at?: string
+          version?: string | null
         }
         Relationships: [
           {

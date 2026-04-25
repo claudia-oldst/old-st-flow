@@ -6,7 +6,7 @@ import { displayTitle, formatHours, cn } from "@/lib/utils";
 import { DisciplineStatusChip } from "@/features/tickets/DisciplineStatusChip";
 import { DISCIPLINE_STATUS_LABEL, type DisciplineStatus } from "@/lib/types";
 
-export type GroupBy = "none" | "status" | "assignee" | "type" | "epic" | "fe_status" | "be_status";
+export type GroupBy = "none" | "status" | "assignee" | "type" | "epic" | "version" | "fe_status" | "be_status";
 
 const DISC_OPTS: DisciplineStatus[] = ["todo", "in_progress", "done"];
 
@@ -21,6 +21,7 @@ type ColKey =
   | "id"
   | "title"
   | "epic"
+  | "version"
   | "status"
   | "dev_status"
   | "fe"
@@ -39,6 +40,7 @@ const COLS: Record<ColKey, ColDef> = {
   id: { key: "id", label: "ID", default: 90, min: 70 },
   title: { key: "title", label: "Title", default: 320, min: 160 },
   epic: { key: "epic", label: "Epic", default: 160, min: 100 },
+  version: { key: "version", label: "Version", default: 110, min: 80 },
   status: { key: "status", label: "Status", default: 140, min: 100 },
   dev_status: { key: "dev_status", label: "Dev status", default: 200, min: 140 },
   fe: { key: "fe", label: "FE", default: 110, min: 80, align: "right" },
@@ -81,6 +83,7 @@ export function TicketsList({
   const visibleCols: ColKey[] = useMemo(() => {
     const out: ColKey[] = ["id", "title"];
     if (groupBy !== "epic") out.push("epic");
+    if (groupBy !== "version") out.push("version");
     if (groupBy !== "status") out.push("status");
     out.push("dev_status");
     out.push("fe", "be");
@@ -176,6 +179,23 @@ export function TicketsList({
       if (noEpic.tickets.length) out.push(noEpic);
       return out;
     }
+    if (groupBy === "version") {
+      const map = new Map<string, Group>();
+      const noVersion: Group = { key: "_no_version", label: "No version", tickets: [] };
+      tickets.forEach((t) => {
+        const v = t.version?.trim();
+        if (!v) {
+          noVersion.tickets.push(t);
+          return;
+        }
+        const g = map.get(v) ?? { key: v, label: v, tickets: [] };
+        g.tickets.push(t);
+        map.set(v, g);
+      });
+      const out = [...map.values()].sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
+      if (noVersion.tickets.length) out.push(noVersion);
+      return out;
+    }
     if (groupBy === "fe_status" || groupBy === "be_status") {
       const map = new Map<string, Group>();
       DISC_OPTS.forEach((s) =>
@@ -226,6 +246,14 @@ export function TicketsList({
           <span className="text-xs text-dim truncate block">
             {t.epic_name ?? <span className="text-dimmer">—</span>}
           </span>
+        );
+      case "version":
+        return t.version ? (
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono bg-white/5 hairline text-dim">
+            {t.version}
+          </span>
+        ) : (
+          <span className="text-dimmer text-xs">—</span>
         );
       case "status": {
         const status = statuses.find((s) => s.id === t.status_id);

@@ -206,6 +206,11 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
                   <Bookmark className="h-2.5 w-2.5" /> {ticket.epic_name}
                 </span>
               )}
+              {ticket.version && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] bg-white/5 hairline font-mono">
+                  {ticket.version}
+                </span>
+              )}
             </div>
             <SheetTitle className="text-left text-xl">
               {editing ? (
@@ -235,6 +240,35 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
                 />
               </div>
             )}
+
+            {/* Version */}
+            <div>
+              <div className="text-xs uppercase tracking-wider text-dimmer mb-2">Version</div>
+              {isPMBA(role) ? (
+                <Input
+                  defaultValue={ticket.version ?? ""}
+                  placeholder="e.g. v1, MVP, Phase 2"
+                  className="h-8 text-sm"
+                  onBlur={async (e) => {
+                    const next = e.target.value.trim() || null;
+                    if ((next ?? null) === (ticket.version ?? null)) return;
+                    const { error } = await supabase
+                      .from("tickets")
+                      .update({ version: next })
+                      .eq("id", ticket.id);
+                    if (error) return toast.error(error.message);
+                    onChange();
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                  }}
+                />
+              ) : (
+                <span className="text-sm text-dim">
+                  {ticket.version ?? <span className="text-dimmer">—</span>}
+                </span>
+              )}
+            </div>
 
             {/* Status */}
             <div className="space-y-3">

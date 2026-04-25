@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 
 export interface TicketFilters {
   epicIds: string[]; // string of epic id, or "_none" for no epic
+  versions: string[]; // version label, or "_none" for no version
   statusIds: string[];
   feStatuses: DisciplineStatus[];
   beStatuses: DisciplineStatus[];
@@ -19,6 +20,7 @@ export interface TicketFilters {
 
 export const EMPTY_FILTERS: TicketFilters = {
   epicIds: [],
+  versions: [],
   statusIds: [],
   feStatuses: [],
   beStatuses: [],
@@ -29,6 +31,7 @@ export const EMPTY_FILTERS: TicketFilters = {
 export function activeFilterCount(f: TicketFilters): number {
   return (
     f.epicIds.length +
+    f.versions.length +
     f.statusIds.length +
     f.feStatuses.length +
     f.beStatuses.length +
@@ -43,6 +46,11 @@ export function applyFilters(tickets: TicketRow[], f: TicketFilters): TicketRow[
     if (f.epicIds.length) {
       const key = t.epic_id == null ? "_none" : String(t.epic_id);
       if (!f.epicIds.includes(key)) return false;
+    }
+    if (f.versions.length) {
+      const v = t.version?.trim();
+      const key = v ? v : "_none";
+      if (!f.versions.includes(key)) return false;
     }
     if (f.statusIds.length) {
       const key = t.status_id ?? "_none";
@@ -94,6 +102,15 @@ export function TicketsFilter({
       })
     );
     return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }, [tickets]);
+
+  const versionOptions = useMemo(() => {
+    const set = new Set<string>();
+    tickets.forEach((t) => {
+      const v = t.version?.trim();
+      if (v) set.add(v);
+    });
+    return [...set].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
   }, [tickets]);
 
   const count = activeFilterCount(filters);
@@ -189,6 +206,26 @@ export function TicketsFilter({
                 muted
                 selected={filters.epicIds.includes("_none")}
                 onClick={() => toggle("epicIds", "_none")}
+              />
+            </FilterSection>
+
+            <FilterSection title="Version">
+              {versionOptions.length === 0 && (
+                <div className="px-2 py-1.5 text-[11px] text-dimmer">No versions yet</div>
+              )}
+              {versionOptions.map((v) => (
+                <FilterRow
+                  key={v}
+                  label={v}
+                  selected={filters.versions.includes(v)}
+                  onClick={() => toggle("versions", v)}
+                />
+              ))}
+              <FilterRow
+                label="No version"
+                muted
+                selected={filters.versions.includes("_none")}
+                onClick={() => toggle("versions", "_none")}
               />
             </FilterSection>
 

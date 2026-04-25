@@ -39,6 +39,7 @@ interface ParsedRow {
   fe: number;
   be: number;
   epic: string;
+  version: string;
   fe_status: "todo" | "in_progress" | "done";
   be_status: "todo" | "in_progress" | "done";
   error?: string;
@@ -99,10 +100,10 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
 
   const downloadTemplate = () => {
     const csv =
-      "Title,Type,FE Estimate,BE Estimate,Epic,FE Status,BE Status\n" +
-      "Example: build login page,Standard,4,2,Authentication,todo,todo\n" +
-      "Example: fix header overflow,Bug,1,0,UI polish,in_progress,todo\n" +
-      "Example: add export endpoint,CR,0,3,Reporting,todo,done\n";
+      "Title,Type,FE Estimate,BE Estimate,Epic,Version,FE Status,BE Status\n" +
+      "Example: build login page,Standard,4,2,Authentication,v1,todo,todo\n" +
+      "Example: fix header overflow,Bug,1,0,UI polish,v1,in_progress,todo\n" +
+      "Example: add export endpoint,CR,0,3,Reporting,v2,todo,done\n";
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -132,6 +133,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
         const feCol = findCol("FE Estimate", "FE", "Frontend", "fe estimate");
         const beCol = findCol("BE Estimate", "BE", "Backend", "be estimate");
         const epicCol = findCol("Epic", "epic", "Epic Name");
+        const versionCol = findCol("Version", "version", "Phase");
         const feStatusCol = findCol("FE Status", "fe status", "Frontend Status");
         const beStatusCol = findCol("BE Status", "be status", "Backend Status");
 
@@ -151,6 +153,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
           const fe = feCol ? parseFloat(r[feCol]) || 0 : 0;
           const be = beCol ? parseFloat(r[beCol]) || 0 : 0;
           const epic = epicCol ? (r[epicCol] ?? "").trim() : "";
+          const version = versionCol ? (r[versionCol] ?? "").trim() : "";
           const fe_status = parseDiscipline(feStatusCol ? r[feStatusCol] : undefined);
           const be_status = parseDiscipline(beStatusCol ? r[beStatusCol] : undefined);
           return {
@@ -159,6 +162,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
             fe,
             be,
             epic,
+            version,
             fe_status,
             be_status,
             error: !titleRaw ? "Missing title" : undefined,
@@ -222,6 +226,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
       fe_status: r.fe_status,
       be_status: r.be_status,
       epic_id: r.epic.trim() ? epicMap.get(r.epic.trim().toLowerCase()) ?? null : null,
+      version: r.version.trim() || null,
       ticket_number: 0,
       formatted_id: "",
     }));
@@ -286,6 +291,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
                   <SelectItem value="assignee">Assignee</SelectItem>
                   <SelectItem value="type">Type</SelectItem>
                   <SelectItem value="epic">Epic</SelectItem>
+                  <SelectItem value="version">Version</SelectItem>
                   <SelectItem value="fe_status">FE status</SelectItem>
                   <SelectItem value="be_status">BE status</SelectItem>
                 </SelectContent>
@@ -336,7 +342,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
             <DialogTitle>Import tickets from CSV</DialogTitle>
             <div className="text-xs text-dim mt-1">
               Expected columns:{" "}
-              <span className="font-mono text-foreground">Title, Type, FE Estimate, BE Estimate, Epic, FE Status, BE Status</span>
+              <span className="font-mono text-foreground">Title, Type, FE Estimate, BE Estimate, Epic, Version, FE Status, BE Status</span>
             </div>
           </DialogHeader>
 
@@ -429,6 +435,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
                       <th className="px-3 py-2 font-normal text-right">FE</th>
                       <th className="px-3 py-2 font-normal text-right">BE</th>
                       <th className="px-3 py-2 font-normal">Epic</th>
+                      <th className="px-3 py-2 font-normal">Version</th>
                       <th className="px-3 py-2 font-normal">FE st.</th>
                       <th className="px-3 py-2 font-normal">BE st.</th>
                     </tr>
@@ -452,6 +459,9 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
                         <td className="px-3 py-2 text-right font-mono text-xs">{r.be}h</td>
                         <td className="px-3 py-2 text-xs text-dim">
                           {r.epic || <span className="text-dimmer">—</span>}
+                        </td>
+                        <td className="px-3 py-2 text-xs text-dim font-mono">
+                          {r.version || <span className="text-dimmer font-sans">—</span>}
                         </td>
                         <td className="px-3 py-2 text-[10px] text-dim">{r.fe_status}</td>
                         <td className="px-3 py-2 text-[10px] text-dim">{r.be_status}</td>
