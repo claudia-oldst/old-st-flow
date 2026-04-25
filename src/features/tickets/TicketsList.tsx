@@ -334,12 +334,36 @@ export function TicketsList({
                   style={{ width: Math.max(totalWidth, 0), minWidth: "100%" }}
                 >
                   <colgroup>
+                    {selectionEnabled && <col style={{ width: 36 }} />}
                     {visibleCols.map((k) => (
                       <col key={k} style={{ width: widthFor(k) }} />
                     ))}
                   </colgroup>
                   <thead className="text-left text-xs text-dimmer uppercase tracking-wider">
                     <tr className="hairline-b">
+                      {selectionEnabled && (() => {
+                        const ids = g.tickets.map((t) => t.id);
+                        const allChecked = ids.length > 0 && ids.every((id) => selectedIds!.has(id));
+                        const someChecked = !allChecked && ids.some((id) => selectedIds!.has(id));
+                        return (
+                          <th className="pl-4 pr-1 py-2.5 font-normal">
+                            <input
+                              type="checkbox"
+                              aria-label="Select all in group"
+                              checked={allChecked}
+                              ref={(el) => {
+                                if (el) el.indeterminate = someChecked;
+                              }}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                onToggleSelectAll?.(ids, e.target.checked);
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              className="h-3.5 w-3.5 rounded border-white/20 bg-transparent accent-accent cursor-pointer"
+                            />
+                          </th>
+                        );
+                      })()}
                       {visibleCols.map((k, idx) => {
                         const c = COLS[k];
                         const isLast = idx === visibleCols.length - 1;
@@ -369,30 +393,59 @@ export function TicketsList({
                     </tr>
                   </thead>
                   <tbody>
-                    {g.tickets.map((t) => (
-                      <tr
-                        key={`${g.key}-${t.id}`}
-                        onClick={() => onOpen(t)}
-                        className="cursor-pointer hover:bg-white/[0.02] transition hairline-b last:border-b-0"
-                      >
-                        {visibleCols.map((k) => {
-                          const c = COLS[k];
-                          return (
-                            <td
-                              key={k}
-                              className={cn(
-                                "px-4 py-3 align-middle overflow-hidden",
-                                c.align === "right" && "text-right"
-                              )}
-                            >
-                              {renderCell(k, t)}
+                    {g.tickets.map((t) => {
+                      const isSelected = selectionEnabled && selectedIds!.has(t.id);
+                      return (
+                        <tr
+                          key={`${g.key}-${t.id}`}
+                          onClick={() => onOpen(t)}
+                          className={cn(
+                            "cursor-pointer transition hairline-b last:border-b-0",
+                            isSelected ? "bg-accent/10 hover:bg-accent/15" : "hover:bg-white/[0.02]"
+                          )}
+                        >
+                          {selectionEnabled && (
+                            <td className="pl-4 pr-1 align-middle">
+                              <input
+                                type="checkbox"
+                                aria-label={`Select ticket ${t.formatted_id}`}
+                                checked={isSelected}
+                                onChange={() => {}}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onToggleSelect!(t.id, (e as unknown as React.MouseEvent).shiftKey);
+                                }}
+                                className="h-3.5 w-3.5 rounded border-white/20 bg-transparent accent-accent cursor-pointer"
+                              />
                             </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
+                          )}
+                          {visibleCols.map((k) => {
+                            const c = COLS[k];
+                            return (
+                              <td
+                                key={k}
+                                className={cn(
+                                  "px-4 py-3 align-middle overflow-hidden",
+                                  c.align === "right" && "text-right"
+                                )}
+                              >
+                                {renderCell(k, t)}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
               </div>
             )}
           </div>
