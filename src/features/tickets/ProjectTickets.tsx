@@ -129,6 +129,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
         const cols = res.meta.fields ?? [];
         const findCol = (...keys: string[]) =>
           cols.find((c) => keys.some((k) => c.trim().toLowerCase() === k.toLowerCase())) ?? null;
+        const numberCol = findCol("Ticket #", "Ticket Number", "Number", "#", "ID", "Ticket ID");
         const titleCol = findCol("Title", "title", "Name");
         const typeCol = findCol("Type", "type");
         const feCol = findCol("FE Estimate", "FE", "Frontend", "fe estimate");
@@ -144,7 +145,10 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
           return;
         }
 
-        const parsed: ParsedRow[] = res.data.map((r) => {
+        const existingNums = new Set(tickets.map((t) => t.ticket_number));
+        const seenNums = new Map<number, number>(); // num -> first row index
+
+        const parsed: ParsedRow[] = res.data.map((r, idx) => {
           const titleRaw = (r[titleCol] ?? "").trim();
           const typeRaw = (typeCol ? r[typeCol] : "Standard").trim();
           let type: TicketType = "Standard";
@@ -157,16 +161,39 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
           const version = versionCol ? (r[versionCol] ?? "").trim() : "";
           const fe_status = parseDiscipline(feStatusCol ? r[feStatusCol] : undefined);
           const be_status = parseDiscipline(beStatusCol ? r[beStatusCol] : undefined);
+
+          // Parse ticket number (accept "42" or "ACR-042")
+          let ticket_number: number | null = null;
+          let numError: string | undefined;
+          if (numberCol) {
+            const raw = (r[numberCol] ?? "").trim();
+            if (raw) {
+              const m = raw.match(/(\d+)\s*$/);
+              const n = m ? parseInt(m[1], 10) : NaN;
+              if (!Number.isFinite(n) || n <= 0) {
+                numError = `Invalid ticket #: "${raw}"`;
+              } else if (existingNums.has(n)) {
+                numError = `Ticket #${n} already exists`;
+              } else if (seenNums.has(n)) {
+                numError = `Duplicate ticket # in CSV`;
+              } else {
+                ticket_number = n;
+                seenNums.set(n, idx);
+              }
+            }
+          }
+
           return {
             title: titleRaw,
             type,
+            ticket_number,
             fe,
             be,
             epic,
             version,
             fe_status,
             be_status,
-            error: !titleRaw ? "Missing title" : undefined,
+            error: !titleRaw ? "Missing title" : numError,
           };
         });
         setRows(parsed);
