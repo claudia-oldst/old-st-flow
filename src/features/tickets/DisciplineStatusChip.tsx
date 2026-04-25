@@ -5,11 +5,13 @@ export function DisciplineStatusChip({
   slot,
   status,
   size = "xs",
+  showSlot = true,
   className,
 }: {
   slot: "FE" | "BE";
   status: DisciplineStatus;
   size?: "xs" | "sm";
+  showSlot?: boolean;
   className?: string;
 }) {
   const color = DISCIPLINE_STATUS_COLOR[status];
@@ -22,8 +24,12 @@ export function DisciplineStatusChip({
       )}
       style={{ background: `${color}1f`, color }}
     >
-      <span className="font-semibold">{slot}</span>
-      <span className="opacity-80">·</span>
+      {showSlot && (
+        <>
+          <span className="font-semibold">{slot}</span>
+          <span className="opacity-80">·</span>
+        </>
+      )}
       <span>{DISCIPLINE_STATUS_LABEL[status]}</span>
     </span>
   );
