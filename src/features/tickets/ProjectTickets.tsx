@@ -385,7 +385,8 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
             <DialogTitle>Import tickets from CSV</DialogTitle>
             <div className="text-xs text-dim mt-1">
               Expected columns:{" "}
-              <span className="font-mono text-foreground">Title, Type, FE Estimate, BE Estimate, Epic, Version, FE Status, BE Status</span>
+              <span className="font-mono text-foreground">Ticket #, Title, Type, FE Estimate, BE Estimate, Epic, Version, FE Status, BE Status</span>
+              <div className="mt-1 text-dimmer">Leave Ticket # blank to auto-assign the next available number.</div>
             </div>
           </DialogHeader>
 
