@@ -53,8 +53,11 @@ export function TicketCard({
 }) {
   const fe = ticket.assignees.filter((a) => a.slot === "FE").map((a) => a.member);
   const be = ticket.assignees.filter((a) => a.slot === "BE").map((a) => a.member);
-  const showFE = ticket.current_fe_estimate > 0 || ticket.actual_frontend_hours > 0 || fe.length > 0;
-  const showBE = ticket.current_be_estimate > 0 || ticket.actual_backend_hours > 0 || be.length > 0;
+  // A discipline only "exists" on a ticket once someone is assigned for that role.
+  const hasFE = fe.length > 0;
+  const hasBE = be.length > 0;
+  const showFE = hasFE && (ticket.current_fe_estimate > 0 || ticket.actual_frontend_hours > 0 || true);
+  const showBE = hasBE && (ticket.current_be_estimate > 0 || ticket.actual_backend_hours > 0 || true);
 
   return (
     <div
