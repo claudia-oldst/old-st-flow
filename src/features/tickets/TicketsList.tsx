@@ -241,9 +241,9 @@ export function TicketsList({
         );
       }
       case "fe_status":
-        return <DisciplineStatusChip slot="FE" status={t.fe_status} showSlot={false} />;
+        return <DisciplineStatusChip slot="FE" status={t.fe_status} />;
       case "be_status":
-        return <DisciplineStatusChip slot="BE" status={t.be_status} showSlot={false} />;
+        return <DisciplineStatusChip slot="BE" status={t.be_status} />;
       case "fe":
         return (
           <span className="text-xs font-mono text-dim whitespace-nowrap">
