@@ -22,8 +22,7 @@ type ColKey =
   | "title"
   | "epic"
   | "status"
-  | "fe_status"
-  | "be_status"
+  | "dev_status"
   | "fe"
   | "be"
   | "assignees";
@@ -41,8 +40,7 @@ const COLS: Record<ColKey, ColDef> = {
   title: { key: "title", label: "Title", default: 320, min: 160 },
   epic: { key: "epic", label: "Epic", default: 160, min: 100 },
   status: { key: "status", label: "Status", default: 140, min: 100 },
-  fe_status: { key: "fe_status", label: "FE status", default: 120, min: 90 },
-  be_status: { key: "be_status", label: "BE status", default: 120, min: 90 },
+  dev_status: { key: "dev_status", label: "Dev status", default: 200, min: 140 },
   fe: { key: "fe", label: "FE", default: 110, min: 80, align: "right" },
   be: { key: "be", label: "BE", default: 110, min: 80, align: "right" },
   assignees: { key: "assignees", label: "Assignees", default: 200, min: 120 },
@@ -84,8 +82,7 @@ export function TicketsList({
     const out: ColKey[] = ["id", "title"];
     if (groupBy !== "epic") out.push("epic");
     if (groupBy !== "status") out.push("status");
-    if (groupBy !== "fe_status") out.push("fe_status");
-    if (groupBy !== "be_status") out.push("be_status");
+    out.push("dev_status");
     out.push("fe", "be");
     if (groupBy !== "assignee") out.push("assignees");
     return out;
@@ -240,10 +237,13 @@ export function TicketsList({
           </span>
         );
       }
-      case "fe_status":
-        return <DisciplineStatusChip slot="FE" status={t.fe_status} />;
-      case "be_status":
-        return <DisciplineStatusChip slot="BE" status={t.be_status} />;
+      case "dev_status":
+        return (
+          <span className="inline-flex items-center gap-1.5 flex-wrap">
+            <DisciplineStatusChip slot="FE" status={t.fe_status} />
+            <DisciplineStatusChip slot="BE" status={t.be_status} />
+          </span>
+        );
       case "fe":
         return (
           <span className="text-xs font-mono text-dim whitespace-nowrap">
