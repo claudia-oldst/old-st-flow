@@ -85,6 +85,24 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
     return map;
   }, [tickets, members]);
 
+  // Sum of remaining hours per member, scoped to their slot, only for active (non-done) slots.
+  const remainingByMember = useMemo(() => {
+    const map: Record<string, number> = {};
+    members.forEach((m) => (map[m.user_id] = 0));
+    tickets.forEach((t) => {
+      t.assignees.forEach((a) => {
+        if (a.slot === "FE" && t.fe_status !== "done") {
+          const remaining = Math.max(0, t.current_fe_estimate - t.actual_frontend_hours);
+          map[a.user_id] = (map[a.user_id] ?? 0) + remaining;
+        } else if (a.slot === "BE" && t.be_status !== "done") {
+          const remaining = Math.max(0, t.current_be_estimate - t.actual_backend_hours);
+          map[a.user_id] = (map[a.user_id] ?? 0) + remaining;
+        }
+      });
+    });
+    return map;
+  }, [tickets, members]);
+
   return (
     <div className="space-y-6">
       {/* Top row */}
@@ -118,7 +136,7 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
         <div className="glass rounded-2xl p-5 md:col-span-2">
           <div className="flex items-center justify-between mb-4">
             <div className="text-xs uppercase tracking-wider text-dimmer">Member capacity</div>
-            <div className="text-xs text-dim">Open tickets · hours this week</div>
+            <div className="text-xs text-dim">Open tix · remaining · this week</div>
           </div>
           {members.length === 0 ? (
             <div className="text-sm text-dim">No members yet.</div>
@@ -131,10 +149,15 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
                     <div className="text-sm">{m.member.name}</div>
                     <div className="text-[10px] text-dimmer">{m.role}</div>
                   </div>
-                  <div className="text-xs font-mono text-dim">
-                    <span className="text-foreground">{ticketsByMember[m.user_id] ?? 0}</span> tix
+                  <div className="text-xs font-mono text-dim w-14 text-right">
+                    <span className="text-foreground">{ticketsByMember[m.user_id] ?? 0}</span>
+                    <span className="text-dimmer ml-1">tix</span>
                   </div>
-                  <div className="text-xs font-mono text-dim w-16 text-right">
+                  <div className="text-xs font-mono text-dim w-20 text-right" title="Remaining hours on assigned active tickets">
+                    <span className="text-foreground">{formatHours(remainingByMember[m.user_id] ?? 0)}</span>
+                    <span className="text-dimmer ml-1">left</span>
+                  </div>
+                  <div className="text-xs font-mono text-dim w-16 text-right" title="Hours logged in the last 7 days">
                     {formatHours(weekHours[m.user_id] ?? 0)}
                   </div>
                 </div>
