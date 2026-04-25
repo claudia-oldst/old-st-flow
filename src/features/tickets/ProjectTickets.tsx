@@ -243,6 +243,21 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
       }
     }
 
+    // Reserve user-specified numbers; for auto rows, pick next free numbers
+    // that don't collide with existing or user-specified ones.
+    const taken = new Set<number>(tickets.map((t) => t.ticket_number));
+    valid.forEach((r) => {
+      if (r.ticket_number != null) taken.add(r.ticket_number);
+    });
+    let cursor = 1;
+    const nextFree = () => {
+      while (taken.has(cursor)) cursor++;
+      const n = cursor;
+      taken.add(n);
+      cursor++;
+      return n;
+    };
+
     const payload = valid.map((r) => ({
       project_id: projectId,
       title: r.title,
@@ -255,7 +270,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
       be_status: r.be_status,
       epic_id: r.epic.trim() ? epicMap.get(r.epic.trim().toLowerCase()) ?? null : null,
       version: r.version.trim() || null,
-      ticket_number: 0,
+      ticket_number: r.ticket_number ?? nextFree(),
       formatted_id: "",
     }));
     const { error } = await supabase.from("tickets").insert(payload);
