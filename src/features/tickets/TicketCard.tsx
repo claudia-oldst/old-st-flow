@@ -3,6 +3,7 @@ import { MemberAvatar } from "@/components/MemberAvatar";
 import { Bug, GitPullRequest, FileText } from "lucide-react";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { DisciplineStatusChip } from "@/features/tickets/DisciplineStatusChip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const HEALTH_BG: Record<string, string> = {
   good: "bg-health-good",
