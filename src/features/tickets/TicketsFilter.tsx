@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 
 export interface TicketFilters {
   epicIds: string[]; // string of epic id, or "_none" for no epic
+  versions: string[]; // version label, or "_none" for no version
   statusIds: string[];
   feStatuses: DisciplineStatus[];
   beStatuses: DisciplineStatus[];
@@ -19,6 +20,7 @@ export interface TicketFilters {
 
 export const EMPTY_FILTERS: TicketFilters = {
   epicIds: [],
+  versions: [],
   statusIds: [],
   feStatuses: [],
   beStatuses: [],
@@ -29,6 +31,7 @@ export const EMPTY_FILTERS: TicketFilters = {
 export function activeFilterCount(f: TicketFilters): number {
   return (
     f.epicIds.length +
+    f.versions.length +
     f.statusIds.length +
     f.feStatuses.length +
     f.beStatuses.length +
@@ -43,6 +46,11 @@ export function applyFilters(tickets: TicketRow[], f: TicketFilters): TicketRow[
     if (f.epicIds.length) {
       const key = t.epic_id == null ? "_none" : String(t.epic_id);
       if (!f.epicIds.includes(key)) return false;
+    }
+    if (f.versions.length) {
+      const v = t.version?.trim();
+      const key = v ? v : "_none";
+      if (!f.versions.includes(key)) return false;
     }
     if (f.statusIds.length) {
       const key = t.status_id ?? "_none";
