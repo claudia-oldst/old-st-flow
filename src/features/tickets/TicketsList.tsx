@@ -63,11 +63,18 @@ export function TicketsList({
   tickets,
   groupBy,
   onOpen,
+  selectedIds,
+  onToggleSelect,
+  onToggleSelectAll,
 }: {
   tickets: TicketRow[];
   groupBy: GroupBy;
   onOpen: (t: TicketRow) => void;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string, shiftKey: boolean) => void;
+  onToggleSelectAll?: (ids: string[], select: boolean) => void;
 }) {
+  const selectionEnabled = !!selectedIds && !!onToggleSelect;
   const { statuses } = useStatuses();
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [widths, setWidths] = useState<Partial<Record<ColKey, number>>>(() => loadWidths());
