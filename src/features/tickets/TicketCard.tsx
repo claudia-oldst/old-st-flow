@@ -3,6 +3,7 @@ import { MemberAvatar } from "@/components/MemberAvatar";
 import { Bug, GitPullRequest, FileText } from "lucide-react";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { DisciplineStatusChip } from "@/features/tickets/DisciplineStatusChip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const HEALTH_BG: Record<string, string> = {
   good: "bg-health-good",
@@ -68,9 +69,16 @@ export function TicketCard({
         <TypeIcon type={ticket.ticket_type} />
         <span className="font-mono text-[10px] text-dimmer">{ticket.formatted_id}</span>
       </div>
-      <div className="text-sm leading-snug mb-2 line-clamp-2">
-        {displayTitle(ticket.title, ticket.ticket_type)}
-      </div>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="text-sm leading-snug mb-2 line-clamp-2">
+            {displayTitle(ticket.title, ticket.ticket_type)}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="top" align="start" className="max-w-xs">
+          <p className="text-sm">{ticket.title}</p>
+        </TooltipContent>
+      </Tooltip>
 
       {(showFE || showBE) && (
         <div className="flex flex-wrap gap-1 mb-2.5">
