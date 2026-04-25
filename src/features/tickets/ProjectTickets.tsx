@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { useProjectTickets, type TicketRow } from "@/features/tickets/useProjectTickets";
 import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
 import { TicketsList, type GroupBy } from "@/features/tickets/TicketsList";
+import { BulkActionsBar } from "@/features/tickets/BulkActionsBar";
 import {
   TicketsFilter,
   EMPTY_FILTERS,
