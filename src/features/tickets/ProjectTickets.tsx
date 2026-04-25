@@ -79,6 +79,8 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
   const [filterMine, setFilterMine] = useState<boolean>(true);
   const [touched, setTouched] = useState(false);
   const [filters, setFilters] = useState<TicketFilters>(EMPTY_FILTERS);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
 
   // Role-based default: PMBA → All, others → My tickets
   useEffect(() => {
