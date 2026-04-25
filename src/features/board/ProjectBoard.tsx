@@ -80,9 +80,12 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
     const showBE = role !== "Frontend";
     const out: DisciplineCard[] = [];
     visible.forEach((t) => {
+      // A discipline only "exists" once someone is assigned for that role.
+      const hasFE = t.assignees.some((a) => a.slot === "FE");
+      const hasBE = t.assignees.some((a) => a.slot === "BE");
       if (showAll) {
-        if (showFE) out.push({ ticket: t, slot: "FE", status: t.fe_status });
-        if (showBE) out.push({ ticket: t, slot: "BE", status: t.be_status });
+        if (showFE && hasFE) out.push({ ticket: t, slot: "FE", status: t.fe_status });
+        if (showBE && hasBE) out.push({ ticket: t, slot: "BE", status: t.be_status });
       } else {
         const slots = new Set(
           t.assignees.filter((a) => a.user_id === user!.id).map((a) => a.slot)
