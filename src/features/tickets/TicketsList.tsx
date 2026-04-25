@@ -144,6 +144,9 @@ export function TicketsList({
                   <tr className="hairline-b">
                     <th className="px-4 py-2.5 font-normal w-20">ID</th>
                     <th className="px-4 py-2.5 font-normal">Title</th>
+                    {groupBy !== "epic" && (
+                      <th className="px-4 py-2.5 font-normal w-40">Epic</th>
+                    )}
                     {groupBy !== "status" && (
                       <th className="px-4 py-2.5 font-normal w-32">Status</th>
                     )}
