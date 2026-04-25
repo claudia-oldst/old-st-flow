@@ -84,16 +84,16 @@ export function TicketCard({
         </TooltipContent>
       </Tooltip>
 
-      {(showFE || showBE) && (
+      {showAnyChipsOrBars && (
         <div className="flex flex-wrap gap-1 mb-2.5">
-          {showFE && <DisciplineStatusChip slot="FE" status={ticket.fe_status} />}
-          {showBE && <DisciplineStatusChip slot="BE" status={ticket.be_status} />}
+          {hasFE && <DisciplineStatusChip slot="FE" status={ticket.fe_status} />}
+          {hasBE && <DisciplineStatusChip slot="BE" status={ticket.be_status} />}
         </div>
       )}
 
       <div className="space-y-1.5 mb-3">
-        {showFE && <Bar label="FE" actual={ticket.actual_frontend_hours} estimate={ticket.current_fe_estimate} />}
-        {showBE && <Bar label="BE" actual={ticket.actual_backend_hours} estimate={ticket.current_be_estimate} />}
+        {showFEBar && <Bar label="FE" actual={ticket.actual_frontend_hours} estimate={ticket.current_fe_estimate} />}
+        {showBEBar && <Bar label="BE" actual={ticket.actual_backend_hours} estimate={ticket.current_be_estimate} />}
       </div>
 
       <div className="flex items-center justify-between">
