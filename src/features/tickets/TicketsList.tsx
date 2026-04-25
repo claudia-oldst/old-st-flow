@@ -237,10 +237,13 @@ export function TicketsList({
           </span>
         );
       }
-      case "fe_status":
-        return <DisciplineStatusChip slot="FE" status={t.fe_status} />;
-      case "be_status":
-        return <DisciplineStatusChip slot="BE" status={t.be_status} />;
+      case "dev_status":
+        return (
+          <span className="inline-flex items-center gap-1.5 flex-wrap">
+            <DisciplineStatusChip slot="FE" status={t.fe_status} />
+            <DisciplineStatusChip slot="BE" status={t.be_status} />
+          </span>
+        );
       case "fe":
         return (
           <span className="text-xs font-mono text-dim whitespace-nowrap">
