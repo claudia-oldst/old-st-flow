@@ -22,8 +22,7 @@ type ColKey =
   | "title"
   | "epic"
   | "status"
-  | "fe_status"
-  | "be_status"
+  | "dev_status"
   | "fe"
   | "be"
   | "assignees";
