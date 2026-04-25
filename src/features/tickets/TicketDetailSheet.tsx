@@ -89,8 +89,11 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
   const canLog = isMine || isPMBA(role);
   const myFE = !!user && ticket.assignees.some((a) => a.user_id === user.id && a.slot === "FE");
   const myBE = !!user && ticket.assignees.some((a) => a.user_id === user.id && a.slot === "BE");
-  const canEditFE = isPMBA(role) || myFE;
-  const canEditBE = isPMBA(role) || myBE;
+  // A discipline only "exists" on a ticket once someone is assigned for that role.
+  const hasFE = ticket.assignees.some((a) => a.slot === "FE");
+  const hasBE = ticket.assignees.some((a) => a.slot === "BE");
+  const canEditFE = hasFE && (isPMBA(role) || myFE);
+  const canEditBE = hasBE && (isPMBA(role) || myBE);
 
   const updateDiscipline = async (slot: "FE" | "BE", value: DisciplineStatus) => {
     const patch = slot === "FE" ? { fe_status: value } : { be_status: value };
