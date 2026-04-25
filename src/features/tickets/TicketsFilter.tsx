@@ -209,6 +209,26 @@ export function TicketsFilter({
               />
             </FilterSection>
 
+            <FilterSection title="Version">
+              {versionOptions.length === 0 && (
+                <div className="px-2 py-1.5 text-[11px] text-dimmer">No versions yet</div>
+              )}
+              {versionOptions.map((v) => (
+                <FilterRow
+                  key={v}
+                  label={v}
+                  selected={filters.versions.includes(v)}
+                  onClick={() => toggle("versions", v)}
+                />
+              ))}
+              <FilterRow
+                label="No version"
+                muted
+                selected={filters.versions.includes("_none")}
+                onClick={() => toggle("versions", "_none")}
+              />
+            </FilterSection>
+
             <FilterSection title="Assignee">
               {assigneeOptions.map((a) => (
                 <FilterRow
