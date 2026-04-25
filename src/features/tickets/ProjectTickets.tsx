@@ -249,23 +249,39 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
         </div>
 
         {view === "list" && (
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-dim">Group by</span>
-            <Select value={groupBy} onValueChange={(v) => setGroupBy(v as GroupBy)}>
-              <SelectTrigger className="h-8 w-[140px] text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">None</SelectItem>
-                <SelectItem value="status">Status</SelectItem>
-                <SelectItem value="assignee">Assignee</SelectItem>
-                <SelectItem value="type">Type</SelectItem>
-                <SelectItem value="epic">Epic</SelectItem>
-                <SelectItem value="fe_status">FE status</SelectItem>
-                <SelectItem value="be_status">BE status</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <>
+            <div className="flex gap-1 p-1 rounded-lg bg-white/5 hairline">
+              <button
+                onClick={() => { setTouched(true); setFilterMine(false); }}
+                className={cn("px-3 py-1 text-xs rounded-md transition", !filterMine ? "bg-foreground text-background" : "text-dim hover:text-foreground")}
+              >
+                All
+              </button>
+              <button
+                onClick={() => { setTouched(true); setFilterMine(true); }}
+                className={cn("px-3 py-1 text-xs rounded-md transition", filterMine ? "bg-foreground text-background" : "text-dim hover:text-foreground")}
+              >
+                My tickets
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-dim">Group by</span>
+              <Select value={groupBy} onValueChange={(v) => setGroupBy(v as GroupBy)}>
+                <SelectTrigger className="h-8 w-[140px] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  <SelectItem value="status">Status</SelectItem>
+                  <SelectItem value="assignee">Assignee</SelectItem>
+                  <SelectItem value="type">Type</SelectItem>
+                  <SelectItem value="epic">Epic</SelectItem>
+                  <SelectItem value="fe_status">FE status</SelectItem>
+                  <SelectItem value="be_status">BE status</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </>
         )}
 
         <div className="ml-auto flex items-center gap-2">
