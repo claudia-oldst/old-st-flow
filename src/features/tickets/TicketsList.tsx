@@ -446,11 +446,3 @@ export function TicketsList({
     </div>
   );
 }
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
