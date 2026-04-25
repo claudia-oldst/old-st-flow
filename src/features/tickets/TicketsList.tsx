@@ -248,7 +248,16 @@ export function TicketsList({
           <span className="font-mono text-xs text-dimmer">{t.formatted_id}</span>
         );
       case "title":
-        return <span className="truncate block">{displayTitle(t.title, t.ticket_type)}</span>;
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="truncate block">{displayTitle(t.title, t.ticket_type)}</span>
+            </TooltipTrigger>
+            <TooltipContent side="top" align="start" className="max-w-md">
+              <p className="text-sm">{t.title}</p>
+            </TooltipContent>
+          </Tooltip>
+        );
       case "epic":
         return (
           <span className="text-xs text-dim truncate block">
