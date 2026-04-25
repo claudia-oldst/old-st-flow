@@ -1,4 +1,5 @@
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useCurrentUser } from "@/store/currentUser";
 import Papa from "papaparse";
 import { Button } from "@/components/ui/button";
 import { Upload, FileText, AlertCircle, LayoutGrid, List, Download, X, FileUp } from "lucide-react";
@@ -54,6 +55,8 @@ type ViewMode = "board" | "list";
 
 export function ProjectTickets({ projectId }: { projectId: string }) {
   const role = useProjectRole(projectId);
+  const user = useCurrentUser((s) => s.user);
+  const pmba = isPMBA(role);
   const { tickets, reload } = useProjectTickets(projectId);
   const fileRef = useRef<HTMLInputElement>(null);
   const [importOpen, setImportOpen] = useState(false);
@@ -64,6 +67,19 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
   const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
   const [view, setView] = useState<ViewMode>("board");
   const [groupBy, setGroupBy] = useState<GroupBy>("status");
+  const [filterMine, setFilterMine] = useState<boolean>(true);
+  const [touched, setTouched] = useState(false);
+
+  // Role-based default: PMBA → All, others → My tickets
+  useEffect(() => {
+    if (touched || role === null) return;
+    setFilterMine(!pmba);
+  }, [role, pmba, touched]);
+
+  const visibleTickets = useMemo(() => {
+    if (!filterMine || !user) return tickets;
+    return tickets.filter((t) => t.assignees.some((a) => a.user_id === user.id));
+  }, [tickets, filterMine, user]);
 
   const resetImport = () => {
     setRows([]);
@@ -233,23 +249,39 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
         </div>
 
         {view === "list" && (
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-dim">Group by</span>
-            <Select value={groupBy} onValueChange={(v) => setGroupBy(v as GroupBy)}>
-              <SelectTrigger className="h-8 w-[140px] text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">None</SelectItem>
-                <SelectItem value="status">Status</SelectItem>
-                <SelectItem value="assignee">Assignee</SelectItem>
-                <SelectItem value="type">Type</SelectItem>
-                <SelectItem value="epic">Epic</SelectItem>
-                <SelectItem value="fe_status">FE status</SelectItem>
-                <SelectItem value="be_status">BE status</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <>
+            <div className="flex gap-1 p-1 rounded-lg bg-white/5 hairline">
+              <button
+                onClick={() => { setTouched(true); setFilterMine(false); }}
+                className={cn("px-3 py-1 text-xs rounded-md transition", !filterMine ? "bg-foreground text-background" : "text-dim hover:text-foreground")}
+              >
+                All
+              </button>
+              <button
+                onClick={() => { setTouched(true); setFilterMine(true); }}
+                className={cn("px-3 py-1 text-xs rounded-md transition", filterMine ? "bg-foreground text-background" : "text-dim hover:text-foreground")}
+              >
+                My tickets
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-dim">Group by</span>
+              <Select value={groupBy} onValueChange={(v) => setGroupBy(v as GroupBy)}>
+                <SelectTrigger className="h-8 w-[140px] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  <SelectItem value="status">Status</SelectItem>
+                  <SelectItem value="assignee">Assignee</SelectItem>
+                  <SelectItem value="type">Type</SelectItem>
+                  <SelectItem value="epic">Epic</SelectItem>
+                  <SelectItem value="fe_status">FE status</SelectItem>
+                  <SelectItem value="be_status">BE status</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </>
         )}
 
         <div className="ml-auto flex items-center gap-2">
@@ -263,14 +295,16 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
 
       {view === "board" ? (
         <ProjectBoard projectId={projectId} />
-      ) : tickets.length === 0 ? (
+      ) : visibleTickets.length === 0 ? (
         <div className="glass rounded-2xl p-12 text-center">
           <FileText className="h-8 w-8 mx-auto text-dimmer mb-3" />
-          <div className="font-medium">No tickets yet</div>
-          <div className="text-dim text-sm mt-1">Add tickets from the Board, or import a CSV.</div>
+          <div className="font-medium">{filterMine ? "No tickets assigned to you" : "No tickets yet"}</div>
+          <div className="text-dim text-sm mt-1">
+            {filterMine ? "Switch to All to see every ticket on this project." : "Add tickets from the Board, or import a CSV."}
+          </div>
         </div>
       ) : (
-        <TicketsList tickets={tickets} groupBy={groupBy} onOpen={setOpenTicket} />
+        <TicketsList tickets={visibleTickets} groupBy={groupBy} onOpen={setOpenTicket} />
       )}
 
       <Dialog
