@@ -178,6 +178,11 @@ export function TicketsList({
                         <td className="px-4 py-3">
                           {displayTitle(t.title, t.ticket_type)}
                         </td>
+                        {groupBy !== "epic" && (
+                          <td className="px-4 py-3 text-xs text-dim truncate max-w-[160px]">
+                            {t.epic_name ?? <span className="text-dimmer">—</span>}
+                          </td>
+                        )}
                         {groupBy !== "status" && (
                           <td className="px-4 py-3">
                             {status && (
