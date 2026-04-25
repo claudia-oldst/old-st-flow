@@ -179,6 +179,23 @@ export function TicketsList({
       if (noEpic.tickets.length) out.push(noEpic);
       return out;
     }
+    if (groupBy === "version") {
+      const map = new Map<string, Group>();
+      const noVersion: Group = { key: "_no_version", label: "No version", tickets: [] };
+      tickets.forEach((t) => {
+        const v = t.version?.trim();
+        if (!v) {
+          noVersion.tickets.push(t);
+          return;
+        }
+        const g = map.get(v) ?? { key: v, label: v, tickets: [] };
+        g.tickets.push(t);
+        map.set(v, g);
+      });
+      const out = [...map.values()].sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
+      if (noVersion.tickets.length) out.push(noVersion);
+      return out;
+    }
     if (groupBy === "fe_status" || groupBy === "be_status") {
       const map = new Map<string, Group>();
       DISC_OPTS.forEach((s) =>
@@ -229,6 +246,14 @@ export function TicketsList({
           <span className="text-xs text-dim truncate block">
             {t.epic_name ?? <span className="text-dimmer">—</span>}
           </span>
+        );
+      case "version":
+        return t.version ? (
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono bg-white/5 hairline text-dim">
+            {t.version}
+          </span>
+        ) : (
+          <span className="text-dimmer text-xs">—</span>
         );
       case "status": {
         const status = statuses.find((s) => s.id === t.status_id);
