@@ -101,10 +101,10 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
 
   const downloadTemplate = () => {
     const csv =
-      "Title,Type,FE Estimate,BE Estimate,Epic,Version,FE Status,BE Status\n" +
-      "Example: build login page,Standard,4,2,Authentication,v1,todo,todo\n" +
-      "Example: fix header overflow,Bug,1,0,UI polish,v1,in_progress,todo\n" +
-      "Example: add export endpoint,CR,0,3,Reporting,v2,todo,done\n";
+      "Ticket #,Title,Type,FE Estimate,BE Estimate,Epic,Version,FE Status,BE Status\n" +
+      ",Example: build login page,Standard,4,2,Authentication,v1,todo,todo\n" +
+      "42,Example: fix header overflow,Bug,1,0,UI polish,v1,in_progress,todo\n" +
+      ",Example: add export endpoint,CR,0,3,Reporting,v2,todo,done\n";
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
