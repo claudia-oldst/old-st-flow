@@ -82,8 +82,7 @@ export function TicketsList({
     const out: ColKey[] = ["id", "title"];
     if (groupBy !== "epic") out.push("epic");
     if (groupBy !== "status") out.push("status");
-    if (groupBy !== "fe_status") out.push("fe_status");
-    if (groupBy !== "be_status") out.push("be_status");
+    out.push("dev_status");
     out.push("fe", "be");
     if (groupBy !== "assignee") out.push("assignees");
     return out;
