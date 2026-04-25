@@ -22,6 +22,12 @@ import { toast } from "sonner";
 import { useProjectTickets, type TicketRow } from "@/features/tickets/useProjectTickets";
 import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
 import { TicketsList, type GroupBy } from "@/features/tickets/TicketsList";
+import {
+  TicketsFilter,
+  EMPTY_FILTERS,
+  applyFilters,
+  type TicketFilters,
+} from "@/features/tickets/TicketsFilter";
 import { ProjectBoard } from "@/features/board/ProjectBoard";
 import { useProjectRole, isPMBA } from "@/features/team/useProjectRole";
 import { cn } from "@/lib/utils";
@@ -69,6 +75,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
   const [groupBy, setGroupBy] = useState<GroupBy>("status");
   const [filterMine, setFilterMine] = useState<boolean>(true);
   const [touched, setTouched] = useState(false);
+  const [filters, setFilters] = useState<TicketFilters>(EMPTY_FILTERS);
 
   // Role-based default: PMBA → All, others → My tickets
   useEffect(() => {
@@ -77,9 +84,12 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
   }, [role, pmba, touched]);
 
   const visibleTickets = useMemo(() => {
-    if (!filterMine || !user) return tickets;
-    return tickets.filter((t) => t.assignees.some((a) => a.user_id === user.id));
-  }, [tickets, filterMine, user]);
+    let out = tickets;
+    if (filterMine && user) {
+      out = out.filter((t) => t.assignees.some((a) => a.user_id === user.id));
+    }
+    return applyFilters(out, filters);
+  }, [tickets, filterMine, user, filters]);
 
   const resetImport = () => {
     setRows([]);
@@ -281,6 +291,13 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
                 </SelectContent>
               </Select>
             </div>
+
+            <TicketsFilter
+              projectId={projectId}
+              tickets={tickets}
+              filters={filters}
+              onChange={setFilters}
+            />
           </>
         )}
 
