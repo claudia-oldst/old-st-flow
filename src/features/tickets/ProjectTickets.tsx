@@ -286,6 +286,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
                   <SelectItem value="assignee">Assignee</SelectItem>
                   <SelectItem value="type">Type</SelectItem>
                   <SelectItem value="epic">Epic</SelectItem>
+                  <SelectItem value="version">Version</SelectItem>
                   <SelectItem value="fe_status">FE status</SelectItem>
                   <SelectItem value="be_status">BE status</SelectItem>
                 </SelectContent>
