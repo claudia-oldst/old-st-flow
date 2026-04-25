@@ -424,8 +424,26 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
           </div>
         </div>
       ) : (
-        <TicketsList tickets={visibleTickets} groupBy={groupBy} onOpen={setOpenTicket} />
+        <TicketsList
+          tickets={visibleTickets}
+          groupBy={groupBy}
+          onOpen={setOpenTicket}
+          selectedIds={selectedIds}
+          onToggleSelect={toggleSelect}
+          onToggleSelectAll={toggleSelectAll}
+        />
       )}
+
+      {view === "list" && (
+        <BulkActionsBar
+          projectId={projectId}
+          selectedIds={Array.from(selectedIds)}
+          onClear={() => {
+            setSelectedIds(new Set());
+            setLastSelectedId(null);
+          }}
+          canEdit={pmba}
+        />)}
 
       <Dialog
         open={importOpen}
