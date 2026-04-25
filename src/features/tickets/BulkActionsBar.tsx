@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Trash2, Tag, Layers, Hash, Code2 } from "lucide-react";
+import { X, Trash2, Tag, Layers, Hash, Code2, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useStatuses } from "@/features/statuses/useStatuses";
