@@ -285,12 +285,16 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
                   slot="FE"
                   value={ticket.fe_status}
                   canEdit={canEditFE}
+                  hasAssignee={hasFE}
+                  onAssign={isPMBA(role) ? () => setAssignOpen(true) : undefined}
                   onChange={(v) => updateDiscipline("FE", v)}
                 />
                 <DisciplineRow
                   slot="BE"
                   value={ticket.be_status}
                   canEdit={canEditBE}
+                  hasAssignee={hasBE}
+                  onAssign={isPMBA(role) ? () => setAssignOpen(true) : undefined}
                   onChange={(v) => updateDiscipline("BE", v)}
                 />
               </div>
