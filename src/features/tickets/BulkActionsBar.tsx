@@ -43,6 +43,7 @@ export function BulkActionsBar({
   const [versionOpen, setVersionOpen] = useState(false);
   const [versionVal, setVersionVal] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
   if (selectedIds.length === 0) return null;
