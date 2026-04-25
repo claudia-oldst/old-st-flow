@@ -342,7 +342,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
             <DialogTitle>Import tickets from CSV</DialogTitle>
             <div className="text-xs text-dim mt-1">
               Expected columns:{" "}
-              <span className="font-mono text-foreground">Title, Type, FE Estimate, BE Estimate, Epic, FE Status, BE Status</span>
+              <span className="font-mono text-foreground">Title, Type, FE Estimate, BE Estimate, Epic, Version, FE Status, BE Status</span>
             </div>
           </DialogHeader>
 
@@ -435,6 +435,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
                       <th className="px-3 py-2 font-normal text-right">FE</th>
                       <th className="px-3 py-2 font-normal text-right">BE</th>
                       <th className="px-3 py-2 font-normal">Epic</th>
+                      <th className="px-3 py-2 font-normal">Version</th>
                       <th className="px-3 py-2 font-normal">FE st.</th>
                       <th className="px-3 py-2 font-normal">BE st.</th>
                     </tr>
@@ -458,6 +459,9 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
                         <td className="px-3 py-2 text-right font-mono text-xs">{r.be}h</td>
                         <td className="px-3 py-2 text-xs text-dim">
                           {r.epic || <span className="text-dimmer">—</span>}
+                        </td>
+                        <td className="px-3 py-2 text-xs text-dim font-mono">
+                          {r.version || <span className="text-dimmer font-sans">—</span>}
                         </td>
                         <td className="px-3 py-2 text-[10px] text-dim">{r.fe_status}</td>
                         <td className="px-3 py-2 text-[10px] text-dim">{r.be_status}</td>
