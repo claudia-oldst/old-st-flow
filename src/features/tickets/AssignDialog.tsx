@@ -69,7 +69,7 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, current,
     // so an unassigned slot can't keep influencing the auto-derived project status.
     const hadFE = current.some((c) => c.slot === "FE");
     const hadBE = current.some((c) => c.slot === "BE");
-    const patch: Record<string, "todo"> = {};
+    const patch: { fe_status?: "todo"; be_status?: "todo" } = {};
     if (hadFE && feUserIds.size === 0) patch.fe_status = "todo";
     if (hadBE && beUserIds.size === 0) patch.be_status = "todo";
     if (Object.keys(patch).length) {
