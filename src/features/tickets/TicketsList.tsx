@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useStatuses } from "@/features/statuses/useStatuses";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
@@ -17,6 +17,48 @@ interface Group {
   tickets: TicketRow[];
 }
 
+type ColKey =
+  | "id"
+  | "title"
+  | "epic"
+  | "status"
+  | "fe_status"
+  | "be_status"
+  | "fe"
+  | "be"
+  | "assignees";
+
+interface ColDef {
+  key: ColKey;
+  label: string;
+  default: number;
+  min: number;
+  align?: "left" | "right";
+}
+
+const COLS: Record<ColKey, ColDef> = {
+  id: { key: "id", label: "ID", default: 90, min: 70 },
+  title: { key: "title", label: "Title", default: 320, min: 160 },
+  epic: { key: "epic", label: "Epic", default: 160, min: 100 },
+  status: { key: "status", label: "Status", default: 140, min: 100 },
+  fe_status: { key: "fe_status", label: "FE status", default: 120, min: 90 },
+  be_status: { key: "be_status", label: "BE status", default: 120, min: 90 },
+  fe: { key: "fe", label: "FE", default: 110, min: 80, align: "right" },
+  be: { key: "be", label: "BE", default: 110, min: 80, align: "right" },
+  assignees: { key: "assignees", label: "Assignees", default: 200, min: 120 },
+};
+
+const STORAGE_KEY = "tickets-list-col-widths-v1";
+
+function loadWidths(): Partial<Record<ColKey, number>> {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
 export function TicketsList({
   tickets,
   groupBy,
@@ -28,6 +70,67 @@ export function TicketsList({
 }) {
   const { statuses } = useStatuses();
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [widths, setWidths] = useState<Partial<Record<ColKey, number>>>(() => loadWidths());
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(widths));
+    } catch {
+      /* ignore */
+    }
+  }, [widths]);
+
+  const visibleCols: ColKey[] = useMemo(() => {
+    const out: ColKey[] = ["id", "title"];
+    if (groupBy !== "epic") out.push("epic");
+    if (groupBy !== "status") out.push("status");
+    if (groupBy !== "fe_status") out.push("fe_status");
+    if (groupBy !== "be_status") out.push("be_status");
+    out.push("fe", "be");
+    if (groupBy !== "assignee") out.push("assignees");
+    return out;
+  }, [groupBy]);
+
+  const widthFor = (k: ColKey) => widths[k] ?? COLS[k].default;
+  const totalWidth = visibleCols.reduce((sum, k) => sum + widthFor(k), 0);
+
+  const dragRef = useRef<{
+    key: ColKey;
+    startX: number;
+    startWidth: number;
+  } | null>(null);
+
+  const onResizeStart = useCallback(
+    (key: ColKey) => (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dragRef.current = {
+        key,
+        startX: e.clientX,
+        startWidth: widthFor(key),
+      };
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+
+      const onMove = (ev: MouseEvent) => {
+        const d = dragRef.current;
+        if (!d) return;
+        const next = Math.max(COLS[d.key].min, d.startWidth + (ev.clientX - d.startX));
+        setWidths((w) => ({ ...w, [d.key]: next }));
+      };
+      const onUp = () => {
+        dragRef.current = null;
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+        window.removeEventListener("mousemove", onMove);
+        window.removeEventListener("mouseup", onUp);
+      };
+      window.addEventListener("mousemove", onMove);
+      window.addEventListener("mouseup", onUp);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [widths]
+  );
 
   const groups: Group[] = useMemo(() => {
     if (groupBy === "none") {
@@ -113,6 +216,57 @@ export function TicketsList({
 
   if (tickets.length === 0) return null;
 
+  const renderCell = (key: ColKey, t: TicketRow) => {
+    switch (key) {
+      case "id":
+        return (
+          <span className="font-mono text-xs text-dimmer">{t.formatted_id}</span>
+        );
+      case "title":
+        return <span className="truncate block">{displayTitle(t.title, t.ticket_type)}</span>;
+      case "epic":
+        return (
+          <span className="text-xs text-dim truncate block">
+            {t.epic_name ?? <span className="text-dimmer">—</span>}
+          </span>
+        );
+      case "status": {
+        const status = statuses.find((s) => s.id === t.status_id);
+        if (!status) return null;
+        return (
+          <span className="inline-flex items-center gap-1.5 text-xs min-w-0">
+            <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: status.color }} />
+            <span className="truncate">{status.name}</span>
+          </span>
+        );
+      }
+      case "fe_status":
+        return <DisciplineStatusChip slot="FE" status={t.fe_status} />;
+      case "be_status":
+        return <DisciplineStatusChip slot="BE" status={t.be_status} />;
+      case "fe":
+        return (
+          <span className="text-xs font-mono text-dim whitespace-nowrap">
+            {formatHours(t.actual_frontend_hours)} / {formatHours(t.current_fe_estimate)}
+          </span>
+        );
+      case "be":
+        return (
+          <span className="text-xs font-mono text-dim whitespace-nowrap">
+            {formatHours(t.actual_backend_hours)} / {formatHours(t.current_be_estimate)}
+          </span>
+        );
+      case "assignees":
+        return (
+          <span className="text-xs text-dim truncate block">
+            {t.assignees.length === 0
+              ? "—"
+              : t.assignees.map((a) => a.member.name).join(", ")}
+          </span>
+        );
+    }
+  };
+
   return (
     <div className="flex flex-col gap-3">
       {groups.map((g) => {
@@ -139,93 +293,72 @@ export function TicketsList({
               </button>
             )}
             {!isCollapsed && (
-              <table className="w-full text-sm">
-                <thead className="text-left text-xs text-dimmer uppercase tracking-wider">
-                  <tr className="hairline-b">
-                    <th className="px-4 py-2.5 font-normal w-20">ID</th>
-                    <th className="px-4 py-2.5 font-normal">Title</th>
-                    {groupBy !== "epic" && (
-                      <th className="px-4 py-2.5 font-normal w-40">Epic</th>
-                    )}
-                    {groupBy !== "status" && (
-                      <th className="px-4 py-2.5 font-normal w-32">Status</th>
-                    )}
-                    {groupBy !== "fe_status" && (
-                      <th className="px-4 py-2.5 font-normal w-28">FE status</th>
-                    )}
-                    {groupBy !== "be_status" && (
-                      <th className="px-4 py-2.5 font-normal w-28">BE status</th>
-                    )}
-                    <th className="px-4 py-2.5 font-normal text-right w-24">FE</th>
-                    <th className="px-4 py-2.5 font-normal text-right w-24">BE</th>
-                    {groupBy !== "assignee" && (
-                      <th className="px-4 py-2.5 font-normal w-48">Assignees</th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody>
-                  {g.tickets.map((t) => {
-                    const status = statuses.find((s) => s.id === t.status_id);
-                    return (
+              <div className="overflow-x-auto">
+                <table
+                  className="text-sm table-fixed"
+                  style={{ width: Math.max(totalWidth, 0), minWidth: "100%" }}
+                >
+                  <colgroup>
+                    {visibleCols.map((k) => (
+                      <col key={k} style={{ width: widthFor(k) }} />
+                    ))}
+                  </colgroup>
+                  <thead className="text-left text-xs text-dimmer uppercase tracking-wider">
+                    <tr className="hairline-b">
+                      {visibleCols.map((k, idx) => {
+                        const c = COLS[k];
+                        const isLast = idx === visibleCols.length - 1;
+                        return (
+                          <th
+                            key={k}
+                            className={cn(
+                              "px-4 py-2.5 font-normal relative select-none",
+                              c.align === "right" && "text-right"
+                            )}
+                          >
+                            <span className="truncate block">{c.label}</span>
+                            {!isLast && (
+                              <span
+                                onMouseDown={onResizeStart(k)}
+                                onClick={(e) => e.stopPropagation()}
+                                className="absolute top-0 right-0 h-full w-1.5 cursor-col-resize group flex items-center justify-center"
+                                aria-label={`Resize ${c.label} column`}
+                                role="separator"
+                              >
+                                <span className="h-4 w-px bg-white/10 group-hover:bg-accent transition" />
+                              </span>
+                            )}
+                          </th>
+                        );
+                      })}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {g.tickets.map((t) => (
                       <tr
                         key={`${g.key}-${t.id}`}
                         onClick={() => onOpen(t)}
                         className="cursor-pointer hover:bg-white/[0.02] transition hairline-b last:border-b-0"
                       >
-                        <td className="px-4 py-3 font-mono text-xs text-dimmer">
-                          {t.formatted_id}
-                        </td>
-                        <td className="px-4 py-3">
-                          {displayTitle(t.title, t.ticket_type)}
-                        </td>
-                        {groupBy !== "epic" && (
-                          <td className="px-4 py-3 text-xs text-dim truncate max-w-[160px]">
-                            {t.epic_name ?? <span className="text-dimmer">—</span>}
-                          </td>
-                        )}
-                        {groupBy !== "status" && (
-                          <td className="px-4 py-3">
-                            {status && (
-                              <span className="inline-flex items-center gap-1.5 text-xs">
-                                <span
-                                  className="h-1.5 w-1.5 rounded-full"
-                                  style={{ background: status.color }}
-                                />
-                                {status.name}
-                              </span>
-                            )}
-                          </td>
-                        )}
-                        {groupBy !== "fe_status" && (
-                          <td className="px-4 py-3">
-                            <DisciplineStatusChip slot="FE" status={t.fe_status} />
-                          </td>
-                        )}
-                        {groupBy !== "be_status" && (
-                          <td className="px-4 py-3">
-                            <DisciplineStatusChip slot="BE" status={t.be_status} />
-                          </td>
-                        )}
-                        <td className="px-4 py-3 text-right text-xs font-mono text-dim">
-                          {formatHours(t.actual_frontend_hours)} /{" "}
-                          {formatHours(t.current_fe_estimate)}
-                        </td>
-                        <td className="px-4 py-3 text-right text-xs font-mono text-dim">
-                          {formatHours(t.actual_backend_hours)} /{" "}
-                          {formatHours(t.current_be_estimate)}
-                        </td>
-                        {groupBy !== "assignee" && (
-                          <td className="px-4 py-3 text-xs text-dim">
-                            {t.assignees.length === 0
-                              ? "—"
-                              : t.assignees.map((a) => a.member.name).join(", ")}
-                          </td>
-                        )}
+                        {visibleCols.map((k) => {
+                          const c = COLS[k];
+                          return (
+                            <td
+                              key={k}
+                              className={cn(
+                                "px-4 py-3 align-middle overflow-hidden",
+                                c.align === "right" && "text-right"
+                              )}
+                            >
+                              {renderCell(k, t)}
+                            </td>
+                          );
+                        })}
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         );
