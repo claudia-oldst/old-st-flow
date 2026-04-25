@@ -206,6 +206,11 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
                   <Bookmark className="h-2.5 w-2.5" /> {ticket.epic_name}
                 </span>
               )}
+              {ticket.version && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] bg-white/5 hairline font-mono">
+                  {ticket.version}
+                </span>
+              )}
             </div>
             <SheetTitle className="text-left text-xl">
               {editing ? (
