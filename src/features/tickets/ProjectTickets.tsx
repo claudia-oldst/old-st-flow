@@ -36,6 +36,7 @@ import type { TicketType } from "@/lib/types";
 interface ParsedRow {
   title: string;
   type: TicketType;
+  ticket_number: number | null;
   fe: number;
   be: number;
   epic: string;
@@ -100,10 +101,10 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
 
   const downloadTemplate = () => {
     const csv =
-      "Title,Type,FE Estimate,BE Estimate,Epic,Version,FE Status,BE Status\n" +
-      "Example: build login page,Standard,4,2,Authentication,v1,todo,todo\n" +
-      "Example: fix header overflow,Bug,1,0,UI polish,v1,in_progress,todo\n" +
-      "Example: add export endpoint,CR,0,3,Reporting,v2,todo,done\n";
+      "Ticket #,Title,Type,FE Estimate,BE Estimate,Epic,Version,FE Status,BE Status\n" +
+      ",Example: build login page,Standard,4,2,Authentication,v1,todo,todo\n" +
+      "42,Example: fix header overflow,Bug,1,0,UI polish,v1,in_progress,todo\n" +
+      ",Example: add export endpoint,CR,0,3,Reporting,v2,todo,done\n";
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -128,6 +129,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
         const cols = res.meta.fields ?? [];
         const findCol = (...keys: string[]) =>
           cols.find((c) => keys.some((k) => c.trim().toLowerCase() === k.toLowerCase())) ?? null;
+        const numberCol = findCol("Ticket #", "Ticket Number", "Number", "#", "ID", "Ticket ID");
         const titleCol = findCol("Title", "title", "Name");
         const typeCol = findCol("Type", "type");
         const feCol = findCol("FE Estimate", "FE", "Frontend", "fe estimate");
@@ -143,7 +145,10 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
           return;
         }
 
-        const parsed: ParsedRow[] = res.data.map((r) => {
+        const existingNums = new Set(tickets.map((t) => t.ticket_number));
+        const seenNums = new Map<number, number>(); // num -> first row index
+
+        const parsed: ParsedRow[] = res.data.map((r, idx) => {
           const titleRaw = (r[titleCol] ?? "").trim();
           const typeRaw = (typeCol ? r[typeCol] : "Standard").trim();
           let type: TicketType = "Standard";
@@ -156,16 +161,39 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
           const version = versionCol ? (r[versionCol] ?? "").trim() : "";
           const fe_status = parseDiscipline(feStatusCol ? r[feStatusCol] : undefined);
           const be_status = parseDiscipline(beStatusCol ? r[beStatusCol] : undefined);
+
+          // Parse ticket number (accept "42" or "ACR-042")
+          let ticket_number: number | null = null;
+          let numError: string | undefined;
+          if (numberCol) {
+            const raw = (r[numberCol] ?? "").trim();
+            if (raw) {
+              const m = raw.match(/(\d+)\s*$/);
+              const n = m ? parseInt(m[1], 10) : NaN;
+              if (!Number.isFinite(n) || n <= 0) {
+                numError = `Invalid ticket #: "${raw}"`;
+              } else if (existingNums.has(n)) {
+                numError = `Ticket #${n} already exists`;
+              } else if (seenNums.has(n)) {
+                numError = `Duplicate ticket # in CSV`;
+              } else {
+                ticket_number = n;
+                seenNums.set(n, idx);
+              }
+            }
+          }
+
           return {
             title: titleRaw,
             type,
+            ticket_number,
             fe,
             be,
             epic,
             version,
             fe_status,
             be_status,
-            error: !titleRaw ? "Missing title" : undefined,
+            error: !titleRaw ? "Missing title" : numError,
           };
         });
         setRows(parsed);
@@ -215,6 +243,21 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
       }
     }
 
+    // Reserve user-specified numbers; for auto rows, pick next free numbers
+    // that don't collide with existing or user-specified ones.
+    const taken = new Set<number>(tickets.map((t) => t.ticket_number));
+    valid.forEach((r) => {
+      if (r.ticket_number != null) taken.add(r.ticket_number);
+    });
+    let cursor = 1;
+    const nextFree = () => {
+      while (taken.has(cursor)) cursor++;
+      const n = cursor;
+      taken.add(n);
+      cursor++;
+      return n;
+    };
+
     const payload = valid.map((r) => ({
       project_id: projectId,
       title: r.title,
@@ -227,7 +270,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
       be_status: r.be_status,
       epic_id: r.epic.trim() ? epicMap.get(r.epic.trim().toLowerCase()) ?? null : null,
       version: r.version.trim() || null,
-      ticket_number: 0,
+      ticket_number: r.ticket_number ?? nextFree(),
       formatted_id: "",
     }));
     const { error } = await supabase.from("tickets").insert(payload);
@@ -342,7 +385,8 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
             <DialogTitle>Import tickets from CSV</DialogTitle>
             <div className="text-xs text-dim mt-1">
               Expected columns:{" "}
-              <span className="font-mono text-foreground">Title, Type, FE Estimate, BE Estimate, Epic, Version, FE Status, BE Status</span>
+              <span className="font-mono text-foreground">Ticket #, Title, Type, FE Estimate, BE Estimate, Epic, Version, FE Status, BE Status</span>
+              <div className="mt-1 text-dimmer">Leave Ticket # blank to auto-assign the next available number.</div>
             </div>
           </DialogHeader>
 
@@ -430,6 +474,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
                 <table className="w-full text-sm">
                   <thead className="text-left text-xs text-dimmer uppercase tracking-wider sticky top-0 bg-surface-2">
                     <tr>
+                      <th className="px-3 py-2 font-normal">#</th>
                       <th className="px-3 py-2 font-normal">Title</th>
                       <th className="px-3 py-2 font-normal">Type</th>
                       <th className="px-3 py-2 font-normal text-right">FE</th>
@@ -443,6 +488,9 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
                   <tbody>
                     {rows.map((r, i) => (
                       <tr key={i} className="hairline-b last:border-b-0">
+                        <td className="px-3 py-2 font-mono text-xs text-dim">
+                          {r.ticket_number ?? <span className="text-dimmer">auto</span>}
+                        </td>
                         <td className="px-3 py-2">
                           {r.error ? (
                             <span className="inline-flex items-center gap-1 text-destructive">
