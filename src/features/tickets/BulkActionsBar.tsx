@@ -46,11 +46,12 @@ export function BulkActionsBar({
 
   if (selectedIds.length === 0) return null;
 
-  const update = async (patch: Record<string, any>, msg: string) => {
+  const update = async (patch: Record<string, unknown>, msg: string) => {
     setBusy(true);
     const { error } = await supabase
       .from("tickets")
-      .update(patch)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .update(patch as any)
       .in("id", selectedIds);
     setBusy(false);
     if (error) return toast.error(error.message);
