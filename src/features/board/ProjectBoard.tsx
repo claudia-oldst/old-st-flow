@@ -157,90 +157,92 @@ export function ProjectBoard({ projectId }: { projectId: string }) {
   };
 
   return (
-    <div>
-      <div className="flex items-center gap-2 mb-4 flex-wrap">
-        <div className="flex gap-1 p-1 rounded-lg bg-white/5 hairline">
-          <button
-            onClick={() => { setTouched(true); setMode("project"); }}
-            className={cn(
-              "px-3 py-1 text-xs rounded-md transition",
-              mode === "project" ? "bg-foreground text-background" : "text-dim hover:text-foreground"
-            )}
-          >
-            Project status
-          </button>
-          <button
-            onClick={() => { setTouched(true); setMode("discipline"); }}
-            className={cn(
-              "px-3 py-1 text-xs rounded-md transition",
-              mode === "discipline" ? "bg-foreground text-background" : "text-dim hover:text-foreground"
-            )}
-          >
-            My discipline
-          </button>
+    <TooltipProvider>
+      <div>
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
+          <div className="flex gap-1 p-1 rounded-lg bg-white/5 hairline">
+            <button
+              onClick={() => { setTouched(true); setMode("project"); }}
+              className={cn(
+                "px-3 py-1 text-xs rounded-md transition",
+                mode === "project" ? "bg-foreground text-background" : "text-dim hover:text-foreground"
+              )}
+            >
+              Project status
+            </button>
+            <button
+              onClick={() => { setTouched(true); setMode("discipline"); }}
+              className={cn(
+                "px-3 py-1 text-xs rounded-md transition",
+                mode === "discipline" ? "bg-foreground text-background" : "text-dim hover:text-foreground"
+              )}
+            >
+              My discipline
+            </button>
+          </div>
+
+          <div className="flex gap-1 p-1 rounded-lg bg-white/5 hairline">
+            <button
+              onClick={() => { setTouched(true); setFilterMine(false); }}
+              className={cn("px-3 py-1 text-xs rounded-md transition", !filterMine ? "bg-foreground text-background" : "text-dim hover:text-foreground")}
+            >
+              All
+            </button>
+            <button
+              onClick={() => { setTouched(true); setFilterMine(true); }}
+              className={cn("px-3 py-1 text-xs rounded-md transition", filterMine ? "bg-foreground text-background" : "text-dim hover:text-foreground")}
+            >
+              My tickets
+            </button>
+          </div>
+          <div className="text-xs text-dim ml-2">
+            {mode === "project"
+              ? `${visible.length} ticket${visible.length === 1 ? "" : "s"}`
+              : `${disciplineCards.length} card${disciplineCards.length === 1 ? "" : "s"}`}
+          </div>
         </div>
 
-        <div className="flex gap-1 p-1 rounded-lg bg-white/5 hairline">
-          <button
-            onClick={() => { setTouched(true); setFilterMine(false); }}
-            className={cn("px-3 py-1 text-xs rounded-md transition", !filterMine ? "bg-foreground text-background" : "text-dim hover:text-foreground")}
-          >
-            All
-          </button>
-          <button
-            onClick={() => { setTouched(true); setFilterMine(true); }}
-            className={cn("px-3 py-1 text-xs rounded-md transition", filterMine ? "bg-foreground text-background" : "text-dim hover:text-foreground")}
-          >
-            My tickets
-          </button>
-        </div>
-        <div className="text-xs text-dim ml-2">
-          {mode === "project"
-            ? `${visible.length} ticket${visible.length === 1 ? "" : "s"}`
-            : `${disciplineCards.length} card${disciplineCards.length === 1 ? "" : "s"}`}
-        </div>
+        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+          {mode === "project" ? (
+            <div className="flex gap-3 overflow-x-auto pb-4">
+              {statuses.map((status) => (
+                <Column
+                  key={status.id}
+                  status={status}
+                  tickets={byStatus[status.id] ?? []}
+                  projectId={projectId}
+                  canQuickAdd={isPMBA(role)}
+                  onCardClick={setOpenTicket}
+                  onCreated={reload}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="flex gap-3 overflow-x-auto pb-4">
+              {disciplineColumns.map((s) => (
+                <DisciplineColumn
+                  key={s}
+                  column={s}
+                  cards={byDisciplineStatus[s]}
+                  onCardClick={(c) => setOpenTicket(c.ticket)}
+                />
+              ))}
+            </div>
+          )}
+          <DragOverlay>
+            {activeTicket && <TicketCard ticket={activeTicket} />}
+          </DragOverlay>
+        </DndContext>
+
+        <TicketDetailSheet
+          open={!!openTicket}
+          onOpenChange={(o) => !o && setOpenTicket(null)}
+          ticket={openTicket}
+          projectId={projectId}
+          onChange={reload}
+        />
       </div>
-
-      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        {mode === "project" ? (
-          <div className="flex gap-3 overflow-x-auto pb-4">
-            {statuses.map((status) => (
-              <Column
-                key={status.id}
-                status={status}
-                tickets={byStatus[status.id] ?? []}
-                projectId={projectId}
-                canQuickAdd={isPMBA(role)}
-                onCardClick={setOpenTicket}
-                onCreated={reload}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="flex gap-3 overflow-x-auto pb-4">
-            {disciplineColumns.map((s) => (
-              <DisciplineColumn
-                key={s}
-                column={s}
-                cards={byDisciplineStatus[s]}
-                onCardClick={(c) => setOpenTicket(c.ticket)}
-              />
-            ))}
-          </div>
-        )}
-        <DragOverlay>
-          {activeTicket && <TicketCard ticket={activeTicket} />}
-        </DragOverlay>
-      </DndContext>
-
-      <TicketDetailSheet
-        open={!!openTicket}
-        onOpenChange={(o) => !o && setOpenTicket(null)}
-        ticket={openTicket}
-        projectId={projectId}
-        onChange={reload}
-      />
-    </div>
+    </TooltipProvider>
   );
 }
 
