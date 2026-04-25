@@ -16,6 +16,7 @@ import {
   DISCIPLINE_STATUS_LABEL,
   type DisciplineStatus,
 } from "@/lib/types";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 type BoardMode = "project" | "discipline";
 const DISCIPLINE_STATUSES: DisciplineStatus[] = ["todo", "in_progress", "done"];
