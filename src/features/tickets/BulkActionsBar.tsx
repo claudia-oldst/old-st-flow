@@ -96,6 +96,15 @@ export function BulkActionsBar({
 
           {canEdit && (
             <>
+              {/* Assign */}
+              <button
+                disabled={busy}
+                onClick={() => setAssignOpen(true)}
+                className="px-3 py-1.5 rounded-lg text-xs hover:bg-white/5 transition inline-flex items-center gap-1.5 text-dim hover:text-foreground"
+              >
+                <Users className="h-3.5 w-3.5" /> Assign
+              </button>
+
               {/* Status */}
               <Popover>
                 <PopoverTrigger asChild>
