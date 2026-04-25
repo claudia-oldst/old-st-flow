@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DISCIPLINE_STATUS_LABEL, type DisciplineStatus } from "@/lib/types";
+import { BulkAssignDialog } from "@/features/tickets/BulkAssignDialog";
 
 const DISC_OPTS: DisciplineStatus[] = ["todo", "in_progress", "done"];
 
