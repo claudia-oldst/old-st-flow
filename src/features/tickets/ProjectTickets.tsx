@@ -36,6 +36,7 @@ import type { TicketType } from "@/lib/types";
 interface ParsedRow {
   title: string;
   type: TicketType;
+  ticket_number: number | null;
   fe: number;
   be: number;
   epic: string;
