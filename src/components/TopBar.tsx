@@ -143,9 +143,6 @@ export function TopBar() {
             className="h-7 w-auto select-none"
             draggable={false}
           />
-          <div className="font-display font-semibold tracking-tight text-[15px] leading-none">
-            Old.St <span className="text-dim font-normal">Tracker</span>
-          </div>
         </Link>
 
         <nav className="flex items-center gap-1">
