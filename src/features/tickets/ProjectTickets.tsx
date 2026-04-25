@@ -473,6 +473,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
                 <table className="w-full text-sm">
                   <thead className="text-left text-xs text-dimmer uppercase tracking-wider sticky top-0 bg-surface-2">
                     <tr>
+                      <th className="px-3 py-2 font-normal">#</th>
                       <th className="px-3 py-2 font-normal">Title</th>
                       <th className="px-3 py-2 font-normal">Type</th>
                       <th className="px-3 py-2 font-normal text-right">FE</th>
@@ -486,6 +487,9 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
                   <tbody>
                     {rows.map((r, i) => (
                       <tr key={i} className="hairline-b last:border-b-0">
+                        <td className="px-3 py-2 font-mono text-xs text-dim">
+                          {r.ticket_number ?? <span className="text-dimmer">auto</span>}
+                        </td>
                         <td className="px-3 py-2">
                           {r.error ? (
                             <span className="inline-flex items-center gap-1 text-destructive">
