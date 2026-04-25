@@ -56,8 +56,9 @@ export function TicketCard({
   // A discipline only "exists" on a ticket once someone is assigned for that role.
   const hasFE = fe.length > 0;
   const hasBE = be.length > 0;
-  const showFE = hasFE && (ticket.current_fe_estimate > 0 || ticket.actual_frontend_hours > 0 || true);
-  const showBE = hasBE && (ticket.current_be_estimate > 0 || ticket.actual_backend_hours > 0 || true);
+  const showFEBar = hasFE && (ticket.current_fe_estimate > 0 || ticket.actual_frontend_hours > 0);
+  const showBEBar = hasBE && (ticket.current_be_estimate > 0 || ticket.actual_backend_hours > 0);
+  const showAnyChipsOrBars = hasFE || hasBE;
 
   return (
     <div
