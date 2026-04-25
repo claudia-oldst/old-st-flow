@@ -171,7 +171,6 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
               </div>
             </>
           )}
-          )}
         </div>
 
         <div className="space-y-4">
