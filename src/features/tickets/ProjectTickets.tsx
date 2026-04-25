@@ -295,14 +295,16 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
 
       {view === "board" ? (
         <ProjectBoard projectId={projectId} />
-      ) : tickets.length === 0 ? (
+      ) : visibleTickets.length === 0 ? (
         <div className="glass rounded-2xl p-12 text-center">
           <FileText className="h-8 w-8 mx-auto text-dimmer mb-3" />
-          <div className="font-medium">No tickets yet</div>
-          <div className="text-dim text-sm mt-1">Add tickets from the Board, or import a CSV.</div>
+          <div className="font-medium">{filterMine ? "No tickets assigned to you" : "No tickets yet"}</div>
+          <div className="text-dim text-sm mt-1">
+            {filterMine ? "Switch to All to see every ticket on this project." : "Add tickets from the Board, or import a CSV."}
+          </div>
         </div>
       ) : (
-        <TicketsList tickets={tickets} groupBy={groupBy} onOpen={setOpenTicket} />
+        <TicketsList tickets={visibleTickets} groupBy={groupBy} onOpen={setOpenTicket} />
       )}
 
       <Dialog
