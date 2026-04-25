@@ -367,7 +367,6 @@ export function TicketsList({
                                 }}
                                 onChange={(e) => {
                                   e.stopPropagation();
-                                  onToggleSelectAll?.(id, e.target.checked);
                                   onToggleSelectAll?.(ids, e.target.checked);
                                 }}
                                 onClick={(e) => e.stopPropagation()}
