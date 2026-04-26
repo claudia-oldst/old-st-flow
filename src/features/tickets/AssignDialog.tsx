@@ -111,7 +111,7 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
             <SlotPicker
               label="Team members"
               description="Anyone assigned can log time to this ticket's shared project estimate."
-              members={otherEligible}
+              members={projectEligible}
               selected={projectUserIds}
               onToggle={(id) => toggle(projectUserIds, setProjectUserIds, id)}
               showRole
@@ -133,11 +133,11 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
                 onToggle={(id) => toggle(beUserIds, setBeUserIds, id)}
               />
               <SlotPicker
-                label="Other contributors"
-                description="QA, PMBA, Design — anyone else involved. Time logged here goes to project Overhead."
-                members={otherEligible}
-                selected={otherUserIds}
-                onToggle={(id) => toggle(otherUserIds, setOtherUserIds, id)}
+                label="Project contributors"
+                description="QA, PMBA, Design — anyone else on the ticket. Time logged here goes to the ticket's shared Project bucket."
+                members={projectEligible}
+                selected={projectUserIds}
+                onToggle={(id) => toggle(projectUserIds, setProjectUserIds, id)}
                 showRole
               />
             </>
