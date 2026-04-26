@@ -24,11 +24,10 @@ export interface TicketRow {
   current_project_estimate: number;
   actual_frontend_hours: number;
   actual_backend_hours: number;
-  actual_overhead_hours: number;
   actual_project_hours: number;
   position: number;
   created_at: string;
-  assignees: Array<{ user_id: string; slot: "FE" | "BE" | "Other" | "Project"; member: TeamMember; created_at: string }>;
+  assignees: Array<{ user_id: string; slot: "FE" | "BE" | "Project"; member: TeamMember; created_at: string }>;
 }
 
 export function useProjectTickets(projectId: string | undefined) {
