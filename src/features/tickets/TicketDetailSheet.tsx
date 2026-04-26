@@ -21,6 +21,7 @@ import { MemberAvatar } from "@/components/MemberAvatar";
 import { DisciplineStatusChip } from "@/features/tickets/DisciplineStatusChip";
 import { RequestMoreTimeDialog } from "@/features/tickets/RequestMoreTimeDialog";
 import { useTicketEstimateChanges } from "@/features/estimates/useEstimateChanges";
+import { useTicketTimeLogs } from "@/features/timelog/useTicketTimeLogs";
 import { DISCIPLINE_STATUS_LABEL, type DisciplineStatus } from "@/lib/types";
 import {
   Select,
