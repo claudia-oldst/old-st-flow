@@ -1,53 +1,85 @@
-# Member Capacity Date Range Filter
+## Multi-Ticket Timer (revised)
 
-Add a date range picker to the **Member capacity** card on the Project Health page. The range filters two columns:
+A new dedicated CTA — separate from the per-ticket "Log time" — lets a developer start one timer that covers several of *their* assigned tickets, then split the elapsed time across them on stop.
 
-- **Assigned** — only count tickets where the member's assignee row was created within the range, AND only count remaining hours for slots whose discipline is not yet `done`.
-- **Logged** — sum of `time_logs.hours` for that user on this project's tickets where `logged_at` falls within the range.
+### Where the CTA lives
 
-The **Open tix** column stays as-is (it's a current-state snapshot, not period-based).
+In **`ProjectTickets.tsx`**, on the toolbar/hairline row, only when **My tickets** is the active filter (works in both **Board** and **List** views). Placed next to the All / My tickets toggle.
 
-## UX
+- Label: **"Start group timer"** with a `Clock`/`Play` icon.
+- Style: same as the existing per-ticket "Log time" CTA (default `Button` — solid foreground/background) so the group timer reads as the same family of action.
+- Hidden when a group timer is already running for the current user (the running state is surfaced by the `TimerChip` in the top bar; clicking it opens the stop dialog).
 
-In the Member capacity card header (next to "Member capacity"), add a compact date range control:
+### Discipline scoping (single-discipline only)
 
-- Two popover date pickers ("From" / "To") using the shadcn `Calendar` component, shown inline with small triggers.
-- Quick presets: **Last 7 days** (default), **Last 14 days**, **Last 30 days**, **This month**, **Custom**.
-- Default range on first load: **Last 7 days** (matches the existing "Logged" behavior, so nothing visually changes by default).
-- Small label under the table (or as a tooltip on the column headers) clarifying: "Assigned and Logged are scoped to {from} – {to}."
+The user can only log time for the discipline they're assigned for the project (`useProjectRole`):
 
-Layout stays the same (the three columns: Open tix / Assigned / Logged).
+- `Frontend` → discipline locked to **FE**.
+- `Backend` → discipline locked to **BE**.
+- `Fullstack` → user picks **FE or BE** in the start modal (one only — a single timer can't cover both disciplines).
+- `QA` / `PMBA` → discipline locked to **Overhead**.
+- No project role → CTA hidden.
 
-## Data changes
+The selectable ticket list is filtered to tickets where the user is actually assigned to the chosen discipline slot (FE/BE). Overhead users see all their assigned tickets regardless of slot.
 
-### 1. Fetch assignee `created_at`
-`useProjectTickets` already selects `*` from `ticket_assignees`, so `created_at` is returned but dropped when grouped. Update the grouping in `src/features/tickets/useProjectTickets.ts` to include `created_at` on each assignee:
+### Start flow
 
-```ts
-assignees: Array<{ user_id; slot; member; created_at: string }>
+Clicking the CTA opens a **"Start group timer"** modal:
+
+1. **Discipline display** — locked label for Frontend/Backend/QA/PMBA; FE/BE toggle for Fullstack.
+2. **Search bar** + **filter chips** (Status: To-do / In progress; Type: Standard / Bug / CR; Epic) over the list of the **current user's assigned tickets in this project** (open ones — exclude `done` category), further filtered to the chosen discipline's slot.
+3. **Multi-select list** — each row: checkbox, `formatted_id`, title, status chip. "Select all visible" / "Clear" helpers.
+4. **Start** — disabled until ≥1 ticket selected. Writes `active_timers` (primary = first selected) and bulk-inserts all selections into a new `active_timer_tickets` join table.
+
+### Running state (top bar)
+
+`TimerChip` updates to show the group:
+- 1 ticket: `OSL-001  00:24:05` (today's behavior).
+- N tickets: `OSL-001 +N-1  00:24:05`, with the full id list in the tooltip.
+
+Clicking the chip opens the **Review & save** dialog (instead of immediately committing as it does today).
+
+### Stop flow — Review & save dialog
+
+- Total elapsed (rounded to nearest minute).
+- One row per ticket: id + title, **minutes input** (editable), **status dropdown** for the timer's discipline (To-do / In progress / Done; hidden for Overhead since there's no overhead status), **remove** button.
+- **Global comment** textarea applied to every generated `time_logs` row.
+- Live "Allocated X / Y min" indicator + **"Distribute remaining evenly"** helper.
+- Initial split: whole minutes — each ticket gets `floor(total / N)`; **remainder added to the first ticket**.
+- **Save** → bulk-insert `time_logs` rows, update changed discipline statuses, run backlog→active promotion per ticket, clear the timer.
+- **Discard** drops the timer.
+- Total under 1 minute → auto-discard, same as today.
+
+---
+
+## Technical plan
+
+### Database (migration)
+
+```
+active_timer_tickets (NEW)
+  user_id    uuid not null
+  ticket_id  uuid not null
+  position   int  not null default 0
+  PRIMARY KEY (user_id, ticket_id)
+  RLS: same permissive "all v1" policies as active_timers
 ```
 
-### 2. Fetch time logs in the chosen range
-In `ProjectHealth.tsx`, replace the hard-coded 7-day `time_logs` query with one driven by the selected range (`gte logged_at = from`, `lte logged_at = to`). Re-run the query whenever the range changes.
+`active_timers` is unchanged — its existing `ticket_id` becomes the "primary" ticket. On start we insert all selections (including primary) into `active_timer_tickets` with sequential `position`. On stop/discard we delete from both tables for that `user_id`. No changes to `time_logs` schema.
 
-### 3. Recompute `remainingByMember` (Assigned column)
-Filter each assignee by `created_at >= from && created_at <= to` before adding remaining hours. The existing rule of skipping slots with status `done` stays.
+### Frontend
 
-### 4. Keep `ticketsByMember` (Open tix) unchanged
-This is a current snapshot and should not depend on the range.
+- **`src/store/timer.ts`** — extend with `tickets: Array<{ id, formatted_id, title, position }>` and a `setTickets` action.
+- **`src/components/TimerSync.tsx`** — also load + subscribe to `active_timer_tickets` for the current user, joined with `tickets` for display fields.
+- **`src/components/TopBar.tsx`** (`TimerChip`) — render `OSL-001 +N` summary; open the new `StopGroupTimerDialog` on click instead of inline-committing. Single-ticket case still works (N=1 with no suffix).
+- **`src/features/timelog/StartGroupTimerDialog.tsx`** (new) — discipline display/picker, search + filter chips, multi-select list, Start button.
+- **`src/features/timelog/StopGroupTimerDialog.tsx`** (new) — review-and-save UI described above.
+- **`src/features/tickets/ProjectTickets.tsx`** — render the "Start group timer" CTA in the toolbar when `filterMine && user && role` (visible in both Board and List views). Pass the user's assigned, non-done tickets for this project + the project role into the start dialog.
 
-## Files to edit
+The existing per-ticket `LogTimeModal` is unchanged.
 
-- `src/features/tickets/useProjectTickets.ts` — include `created_at` on each assignee in the grouped output, and add it to the `TicketRow.assignees` type.
-- `src/features/health/ProjectHealth.tsx`:
-  - Add `from` / `to` state with a Last-7-days default.
-  - Add a small `DateRangeControl` (presets + two shadcn popovers) in the Member capacity card header.
-  - Drive the `time_logs` fetch from the range.
-  - Filter `remainingByMember` by assignee `created_at` within the range.
-  - Update column header tooltips to mention the active range.
+### Files to add / edit
 
-No database changes required — `ticket_assignees.created_at` and `time_logs.logged_at` already exist.
-
-## Caveats to flag in the UI
-
-- "Assigned" reflects when the assignee row was created; reassignments after the range won't be counted, and assignments made before the range won't appear even if the member is still working on them. A small info tooltip will state this so the metric is interpreted correctly for capacity planning.
+- New migration: `active_timer_tickets` table + RLS.
+- New: `src/features/timelog/StartGroupTimerDialog.tsx`, `src/features/timelog/StopGroupTimerDialog.tsx`.
+- Edit: `src/store/timer.ts`, `src/components/TimerSync.tsx`, `src/components/TopBar.tsx`, `src/features/tickets/ProjectTickets.tsx`.
