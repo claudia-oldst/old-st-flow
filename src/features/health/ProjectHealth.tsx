@@ -78,10 +78,9 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
         acc.beOrig += t.original_be_estimate;
         acc.feAct += t.actual_frontend_hours;
         acc.beAct += t.actual_backend_hours;
-        acc.over += t.actual_overhead_hours;
         return acc;
       },
-      { feEst: 0, beEst: 0, feOrig: 0, beOrig: 0, feAct: 0, beAct: 0, over: 0 }
+      { feEst: 0, beEst: 0, feOrig: 0, beOrig: 0, feAct: 0, beAct: 0 }
     );
   }, [tickets]);
 
