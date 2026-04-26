@@ -380,7 +380,7 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
               <div className="flex items-center justify-between mb-2">
                 <div className="text-xs uppercase tracking-wider text-dimmer">Estimates & actuals</div>
                 <div className="flex items-center gap-1">
-                  {!editing && (canEditFE || canEditBE) && (
+                  {!editing && !isProj && (canEditFE || canEditBE) && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -396,7 +396,7 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
                       <TrendingUp className="h-3 w-3" /> Request more time
                     </Button>
                   )}
-                  {isPMBA(role) && !editing && (
+                  {(isPMBA(role) || (isProj && canEditProj)) && !editing && (
                     <Button variant="ghost" size="sm" onClick={() => setEditing(true)} className="gap-1 text-xs">
                       <Edit3 className="h-3 w-3" /> Edit
                     </Button>
@@ -404,22 +404,43 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
                 </div>
               </div>
               {editing ? (
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs">FE estimate (hrs)</Label>
-                    <Input type="number" step="0.5" value={feEst} onChange={(e) => setFeEst(e.target.value)} />
-                    <div className="text-[10px] text-dimmer">Original: {formatHours(ticket.original_fe_estimate)}</div>
+                isProj ? (
+                  <div className="grid grid-cols-1 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Project estimate (hrs)</Label>
+                      <Input type="number" step="0.5" value={projEst} onChange={(e) => setProjEst(e.target.value)} />
+                      <div className="text-[10px] text-dimmer">Original: {formatHours(ticket.original_project_estimate)}</div>
+                    </div>
+                    <div className="flex gap-2 justify-end">
+                      <Button variant="ghost" size="sm" onClick={() => setEditing(false)}>Cancel</Button>
+                      <Button size="sm" onClick={handleSaveEdit}>Save</Button>
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">BE estimate (hrs)</Label>
-                    <Input type="number" step="0.5" value={beEst} onChange={(e) => setBeEst(e.target.value)} />
-                    <div className="text-[10px] text-dimmer">Original: {formatHours(ticket.original_be_estimate)}</div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">FE estimate (hrs)</Label>
+                      <Input type="number" step="0.5" value={feEst} onChange={(e) => setFeEst(e.target.value)} />
+                      <div className="text-[10px] text-dimmer">Original: {formatHours(ticket.original_fe_estimate)}</div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">BE estimate (hrs)</Label>
+                      <Input type="number" step="0.5" value={beEst} onChange={(e) => setBeEst(e.target.value)} />
+                      <div className="text-[10px] text-dimmer">Original: {formatHours(ticket.original_be_estimate)}</div>
+                    </div>
+                    <div className="col-span-2 flex gap-2 justify-end">
+                      <Button variant="ghost" size="sm" onClick={() => setEditing(false)}>Cancel</Button>
+                      <Button size="sm" onClick={handleSaveEdit}>Save</Button>
+                    </div>
                   </div>
-                  <div className="col-span-2 flex gap-2 justify-end">
-                    <Button variant="ghost" size="sm" onClick={() => setEditing(false)}>Cancel</Button>
-                    <Button size="sm" onClick={handleSaveEdit}>Save</Button>
-                  </div>
-                </div>
+                )
+              ) : isProj ? (
+                <Stat
+                  label="Project"
+                  actual={ticket.actual_project_hours}
+                  estimate={ticket.current_project_estimate}
+                  original={ticket.original_project_estimate}
+                />
               ) : (
                 <div className="grid grid-cols-2 gap-3">
                   <Stat
@@ -436,7 +457,7 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
                   />
                 </div>
               )}
-              {ticket.actual_overhead_hours > 0 && (
+              {!isProj && ticket.actual_overhead_hours > 0 && (
                 <div className="mt-3 text-xs text-dim">
                   Overhead logged: <span className="text-foreground font-mono">{formatHours(ticket.actual_overhead_hours)}</span>
                 </div>
@@ -498,10 +519,16 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
                   </Button>
                 )}
               </div>
-              <AssigneeBlock label="Frontend" assignees={ticket.assignees.filter(a => a.slot === "FE")} />
-              <AssigneeBlock label="Backend" assignees={ticket.assignees.filter(a => a.slot === "BE")} />
-              {ticket.assignees.some((a) => a.slot === "Other") && (
-                <AssigneeBlock label="Other" assignees={ticket.assignees.filter(a => a.slot === "Other")} />
+              {isProj ? (
+                <AssigneeBlock label="Members" assignees={ticket.assignees.filter(a => a.slot === "Project")} />
+              ) : (
+                <>
+                  <AssigneeBlock label="Frontend" assignees={ticket.assignees.filter(a => a.slot === "FE")} />
+                  <AssigneeBlock label="Backend" assignees={ticket.assignees.filter(a => a.slot === "BE")} />
+                  {ticket.assignees.some((a) => a.slot === "Other") && (
+                    <AssigneeBlock label="Other" assignees={ticket.assignees.filter(a => a.slot === "Other")} />
+                  )}
+                </>
               )}
             </div>
 
