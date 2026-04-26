@@ -37,24 +37,27 @@ export function LogTimeModal({ open, onOpenChange, ticket, role, onLogged }: Pro
   // Determine which discipline buckets the user can log to
   const canFE = role === "Frontend" || role === "Fullstack";
   const canBE = role === "Backend" || role === "Fullstack";
-  // True if the user is on this ticket *only* via the "Other" slot —
-  // their work counts as project Overhead regardless of role.
   const mySlotsOnTicket = user
     ? ticket.assignees.filter((a) => a.user_id === user.id).map((a) => a.slot)
     : [];
-  const onlyOtherSlot = !isProjTicket && mySlotsOnTicket.length > 0 && mySlotsOnTicket.every((s) => s === "Other");
-  const isOverhead = !isProjTicket && (role === "QA" || role === "PMBA" || role === "Design" || onlyOtherSlot);
+  // True if the user is on this ticket via the Project slot — they log to
+  // the ticket's shared Project bucket regardless of role.
+  const isProjectContributor = mySlotsOnTicket.includes("Project");
+  const onlyProjectSlot =
+    mySlotsOnTicket.length > 0 && mySlotsOnTicket.every((s) => s === "Project");
 
   // Default discipline based on ticket type, role + assignment
   const defaultDiscipline: LogDiscipline = (() => {
     if (isProjTicket) return "Project";
-    if (isOverhead) return "Overhead";
+    if (onlyProjectSlot) return "Project";
     if (role === "Frontend") return "FE";
     if (role === "Backend") return "BE";
     // Fullstack — prefer slot they are assigned to
     if (mySlotsOnTicket.includes("FE") && !mySlotsOnTicket.includes("BE")) return "FE";
     if (mySlotsOnTicket.includes("BE") && !mySlotsOnTicket.includes("FE")) return "BE";
-    return "FE";
+    if (canFE) return "FE";
+    if (canBE) return "BE";
+    return "Project";
   })();
 
   const [discipline, setDiscipline] = useState<LogDiscipline>(defaultDiscipline);
