@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import type { Project, ProjectMember, ProjectRole, TeamMember } from "@/lib/types";
+import { PROJECT_ROLES as ROLES, PROJECT_ROLE_COLORS as ROLE_COLORS, type Project, type ProjectMember, type ProjectRole, type TeamMember } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,16 +29,6 @@ import { MemberAvatar } from "@/components/MemberAvatar";
 import { Plus, Settings, Trash2, ExternalLink, Eye } from "lucide-react";
 import { toast } from "sonner";
 
-const ROLES: ProjectRole[] = ["Frontend", "Backend", "Fullstack", "QA", "PMBA", "Design"];
-
-const ROLE_COLORS: Record<ProjectRole, string> = {
-  Frontend: "bg-blue-500/15 text-blue-300 ring-blue-400/20",
-  Backend: "bg-emerald-500/15 text-emerald-300 ring-emerald-400/20",
-  Fullstack: "bg-purple-500/15 text-purple-300 ring-purple-400/20",
-  QA: "bg-amber-500/15 text-amber-300 ring-amber-400/20",
-  PMBA: "bg-pink-500/15 text-pink-300 ring-pink-400/20",
-  Design: "bg-fuchsia-500/15 text-fuchsia-300 ring-fuchsia-400/20",
-};
 
 export interface ProjectLink {
   name: string;
