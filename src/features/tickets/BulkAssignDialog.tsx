@@ -36,14 +36,18 @@ export function BulkAssignDialog({
   const [feUserIds, setFeUserIds] = useState<Set<string>>(new Set());
   const [beUserIds, setBeUserIds] = useState<Set<string>>(new Set());
   const [otherUserIds, setOtherUserIds] = useState<Set<string>>(new Set());
+  const [projectUserIds, setProjectUserIds] = useState<Set<string>>(new Set());
   const [mode, setMode] = useState<Mode>("add");
   const [busy, setBusy] = useState(false);
+  const [projTicketIds, setProjTicketIds] = useState<Set<string>>(new Set());
+  const [standardTicketIds, setStandardTicketIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!open) return;
     setFeUserIds(new Set());
     setBeUserIds(new Set());
     setOtherUserIds(new Set());
+    setProjectUserIds(new Set());
     setMode("add");
     supabase
       .from("project_members")
@@ -51,7 +55,26 @@ export function BulkAssignDialog({
       .eq("project_id", projectId)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .then(({ data }) => setMembers(((data as any) ?? []) as (ProjectMember & { member: TeamMember })[]));
-  }, [open, projectId]);
+    if (ticketIds.length) {
+      supabase
+        .from("tickets")
+        .select("id, ticket_type")
+        .in("id", ticketIds)
+        .then(({ data }) => {
+          const proj = new Set<string>();
+          const std = new Set<string>();
+          (data ?? []).forEach((t: { id: string; ticket_type: string }) => {
+            if (t.ticket_type === "Proj") proj.add(t.id);
+            else std.add(t.id);
+          });
+          setProjTicketIds(proj);
+          setStandardTicketIds(std);
+        });
+    } else {
+      setProjTicketIds(new Set());
+      setStandardTicketIds(new Set());
+    }
+  }, [open, projectId, ticketIds]);
 
   const feEligible = members.filter((m) => m.role === "Frontend" || m.role === "Fullstack");
   const beEligible = members.filter((m) => m.role === "Backend" || m.role === "Fullstack");
@@ -64,7 +87,9 @@ export function BulkAssignDialog({
     setter(next);
   };
 
-  const totalPicked = feUserIds.size + beUserIds.size + otherUserIds.size;
+  const totalPicked = feUserIds.size + beUserIds.size + otherUserIds.size + projectUserIds.size;
+  const hasProj = projTicketIds.size > 0;
+  const hasStandard = standardTicketIds.size > 0;
 
   const handleSave = async () => {
     if (ticketIds.length === 0) return;
@@ -84,11 +109,16 @@ export function BulkAssignDialog({
       }
     }
 
-    let rows: { ticket_id: string; user_id: string; slot: "FE" | "BE" | "Other" }[] = [];
-    ticketIds.forEach((tid) => {
+    let rows: { ticket_id: string; user_id: string; slot: "FE" | "BE" | "Other" | "Project" }[] = [];
+    // Standard / Bug / CR tickets: FE / BE / Other slots only.
+    standardTicketIds.forEach((tid) => {
       feUserIds.forEach((uid) => rows.push({ ticket_id: tid, user_id: uid, slot: "FE" }));
       beUserIds.forEach((uid) => rows.push({ ticket_id: tid, user_id: uid, slot: "BE" }));
       otherUserIds.forEach((uid) => rows.push({ ticket_id: tid, user_id: uid, slot: "Other" }));
+    });
+    // Proj tickets: Project slot only.
+    projTicketIds.forEach((tid) => {
+      projectUserIds.forEach((uid) => rows.push({ ticket_id: tid, user_id: uid, slot: "Project" }));
     });
 
     // In "add" mode, skip rows that already exist to avoid duplicate-key errors.
@@ -187,25 +217,43 @@ export function BulkAssignDialog({
           </div>
         )}
 
+        {hasProj && hasStandard && (
+          <div className="text-xs text-dim bg-white/5 hairline rounded-lg px-3 py-2">
+            Selection mixes Proj tickets with Standard/Bug/CR tickets. FE/BE/Other picks apply only to non-Proj tickets; Project picks apply only to Proj tickets.
+          </div>
+        )}
+
         <div className="space-y-6 pt-2 max-h-[50vh] overflow-y-auto">
-          <Slot
-            label="Frontend"
-            members={feEligible}
-            selected={feUserIds}
-            onToggle={(id) => toggle(feUserIds, setFeUserIds, id)}
-          />
-          <Slot
-            label="Backend"
-            members={beEligible}
-            selected={beUserIds}
-            onToggle={(id) => toggle(beUserIds, setBeUserIds, id)}
-          />
-          <Slot
-            label="Other contributors"
-            members={otherEligible}
-            selected={otherUserIds}
-            onToggle={(id) => toggle(otherUserIds, setOtherUserIds, id)}
-          />
+          {hasStandard && (
+            <>
+              <Slot
+                label="Frontend"
+                members={feEligible}
+                selected={feUserIds}
+                onToggle={(id) => toggle(feUserIds, setFeUserIds, id)}
+              />
+              <Slot
+                label="Backend"
+                members={beEligible}
+                selected={beUserIds}
+                onToggle={(id) => toggle(beUserIds, setBeUserIds, id)}
+              />
+              <Slot
+                label="Other contributors"
+                members={otherEligible}
+                selected={otherUserIds}
+                onToggle={(id) => toggle(otherUserIds, setOtherUserIds, id)}
+              />
+            </>
+          )}
+          {hasProj && (
+            <Slot
+              label={`Project team${hasStandard ? " (Proj tickets only)" : ""}`}
+              members={otherEligible}
+              selected={projectUserIds}
+              onToggle={(id) => toggle(projectUserIds, setProjectUserIds, id)}
+            />
+          )}
         </div>
 
         <DialogFooter>
