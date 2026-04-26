@@ -41,16 +41,6 @@ interface Props {
   onChange: () => void;
 }
 
-interface LogEntry {
-  id: string;
-  hours: number;
-  discipline: "FE" | "BE" | "Project";
-  note: string | null;
-  logged_at: string;
-  source: "timer" | "manual";
-  user: { name: string; avatar_color: string };
-}
-
 export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onChange }: Props) {
   const role = useProjectRole(projectId);
   const user = useCurrentUser((s) => s.user);
@@ -60,7 +50,7 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
   const [requestOpen, setRequestOpen] = useState(false);
   const [requestSlot, setRequestSlot] = useState<"FE" | "BE" | undefined>(undefined);
   const [showAllChanges, setShowAllChanges] = useState(false);
-  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const { logs, reload: reloadLogs } = useTicketTimeLogs(ticket?.id);
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState("");
   const [feEst, setFeEst] = useState("");
