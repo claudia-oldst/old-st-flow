@@ -29,7 +29,7 @@ import { MemberAvatar } from "@/components/MemberAvatar";
 import { Plus, Settings, Trash2, ExternalLink, Eye } from "lucide-react";
 import { toast } from "sonner";
 
-const ROLES: ProjectRole[] = ["Frontend", "Backend", "Fullstack", "QA", "PMBA"];
+const ROLES: ProjectRole[] = ["Frontend", "Backend", "Fullstack", "QA", "PMBA", "Design"];
 
 const ROLE_COLORS: Record<ProjectRole, string> = {
   Frontend: "bg-blue-500/15 text-blue-300 ring-blue-400/20",
@@ -37,6 +37,7 @@ const ROLE_COLORS: Record<ProjectRole, string> = {
   Fullstack: "bg-purple-500/15 text-purple-300 ring-purple-400/20",
   QA: "bg-amber-500/15 text-amber-300 ring-amber-400/20",
   PMBA: "bg-pink-500/15 text-pink-300 ring-pink-400/20",
+  Design: "bg-fuchsia-500/15 text-fuchsia-300 ring-fuchsia-400/20",
 };
 
 export interface ProjectLink {
