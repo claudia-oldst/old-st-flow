@@ -55,11 +55,9 @@ export function TicketCard({
   const isProj = ticket.ticket_type === "Proj";
   const fe = ticket.assignees.filter((a) => a.slot === "FE").map((a) => a.member);
   const be = ticket.assignees.filter((a) => a.slot === "BE").map((a) => a.member);
-  const other = ticket.assignees.filter((a) => a.slot === "Other").map((a) => a.member);
   const team = ticket.assignees.filter((a) => a.slot === "Project").map((a) => a.member);
   const hasFE = fe.length > 0;
   const hasBE = be.length > 0;
-  const hasOther = other.length > 0;
   const showFEBar = !isProj && hasFE && (ticket.current_fe_estimate > 0 || ticket.actual_frontend_hours > 0);
   const showBEBar = !isProj && hasBE && (ticket.current_be_estimate > 0 || ticket.actual_backend_hours > 0);
   const showProjectBar = isProj && (ticket.current_project_estimate > 0 || ticket.actual_project_hours > 0);
