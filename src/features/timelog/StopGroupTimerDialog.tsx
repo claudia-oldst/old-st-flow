@@ -252,9 +252,7 @@ export function StopGroupTimerDialog({
                 ? "Frontend"
                 : active.discipline === "BE"
                 ? "Backend"
-                : active.discipline === "Project"
-                ? "Project"
-                : "Overhead"}
+                : "Project"}
             </span>
           </div>
         </DialogHeader>
@@ -333,7 +331,7 @@ export function StopGroupTimerDialog({
                   />
                   <span className="text-[11px] text-dimmer">min</span>
                 </div>
-                {!isOverhead && r.status && (
+                {!isProject && r.status && (
                   <Select
                     value={r.status}
                     onValueChange={(v) =>
