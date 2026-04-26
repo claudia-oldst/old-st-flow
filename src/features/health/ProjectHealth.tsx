@@ -270,7 +270,7 @@ function Ring({ title, actual, estimate, original }: { title: string; actual: nu
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
             <div className="text-[10px] uppercase tracking-wider text-dimmer leading-none">Current</div>
-            <div className="text-2xl font-semibold font-mono leading-none mt-1 text-foreground">{Math.round(ratio * 100)}%</div>
+            <div className="text-sm font-mono leading-none mt-1 text-dim">{Math.round(ratio * 100)}%</div>
             {original > 0 && (
               <>
                 <div className="text-[10px] uppercase tracking-wider text-dimmer leading-none mt-2">Original</div>
