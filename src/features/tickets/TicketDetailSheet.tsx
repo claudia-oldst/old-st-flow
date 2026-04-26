@@ -131,22 +131,27 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
   const handleSaveEdit = async () => {
     const fe = parseFloat(feEst) || 0;
     const be = parseFloat(beEst) || 0;
+    const pj = parseFloat(projEst) || 0;
     const prevFE = ticket.current_fe_estimate;
     const prevBE = ticket.current_be_estimate;
+    const prevProj = ticket.current_project_estimate;
 
+    const patch: any = { title: title.trim() };
+    if (isProj) {
+      patch.current_project_estimate = pj;
+    } else {
+      patch.current_fe_estimate = fe;
+      patch.current_be_estimate = be;
+    }
     const { error } = await supabase
       .from("tickets")
-      .update({
-        title: title.trim(),
-        current_fe_estimate: fe,
-        current_be_estimate: be,
-      })
+      .update(patch)
       .eq("id", ticket.id);
     if (error) return toast.error(error.message);
 
     // Log changes for any discipline that actually moved.
     const audit: any[] = [];
-    if (fe !== prevFE) {
+    if (!isProj && fe !== prevFE) {
       audit.push({
         ticket_id: ticket.id,
         user_id: user?.id,
@@ -159,13 +164,26 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
         decided_at: new Date().toISOString(),
       });
     }
-    if (be !== prevBE) {
+    if (!isProj && be !== prevBE) {
       audit.push({
         ticket_id: ticket.id,
         user_id: user?.id,
         discipline: "BE",
         previous_hours: prevBE,
         new_hours: be,
+        reason: "PMBA edit",
+        status: "approved",
+        decided_by: user?.id,
+        decided_at: new Date().toISOString(),
+      });
+    }
+    if (isProj && pj !== prevProj) {
+      audit.push({
+        ticket_id: ticket.id,
+        user_id: user?.id,
+        discipline: "Project",
+        previous_hours: prevProj,
+        new_hours: pj,
         reason: "PMBA edit",
         status: "approved",
         decided_by: user?.id,
