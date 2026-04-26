@@ -211,7 +211,7 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
   );
 }
 
-function Ring({ title, actual, estimate }: { title: string; actual: number; estimate: number }) {
+function Ring({ title, actual, estimate, original }: { title: string; actual: number; estimate: number; original: number }) {
   const ratio = estimate > 0 ? Math.min(actual / estimate, 1.5) : 0;
   const pct = Math.min(ratio * 100, 100);
   const health = healthRatio(actual, estimate);
@@ -221,9 +221,22 @@ function Ring({ title, actual, estimate }: { title: string; actual: number; esti
     health === "bad" ? "hsl(var(--health-bad))" :
     "hsl(0 0% 30%)";
 
+  const origRatio = original > 0 ? Math.min(actual / original, 1.5) : 0;
+  const origPct = Math.min(origRatio * 100, 100);
+  const origHealth = healthRatio(actual, original);
+  const origColor =
+    origHealth === "good" ? "hsl(var(--health-good))" :
+    origHealth === "warn" ? "hsl(var(--health-warn))" :
+    origHealth === "bad" ? "hsl(var(--health-bad))" :
+    "hsl(0 0% 30%)";
+
   const r = 56;
   const c = 2 * Math.PI * r;
   const dash = (pct / 100) * c;
+
+  const rInner = 38;
+  const cInner = 2 * Math.PI * rInner;
+  const dashInner = (origPct / 100) * cInner;
 
   return (
     <div className="glass rounded-2xl p-5">
@@ -241,10 +254,26 @@ function Ring({ title, actual, estimate }: { title: string; actual: number; esti
               strokeLinecap="round"
               className="transition-all"
             />
+            <circle cx="70" cy="70" r={rInner} stroke="hsl(0 0% 100% / 0.05)" strokeWidth="6" fill="none" />
+            {original > 0 && (
+              <circle
+                cx="70" cy="70" r={rInner}
+                stroke={origColor}
+                strokeWidth="6"
+                fill="none"
+                strokeDasharray={`${dashInner} ${cInner}`}
+                strokeLinecap="round"
+                opacity={0.7}
+                className="transition-all"
+              />
+            )}
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <div className="text-2xl font-semibold font-mono">{Math.round(ratio * 100)}%</div>
-            <div className="text-[10px] text-dimmer">burned</div>
+            <div className="text-2xl font-semibold font-mono leading-none">{Math.round(ratio * 100)}%</div>
+            <div className="text-[10px] text-dimmer mt-0.5">burned</div>
+            {original > 0 && (
+              <div className="text-[10px] text-dimmer font-mono mt-0.5">vs orig {Math.round(origRatio * 100)}%</div>
+            )}
           </div>
         </div>
         <div className="text-sm space-y-1">
@@ -255,6 +284,10 @@ function Ring({ title, actual, estimate }: { title: string; actual: number; esti
           <div>
             <div className="text-dimmer text-xs">Estimate</div>
             <div className="font-mono">{formatHours(estimate)}</div>
+          </div>
+          <div>
+            <div className="text-dimmer text-xs">Original</div>
+            <div className="font-mono">{original > 0 ? formatHours(original) : "—"}</div>
           </div>
         </div>
       </div>
