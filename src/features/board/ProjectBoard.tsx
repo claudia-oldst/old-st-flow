@@ -23,9 +23,20 @@ const DISCIPLINE_STATUSES: DisciplineStatus[] = ["todo", "in_progress", "done"];
 
 interface DisciplineCard {
   ticket: TicketRow;
-  slot: "FE" | "BE";
+  slot: "FE" | "BE" | "Project";
   status: DisciplineStatus;
 }
+
+const CATEGORY_TO_DISCIPLINE: Record<string, DisciplineStatus> = {
+  backlog: "todo",
+  active: "in_progress",
+  done: "done",
+};
+const DISCIPLINE_TO_CATEGORY: Record<DisciplineStatus, "backlog" | "active" | "done"> = {
+  todo: "backlog",
+  in_progress: "active",
+  done: "done",
+};
 
 export function ProjectBoard({
   projectId,
