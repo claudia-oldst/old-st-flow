@@ -43,7 +43,7 @@ interface Props {
 interface LogEntry {
   id: string;
   hours: number;
-  discipline: "FE" | "BE" | "Overhead" | "Project";
+  discipline: "FE" | "BE" | "Project";
   note: string | null;
   logged_at: string;
   source: "timer" | "manual";
