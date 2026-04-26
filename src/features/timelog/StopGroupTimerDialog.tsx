@@ -35,15 +35,15 @@ interface Props {
 
 interface Row {
   ticket: TimerTicket;
-  // Stored as seconds for precision; UI shows minutes.
-  seconds: number;
+  // Stored and edited as whole minutes.
+  minutes: number;
   status: DisciplineStatus | null; // null for Overhead
   initialStatus: DisciplineStatus | null;
 }
 
 /**
  * Distribute a total amount across n rows as evenly as possible, with the
- * remainder added to the first row. Works for any unit (seconds or minutes).
+ * remainder added to the first row.
  */
 function evenSplit(total: number, n: number): number[] {
   if (n === 0) return [];
@@ -53,9 +53,6 @@ function evenSplit(total: number, n: number): number[] {
   if (out.length > 0) out[0] += remainder;
   return out;
 }
-
-const secondsToMinutes = (s: number) => Math.round((s / 60) * 100) / 100;
-const minutesToSeconds = (m: number) => Math.round(m * 60);
 
 export function StopGroupTimerDialog({
   open,
@@ -67,8 +64,8 @@ export function StopGroupTimerDialog({
   const setActive = useTimerStore((s) => s.setActive);
   const setTickets = useTimerStore((s) => s.setTickets);
 
-  const totalSeconds = Math.max(0, Math.round(elapsedMs / 1000));
-  const totalMinutesDisplay = secondsToMinutes(totalSeconds);
+  // Round DOWN to the nearest whole minute.
+  const totalMinutes = Math.max(0, Math.floor(elapsedMs / 60000));
   const isOverhead = active.discipline === "Overhead";
   const disciplineKey: "fe_status" | "be_status" | null =
     active.discipline === "FE"
@@ -85,7 +82,7 @@ export function StopGroupTimerDialog({
   useEffect(() => {
     if (!open) return;
     const sorted = [...groupTickets].sort((a, b) => a.position - b.position);
-    const split = evenSplit(totalSeconds, sorted.length);
+    const split = evenSplit(totalMinutes, sorted.length);
     setRows(
       sorted.map((t, i) => {
         const initialStatus = disciplineKey
@@ -93,7 +90,7 @@ export function StopGroupTimerDialog({
           : null;
         return {
           ticket: t,
-          seconds: split[i] ?? 0,
+          minutes: split[i] ?? 0,
           status: initialStatus,
           initialStatus,
         };
@@ -103,13 +100,11 @@ export function StopGroupTimerDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  const allocatedSeconds = useMemo(
-    () => rows.reduce((sum, r) => sum + (Number.isFinite(r.seconds) ? r.seconds : 0), 0),
+  const allocatedMinutes = useMemo(
+    () => rows.reduce((sum, r) => sum + (Number.isFinite(r.minutes) ? r.minutes : 0), 0),
     [rows]
   );
-  const allocatedMinutesDisplay = secondsToMinutes(allocatedSeconds);
-  const remainingSeconds = totalSeconds - allocatedSeconds;
-  const remainingMinutesDisplay = secondsToMinutes(remainingSeconds);
+  const remainingMinutes = totalMinutes - allocatedMinutes;
 
   const updateRow = (id: string, patch: Partial<Row>) => {
     setRows((prev) => prev.map((r) => (r.ticket.id === id ? { ...r, ...patch } : r)));
@@ -120,8 +115,8 @@ export function StopGroupTimerDialog({
   };
 
   const distributeEvenly = () => {
-    const split = evenSplit(totalSeconds, rows.length);
-    setRows((prev) => prev.map((r, i) => ({ ...r, seconds: split[i] ?? 0 })));
+    const split = evenSplit(totalMinutes, rows.length);
+    setRows((prev) => prev.map((r, i) => ({ ...r, minutes: split[i] ?? 0 })));
   };
 
   const handleDiscard = async () => {
@@ -137,27 +132,24 @@ export function StopGroupTimerDialog({
 
   const handleSave = async () => {
     if (rows.length === 0) return toast.error("Add at least one ticket");
-    // Allow tiny rounding mismatch (≤2s) caused by manual minute edits.
-    if (Math.abs(remainingSeconds) > 2)
+    if (remainingMinutes !== 0)
       return toast.error(
-        `Allocated ${allocatedMinutesDisplay}m, expected ${totalMinutesDisplay}m`
+        `Allocated ${allocatedMinutes}m, expected ${totalMinutes}m`
       );
-    if (rows.some((r) => r.seconds < 0))
+    if (rows.some((r) => r.minutes < 0))
       return toast.error("Time must be ≥ 0");
 
     setBusy(true);
 
-    // 1) Insert one time_logs row per ticket.
-    // We log every ticket the user explicitly chose, even if seconds rounds to
-    // a tiny number, so no ticket is silently dropped from the log.
+    // 1) Insert one time_logs row per ticket (whole-minute precision).
     const logs = rows
-      .filter((r) => r.seconds > 0)
+      .filter((r) => r.minutes > 0)
       .map((r) => ({
         ticket_id: r.ticket.id,
         user_id: active.user_id,
         discipline: active.discipline,
-        // 4 decimals → 0.0003h ≈ 1 second resolution
-        hours: Math.round((r.seconds / 3600) * 10000) / 10000,
+        // Minutes → hours, 4 decimals is plenty for whole-minute values.
+        hours: Math.round((r.minutes / 60) * 10000) / 10000,
         note: note.trim() || null,
         source: "timer" as const,
       }));
@@ -166,8 +158,7 @@ export function StopGroupTimerDialog({
       return toast.error("Nothing to log — every ticket was set to 0.");
     }
     if (logs.length < rows.length) {
-      // Tell the user which ones we skipped instead of silently swallowing them.
-      const skipped = rows.filter((r) => r.seconds <= 0).map((r) => r.ticket.formatted_id);
+      const skipped = rows.filter((r) => r.minutes <= 0).map((r) => r.ticket.formatted_id);
       toast.warning(
         `Skipped ${skipped.length} ticket${skipped.length === 1 ? "" : "s"} with 0 time: ${skipped.join(", ")}`
       );
@@ -192,7 +183,7 @@ export function StopGroupTimerDialog({
     }
 
     // 3) Backlog → Active promotion per ticket (only those that got time logged)
-    const loggedRows = rows.filter((r) => r.seconds > 0);
+    const loggedRows = rows.filter((r) => r.minutes > 0);
     if (loggedRows.length > 0) {
       const statusIds = Array.from(
         new Set(loggedRows.map((r) => r.ticket.status_id).filter(Boolean) as string[])
@@ -254,7 +245,7 @@ export function StopGroupTimerDialog({
           <div className="text-xs text-dim mt-1">
             Elapsed{" "}
             <span className="font-mono text-foreground">{formatDuration(elapsedMs)}</span> ·{" "}
-            <span className="text-foreground">{totalMinutesDisplay}m</span> · Discipline{" "}
+            <span className="text-foreground">{totalMinutes}m</span> · Discipline{" "}
             <span className="text-foreground">
               {active.discipline === "FE"
                 ? "Frontend"
@@ -269,20 +260,20 @@ export function StopGroupTimerDialog({
         <div className="flex items-center justify-between text-xs">
           <span
             className={
-              Math.abs(remainingSeconds) <= 2
+              remainingMinutes === 0
                 ? "text-green-400"
-                : remainingSeconds > 0
+                : remainingMinutes > 0
                 ? "text-amber-300"
                 : "text-red-400"
             }
           >
-            Allocated <span className="font-mono">{allocatedMinutesDisplay}</span> /{" "}
-            <span className="font-mono">{totalMinutesDisplay}</span> min
-            {Math.abs(remainingSeconds) > 2 && (
+            Allocated <span className="font-mono">{allocatedMinutes}</span> /{" "}
+            <span className="font-mono">{totalMinutes}</span> min
+            {remainingMinutes !== 0 && (
               <span className="ml-2 opacity-80">
-                ({remainingSeconds > 0
-                  ? `+${remainingMinutesDisplay} unallocated`
-                  : `${remainingMinutesDisplay} over`})
+                ({remainingMinutes > 0
+                  ? `+${remainingMinutes} unallocated`
+                  : `${remainingMinutes} over`})
               </span>
             )}
           </span>
@@ -296,7 +287,7 @@ export function StopGroupTimerDialog({
           </button>
         </div>
 
-        {totalSeconds > 0 && rows.some((r) => r.seconds === 0) && (
+        {totalMinutes > 0 && rows.some((r) => r.minutes === 0) && (
           <div className="text-xs text-amber-300 bg-amber-500/10 hairline rounded-lg px-3 py-2">
             One or more tickets ended up with 0 minutes. They'll be skipped on save — adjust the split below if every ticket should get time.
           </div>
@@ -327,12 +318,12 @@ export function StopGroupTimerDialog({
                 <div className="flex items-center gap-1">
                   <Input
                     type="number"
-                    step="0.25"
+                    step="1"
                     min="0"
-                    value={secondsToMinutes(r.seconds)}
+                    value={r.minutes}
                     onChange={(e) =>
                       updateRow(r.ticket.id, {
-                        seconds: Math.max(0, minutesToSeconds(parseFloat(e.target.value) || 0)),
+                        minutes: Math.max(0, Math.floor(parseFloat(e.target.value) || 0)),
                       })
                     }
                     className="h-8 w-20 text-sm font-mono"
@@ -392,9 +383,9 @@ export function StopGroupTimerDialog({
             disabled={
               busy ||
               rows.length === 0 ||
-              Math.abs(remainingSeconds) > 2 ||
-              totalSeconds === 0 ||
-              rows.every((r) => r.seconds === 0)
+              remainingMinutes !== 0 ||
+              totalMinutes === 0 ||
+              rows.every((r) => r.minutes === 0)
             }
           >
             Save logs
