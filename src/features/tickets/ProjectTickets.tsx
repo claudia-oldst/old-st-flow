@@ -495,6 +495,13 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
           canEdit={pmba}
         />)}
 
+      <StartGroupTimerDialog
+        open={groupTimerOpen}
+        onOpenChange={setGroupTimerOpen}
+        tickets={tickets}
+        role={role}
+      />
+
       <Dialog
         open={importOpen}
         onOpenChange={(o) => {
