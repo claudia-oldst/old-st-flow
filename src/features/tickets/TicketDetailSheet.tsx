@@ -300,32 +300,38 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
             <div className="space-y-3">
               <div className="text-xs uppercase tracking-wider text-dimmer">Status</div>
 
-              <div className="rounded-xl hairline bg-white/[0.02] p-3 space-y-2.5">
-                <div className="flex items-center gap-2 text-[11px] text-dimmer uppercase tracking-wider">
-                  Discipline
+              {!isProj && (
+                <div className="rounded-xl hairline bg-white/[0.02] p-3 space-y-2.5">
+                  <div className="flex items-center gap-2 text-[11px] text-dimmer uppercase tracking-wider">
+                    Discipline
+                  </div>
+                  <DisciplineRow
+                    slot="FE"
+                    value={ticket.fe_status}
+                    canEdit={canEditFE}
+                    hasAssignee={hasFE}
+                    onAssign={isPMBA(role) ? () => setAssignOpen(true) : undefined}
+                    onChange={(v) => updateDiscipline("FE", v)}
+                  />
+                  <DisciplineRow
+                    slot="BE"
+                    value={ticket.be_status}
+                    canEdit={canEditBE}
+                    hasAssignee={hasBE}
+                    onAssign={isPMBA(role) ? () => setAssignOpen(true) : undefined}
+                    onChange={(v) => updateDiscipline("BE", v)}
+                  />
                 </div>
-                <DisciplineRow
-                  slot="FE"
-                  value={ticket.fe_status}
-                  canEdit={canEditFE}
-                  hasAssignee={hasFE}
-                  onAssign={isPMBA(role) ? () => setAssignOpen(true) : undefined}
-                  onChange={(v) => updateDiscipline("FE", v)}
-                />
-                <DisciplineRow
-                  slot="BE"
-                  value={ticket.be_status}
-                  canEdit={canEditBE}
-                  hasAssignee={hasBE}
-                  onAssign={isPMBA(role) ? () => setAssignOpen(true) : undefined}
-                  onChange={(v) => updateDiscipline("BE", v)}
-                />
-              </div>
+              )}
 
               <div className="rounded-xl hairline bg-white/[0.02] p-3 space-y-2.5">
                 <div className="flex items-center justify-between gap-2">
                   <div className="text-[11px] text-dimmer uppercase tracking-wider">Project status</div>
-                  {ticket.project_status_override ? (
+                  {isProj ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] text-dim">
+                      <Pin className="h-2.5 w-2.5" /> Manual
+                    </span>
+                  ) : ticket.project_status_override ? (
                     <span className="inline-flex items-center gap-1 text-[10px] text-amber-300/80">
                       <Pin className="h-2.5 w-2.5" /> Manual override
                     </span>
