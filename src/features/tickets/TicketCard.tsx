@@ -143,15 +143,15 @@ export function TicketCard({
                   </div>
                 </div>
               )}
-              {other.length > 0 && (
+              {team.length > 0 && (
                 <div className="flex items-center gap-1">
-                  <span>O</span>
+                  <span>P</span>
                   <div className="flex -space-x-1.5">
-                    {other.map((m) => <MemberAvatar key={m.id} name={m.name} color={m.avatar_color} size="xs" />)}
+                    {team.map((m) => <MemberAvatar key={m.id} name={m.name} color={m.avatar_color} size="xs" />)}
                   </div>
                 </div>
               )}
-              {fe.length === 0 && be.length === 0 && other.length === 0 && <span>Unassigned</span>}
+              {fe.length === 0 && be.length === 0 && team.length === 0 && <span>Unassigned</span>}
             </>
           )}
         </div>
