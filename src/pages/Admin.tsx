@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import type { ProjectRole, Status, StatusCategory, TeamMember } from "@/lib/types";
+import { PROJECT_ROLES as ROLES, type ProjectRole, type Status, type StatusCategory, type TeamMember } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,7 +31,7 @@ const CATEGORIES: { value: StatusCategory; label: string; description: string }[
 
 const PRESET_COLORS = ["#94a3b8", "#3b82f6", "#a855f7", "#22c55e", "#f59e0b", "#ec4899", "#06b6d4", "#ef4444"];
 
-const ROLES: ProjectRole[] = ["Frontend", "Backend", "Fullstack", "QA", "PMBA"];
+
 
 export default function Admin() {
   const [tab, setTab] = useState<"team" | "statuses">("team");
