@@ -35,15 +35,15 @@ interface Props {
 
 interface Row {
   ticket: TimerTicket;
-  // Stored as seconds for precision; UI shows minutes.
-  seconds: number;
+  // Stored and edited as whole minutes.
+  minutes: number;
   status: DisciplineStatus | null; // null for Overhead
   initialStatus: DisciplineStatus | null;
 }
 
 /**
  * Distribute a total amount across n rows as evenly as possible, with the
- * remainder added to the first row. Works for any unit (seconds or minutes).
+ * remainder added to the first row.
  */
 function evenSplit(total: number, n: number): number[] {
   if (n === 0) return [];
@@ -53,9 +53,6 @@ function evenSplit(total: number, n: number): number[] {
   if (out.length > 0) out[0] += remainder;
   return out;
 }
-
-const secondsToMinutes = (s: number) => Math.round((s / 60) * 100) / 100;
-const minutesToSeconds = (m: number) => Math.round(m * 60);
 
 export function StopGroupTimerDialog({
   open,
