@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCurrentUser } from "@/store/currentUser";
+import { useTimerStore } from "@/store/timer";
 import Papa from "papaparse";
 import { Button } from "@/components/ui/button";
-import { Upload, FileText, AlertCircle, LayoutGrid, List, Download, X, FileUp, Search } from "lucide-react";
+import { Upload, FileText, AlertCircle, LayoutGrid, List, Download, X, FileUp, Search, Clock } from "lucide-react";
+import { StartGroupTimerDialog } from "@/features/timelog/StartGroupTimerDialog";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -83,8 +85,8 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-
-  // Role-based default: PMBA → All, others → My tickets
+  const [groupTimerOpen, setGroupTimerOpen] = useState(false);
+  const activeTimer = useTimerStore((s) => s.active);
   useEffect(() => {
     if (touched || role === null) return;
     setFilterMine(!pmba);
@@ -436,6 +438,15 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
               </button>
             )}
           </div>
+          {filterMine && user && role && !activeTimer && (
+            <Button
+              size="sm"
+              onClick={() => setGroupTimerOpen(true)}
+              className="gap-2"
+            >
+              <Clock className="h-4 w-4" /> Start group timer
+            </Button>
+          )}
           {isPMBA(role) && (
             <Button size="sm" variant="outline" onClick={() => setImportOpen(true)} className="gap-2">
               <Upload className="h-4 w-4" /> Import CSV
@@ -445,7 +456,15 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
       </div>
 
       {view === "board" ? (
-        <ProjectBoard projectId={projectId} search={search} />
+        <ProjectBoard
+          projectId={projectId}
+          search={search}
+          filterMine={filterMine}
+          onFilterMineChange={(v) => {
+            setTouched(true);
+            setFilterMine(v);
+          }}
+        />
       ) : visibleTickets.length === 0 ? (
         <div className="glass rounded-2xl p-12 text-center">
           <FileText className="h-8 w-8 mx-auto text-dimmer mb-3" />
@@ -475,6 +494,13 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
           }}
           canEdit={pmba}
         />)}
+
+      <StartGroupTimerDialog
+        open={groupTimerOpen}
+        onOpenChange={setGroupTimerOpen}
+        tickets={tickets}
+        role={role}
+      />
 
       <Dialog
         open={importOpen}
