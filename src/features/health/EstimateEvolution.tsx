@@ -44,6 +44,19 @@ export function EstimateEvolution({ projectId }: { projectId: string }) {
   const [asOf, setAsOf] = useState<Date>(new Date());
   const [selectedEpic, setSelectedEpic] = useState<string>(ALL_EPICS_KEY);
   const [logs, setLogs] = useState<TimeLogLite[]>([]);
+  const [projectStart, setProjectStart] = useState<Date | null>(null);
+
+  useEffect(() => {
+    supabase
+      .from("projects")
+      .select("start_date")
+      .eq("id", projectId)
+      .maybeSingle()
+      .then(({ data }) => {
+        const sd = (data as any)?.start_date as string | null | undefined;
+        setProjectStart(sd ? startOfDay(new Date(sd)) : null);
+      });
+  }, [projectId]);
 
   // Pull all FE/BE time logs for the project's tickets (ignore overhead).
   useEffect(() => {
@@ -147,10 +160,11 @@ export function EstimateEvolution({ projectId }: { projectId: string }) {
     const relevantTickets = tickets.filter((t) => ticketFilter(t.id));
     if (relevantTickets.length === 0) return [];
 
-    const first = new Date(
-      Math.min(...relevantTickets.map((t) => new Date(t.created_at).getTime()))
-    );
-    const start = startOfDay(first).getTime();
+    const firstTicketMs = Math.min(...relevantTickets.map((t) => new Date(t.created_at).getTime()));
+    const startMs = projectStart
+      ? startOfDay(projectStart).getTime()
+      : startOfDay(new Date(firstTicketMs)).getTime();
+    const start = startMs;
     const end = endOfDay(asOf).getTime();
     if (end < start) return [];
 
@@ -195,7 +209,7 @@ export function EstimateEvolution({ projectId }: { projectId: string }) {
     }
 
     return buckets;
-  }, [tickets, changes, logs, ticketEpic, selectedEpic, asOf]);
+  }, [tickets, changes, logs, ticketEpic, selectedEpic, asOf, projectStart]);
 
   return (
     <div className="glass rounded-2xl p-5 space-y-5">
