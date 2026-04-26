@@ -8,7 +8,7 @@ export interface TicketRow {
   ticket_number: number;
   formatted_id: string;
   title: string;
-  ticket_type: "Standard" | "Bug" | "CR";
+  ticket_type: "Standard" | "Bug" | "CR" | "Proj";
   status_id: string | null;
   fe_status: DisciplineStatus;
   be_status: DisciplineStatus;
@@ -20,12 +20,15 @@ export interface TicketRow {
   original_be_estimate: number;
   current_fe_estimate: number;
   current_be_estimate: number;
+  original_project_estimate: number;
+  current_project_estimate: number;
   actual_frontend_hours: number;
   actual_backend_hours: number;
   actual_overhead_hours: number;
+  actual_project_hours: number;
   position: number;
   created_at: string;
-  assignees: Array<{ user_id: string; slot: "FE" | "BE" | "Other"; member: TeamMember; created_at: string }>;
+  assignees: Array<{ user_id: string; slot: "FE" | "BE" | "Other" | "Project"; member: TeamMember; created_at: string }>;
 }
 
 export function useProjectTickets(projectId: string | undefined) {
