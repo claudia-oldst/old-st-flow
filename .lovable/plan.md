@@ -1,54 +1,82 @@
 ## Goal
 
-A ticket only has an FE dev status when at least one Frontend assignee exists, and only has a BE dev status when at least one Backend assignee exists. Unassigned slots show no chip, no kanban card, no group bucket, and cannot be filtered or edited until someone is assigned. Newly assigned slots start at **To-do**.
+Bring `tickets.current_fe_estimate` and `tickets.current_be_estimate` in sync with the most recent approved row in `ticket_estimate_changes` for each `(ticket_id, discipline)`. No application code changes.
 
-## Approach
+## Scope
 
-Derive `hasFE` / `hasBE` from `ticket.assignees` everywhere in the UI. No schema change needed — the DB still stores `fe_status` / `be_status` (default `todo`). When the last assignee for a slot is removed, we reset that slot back to `todo` so it can't silently influence the auto-derived project status.
+- Only `status = 'approved'` changes are applied. Pending requests (e.g. COU-322 FE, COU-016 BE) are skipped.
+- For each `(ticket_id, discipline)`, the latest approved row's `new_hours` becomes the corresponding `current_*_estimate`.
+- Tickets with no approved change rows are left untouched.
 
-## Changes
+## Affected rows
 
-### 1. Helper (lightweight, inline)
-Add `hasSlot(ticket, "FE" | "BE")` logic inline where needed (one-liner: `ticket.assignees.some(a => a.slot === slot)`).
+22 ticket/discipline pairs are out of sync and will be updated, including:
 
-### 2. `TicketCard.tsx` (kanban card)
-- Already gates on `fe.length > 0` etc. for the Bar — extend the chip render with the same condition so the chip is only shown when that slot has at least one assignee. Today it relies on estimate/actuals, which can show a chip with no assignee.
+```text
+COU-001 FE  44.89 → 94.89
+COU-003 BE   1.61 →  9.61
+COU-006 BE   5.22 → 25.22
+COU-008 FE   5.22 → 61.22
+COU-008 BE   0    →  6.00
+COU-010 FE   3.22 →  8.22
+COU-045 FE   2.61 → 28.61
+COU-055 BE   0    →  5.00
+COU-068 BE   1.61 →  7.61
+COU-069 BE   0    →  1.00
+COU-071 FE   2.42 →  7.42
+COU-073 FE   0.71 →  1.71
+COU-099 FE   0.81 →  6.31
+COU-100 FE   1.61 →  5.61
+COU-117 FE   1.42 →  2.92
+COU-126 FE   1.61 →  9.61
+COU-128 BE   1.61 →  4.00
+COU-231 FE   0    →  2.00
+COU-272 FE   1.42 →  5.42
+COU-276 FE   2.61 →  7.11
+COU-281 FE   1.61 →  3.61
+COU-345 FE   5.22 → 12.22
+```
 
-### 3. `TicketsList.tsx`
-- `dev_status` cell: only render `<DisciplineStatusChip slot="FE" />` if FE assignee exists, same for BE. If neither, render `—`.
-- Group-by `fe_status`: skip tickets that have no FE assignee. Same for `be_status`.
+## SQL to run (single migration)
 
-### 4. `ProjectBoard.tsx` (discipline mode)
-- In the "All" branch, only push an FE card if the ticket has an FE assignee, and only push a BE card if it has a BE assignee.
-- The "My tickets" branch already filters by user assignment, so it's correct.
+```sql
+WITH latest AS (
+  SELECT DISTINCT ON (ticket_id, discipline)
+    ticket_id, discipline, new_hours
+  FROM public.ticket_estimate_changes
+  WHERE status = 'approved'
+  ORDER BY ticket_id, discipline, created_at DESC, id DESC
+)
+UPDATE public.tickets t
+SET
+  current_fe_estimate = COALESCE(fe.new_hours, t.current_fe_estimate),
+  current_be_estimate = COALESCE(be.new_hours, t.current_be_estimate),
+  updated_at = now()
+FROM (SELECT ticket_id, new_hours FROM latest WHERE discipline = 'FE') fe
+FULL OUTER JOIN (SELECT ticket_id, new_hours FROM latest WHERE discipline = 'BE') be
+  ON fe.ticket_id = be.ticket_id
+WHERE t.id = COALESCE(fe.ticket_id, be.ticket_id);
+```
 
-### 5. `TicketDetailSheet.tsx`
-- The Discipline panel renders `DisciplineRow` for FE and BE unconditionally. Change to:
-  - If no FE assignee: show a muted row "Frontend — no assignee" with an "Assign" link that opens `AssignDialog`. No status select.
-  - Same for BE.
-- "Request more time" buttons already key off `canEditFE/BE`, which require assignment — no change needed there.
+Notes:
+- `DISTINCT ON` picks the newest approved row per `(ticket_id, discipline)`.
+- `COALESCE` ensures that if only one discipline has a change, the other estimate is preserved.
+- `updated_at` is bumped so downstream listeners see the change.
 
-### 6. `TicketsFilter.tsx` + `applyFilters`
-- When filtering by `feStatuses`, also require the ticket to have an FE assignee (otherwise the status is not meaningful). Same for `beStatuses`.
+## Verification
 
-### 7. `AssignDialog.tsx` and `BulkAssignDialog.tsx` (auto-reset on un-assign)
-- Compute which slots lost their last assignee in this save (was-assigned, now-empty) and patch `tickets.fe_status = 'todo'` / `be_status = 'todo'` for those tickets/slots after the assignee mutation. This guarantees the auto project-status derivation behaves correctly when a slot becomes unassigned.
+After running, this query should return zero rows:
 
-### 8. Drag-and-drop guard (discipline kanban)
-- In `handleDragEnd` for discipline mode, ignore drops onto a discipline column for a slot the ticket no longer has assignees in (defensive — UI already wouldn't render those cards, but realtime updates could race).
-
-## What stays the same
-
-- DB schema, RLS, and the `derive_project_status` trigger are unchanged.
-- CSV import keeps writing `fe_status` / `be_status` as today; if no one is later assigned for that slot, the chip is simply hidden in the UI. (Optional follow-up: on import, force `todo` if no assignment is being created — happy to add if you want.)
-- Time logging is unaffected.
-
-## Files Edited
-
-- `src/features/tickets/TicketCard.tsx`
-- `src/features/tickets/TicketsList.tsx`
-- `src/features/board/ProjectBoard.tsx`
-- `src/features/tickets/TicketDetailSheet.tsx`
-- `src/features/tickets/TicketsFilter.tsx`
-- `src/features/tickets/AssignDialog.tsx`
-- `src/features/tickets/BulkAssignDialog.tsx`
+```sql
+WITH latest AS (
+  SELECT DISTINCT ON (ticket_id, discipline)
+    ticket_id, discipline, new_hours
+  FROM public.ticket_estimate_changes
+  WHERE status = 'approved'
+  ORDER BY ticket_id, discipline, created_at DESC, id DESC
+)
+SELECT t.formatted_id, l.discipline, l.new_hours
+FROM latest l JOIN public.tickets t ON t.id = l.ticket_id
+WHERE (l.discipline='FE' AND t.current_fe_estimate <> l.new_hours)
+   OR (l.discipline='BE' AND t.current_be_estimate <> l.new_hours);
+```
