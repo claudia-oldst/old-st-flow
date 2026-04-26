@@ -456,7 +456,15 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
       </div>
 
       {view === "board" ? (
-        <ProjectBoard projectId={projectId} search={search} />
+        <ProjectBoard
+          projectId={projectId}
+          search={search}
+          filterMine={filterMine}
+          onFilterMineChange={(v) => {
+            setTouched(true);
+            setFilterMine(v);
+          }}
+        />
       ) : visibleTickets.length === 0 ? (
         <div className="glass rounded-2xl p-12 text-center">
           <FileText className="h-8 w-8 mx-auto text-dimmer mb-3" />
