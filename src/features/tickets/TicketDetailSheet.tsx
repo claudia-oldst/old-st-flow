@@ -43,7 +43,7 @@ interface Props {
 interface LogEntry {
   id: string;
   hours: number;
-  discipline: "FE" | "BE" | "Overhead";
+  discipline: "FE" | "BE" | "Overhead" | "Project";
   note: string | null;
   logged_at: string;
   source: "timer" | "manual";
@@ -64,6 +64,7 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
   const [title, setTitle] = useState("");
   const [feEst, setFeEst] = useState("");
   const [beEst, setBeEst] = useState("");
+  const [projEst, setProjEst] = useState("");
   const { changes: estimateChanges, reload: reloadChanges } =
     useTicketEstimateChanges(ticket?.id);
 
@@ -72,6 +73,7 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
     setTitle(ticket.title);
     setFeEst(String(ticket.current_fe_estimate));
     setBeEst(String(ticket.current_be_estimate));
+    setProjEst(String(ticket.current_project_estimate));
     setEditing(false);
     setShowAllChanges(false);
     supabase
@@ -84,16 +86,19 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
 
   if (!ticket) return null;
 
+  const isProj = ticket.ticket_type === "Proj";
   const status = statuses.find((s) => s.id === ticket.status_id);
   const isMine = !!user && ticket.assignees.some((a) => a.user_id === user.id);
   const canLog = isMine || isPMBA(role);
   const myFE = !!user && ticket.assignees.some((a) => a.user_id === user.id && a.slot === "FE");
   const myBE = !!user && ticket.assignees.some((a) => a.user_id === user.id && a.slot === "BE");
   // A discipline only "exists" on a ticket once someone is assigned for that role.
-  const hasFE = ticket.assignees.some((a) => a.slot === "FE");
-  const hasBE = ticket.assignees.some((a) => a.slot === "BE");
+  const hasFE = !isProj && ticket.assignees.some((a) => a.slot === "FE");
+  const hasBE = !isProj && ticket.assignees.some((a) => a.slot === "BE");
   const canEditFE = hasFE && (isPMBA(role) || myFE);
   const canEditBE = hasBE && (isPMBA(role) || myBE);
+  // Proj tickets: anyone assigned (or PMBA) can edit the shared estimate.
+  const canEditProj = isProj && (isPMBA(role) || isMine);
 
   const updateDiscipline = async (slot: "FE" | "BE", value: DisciplineStatus) => {
     const patch = slot === "FE" ? { fe_status: value } : { be_status: value };
