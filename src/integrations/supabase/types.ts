@@ -330,16 +330,19 @@ export type Database = {
           actual_backend_hours: number
           actual_frontend_hours: number
           actual_overhead_hours: number
+          actual_project_hours: number
           be_status: Database["public"]["Enums"]["discipline_status"]
           created_at: string
           current_be_estimate: number
           current_fe_estimate: number
+          current_project_estimate: number
           epic_id: number | null
           fe_status: Database["public"]["Enums"]["discipline_status"]
           formatted_id: string
           id: string
           original_be_estimate: number
           original_fe_estimate: number
+          original_project_estimate: number
           position: number
           project_id: string
           project_status_override: boolean
@@ -354,16 +357,19 @@ export type Database = {
           actual_backend_hours?: number
           actual_frontend_hours?: number
           actual_overhead_hours?: number
+          actual_project_hours?: number
           be_status?: Database["public"]["Enums"]["discipline_status"]
           created_at?: string
           current_be_estimate?: number
           current_fe_estimate?: number
+          current_project_estimate?: number
           epic_id?: number | null
           fe_status?: Database["public"]["Enums"]["discipline_status"]
           formatted_id: string
           id?: string
           original_be_estimate?: number
           original_fe_estimate?: number
+          original_project_estimate?: number
           position?: number
           project_id: string
           project_status_override?: boolean
@@ -378,16 +384,19 @@ export type Database = {
           actual_backend_hours?: number
           actual_frontend_hours?: number
           actual_overhead_hours?: number
+          actual_project_hours?: number
           be_status?: Database["public"]["Enums"]["discipline_status"]
           created_at?: string
           current_be_estimate?: number
           current_fe_estimate?: number
+          current_project_estimate?: number
           epic_id?: number | null
           fe_status?: Database["public"]["Enums"]["discipline_status"]
           formatted_id?: string
           id?: string
           original_be_estimate?: number
           original_fe_estimate?: number
+          original_project_estimate?: number
           position?: number
           project_id?: string
           project_status_override?: boolean
@@ -484,9 +493,9 @@ export type Database = {
       }
     }
     Enums: {
-      assignee_slot: "FE" | "BE" | "Other"
+      assignee_slot: "FE" | "BE" | "Other" | "Project"
       discipline_status: "todo" | "in_progress" | "done"
-      log_discipline: "FE" | "BE" | "Overhead"
+      log_discipline: "FE" | "BE" | "Overhead" | "Project"
       log_source: "timer" | "manual"
       project_role:
         | "Frontend"
@@ -496,7 +505,7 @@ export type Database = {
         | "PMBA"
         | "Design"
       status_category: "backlog" | "active" | "done"
-      ticket_type: "Standard" | "Bug" | "CR"
+      ticket_type: "Standard" | "Bug" | "CR" | "Proj"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -624,9 +633,9 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      assignee_slot: ["FE", "BE", "Other"],
+      assignee_slot: ["FE", "BE", "Other", "Project"],
       discipline_status: ["todo", "in_progress", "done"],
-      log_discipline: ["FE", "BE", "Overhead"],
+      log_discipline: ["FE", "BE", "Overhead", "Project"],
       log_source: ["timer", "manual"],
       project_role: [
         "Frontend",
@@ -637,7 +646,7 @@ export const Constants = {
         "Design",
       ],
       status_category: ["backlog", "active", "done"],
-      ticket_type: ["Standard", "Bug", "CR"],
+      ticket_type: ["Standard", "Bug", "CR", "Proj"],
     },
   },
 } as const
