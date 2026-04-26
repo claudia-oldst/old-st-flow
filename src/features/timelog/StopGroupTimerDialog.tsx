@@ -268,6 +268,13 @@ export function StopGroupTimerDialog({
           </button>
         </div>
 
+        {totalMinutes > 0 && totalMinutes < rows.length && (
+          <div className="text-xs text-amber-300 bg-amber-500/10 hairline rounded-lg px-3 py-2">
+            Only {totalMinutes}m for {rows.length} tickets — at most {totalMinutes} ticket
+            {totalMinutes === 1 ? "" : "s"} can receive 1 minute. Adjust the split below or remove tickets so every entry gets time.
+          </div>
+        )}
+
         {/* Rows */}
         <div className="rounded-lg hairline divide-y divide-white/5 max-h-[320px] overflow-y-auto">
           {rows.length === 0 ? (
