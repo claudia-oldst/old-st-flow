@@ -27,9 +27,18 @@ interface DisciplineCard {
   status: DisciplineStatus;
 }
 
-export function ProjectBoard({ projectId }: { projectId: string }) {
+export function ProjectBoard({ projectId, search = "" }: { projectId: string; search?: string }) {
   const { statuses } = useStatuses();
-  const { tickets, reload } = useProjectTickets(projectId);
+  const { tickets: allTickets, reload } = useProjectTickets(projectId);
+  const tickets = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return allTickets;
+    return allTickets.filter(
+      (t) =>
+        t.title.toLowerCase().includes(q) ||
+        (t.formatted_id ?? "").toLowerCase().includes(q)
+    );
+  }, [allTickets, search]);
   const role = useProjectRole(projectId);
   const user = useCurrentUser((s) => s.user);
   const pmba = isPMBA(role);
