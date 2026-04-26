@@ -235,7 +235,7 @@ function Slot({
       <div className="text-xs uppercase tracking-wider text-dimmer mb-2">{label}</div>
       {members.length === 0 ? (
         <div className="text-sm text-dim p-3 rounded-lg bg-white/5 hairline">
-          No project members with a {label.toLowerCase()}-compatible role.
+          No eligible project members.
         </div>
       ) : (
         <div className="flex flex-wrap gap-2">
