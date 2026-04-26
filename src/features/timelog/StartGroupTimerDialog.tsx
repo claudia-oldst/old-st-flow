@@ -26,7 +26,7 @@ interface Props {
 }
 
 type StatusFilter = "open" | "todo" | "in_progress";
-type TypeFilter = "all" | "Standard" | "Bug" | "CR";
+type TypeFilter = "all" | "Standard" | "Bug" | "CR" | "Proj";
 
 export function StartGroupTimerDialog({ open, onOpenChange, tickets, role }: Props) {
   const user = useCurrentUser((s) => s.user);
@@ -35,6 +35,17 @@ export function StartGroupTimerDialog({ open, onOpenChange, tickets, role }: Pro
   const isOverhead = role === "QA" || role === "PMBA" || role === "Design";
   const canFE = role === "Frontend" || role === "Fullstack";
   const canBE = role === "Backend" || role === "Fullstack";
+
+  // Detect whether the user is assigned to any Proj ticket — if so, allow
+  // logging to the shared "Project" discipline.
+  const hasProjAssignments = useMemo(() => {
+    if (!user) return false;
+    return tickets.some(
+      (t) =>
+        t.ticket_type === "Proj" &&
+        t.assignees.some((a) => a.user_id === user.id && a.slot === "Project")
+    );
+  }, [tickets, user]);
 
   const defaultDiscipline: LogDiscipline = isOverhead
     ? "Overhead"
@@ -55,6 +66,11 @@ export function StartGroupTimerDialog({ open, onOpenChange, tickets, role }: Pro
     return tickets.filter((t) => {
       const myAssignments = t.assignees.filter((a) => a.user_id === user.id);
       if (myAssignments.length === 0) return false;
+      if (discipline === "Project") {
+        return t.ticket_type === "Proj" && myAssignments.some((a) => a.slot === "Project");
+      }
+      // Standard/Bug/CR only for the FE/BE/Overhead disciplines
+      if (t.ticket_type === "Proj") return false;
       if (discipline === "Overhead") return true;
       return myAssignments.some((a) => a.slot === discipline);
     });
