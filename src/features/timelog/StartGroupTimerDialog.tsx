@@ -278,7 +278,7 @@ export function StartGroupTimerDialog({ open, onOpenChange, tickets, role }: Pro
               ))}
             </div>
             <div className="flex gap-1 p-0.5 rounded-md bg-white/5 hairline">
-              {(["all", "Standard", "Bug", "CR"] as const).map((k) => (
+              {(["all", "Standard", "Bug", "CR", "Proj"] as const).map((k) => (
                 <button
                   key={k}
                   onClick={() => setTypeFilter(k)}
