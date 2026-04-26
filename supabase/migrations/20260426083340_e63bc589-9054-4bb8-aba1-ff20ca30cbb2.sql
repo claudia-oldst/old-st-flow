@@ -1,0 +1,40 @@
+
+-- DEV DONE (FOR DEPL.)
+UPDATE public.tickets
+SET status_id = (SELECT id FROM public.statuses WHERE name = 'DEV DONE (FOR DEPL.)' LIMIT 1),
+    project_status_override = true
+WHERE formatted_id IN (
+  'COU-285','COU-286','COU-287','COU-288','COU-291','COU-292','COU-293','COU-294',
+  'COU-295','COU-296','COU-261','COU-262','COU-263','COU-265','COU-266','COU-268',
+  'COU-270','COU-279','COU-302','COU-297','COU-352','COU-278'
+);
+
+-- FOR INTEGRATION
+UPDATE public.tickets
+SET status_id = (SELECT id FROM public.statuses WHERE name = 'FOR INTEGRATION' LIMIT 1),
+    project_status_override = true
+WHERE formatted_id IN (
+  'COU-054','COU-298','COU-299','COU-055','COU-056','COU-060','COU-126',
+  'COU-068','COU-074','COU-011','COU-061','COU-058'
+);
+
+-- IN PROGRESS
+UPDATE public.tickets
+SET status_id = (SELECT id FROM public.statuses WHERE name = 'IN PROGRESS' LIMIT 1),
+    project_status_override = true
+WHERE formatted_id IN (
+  'COU-004','COU-206','COU-205','COU-003','COU-005','COU-006','COU-010','COU-176',
+  'COU-177','COU-178','COU-179','COU-180','COU-437','COU-446','COU-300','COU-301',
+  'COU-282','COU-346','COU-181','COU-182','COU-069','COU-455','COU-057','COU-059',
+  'COU-067','COU-071','COU-438','COU-226','COU-227','COU-228','COU-229','COU-230',
+  'COU-231','COU-232','COU-233','COU-234','COU-235','COU-236','COU-237','COU-238',
+  'COU-239','COU-240','COU-225','COU-207','COU-208','COU-210','COU-209','COU-211',
+  'COU-192','COU-194','COU-195','COU-196','COU-197','COU-198','COU-199','COU-200',
+  'COU-201','COU-264','COU-290','COU-373','COU-374','COU-375','COU-376','COU-075',
+  'COU-076','COU-077','COU-078','COU-079','COU-080','COU-081','COU-084','COU-183',
+  'COU-184','COU-186','COU-187','COU-188','COU-189','COU-212','COU-213','COU-214',
+  'COU-215','COU-216','COU-217','COU-218','COU-219','COU-220','COU-221','COU-222',
+  'COU-114','COU-115','COU-118','COU-119','COU-099','COU-106','COU-110','COU-111',
+  'COU-340','COU-341','COU-342','COU-343','COU-344','COU-252','COU-336','COU-090',
+  'COU-339','COU-070'
+);
