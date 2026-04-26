@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      active_timer_tickets: {
+        Row: {
+          position: number
+          ticket_id: string
+          user_id: string
+        }
+        Insert: {
+          position?: number
+          ticket_id: string
+          user_id: string
+        }
+        Update: {
+          position?: number
+          ticket_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       active_timers: {
         Row: {
           discipline: Database["public"]["Enums"]["log_discipline"]
