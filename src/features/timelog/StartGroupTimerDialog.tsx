@@ -172,22 +172,18 @@ export function StartGroupTimerDialog({ open, onOpenChange, tickets, role }: Pro
       ? "Frontend"
       : discipline === "BE"
       ? "Backend"
-      : discipline === "Project"
-      ? "Project"
-      : "Overhead";
+      : "Project";
 
   // Build the discipline picker options based on role + assignments.
   const disciplineOptions: { value: LogDiscipline; label: string }[] = [];
-  if (!isOverhead) {
-    if (role === "Fullstack") {
-      disciplineOptions.push({ value: "FE", label: "Frontend" }, { value: "BE", label: "Backend" });
-    } else if (role === "Frontend") {
-      disciplineOptions.push({ value: "FE", label: "Frontend" });
-    } else if (role === "Backend") {
-      disciplineOptions.push({ value: "BE", label: "Backend" });
-    }
+  if (role === "Fullstack") {
+    disciplineOptions.push({ value: "FE", label: "Frontend" }, { value: "BE", label: "Backend" });
+  } else if (role === "Frontend") {
+    disciplineOptions.push({ value: "FE", label: "Frontend" });
+  } else if (role === "Backend") {
+    disciplineOptions.push({ value: "BE", label: "Backend" });
   }
-  if (hasProjAssignments) disciplineOptions.push({ value: "Project", label: "Project" });
+  if (hasProjectAssignments) disciplineOptions.push({ value: "Project", label: "Project" });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -206,9 +202,9 @@ export function StartGroupTimerDialog({ open, onOpenChange, tickets, role }: Pro
         )}
 
         {/* Discipline */}
-        {isOverhead && !hasProjAssignments ? (
+        {disciplineOptions.length === 0 ? (
           <div className="text-xs text-dim">
-            Logging to project <span className="text-foreground font-medium">overhead</span> hours.
+            You have no ticket assignments to log time against.
           </div>
         ) : disciplineOptions.length > 1 ? (
           <div className="space-y-1.5">
