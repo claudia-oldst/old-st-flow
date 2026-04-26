@@ -484,11 +484,17 @@ export type Database = {
       }
     }
     Enums: {
-      assignee_slot: "FE" | "BE"
+      assignee_slot: "FE" | "BE" | "Other"
       discipline_status: "todo" | "in_progress" | "done"
       log_discipline: "FE" | "BE" | "Overhead"
       log_source: "timer" | "manual"
-      project_role: "Frontend" | "Backend" | "Fullstack" | "QA" | "PMBA"
+      project_role:
+        | "Frontend"
+        | "Backend"
+        | "Fullstack"
+        | "QA"
+        | "PMBA"
+        | "Design"
       status_category: "backlog" | "active" | "done"
       ticket_type: "Standard" | "Bug" | "CR"
     }
@@ -618,11 +624,18 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      assignee_slot: ["FE", "BE"],
+      assignee_slot: ["FE", "BE", "Other"],
       discipline_status: ["todo", "in_progress", "done"],
       log_discipline: ["FE", "BE", "Overhead"],
       log_source: ["timer", "manual"],
-      project_role: ["Frontend", "Backend", "Fullstack", "QA", "PMBA"],
+      project_role: [
+        "Frontend",
+        "Backend",
+        "Fullstack",
+        "QA",
+        "PMBA",
+        "Design",
+      ],
       status_category: ["backlog", "active", "done"],
       ticket_type: ["Standard", "Bug", "CR"],
     },

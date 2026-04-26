@@ -14,12 +14,14 @@ import { Check, Users } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
+type Slot = "FE" | "BE" | "Other";
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   ticketId: string;
   projectId: string;
-  current: Array<{ user_id: string; slot: "FE" | "BE" }>;
+  current: Array<{ user_id: string; slot: Slot }>;
   onSaved: () => void;
 }
 
@@ -27,12 +29,14 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, current,
   const [members, setMembers] = useState<(ProjectMember & { member: TeamMember })[]>([]);
   const [feUserIds, setFeUserIds] = useState<Set<string>>(new Set());
   const [beUserIds, setBeUserIds] = useState<Set<string>>(new Set());
+  const [otherUserIds, setOtherUserIds] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setFeUserIds(new Set(current.filter((c) => c.slot === "FE").map((c) => c.user_id)));
     setBeUserIds(new Set(current.filter((c) => c.slot === "BE").map((c) => c.user_id)));
+    setOtherUserIds(new Set(current.filter((c) => c.slot === "Other").map((c) => c.user_id)));
     supabase
       .from("project_members")
       .select("*, member:team_members(*)")
@@ -42,6 +46,9 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, current,
 
   const feEligible = members.filter((m) => m.role === "Frontend" || m.role === "Fullstack");
   const beEligible = members.filter((m) => m.role === "Backend" || m.role === "Fullstack");
+  // Other slot accepts anyone on the project — handy for QA, PMBA, Designers, or
+  // a dev who wants to be looped in outside their primary discipline.
+  const otherEligible = members;
 
   const toggle = (set: Set<string>, setter: (s: Set<string>) => void, id: string) => {
     const next = new Set(set);
@@ -54,9 +61,10 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, current,
     setBusy(true);
     // Replace all assignees for this ticket
     await supabase.from("ticket_assignees").delete().eq("ticket_id", ticketId);
-    const rows: { ticket_id: string; user_id: string; slot: "FE" | "BE" }[] = [];
+    const rows: { ticket_id: string; user_id: string; slot: Slot }[] = [];
     feUserIds.forEach((uid) => rows.push({ ticket_id: ticketId, user_id: uid, slot: "FE" }));
     beUserIds.forEach((uid) => rows.push({ ticket_id: ticketId, user_id: uid, slot: "BE" }));
+    otherUserIds.forEach((uid) => rows.push({ ticket_id: ticketId, user_id: uid, slot: "Other" }));
     if (rows.length) {
       const { error } = await supabase.from("ticket_assignees").insert(rows);
       if (error) {
@@ -86,22 +94,32 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, current,
       <DialogContent className="glass-strong">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Users className="h-4 w-4" /> Assign developers
+            <Users className="h-4 w-4" /> Assign people
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 pt-2">
-          <Slot
+        <div className="space-y-6 pt-2 max-h-[60vh] overflow-y-auto">
+          <SlotPicker
             label="Frontend"
+            description="Drives FE estimates, status & timer."
             members={feEligible}
             selected={feUserIds}
             onToggle={(id) => toggle(feUserIds, setFeUserIds, id)}
           />
-          <Slot
+          <SlotPicker
             label="Backend"
+            description="Drives BE estimates, status & timer."
             members={beEligible}
             selected={beUserIds}
             onToggle={(id) => toggle(beUserIds, setBeUserIds, id)}
+          />
+          <SlotPicker
+            label="Other contributors"
+            description="QA, PMBA, Design — anyone else involved. Time logged here goes to project Overhead."
+            members={otherEligible}
+            selected={otherUserIds}
+            onToggle={(id) => toggle(otherUserIds, setOtherUserIds, id)}
+            showRole
           />
         </div>
 
@@ -114,23 +132,28 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, current,
   );
 }
 
-function Slot({
+function SlotPicker({
   label,
+  description,
   members,
   selected,
   onToggle,
+  showRole,
 }: {
   label: string;
+  description?: string;
   members: (ProjectMember & { member: TeamMember })[];
   selected: Set<string>;
   onToggle: (id: string) => void;
+  showRole?: boolean;
 }) {
   return (
     <div>
-      <div className="text-xs uppercase tracking-wider text-dimmer mb-2">{label}</div>
+      <div className="text-xs uppercase tracking-wider text-dimmer mb-1">{label}</div>
+      {description && <div className="text-[11px] text-dimmer mb-2">{description}</div>}
       {members.length === 0 ? (
         <div className="text-sm text-dim p-3 rounded-lg bg-white/5 hairline">
-          No project members with a {label.toLowerCase()}-compatible role. Add one in the Team tab.
+          No project members available. Add one in the Team tab.
         </div>
       ) : (
         <div className="flex flex-wrap gap-2">
@@ -147,7 +170,7 @@ function Slot({
               >
                 <MemberAvatar name={m.member.name} color={m.member.avatar_color} size="xs" />
                 {m.member.name}
-                <span className="text-[10px] opacity-60">{m.role}</span>
+                {showRole && <span className="text-[10px] opacity-60">{m.role}</span>}
                 {active && <Check className="h-3 w-3" />}
               </button>
             );

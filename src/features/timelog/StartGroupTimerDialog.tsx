@@ -32,7 +32,7 @@ export function StartGroupTimerDialog({ open, onOpenChange, tickets, role }: Pro
   const user = useCurrentUser((s) => s.user);
   const activeTimer = useTimerStore((s) => s.active);
 
-  const isOverhead = role === "QA" || role === "PMBA";
+  const isOverhead = role === "QA" || role === "PMBA" || role === "Design";
   const canFE = role === "Frontend" || role === "Fullstack";
   const canBE = role === "Backend" || role === "Fullstack";
 

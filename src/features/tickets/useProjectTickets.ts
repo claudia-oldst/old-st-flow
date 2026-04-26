@@ -25,7 +25,7 @@ export interface TicketRow {
   actual_overhead_hours: number;
   position: number;
   created_at: string;
-  assignees: Array<{ user_id: string; slot: "FE" | "BE"; member: TeamMember; created_at: string }>;
+  assignees: Array<{ user_id: string; slot: "FE" | "BE" | "Other"; member: TeamMember; created_at: string }>;
 }
 
 export function useProjectTickets(projectId: string | undefined) {

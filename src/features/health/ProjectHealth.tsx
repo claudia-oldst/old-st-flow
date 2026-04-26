@@ -100,7 +100,12 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
     members.forEach((m) => (map[m.user_id] = 0));
     tickets.forEach((t) => {
       t.assignees.forEach((a) => {
-        const slotStatus = a.slot === "FE" ? t.fe_status : t.be_status;
+        // "Other" assignees aren't tied to a discipline status — count them
+        // toward capacity if the ticket overall isn't done.
+        const slotStatus =
+          a.slot === "FE" ? t.fe_status :
+          a.slot === "BE" ? t.be_status :
+          (t.fe_status === "done" && t.be_status === "done") ? "done" : "in_progress";
         if (slotStatus !== "done") {
           map[a.user_id] = (map[a.user_id] ?? 0) + 1;
         }

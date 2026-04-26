@@ -471,6 +471,9 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
               </div>
               <AssigneeBlock label="Frontend" assignees={ticket.assignees.filter(a => a.slot === "FE")} />
               <AssigneeBlock label="Backend" assignees={ticket.assignees.filter(a => a.slot === "BE")} />
+              {ticket.assignees.some((a) => a.slot === "Other") && (
+                <AssigneeBlock label="Other" assignees={ticket.assignees.filter(a => a.slot === "Other")} />
+              )}
             </div>
 
             {/* Time logs */}
