@@ -268,11 +268,14 @@ function Ring({ title, actual, estimate, original }: { title: string; actual: nu
               />
             )}
           </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <div className="text-2xl font-semibold font-mono leading-none">{Math.round(ratio * 100)}%</div>
-            <div className="text-[10px] text-dimmer mt-0.5">burned</div>
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+            <div className="text-[10px] uppercase tracking-wider text-dimmer leading-none">Current</div>
+            <div className="text-2xl font-semibold font-mono leading-none mt-1 text-foreground">{Math.round(ratio * 100)}%</div>
             {original > 0 && (
-              <div className="text-[10px] text-dimmer font-mono mt-0.5">vs orig {Math.round(origRatio * 100)}%</div>
+              <>
+                <div className="text-[10px] uppercase tracking-wider text-dimmer leading-none mt-2">Original</div>
+                <div className="text-sm font-mono leading-none mt-1 text-dim">{Math.round(origRatio * 100)}%</div>
+              </>
             )}
           </div>
         </div>
