@@ -56,6 +56,7 @@ export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
   const [acronym, setAcronym] = useState(project.acronym);
   const [clientName, setClientName] = useState((project as any).client_name ?? "");
   const [rate, setRate] = useState<string>(String((project as any).rate_per_hour ?? 0));
+  const [startDate, setStartDate] = useState<string>(((project as any).start_date as string) ?? "");
   const [links, setLinks] = useState<ProjectLink[]>(
     Array.isArray((project as any).links) ? ((project as any).links as ProjectLink[]) : []
   );
@@ -84,6 +85,7 @@ export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
       setAcronym(project.acronym);
       setClientName((project as any).client_name ?? "");
       setRate(String((project as any).rate_per_hour ?? 0));
+      setStartDate(((project as any).start_date as string) ?? "");
       setLinks(Array.isArray((project as any).links) ? ((project as any).links as ProjectLink[]) : []);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -108,6 +110,7 @@ export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
         acronym: acronym.trim().toUpperCase(),
         client_name: clientName.trim() || null,
         rate_per_hour: numericRate,
+        start_date: startDate ? startDate : null,
         links: cleanedLinks as any,
       } as any)
       .eq("id", project.id)

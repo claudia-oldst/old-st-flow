@@ -124,6 +124,7 @@ export type Database = {
           links: Json
           name: string
           rate_per_hour: number
+          start_date: string | null
           updated_at: string
         }
         Insert: {
@@ -134,6 +135,7 @@ export type Database = {
           links?: Json
           name: string
           rate_per_hour?: number
+          start_date?: string | null
           updated_at?: string
         }
         Update: {
@@ -144,6 +146,7 @@ export type Database = {
           links?: Json
           name?: string
           rate_per_hour?: number
+          start_date?: string | null
           updated_at?: string
         }
         Relationships: []
