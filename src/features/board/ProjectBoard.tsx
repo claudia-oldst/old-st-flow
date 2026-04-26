@@ -438,7 +438,7 @@ function DraggableDisciplineCard({
         className="absolute -top-1.5 -right-1.5 z-10 px-1.5 py-0.5 rounded-full text-[9px] font-semibold ring-1 ring-white/15"
         style={{ background: "hsl(var(--background))", color: "hsl(var(--foreground))" }}
       >
-        {card.slot}
+        {card.slot === "Project" ? "P" : card.slot}
       </span>
       <TicketCard ticket={card.ticket} onClick={onClick} isDragging={isDragging} />
     </div>
