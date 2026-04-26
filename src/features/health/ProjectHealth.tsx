@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useProjectTickets } from "@/features/tickets/useProjectTickets";
 import { useStatuses } from "@/features/statuses/useStatuses";
@@ -6,12 +7,14 @@ import { formatHours, healthRatio } from "@/lib/utils";
 import { MemberAvatar } from "@/components/MemberAvatar";
 import { TrendingUp, AlertTriangle, CheckCircle2, Activity } from "lucide-react";
 import { EstimateEvolution } from "@/features/health/EstimateEvolution";
+import { DateRangeControl, defaultRange, type DateRange } from "@/features/health/DateRangeControl";
 
 export function ProjectHealth({ projectId }: { projectId: string }) {
   const { tickets } = useProjectTickets(projectId);
   const { statuses } = useStatuses();
   const [members, setMembers] = useState<{ user_id: string; role: string; member: { id: string; name: string; avatar_color: string } }[]>([]);
   const [weekHours, setWeekHours] = useState<Record<string, number>>({});
+  const [range, setRange] = useState<DateRange>(() => defaultRange());
 
   useEffect(() => {
     supabase
@@ -19,9 +22,9 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
       .select("user_id,role,member:team_members(id,name,avatar_color)")
       .eq("project_id", projectId)
       .then(({ data }) => setMembers((data as any) ?? []));
+  }, [projectId]);
 
-    const since = new Date();
-    since.setDate(since.getDate() - 7);
+  useEffect(() => {
     const ticketIds = tickets.map((t) => t.id);
     if (ticketIds.length === 0) {
       setWeekHours({});
@@ -31,7 +34,8 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
       .from("time_logs")
       .select("user_id,hours")
       .in("ticket_id", ticketIds)
-      .gte("logged_at", since.toISOString())
+      .gte("logged_at", range.from.toISOString())
+      .lte("logged_at", range.to.toISOString())
       .then(({ data }) => {
         const map: Record<string, number> = {};
         data?.forEach((l) => {
@@ -39,7 +43,7 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
         });
         setWeekHours(map);
       });
-  }, [projectId, tickets]);
+  }, [projectId, tickets, range.from, range.to]);
 
   const openTickets = useMemo(() => {
     const doneIds = new Set(statuses.filter((s) => s.category === "done").map((s) => s.id));
