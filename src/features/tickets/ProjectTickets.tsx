@@ -416,6 +416,26 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
         )}
 
         <div className="ml-auto flex items-center gap-2">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-dimmer pointer-events-none" />
+            <Input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search ID or title…"
+              className="h-8 w-[220px] pl-8 pr-7 text-xs"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                aria-label="Clear search"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-dimmer hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
           {isPMBA(role) && (
             <Button size="sm" variant="outline" onClick={() => setImportOpen(true)} className="gap-2">
               <Upload className="h-4 w-4" /> Import CSV
@@ -425,7 +445,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
       </div>
 
       {view === "board" ? (
-        <ProjectBoard projectId={projectId} />
+        <ProjectBoard projectId={projectId} search={search} />
       ) : visibleTickets.length === 0 ? (
         <div className="glass rounded-2xl p-12 text-center">
           <FileText className="h-8 w-8 mx-auto text-dimmer mb-3" />
