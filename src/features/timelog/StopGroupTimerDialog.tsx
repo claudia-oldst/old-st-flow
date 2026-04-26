@@ -115,8 +115,8 @@ export function StopGroupTimerDialog({
   };
 
   const distributeEvenly = () => {
-    const split = evenSplit(totalSeconds, rows.length);
-    setRows((prev) => prev.map((r, i) => ({ ...r, seconds: split[i] ?? 0 })));
+    const split = evenSplit(totalMinutes, rows.length);
+    setRows((prev) => prev.map((r, i) => ({ ...r, minutes: split[i] ?? 0 })));
   };
 
   const handleDiscard = async () => {
