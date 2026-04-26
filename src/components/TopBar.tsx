@@ -42,7 +42,7 @@ function TimerChip() {
   const sorted = [...tickets].sort((a, b) => a.position - b.position);
   const primaryLabel = sorted[0]?.formatted_id ?? "…";
   const extraCount = Math.max(0, sorted.length - 1);
-  const fullList = sorted.map((t) => t.formatted_id).join(", ") || primaryLabel;
+  
 
   return (
     <>
