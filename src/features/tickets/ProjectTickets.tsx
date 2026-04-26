@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useCurrentUser } from "@/store/currentUser";
 import Papa from "papaparse";
 import { Button } from "@/components/ui/button";
-import { Upload, FileText, AlertCircle, LayoutGrid, List, Download, X, FileUp } from "lucide-react";
+import { Upload, FileText, AlertCircle, LayoutGrid, List, Download, X, FileUp, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -81,6 +82,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
   const [filters, setFilters] = useState<TicketFilters>(EMPTY_FILTERS);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   // Role-based default: PMBA → All, others → My tickets
   useEffect(() => {
@@ -93,8 +95,17 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
     if (filterMine && user) {
       out = out.filter((t) => t.assignees.some((a) => a.user_id === user.id));
     }
-    return applyFilters(out, filters);
-  }, [tickets, filterMine, user, filters]);
+    out = applyFilters(out, filters);
+    const q = search.trim().toLowerCase();
+    if (q) {
+      out = out.filter(
+        (t) =>
+          t.title.toLowerCase().includes(q) ||
+          (t.formatted_id ?? "").toLowerCase().includes(q)
+      );
+    }
+    return out;
+  }, [tickets, filterMine, user, filters, search]);
 
   // Drop selections that are no longer visible (filter change, deletion, view switch)
   useEffect(() => {
