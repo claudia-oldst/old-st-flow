@@ -20,6 +20,19 @@ export const DISCIPLINE_STATUS_COLOR: Record<DisciplineStatus, string> = {
   done: "#22c55e",
 };
 
+/** Canonical ordering of roles for selectors / lists. */
+export const PROJECT_ROLES: ProjectRole[] = ["Frontend", "Backend", "Fullstack", "QA", "PMBA", "Design"];
+
+/** Tailwind class strings for role chips/badges. */
+export const PROJECT_ROLE_COLORS: Record<ProjectRole, string> = {
+  Frontend: "bg-blue-500/15 text-blue-300 ring-blue-400/20",
+  Backend: "bg-emerald-500/15 text-emerald-300 ring-emerald-400/20",
+  Fullstack: "bg-purple-500/15 text-purple-300 ring-purple-400/20",
+  QA: "bg-amber-500/15 text-amber-300 ring-amber-400/20",
+  PMBA: "bg-pink-500/15 text-pink-300 ring-pink-400/20",
+  Design: "bg-fuchsia-500/15 text-fuchsia-300 ring-fuchsia-400/20",
+};
+
 export type TeamMember = Database["public"]["Tables"]["team_members"]["Row"];
 export type Project = Database["public"]["Tables"]["projects"]["Row"];
 export type ProjectMember = Database["public"]["Tables"]["project_members"]["Row"];
