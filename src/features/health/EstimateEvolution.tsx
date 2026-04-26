@@ -246,11 +246,26 @@ export function EstimateEvolution({ projectId }: { projectId: string }) {
           No tickets exist on this date yet.
         </div>
       ) : (
-        <div className="space-y-3">
-          {epicSnapshots.map((g) => (
-            <EpicRow key={g.key} {...g} />
-          ))}
-        </div>
+        <Collapsible open={epicsOpen} onOpenChange={setEpicsOpen}>
+          <CollapsibleTrigger className="w-full flex items-center justify-between rounded-lg px-3 py-2 bg-white/[0.02] hairline hover:bg-white/[0.04] transition-colors">
+            <span className="text-xs uppercase tracking-wider text-dimmer">
+              {epicsOpen ? "Hide" : "Show"} epics ({epicSnapshots.length})
+            </span>
+            <ChevronDown
+              className={cn(
+                "h-4 w-4 text-dim transition-transform",
+                epicsOpen && "rotate-180"
+              )}
+            />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up overflow-hidden">
+            <div className="space-y-3 pt-3">
+              {epicSnapshots.map((g) => (
+                <EpicRow key={g.key} {...g} />
+              ))}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       )}
 
       <div className="hairline-t pt-4">
