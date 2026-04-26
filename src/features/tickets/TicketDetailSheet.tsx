@@ -67,12 +67,6 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
     setProjEst(String(ticket.current_project_estimate));
     setEditing(false);
     setShowAllChanges(false);
-    supabase
-      .from("time_logs")
-      .select("id,hours,discipline,note,logged_at,source,user:team_members(name,avatar_color)")
-      .eq("ticket_id", ticket.id)
-      .order("logged_at", { ascending: false })
-      .then(({ data }) => setLogs((data as any) ?? []));
   }, [ticket]);
 
   if (!ticket) return null;
@@ -589,13 +583,7 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
           role={role}
           onLogged={() => {
             onChange();
-            // Refresh logs in panel
-            supabase
-              .from("time_logs")
-              .select("id,hours,discipline,note,logged_at,source,user:team_members(name,avatar_color)")
-              .eq("ticket_id", ticket.id)
-              .order("logged_at", { ascending: false })
-              .then(({ data }) => setLogs((data as any) ?? []));
+            reloadLogs();
           }}
         />
       )}
