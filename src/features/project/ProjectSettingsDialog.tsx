@@ -235,6 +235,22 @@ export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
               </div>
             </div>
 
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="proj-start">Start date</Label>
+                <Input
+                  id="proj-start"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  disabled={!canEdit}
+                />
+                <div className="text-[10px] text-dimmer">
+                  Used as the X-axis start on Health charts.
+                </div>
+              </div>
+            </div>
+
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label>Project links</Label>
