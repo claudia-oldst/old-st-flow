@@ -67,6 +67,7 @@ export function StopGroupTimerDialog({
   // Round DOWN to the nearest whole minute.
   const totalMinutes = Math.max(0, Math.floor(elapsedMs / 60000));
   const isOverhead = active.discipline === "Overhead";
+  const isProject = active.discipline === "Project";
   const disciplineKey: "fe_status" | "be_status" | null =
     active.discipline === "FE"
       ? "fe_status"
@@ -251,6 +252,8 @@ export function StopGroupTimerDialog({
                 ? "Frontend"
                 : active.discipline === "BE"
                 ? "Backend"
+                : active.discipline === "Project"
+                ? "Project"
                 : "Overhead"}
             </span>
           </div>
