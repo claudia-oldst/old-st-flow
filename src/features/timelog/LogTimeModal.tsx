@@ -154,30 +154,51 @@ export function LogTimeModal({ open, onOpenChange, ticket, role, onLogged }: Pro
           <div className="text-xs text-dim">
             Logging to the shared <span className="text-foreground font-medium">Project</span> estimate.
           </div>
-        ) : !isOverhead && role === "Fullstack" ? (
-          <div className="flex gap-1 p-1 rounded-lg bg-white/5 hairline w-fit">
-            {(["FE", "BE"] as const).map((d) => (
-              <button
-                key={d}
-                onClick={() => setDiscipline(d)}
-                className={cn(
-                  "px-3 py-1 text-xs rounded-md transition",
-                  discipline === d ? "bg-foreground text-background" : "text-dim hover:text-foreground"
-                )}
-              >
-                {d === "FE" ? "Frontend" : "Backend"}
-              </button>
-            ))}
-          </div>
-        ) : !isOverhead && role !== "Fullstack" ? (
-          <div className="text-xs text-dim">
-            Logging to <span className="text-foreground font-medium">{discipline === "FE" ? "Frontend" : "Backend"}</span> hours.
-          </div>
-        ) : (
-          <div className="text-xs text-dim">
-            Logging to project <span className="text-foreground font-medium">overhead</span> hours.
-          </div>
-        )}
+        ) : (() => {
+          // Build discipline options based on role + slots assigned on this ticket.
+          const opts: { value: LogDiscipline; label: string }[] = [];
+          if (canFE && (role === "Fullstack" || role === "Frontend") && mySlotsOnTicket.includes("FE")) {
+            opts.push({ value: "FE", label: "Frontend" });
+          } else if (canFE && role !== "Fullstack") {
+            opts.push({ value: "FE", label: "Frontend" });
+          }
+          if (canBE && (role === "Fullstack" || role === "Backend") && mySlotsOnTicket.includes("BE")) {
+            opts.push({ value: "BE", label: "Backend" });
+          } else if (canBE && role !== "Fullstack") {
+            opts.push({ value: "BE", label: "Backend" });
+          }
+          // Fullstack with neither FE nor BE assignment falls back to both
+          if (role === "Fullstack" && opts.length === 0) {
+            opts.push({ value: "FE", label: "Frontend" }, { value: "BE", label: "Backend" });
+          }
+          if (isProjectContributor) {
+            opts.push({ value: "Project", label: "Project" });
+          }
+          if (opts.length > 1) {
+            return (
+              <div className="flex gap-1 p-1 rounded-lg bg-white/5 hairline w-fit">
+                {opts.map((d) => (
+                  <button
+                    key={d.value}
+                    onClick={() => setDiscipline(d.value)}
+                    className={cn(
+                      "px-3 py-1 text-xs rounded-md transition",
+                      discipline === d.value ? "bg-foreground text-background" : "text-dim hover:text-foreground"
+                    )}
+                  >
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+            );
+          }
+          const single = opts[0]?.label ?? "Project";
+          return (
+            <div className="text-xs text-dim">
+              Logging to <span className="text-foreground font-medium">{single}</span> hours.
+            </div>
+          );
+        })()}
 
         <Tabs defaultValue="timer" className="mt-2">
           <TabsList className="grid w-full grid-cols-2">
