@@ -27,7 +27,17 @@ interface DisciplineCard {
   status: DisciplineStatus;
 }
 
-export function ProjectBoard({ projectId, search = "" }: { projectId: string; search?: string }) {
+export function ProjectBoard({
+  projectId,
+  search = "",
+  filterMine: filterMineProp,
+  onFilterMineChange,
+}: {
+  projectId: string;
+  search?: string;
+  filterMine?: boolean;
+  onFilterMineChange?: (v: boolean) => void;
+}) {
   const { statuses } = useStatuses();
   const { tickets: allTickets, reload } = useProjectTickets(projectId);
   const tickets = useMemo(() => {
@@ -42,7 +52,12 @@ export function ProjectBoard({ projectId, search = "" }: { projectId: string; se
   const role = useProjectRole(projectId);
   const user = useCurrentUser((s) => s.user);
   const pmba = isPMBA(role);
-  const [filterMine, setFilterMine] = useState<boolean>(true);
+  const [internalFilterMine, setInternalFilterMine] = useState<boolean>(true);
+  const filterMine = filterMineProp ?? internalFilterMine;
+  const setFilterMine = (v: boolean) => {
+    if (onFilterMineChange) onFilterMineChange(v);
+    else setInternalFilterMine(v);
+  };
   const [mode, setMode] = useState<BoardMode>("discipline");
   const [touched, setTouched] = useState(false);
   const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
@@ -53,11 +68,14 @@ export function ProjectBoard({ projectId, search = "" }: { projectId: string; se
     if (touched || role === null) return;
     if (pmba) {
       setMode("project");
-      setFilterMine(false);
+      if (filterMineProp === undefined) setInternalFilterMine(false);
+      else onFilterMineChange?.(false);
     } else {
       setMode("discipline");
-      setFilterMine(true);
+      if (filterMineProp === undefined) setInternalFilterMine(true);
+      else onFilterMineChange?.(true);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [role, pmba, touched]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
