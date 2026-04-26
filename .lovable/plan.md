@@ -1,85 +1,75 @@
-## Multi-Ticket Timer (revised)
+## Add `Proj` ticket type with shared Project estimate
 
-A new dedicated CTA — separate from the per-ticket "Log time" — lets a developer start one timer that covers several of *their* assigned tickets, then split the elapsed time across them on stop.
+A fourth ticket type for ongoing project work (e.g. "Development Meetings"). Unlike Standard/Bug/CR which split work across FE/BE, a Proj ticket has one shared estimate. Anyone assigned can log to the same pool, and totals appear as `8/40, 10/40` style on a single bar.
 
-### Where the CTA lives
+### Behaviour
 
-In **`ProjectTickets.tsx`**, on the toolbar/hairline row, only when **My tickets** is the active filter (works in both **Board** and **List** views). Placed next to the All / My tickets toggle.
+- **New ticket type**: `Proj` (alongside Standard / Bug / CR).
+- **Card icon**: black "P" dot in the top-right corner (mirroring how the FE/BE chip badge sits on discipline cards).
+- **Estimate**: one number — `current_project_estimate` / `original_project_estimate`. No FE or BE estimate fields shown.
+- **Assignees**: any project member can be assigned (single "Members" slot, no FE/BE/Other split).
+- **Time logging**: always logs to a new `Project` discipline. Bar shows pooled total across all users vs the project estimate.
+- **Status**: only one status track (project status). The FE/BE discipline status concept does not apply.
 
-- Label: **"Start group timer"** with a `Clock`/`Play` icon.
-- Style: same as the existing per-ticket "Log time" CTA (default `Button` — solid foreground/background) so the group timer reads as the same family of action.
-- Hidden when a group timer is already running for the current user (the running state is surfaced by the `TimerChip` in the top bar; clicking it opens the stop dialog).
+### Database changes (migration)
 
-### Discipline scoping (single-discipline only)
+1. Extend enums:
+   - `ticket_type` → add `'Proj'`.
+   - `log_discipline` → add `'Project'`.
+   - `assignee_slot` → add `'Project'` (used for Proj-ticket assignments so the existing validation trigger doesn't reject them).
 
-The user can only log time for the discipline they're assigned for the project (`useProjectRole`):
+2. `tickets` table — add columns:
+   - `original_project_estimate numeric NOT NULL DEFAULT 0`
+   - `current_project_estimate numeric NOT NULL DEFAULT 0`
+   - `actual_project_hours numeric NOT NULL DEFAULT 0`
 
-- `Frontend` → discipline locked to **FE**.
-- `Backend` → discipline locked to **BE**.
-- `Fullstack` → user picks **FE or BE** in the start modal (one only — a single timer can't cover both disciplines).
-- `QA` / `PMBA` → discipline locked to **Overhead**.
-- No project role → CTA hidden.
+3. Update `apply_time_log` trigger to also handle `discipline = 'Project'`, accumulating into `actual_project_hours`.
 
-The selectable ticket list is filtered to tickets where the user is actually assigned to the chosen discipline slot (FE/BE). Overhead users see all their assigned tickets regardless of slot.
+4. Update `validate_ticket_assignee` so the new `Project` slot is allowed for any project member regardless of role.
 
-### Start flow
+5. Update `derive_project_status` so Proj tickets aren't forced through FE/BE rules — for `ticket_type = 'Proj'` skip the derive logic entirely (status stays whatever it was set to manually, defaulting to backlog on insert which is already handled by `before_ticket_insert`).
 
-Clicking the CTA opens a **"Start group timer"** modal:
+### Frontend changes
 
-1. **Discipline display** — locked label for Frontend/Backend/QA/PMBA; FE/BE toggle for Fullstack.
-2. **Search bar** + **filter chips** (Status: To-do / In progress; Type: Standard / Bug / CR; Epic) over the list of the **current user's assigned tickets in this project** (open ones — exclude `done` category), further filtered to the chosen discipline's slot.
-3. **Multi-select list** — each row: checkbox, `formatted_id`, title, status chip. "Select all visible" / "Clear" helpers.
-4. **Start** — disabled until ≥1 ticket selected. Writes `active_timers` (primary = first selected) and bulk-inserts all selections into a new `active_timer_tickets` join table.
+**Types & helpers**
+- `src/lib/types.ts`: nothing to change manually — generated `types.ts` will pick up the new enums after the migration.
+- `src/lib/utils.ts`: `displayTitle` — no prefix for `Proj` (just the title).
 
-### Running state (top bar)
+**Ticket card** (`TicketCard.tsx`)
+- Add a `TypeIcon` branch: for `Proj`, render a filled black "P" badge in the top-right corner of the card (small rounded chip, similar styling to the FE/BE corner badge in `DraggableDisciplineCard`).
+- For Proj tickets: hide FE/BE chips and FE/BE bars. Render a single `Bar` with label `Project`, `actual = actual_project_hours`, `estimate = current_project_estimate`.
+- Assignees footer: show a single group (no FE/BE/O split) — just avatars under a "Team" label.
 
-`TimerChip` updates to show the group:
-- 1 ticket: `OSL-001  00:24:05` (today's behavior).
-- N tickets: `OSL-001 +N-1  00:24:05`, with the full id list in the tooltip.
+**Ticket detail sheet** (`TicketDetailSheet.tsx`)
+- For `Proj` tickets: hide the FE/BE Discipline status panel. Keep the Project status block.
+- Estimates section: show one "Project" stat / one editable input instead of FE+BE.
+- Assignees section: show a single "Members" block instead of FE/BE/Other.
+- Estimate change auditing: log against `discipline = 'Project'`.
+- Permissions for editing the project estimate / logging time: anyone assigned to the ticket, plus PMBA.
 
-Clicking the chip opens the **Review & save** dialog (instead of immediately committing as it does today).
+**Assign dialog** (`AssignDialog.tsx`)
+- Accept a `ticketType` prop. When `Proj`, render only one `SlotPicker` ("Team members") that writes to the new `Project` slot. All project members are eligible.
+- Pass `ticketType` from `TicketDetailSheet`.
 
-### Stop flow — Review & save dialog
+**Quick add** (`QuickAddRow.tsx`)
+- Add `Proj` to the type select.
+- When `Proj` is chosen, swap the FE/BE inputs for a single "Project estimate" input that maps to `current_project_estimate` / `original_project_estimate`.
 
-- Total elapsed (rounded to nearest minute).
-- One row per ticket: id + title, **minutes input** (editable), **status dropdown** for the timer's discipline (To-do / In progress / Done; hidden for Overhead since there's no overhead status), **remove** button.
-- **Global comment** textarea applied to every generated `time_logs` row.
-- Live "Allocated X / Y min" indicator + **"Distribute remaining evenly"** helper.
-- Initial split: whole minutes — each ticket gets `floor(total / N)`; **remainder added to the first ticket**.
-- **Save** → bulk-insert `time_logs` rows, update changed discipline statuses, run backlog→active promotion per ticket, clear the timer.
-- **Discard** drops the timer.
-- Total under 1 minute → auto-discard, same as today.
+**Log time modal** (`LogTimeModal.tsx`)
+- For Proj tickets: force `discipline = 'Project'`, hide the FE/BE/Overhead toggle, show "Logging to Project hours."
+- Anyone assigned to the ticket can log (no role/slot gating beyond assignment).
 
----
+**Group timer dialogs**
+- `StartGroupTimerDialog.tsx`: add `Proj` to the type filter buttons. When the user picks Project discipline (new option for everyone), the list shows tickets where they're assigned to the Project slot.
+- `StopGroupTimerDialog.tsx`: handle `discipline = 'Project'` in the header label; status select is hidden (no FE/BE status concept for Proj tickets).
+- `LogDiscipline` toggle in start dialog: add a "Project" option that's available regardless of role, but only when the user has at least one Proj-ticket assignment.
 
-## Technical plan
+**Timer chip / sync** (`TopBar.tsx`, `TimerSync.tsx`): no structural changes — the new discipline value flows through automatically once the type allows it.
 
-### Database (migration)
+**Other ticket views** (`TicketsList.tsx`, `TicketsFilter.tsx`, `BulkAssignDialog.tsx`, `BulkActionsBar.tsx`, `MyWork.tsx`): add `Proj` to type filters/labels and render the project bar in places that currently show FE/BE breakdown.
 
-```
-active_timer_tickets (NEW)
-  user_id    uuid not null
-  ticket_id  uuid not null
-  position   int  not null default 0
-  PRIMARY KEY (user_id, ticket_id)
-  RLS: same permissive "all v1" policies as active_timers
-```
+### Open questions / defaults assumed
 
-`active_timers` is unchanged — its existing `ticket_id` becomes the "primary" ticket. On start we insert all selections (including primary) into `active_timer_tickets` with sequential `position`. On stop/discard we delete from both tables for that `user_id`. No changes to `time_logs` schema.
-
-### Frontend
-
-- **`src/store/timer.ts`** — extend with `tickets: Array<{ id, formatted_id, title, position }>` and a `setTickets` action.
-- **`src/components/TimerSync.tsx`** — also load + subscribe to `active_timer_tickets` for the current user, joined with `tickets` for display fields.
-- **`src/components/TopBar.tsx`** (`TimerChip`) — render `OSL-001 +N` summary; open the new `StopGroupTimerDialog` on click instead of inline-committing. Single-ticket case still works (N=1 with no suffix).
-- **`src/features/timelog/StartGroupTimerDialog.tsx`** (new) — discipline display/picker, search + filter chips, multi-select list, Start button.
-- **`src/features/timelog/StopGroupTimerDialog.tsx`** (new) — review-and-save UI described above.
-- **`src/features/tickets/ProjectTickets.tsx`** — render the "Start group timer" CTA in the toolbar when `filterMine && user && role` (visible in both Board and List views). Pass the user's assigned, non-done tickets for this project + the project role into the start dialog.
-
-The existing per-ticket `LogTimeModal` is unchanged.
-
-### Files to add / edit
-
-- New migration: `active_timer_tickets` table + RLS.
-- New: `src/features/timelog/StartGroupTimerDialog.tsx`, `src/features/timelog/StopGroupTimerDialog.tsx`.
-- Edit: `src/store/timer.ts`, `src/components/TimerSync.tsx`, `src/components/TopBar.tsx`, `src/features/tickets/ProjectTickets.tsx`.
+- Card "P" badge: black background with white "P", same shape as the discipline `FE`/`BE` corner badge.
+- For Proj tickets, the project status auto-derive is skipped — PMBA sets status manually (Backlog → Active → Done). When time is first logged on a Proj ticket in Backlog, we still auto-promote to the first Active status (mirrors current behaviour).
+- Existing FE/BE columns (`current_fe_estimate`, etc.) are simply ignored on Proj tickets, kept at 0.
