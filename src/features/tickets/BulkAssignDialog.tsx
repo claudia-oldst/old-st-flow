@@ -109,12 +109,12 @@ export function BulkAssignDialog({
       }
     }
 
-    let rows: { ticket_id: string; user_id: string; slot: "FE" | "BE" | "Other" | "Project" }[] = [];
-    // Standard / Bug / CR tickets: FE / BE / Other slots only.
+    let rows: { ticket_id: string; user_id: string; slot: "FE" | "BE" | "Project" }[] = [];
+    // Standard / Bug / CR tickets: FE / BE / Project Contributors.
     standardTicketIds.forEach((tid) => {
       feUserIds.forEach((uid) => rows.push({ ticket_id: tid, user_id: uid, slot: "FE" }));
       beUserIds.forEach((uid) => rows.push({ ticket_id: tid, user_id: uid, slot: "BE" }));
-      otherUserIds.forEach((uid) => rows.push({ ticket_id: tid, user_id: uid, slot: "Other" }));
+      otherUserIds.forEach((uid) => rows.push({ ticket_id: tid, user_id: uid, slot: "Project" }));
     });
     // Proj tickets: Project slot only.
     projTicketIds.forEach((tid) => {
@@ -239,7 +239,7 @@ export function BulkAssignDialog({
                 onToggle={(id) => toggle(beUserIds, setBeUserIds, id)}
               />
               <Slot
-                label="Other contributors"
+                label="Project contributors"
                 members={otherEligible}
                 selected={otherUserIds}
                 onToggle={(id) => toggle(otherUserIds, setOtherUserIds, id)}

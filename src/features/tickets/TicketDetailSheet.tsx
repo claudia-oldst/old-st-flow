@@ -43,7 +43,7 @@ interface Props {
 interface LogEntry {
   id: string;
   hours: number;
-  discipline: "FE" | "BE" | "Overhead" | "Project";
+  discipline: "FE" | "BE" | "Project";
   note: string | null;
   logged_at: string;
   source: "timer" | "manual";
@@ -457,9 +457,12 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
                   />
                 </div>
               )}
-              {!isProj && ticket.actual_overhead_hours > 0 && (
+              {!isProj && ticket.actual_project_hours > 0 && (
                 <div className="mt-3 text-xs text-dim">
-                  Overhead logged: <span className="text-foreground font-mono">{formatHours(ticket.actual_overhead_hours)}</span>
+                  Project contributors logged: <span className="text-foreground font-mono">{formatHours(ticket.actual_project_hours)}</span>
+                  {ticket.current_project_estimate > 0 && (
+                    <> / <span className="text-foreground font-mono">{formatHours(ticket.current_project_estimate)}</span></>
+                  )}
                 </div>
               )}
 
@@ -525,8 +528,8 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
                 <>
                   <AssigneeBlock label="Frontend" assignees={ticket.assignees.filter(a => a.slot === "FE")} />
                   <AssigneeBlock label="Backend" assignees={ticket.assignees.filter(a => a.slot === "BE")} />
-                  {ticket.assignees.some((a) => a.slot === "Other") && (
-                    <AssigneeBlock label="Other" assignees={ticket.assignees.filter(a => a.slot === "Other")} />
+              {ticket.assignees.some((a) => a.slot === "Project") && (
+                    <AssigneeBlock label="Project contributors" assignees={ticket.assignees.filter(a => a.slot === "Project")} />
                   )}
                 </>
               )}

@@ -34,7 +34,7 @@ const ALL_EPICS_KEY = "__all__";
 interface TimeLogLite {
   ticket_id: string;
   hours: number;
-  discipline: "FE" | "BE" | "Overhead";
+  discipline: "FE" | "BE";
   logged_at: string;
 }
 

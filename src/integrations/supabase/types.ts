@@ -329,7 +329,6 @@ export type Database = {
         Row: {
           actual_backend_hours: number
           actual_frontend_hours: number
-          actual_overhead_hours: number
           actual_project_hours: number
           be_status: Database["public"]["Enums"]["discipline_status"]
           created_at: string
@@ -356,7 +355,6 @@ export type Database = {
         Insert: {
           actual_backend_hours?: number
           actual_frontend_hours?: number
-          actual_overhead_hours?: number
           actual_project_hours?: number
           be_status?: Database["public"]["Enums"]["discipline_status"]
           created_at?: string
@@ -383,7 +381,6 @@ export type Database = {
         Update: {
           actual_backend_hours?: number
           actual_frontend_hours?: number
-          actual_overhead_hours?: number
           actual_project_hours?: number
           be_status?: Database["public"]["Enums"]["discipline_status"]
           created_at?: string
@@ -493,9 +490,9 @@ export type Database = {
       }
     }
     Enums: {
-      assignee_slot: "FE" | "BE" | "Other" | "Project"
+      assignee_slot: "FE" | "BE" | "Project"
       discipline_status: "todo" | "in_progress" | "done"
-      log_discipline: "FE" | "BE" | "Overhead" | "Project"
+      log_discipline: "FE" | "BE" | "Project"
       log_source: "timer" | "manual"
       project_role:
         | "Frontend"
@@ -633,9 +630,9 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      assignee_slot: ["FE", "BE", "Other", "Project"],
+      assignee_slot: ["FE", "BE", "Project"],
       discipline_status: ["todo", "in_progress", "done"],
-      log_discipline: ["FE", "BE", "Overhead", "Project"],
+      log_discipline: ["FE", "BE", "Project"],
       log_source: ["timer", "manual"],
       project_role: [
         "Frontend",

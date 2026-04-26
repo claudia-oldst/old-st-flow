@@ -32,26 +32,24 @@ export function StartGroupTimerDialog({ open, onOpenChange, tickets, role }: Pro
   const user = useCurrentUser((s) => s.user);
   const activeTimer = useTimerStore((s) => s.active);
 
-  const isOverhead = role === "QA" || role === "PMBA" || role === "Design";
   const canFE = role === "Frontend" || role === "Fullstack";
   const canBE = role === "Backend" || role === "Fullstack";
 
-  // Detect whether the user is assigned to any Proj ticket — if so, allow
-  // logging to the shared "Project" discipline.
-  const hasProjAssignments = useMemo(() => {
+  // Detect whether the user is assigned via the Project slot on any ticket
+  // (any ticket type) — if so, they can log to the shared "Project" discipline.
+  const hasProjectAssignments = useMemo(() => {
     if (!user) return false;
-    return tickets.some(
-      (t) =>
-        t.ticket_type === "Proj" &&
-        t.assignees.some((a) => a.user_id === user.id && a.slot === "Project")
+    return tickets.some((t) =>
+      t.assignees.some((a) => a.user_id === user.id && a.slot === "Project")
     );
   }, [tickets, user]);
 
-  const defaultDiscipline: LogDiscipline = isOverhead
-    ? "Overhead"
-    : role === "Backend"
+  // Users with no FE/BE capability default to Project.
+  const defaultDiscipline: LogDiscipline = canFE
+    ? "FE"
+    : canBE
     ? "BE"
-    : "FE";
+    : "Project";
 
   const [discipline, setDiscipline] = useState<LogDiscipline>(defaultDiscipline);
   const [search, setSearch] = useState("");
@@ -67,11 +65,10 @@ export function StartGroupTimerDialog({ open, onOpenChange, tickets, role }: Pro
       const myAssignments = t.assignees.filter((a) => a.user_id === user.id);
       if (myAssignments.length === 0) return false;
       if (discipline === "Project") {
-        return t.ticket_type === "Proj" && myAssignments.some((a) => a.slot === "Project");
+        return myAssignments.some((a) => a.slot === "Project");
       }
-      // Standard/Bug/CR only for the FE/BE/Overhead disciplines
+      // FE / BE — only Standard/Bug/CR tickets, must be in matching slot
       if (t.ticket_type === "Proj") return false;
-      if (discipline === "Overhead") return true;
       return myAssignments.some((a) => a.slot === discipline);
     });
   }, [tickets, user, discipline]);
@@ -175,22 +172,18 @@ export function StartGroupTimerDialog({ open, onOpenChange, tickets, role }: Pro
       ? "Frontend"
       : discipline === "BE"
       ? "Backend"
-      : discipline === "Project"
-      ? "Project"
-      : "Overhead";
+      : "Project";
 
   // Build the discipline picker options based on role + assignments.
   const disciplineOptions: { value: LogDiscipline; label: string }[] = [];
-  if (!isOverhead) {
-    if (role === "Fullstack") {
-      disciplineOptions.push({ value: "FE", label: "Frontend" }, { value: "BE", label: "Backend" });
-    } else if (role === "Frontend") {
-      disciplineOptions.push({ value: "FE", label: "Frontend" });
-    } else if (role === "Backend") {
-      disciplineOptions.push({ value: "BE", label: "Backend" });
-    }
+  if (role === "Fullstack") {
+    disciplineOptions.push({ value: "FE", label: "Frontend" }, { value: "BE", label: "Backend" });
+  } else if (role === "Frontend") {
+    disciplineOptions.push({ value: "FE", label: "Frontend" });
+  } else if (role === "Backend") {
+    disciplineOptions.push({ value: "BE", label: "Backend" });
   }
-  if (hasProjAssignments) disciplineOptions.push({ value: "Project", label: "Project" });
+  if (hasProjectAssignments) disciplineOptions.push({ value: "Project", label: "Project" });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -209,9 +202,9 @@ export function StartGroupTimerDialog({ open, onOpenChange, tickets, role }: Pro
         )}
 
         {/* Discipline */}
-        {isOverhead && !hasProjAssignments ? (
+        {disciplineOptions.length === 0 ? (
           <div className="text-xs text-dim">
-            Logging to project <span className="text-foreground font-medium">overhead</span> hours.
+            You have no ticket assignments to log time against.
           </div>
         ) : disciplineOptions.length > 1 ? (
           <div className="space-y-1.5">

@@ -5,7 +5,7 @@ import { useProjectTickets } from "@/features/tickets/useProjectTickets";
 import { useStatuses } from "@/features/statuses/useStatuses";
 import { formatHours, healthRatio } from "@/lib/utils";
 import { MemberAvatar } from "@/components/MemberAvatar";
-import { TrendingUp, AlertTriangle, CheckCircle2, Activity } from "lucide-react";
+import { TrendingUp, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { EstimateEvolution } from "@/features/health/EstimateEvolution";
 import { DateRangeControl, defaultRange, type DateRange } from "@/features/health/DateRangeControl";
 
@@ -78,10 +78,9 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
         acc.beOrig += t.original_be_estimate;
         acc.feAct += t.actual_frontend_hours;
         acc.beAct += t.actual_backend_hours;
-        acc.over += t.actual_overhead_hours;
         return acc;
       },
-      { feEst: 0, beEst: 0, feOrig: 0, beOrig: 0, feAct: 0, beAct: 0, over: 0 }
+      { feEst: 0, beEst: 0, feOrig: 0, beOrig: 0, feAct: 0, beAct: 0 }
     );
   }, [tickets]);
 
@@ -223,14 +222,6 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
         </div>
 
         <div className="space-y-4">
-          <div className="glass rounded-2xl p-5">
-            <div className="text-xs uppercase tracking-wider text-dimmer mb-2">Overhead</div>
-            <div className="flex items-center gap-2">
-              <Activity className="h-4 w-4 text-amber-300" />
-              <div className="text-2xl font-semibold font-mono ticker">{formatHours(totals.over)}</div>
-            </div>
-            <div className="text-xs text-dim mt-1">QA / PMBA hours (not in estimates)</div>
-          </div>
           <div className="glass rounded-2xl p-5">
             <div className="text-xs uppercase tracking-wider text-dimmer mb-2">Unassigned backlog</div>
             <div className="flex items-center gap-2">
