@@ -32,7 +32,6 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
   const [members, setMembers] = useState<(ProjectMember & { member: TeamMember })[]>([]);
   const [feUserIds, setFeUserIds] = useState<Set<string>>(new Set());
   const [beUserIds, setBeUserIds] = useState<Set<string>>(new Set());
-  const [otherUserIds, setOtherUserIds] = useState<Set<string>>(new Set());
   const [projectUserIds, setProjectUserIds] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
 
@@ -40,7 +39,6 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
     if (!open) return;
     setFeUserIds(new Set(current.filter((c) => c.slot === "FE").map((c) => c.user_id)));
     setBeUserIds(new Set(current.filter((c) => c.slot === "BE").map((c) => c.user_id)));
-    setOtherUserIds(new Set(current.filter((c) => c.slot === "Other").map((c) => c.user_id)));
     setProjectUserIds(new Set(current.filter((c) => c.slot === "Project").map((c) => c.user_id)));
     supabase
       .from("project_members")
@@ -51,8 +49,8 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
 
   const feEligible = members.filter((m) => m.role === "Frontend" || m.role === "Fullstack");
   const beEligible = members.filter((m) => m.role === "Backend" || m.role === "Fullstack");
-  // Other / Project slots accept anyone on the project.
-  const otherEligible = members;
+  // Project Contributors slot accepts any project member.
+  const projectEligible = members;
 
   const toggle = (set: Set<string>, setter: (s: Set<string>) => void, id: string) => {
     const next = new Set(set);
@@ -71,7 +69,7 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
     } else {
       feUserIds.forEach((uid) => rows.push({ ticket_id: ticketId, user_id: uid, slot: "FE" }));
       beUserIds.forEach((uid) => rows.push({ ticket_id: ticketId, user_id: uid, slot: "BE" }));
-      otherUserIds.forEach((uid) => rows.push({ ticket_id: ticketId, user_id: uid, slot: "Other" }));
+      projectUserIds.forEach((uid) => rows.push({ ticket_id: ticketId, user_id: uid, slot: "Project" }));
     }
     if (rows.length) {
       const { error } = await supabase.from("ticket_assignees").insert(rows);
