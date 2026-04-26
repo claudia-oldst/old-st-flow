@@ -115,7 +115,9 @@ export function ProjectBoard({
         if (showBE && hasBE) out.push({ ticket: t, slot: "BE", status: t.be_status });
       } else {
         const slots = new Set(
-          t.assignees.filter((a) => a.user_id === user!.id).map((a) => a.slot)
+          t.assignees
+            .filter((a) => a.user_id === user!.id && (a.slot === "FE" || a.slot === "BE"))
+            .map((a) => a.slot as "FE" | "BE")
         );
         slots.forEach((slot) => {
           out.push({
