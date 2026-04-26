@@ -36,14 +36,18 @@ export function BulkAssignDialog({
   const [feUserIds, setFeUserIds] = useState<Set<string>>(new Set());
   const [beUserIds, setBeUserIds] = useState<Set<string>>(new Set());
   const [otherUserIds, setOtherUserIds] = useState<Set<string>>(new Set());
+  const [projectUserIds, setProjectUserIds] = useState<Set<string>>(new Set());
   const [mode, setMode] = useState<Mode>("add");
   const [busy, setBusy] = useState(false);
+  const [projTicketIds, setProjTicketIds] = useState<Set<string>>(new Set());
+  const [standardTicketIds, setStandardTicketIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!open) return;
     setFeUserIds(new Set());
     setBeUserIds(new Set());
     setOtherUserIds(new Set());
+    setProjectUserIds(new Set());
     setMode("add");
     supabase
       .from("project_members")
@@ -51,7 +55,26 @@ export function BulkAssignDialog({
       .eq("project_id", projectId)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .then(({ data }) => setMembers(((data as any) ?? []) as (ProjectMember & { member: TeamMember })[]));
-  }, [open, projectId]);
+    if (ticketIds.length) {
+      supabase
+        .from("tickets")
+        .select("id, ticket_type")
+        .in("id", ticketIds)
+        .then(({ data }) => {
+          const proj = new Set<string>();
+          const std = new Set<string>();
+          (data ?? []).forEach((t: { id: string; ticket_type: string }) => {
+            if (t.ticket_type === "Proj") proj.add(t.id);
+            else std.add(t.id);
+          });
+          setProjTicketIds(proj);
+          setStandardTicketIds(std);
+        });
+    } else {
+      setProjTicketIds(new Set());
+      setStandardTicketIds(new Set());
+    }
+  }, [open, projectId, ticketIds]);
 
   const feEligible = members.filter((m) => m.role === "Frontend" || m.role === "Fullstack");
   const beEligible = members.filter((m) => m.role === "Backend" || m.role === "Fullstack");
