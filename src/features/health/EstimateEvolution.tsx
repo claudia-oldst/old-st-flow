@@ -46,6 +46,7 @@ export function EstimateEvolution({ projectId }: { projectId: string }) {
   const [selectedEpic, setSelectedEpic] = useState<string>(ALL_EPICS_KEY);
   const [logs, setLogs] = useState<TimeLogLite[]>([]);
   const [projectStart, setProjectStart] = useState<Date | null>(null);
+  const [epicsOpen, setEpicsOpen] = useState(false);
 
   useEffect(() => {
     supabase
