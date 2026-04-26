@@ -239,7 +239,7 @@ export function BulkAssignDialog({
                 onToggle={(id) => toggle(beUserIds, setBeUserIds, id)}
               />
               <Slot
-                label="Other contributors"
+                label="Project contributors"
                 members={otherEligible}
                 selected={otherUserIds}
                 onToggle={(id) => toggle(otherUserIds, setOtherUserIds, id)}
