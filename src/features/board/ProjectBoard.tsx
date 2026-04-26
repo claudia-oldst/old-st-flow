@@ -131,7 +131,7 @@ export function ProjectBoard({
         const hasProject = t.assignees.some((a) => a.slot === "Project");
         if (!hasProject) return;
         const cat = t.status_id ? statusCategoryById[t.status_id] : undefined;
-        const dStatus: DisciplineStatus = (cat && CATEGORY_TO_DISCIPLINE[cat]) ?? "todo";
+        const dStatus: DisciplineStatus = (cat ? CATEGORY_TO_DISCIPLINE[cat] : undefined) ?? "todo";
         if (showAll) {
           if (showProject) out.push({ ticket: t, slot: "Project", status: dStatus });
         } else {
