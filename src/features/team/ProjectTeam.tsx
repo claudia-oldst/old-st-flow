@@ -94,7 +94,7 @@ export function ProjectTeam({ projectId }: { projectId: string }) {
     <div>
       <div className="flex items-center justify-between mb-4">
         <div className="text-dim text-sm">
-          Members assigned to this project. Roles drive who can be assigned to ticket FE/BE slots.
+          Members assigned to this project. Roles drive who can fill ticket FE/BE slots — anyone can be added as an "Other" contributor (QA, PMBA, Design, etc.).
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
