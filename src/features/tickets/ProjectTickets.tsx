@@ -464,6 +464,8 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
             setTouched(true);
             setFilterMine(v);
           }}
+          tickets={tickets}
+          reload={reload}
         />
       ) : visibleTickets.length === 0 ? (
         <div className="glass rounded-2xl p-12 text-center">

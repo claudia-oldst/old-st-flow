@@ -32,10 +32,14 @@ export interface TicketRow {
 
 export function useProjectTickets(projectId: string | undefined) {
   const [tickets, setTickets] = useState<TicketRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!!projectId);
 
   const load = useCallback(async () => {
-    if (!projectId) return;
+    if (!projectId) {
+      setTickets([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const { data: tix } = await supabase
       .from("tickets")
