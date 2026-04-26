@@ -35,6 +35,7 @@ export function BulkAssignDialog({
   const [members, setMembers] = useState<(ProjectMember & { member: TeamMember })[]>([]);
   const [feUserIds, setFeUserIds] = useState<Set<string>>(new Set());
   const [beUserIds, setBeUserIds] = useState<Set<string>>(new Set());
+  const [otherUserIds, setOtherUserIds] = useState<Set<string>>(new Set());
   const [mode, setMode] = useState<Mode>("add");
   const [busy, setBusy] = useState(false);
 
@@ -42,6 +43,7 @@ export function BulkAssignDialog({
     if (!open) return;
     setFeUserIds(new Set());
     setBeUserIds(new Set());
+    setOtherUserIds(new Set());
     setMode("add");
     supabase
       .from("project_members")
@@ -53,6 +55,7 @@ export function BulkAssignDialog({
 
   const feEligible = members.filter((m) => m.role === "Frontend" || m.role === "Fullstack");
   const beEligible = members.filter((m) => m.role === "Backend" || m.role === "Fullstack");
+  const otherEligible = members;
 
   const toggle = (set: Set<string>, setter: (s: Set<string>) => void, id: string) => {
     const next = new Set(set);
@@ -61,7 +64,7 @@ export function BulkAssignDialog({
     setter(next);
   };
 
-  const totalPicked = feUserIds.size + beUserIds.size;
+  const totalPicked = feUserIds.size + beUserIds.size + otherUserIds.size;
 
   const handleSave = async () => {
     if (ticketIds.length === 0) return;
@@ -81,10 +84,11 @@ export function BulkAssignDialog({
       }
     }
 
-    let rows: { ticket_id: string; user_id: string; slot: "FE" | "BE" }[] = [];
+    let rows: { ticket_id: string; user_id: string; slot: "FE" | "BE" | "Other" }[] = [];
     ticketIds.forEach((tid) => {
       feUserIds.forEach((uid) => rows.push({ ticket_id: tid, user_id: uid, slot: "FE" }));
       beUserIds.forEach((uid) => rows.push({ ticket_id: tid, user_id: uid, slot: "BE" }));
+      otherUserIds.forEach((uid) => rows.push({ ticket_id: tid, user_id: uid, slot: "Other" }));
     });
 
     // In "add" mode, skip rows that already exist to avoid duplicate-key errors.
@@ -195,6 +199,12 @@ export function BulkAssignDialog({
             members={beEligible}
             selected={beUserIds}
             onToggle={(id) => toggle(beUserIds, setBeUserIds, id)}
+          />
+          <Slot
+            label="Other contributors"
+            members={otherEligible}
+            selected={otherUserIds}
+            onToggle={(id) => toggle(otherUserIds, setOtherUserIds, id)}
           />
         </div>
 
