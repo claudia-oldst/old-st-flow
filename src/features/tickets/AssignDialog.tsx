@@ -14,7 +14,7 @@ import { Check, Users } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-type Slot = "FE" | "BE" | "Other" | "Project";
+type Slot = "FE" | "BE" | "Project";
 
 interface Props {
   open: boolean;
