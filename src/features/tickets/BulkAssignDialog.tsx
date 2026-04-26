@@ -217,25 +217,43 @@ export function BulkAssignDialog({
           </div>
         )}
 
+        {hasProj && hasStandard && (
+          <div className="text-xs text-dim bg-white/5 hairline rounded-lg px-3 py-2">
+            Selection mixes Proj tickets with Standard/Bug/CR tickets. FE/BE/Other picks apply only to non-Proj tickets; Project picks apply only to Proj tickets.
+          </div>
+        )}
+
         <div className="space-y-6 pt-2 max-h-[50vh] overflow-y-auto">
-          <Slot
-            label="Frontend"
-            members={feEligible}
-            selected={feUserIds}
-            onToggle={(id) => toggle(feUserIds, setFeUserIds, id)}
-          />
-          <Slot
-            label="Backend"
-            members={beEligible}
-            selected={beUserIds}
-            onToggle={(id) => toggle(beUserIds, setBeUserIds, id)}
-          />
-          <Slot
-            label="Other contributors"
-            members={otherEligible}
-            selected={otherUserIds}
-            onToggle={(id) => toggle(otherUserIds, setOtherUserIds, id)}
-          />
+          {hasStandard && (
+            <>
+              <Slot
+                label="Frontend"
+                members={feEligible}
+                selected={feUserIds}
+                onToggle={(id) => toggle(feUserIds, setFeUserIds, id)}
+              />
+              <Slot
+                label="Backend"
+                members={beEligible}
+                selected={beUserIds}
+                onToggle={(id) => toggle(beUserIds, setBeUserIds, id)}
+              />
+              <Slot
+                label="Other contributors"
+                members={otherEligible}
+                selected={otherUserIds}
+                onToggle={(id) => toggle(otherUserIds, setOtherUserIds, id)}
+              />
+            </>
+          )}
+          {hasProj && (
+            <Slot
+              label={`Project team${hasStandard ? " (Proj tickets only)" : ""}`}
+              members={otherEligible}
+              selected={projectUserIds}
+              onToggle={(id) => toggle(projectUserIds, setProjectUserIds, id)}
+            />
+          )}
         </div>
 
         <DialogFooter>
