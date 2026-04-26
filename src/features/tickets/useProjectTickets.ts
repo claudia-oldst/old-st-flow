@@ -25,7 +25,7 @@ export interface TicketRow {
   actual_overhead_hours: number;
   position: number;
   created_at: string;
-  assignees: Array<{ user_id: string; slot: "FE" | "BE"; member: TeamMember }>;
+  assignees: Array<{ user_id: string; slot: "FE" | "BE"; member: TeamMember; created_at: string }>;
 }
 
 export function useProjectTickets(projectId: string | undefined) {
@@ -55,7 +55,7 @@ export function useProjectTickets(projectId: string | undefined) {
     const grouped: Record<string, TicketRow["assignees"]> = {};
     assignees.forEach((a) => {
       grouped[a.ticket_id] ??= [];
-      grouped[a.ticket_id].push({ user_id: a.user_id, slot: a.slot, member: a.member });
+      grouped[a.ticket_id].push({ user_id: a.user_id, slot: a.slot, member: a.member, created_at: (a as any).created_at });
     });
 
     setTickets(
