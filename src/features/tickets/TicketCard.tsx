@@ -1,6 +1,6 @@
 import { cn, displayTitle, formatHours, healthRatio } from "@/lib/utils";
 import { MemberAvatar } from "@/components/MemberAvatar";
-import { Bug, GitPullRequest, FileText } from "lucide-react";
+import { Bug, GitPullRequest, FileText, FolderKanban } from "lucide-react";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { DisciplineStatusChip } from "@/features/tickets/DisciplineStatusChip";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -39,6 +39,7 @@ function Bar({ label, actual, estimate }: { label: string; actual: number; estim
 function TypeIcon({ type }: { type: TicketRow["ticket_type"] }) {
   if (type === "Bug") return <Bug className="h-3 w-3 text-rose-400" />;
   if (type === "CR") return <GitPullRequest className="h-3 w-3 text-amber-400" />;
+  if (type === "Proj") return <FolderKanban className="h-3 w-3 text-sky-400" />;
   return <FileText className="h-3 w-3 text-dimmer" />;
 }
 
@@ -51,26 +52,40 @@ export function TicketCard({
   onClick?: () => void;
   isDragging?: boolean;
 }) {
+  const isProj = ticket.ticket_type === "Proj";
   const fe = ticket.assignees.filter((a) => a.slot === "FE").map((a) => a.member);
   const be = ticket.assignees.filter((a) => a.slot === "BE").map((a) => a.member);
   const other = ticket.assignees.filter((a) => a.slot === "Other").map((a) => a.member);
-  // A discipline only "exists" on a ticket once someone is assigned for that role.
+  const team = ticket.assignees.filter((a) => a.slot === "Project").map((a) => a.member);
   const hasFE = fe.length > 0;
   const hasBE = be.length > 0;
   const hasOther = other.length > 0;
-  const showFEBar = hasFE && (ticket.current_fe_estimate > 0 || ticket.actual_frontend_hours > 0);
-  const showBEBar = hasBE && (ticket.current_be_estimate > 0 || ticket.actual_backend_hours > 0);
-  const showAnyChipsOrBars = hasFE || hasBE;
+  const showFEBar = !isProj && hasFE && (ticket.current_fe_estimate > 0 || ticket.actual_frontend_hours > 0);
+  const showBEBar = !isProj && hasBE && (ticket.current_be_estimate > 0 || ticket.actual_backend_hours > 0);
+  const showProjectBar = isProj && (ticket.current_project_estimate > 0 || ticket.actual_project_hours > 0);
+  const showAnyChipsOrBars = !isProj && (hasFE || hasBE);
 
   return (
     <div
       onClick={onClick}
       className={cn(
-        "group rounded-xl p-3 cursor-pointer transition select-none",
+        "relative group rounded-xl p-3 cursor-pointer transition select-none",
         "bg-surface-2 hairline hover:bg-surface-3",
         isDragging && "opacity-40"
       )}
     >
+      {/* "P" badge for Proj tickets — black corner dot with white P */}
+      {isProj && (
+        <span
+          className="absolute -top-1.5 -right-1.5 z-10 h-5 w-5 rounded-full text-[10px] font-bold ring-1 ring-white/15 flex items-center justify-center"
+          style={{ background: "#000", color: "#fff" }}
+          aria-label="Project ticket"
+          title="Project ticket"
+        >
+          P
+        </span>
+      )}
+
       <div className="flex items-center gap-1.5 mb-1.5">
         <TypeIcon type={ticket.ticket_type} />
         <span className="font-mono text-[10px] text-dimmer">{ticket.formatted_id}</span>
@@ -96,35 +111,51 @@ export function TicketCard({
       <div className="space-y-1.5 mb-3">
         {showFEBar && <Bar label="FE" actual={ticket.actual_frontend_hours} estimate={ticket.current_fe_estimate} />}
         {showBEBar && <Bar label="BE" actual={ticket.actual_backend_hours} estimate={ticket.current_be_estimate} />}
+        {showProjectBar && <Bar label="Project" actual={ticket.actual_project_hours} estimate={ticket.current_project_estimate} />}
       </div>
 
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-[10px] text-dimmer">
-          {fe.length > 0 && (
-            <div className="flex items-center gap-1">
-              <span>FE</span>
-              <div className="flex -space-x-1.5">
-                {fe.map((m) => <MemberAvatar key={m.id} name={m.name} color={m.avatar_color} size="xs" />)}
+          {isProj ? (
+            team.length > 0 ? (
+              <div className="flex items-center gap-1">
+                <span>Team</span>
+                <div className="flex -space-x-1.5">
+                  {team.map((m) => <MemberAvatar key={m.id} name={m.name} color={m.avatar_color} size="xs" />)}
+                </div>
               </div>
-            </div>
+            ) : (
+              <span>Unassigned</span>
+            )
+          ) : (
+            <>
+              {fe.length > 0 && (
+                <div className="flex items-center gap-1">
+                  <span>FE</span>
+                  <div className="flex -space-x-1.5">
+                    {fe.map((m) => <MemberAvatar key={m.id} name={m.name} color={m.avatar_color} size="xs" />)}
+                  </div>
+                </div>
+              )}
+              {be.length > 0 && (
+                <div className="flex items-center gap-1">
+                  <span>BE</span>
+                  <div className="flex -space-x-1.5">
+                    {be.map((m) => <MemberAvatar key={m.id} name={m.name} color={m.avatar_color} size="xs" />)}
+                  </div>
+                </div>
+              )}
+              {other.length > 0 && (
+                <div className="flex items-center gap-1">
+                  <span>O</span>
+                  <div className="flex -space-x-1.5">
+                    {other.map((m) => <MemberAvatar key={m.id} name={m.name} color={m.avatar_color} size="xs" />)}
+                  </div>
+                </div>
+              )}
+              {fe.length === 0 && be.length === 0 && other.length === 0 && <span>Unassigned</span>}
+            </>
           )}
-          {be.length > 0 && (
-            <div className="flex items-center gap-1">
-              <span>BE</span>
-              <div className="flex -space-x-1.5">
-                {be.map((m) => <MemberAvatar key={m.id} name={m.name} color={m.avatar_color} size="xs" />)}
-              </div>
-            </div>
-          )}
-          {other.length > 0 && (
-            <div className="flex items-center gap-1">
-              <span>O</span>
-              <div className="flex -space-x-1.5">
-                {other.map((m) => <MemberAvatar key={m.id} name={m.name} color={m.avatar_color} size="xs" />)}
-              </div>
-            </div>
-          )}
-          {fe.length === 0 && be.length === 0 && other.length === 0 && <span>Unassigned</span>}
         </div>
       </div>
     </div>

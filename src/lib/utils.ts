@@ -39,5 +39,6 @@ export function healthRatio(actual: number, estimate: number): "good" | "warn" |
 export function displayTitle(title: string, type: string) {
   if (type === "Bug") return `[BUG] ${title}`;
   if (type === "CR") return `[CR] ${title}`;
+  // "Proj" tickets use the title as-is.
   return title;
 }
