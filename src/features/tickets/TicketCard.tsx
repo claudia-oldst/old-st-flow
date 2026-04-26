@@ -53,9 +53,11 @@ export function TicketCard({
 }) {
   const fe = ticket.assignees.filter((a) => a.slot === "FE").map((a) => a.member);
   const be = ticket.assignees.filter((a) => a.slot === "BE").map((a) => a.member);
+  const other = ticket.assignees.filter((a) => a.slot === "Other").map((a) => a.member);
   // A discipline only "exists" on a ticket once someone is assigned for that role.
   const hasFE = fe.length > 0;
   const hasBE = be.length > 0;
+  const hasOther = other.length > 0;
   const showFEBar = hasFE && (ticket.current_fe_estimate > 0 || ticket.actual_frontend_hours > 0);
   const showBEBar = hasBE && (ticket.current_be_estimate > 0 || ticket.actual_backend_hours > 0);
   const showAnyChipsOrBars = hasFE || hasBE;
@@ -114,7 +116,15 @@ export function TicketCard({
               </div>
             </div>
           )}
-          {fe.length === 0 && be.length === 0 && <span>Unassigned</span>}
+          {other.length > 0 && (
+            <div className="flex items-center gap-1">
+              <span>O</span>
+              <div className="flex -space-x-1.5">
+                {other.map((m) => <MemberAvatar key={m.id} name={m.name} color={m.avatar_color} size="xs" />)}
+              </div>
+            </div>
+          )}
+          {fe.length === 0 && be.length === 0 && other.length === 0 && <span>Unassigned</span>}
         </div>
       </div>
     </div>
