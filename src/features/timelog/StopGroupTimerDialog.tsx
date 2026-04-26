@@ -245,7 +245,7 @@ export function StopGroupTimerDialog({
           <div className="text-xs text-dim mt-1">
             Elapsed{" "}
             <span className="font-mono text-foreground">{formatDuration(elapsedMs)}</span> ·{" "}
-            <span className="text-foreground">{totalMinutesDisplay}m</span> · Discipline{" "}
+            <span className="text-foreground">{totalMinutes}m</span> · Discipline{" "}
             <span className="text-foreground">
               {active.discipline === "FE"
                 ? "Frontend"
@@ -260,20 +260,20 @@ export function StopGroupTimerDialog({
         <div className="flex items-center justify-between text-xs">
           <span
             className={
-              Math.abs(remainingSeconds) <= 2
+              remainingMinutes === 0
                 ? "text-green-400"
-                : remainingSeconds > 0
+                : remainingMinutes > 0
                 ? "text-amber-300"
                 : "text-red-400"
             }
           >
-            Allocated <span className="font-mono">{allocatedMinutesDisplay}</span> /{" "}
-            <span className="font-mono">{totalMinutesDisplay}</span> min
-            {Math.abs(remainingSeconds) > 2 && (
+            Allocated <span className="font-mono">{allocatedMinutes}</span> /{" "}
+            <span className="font-mono">{totalMinutes}</span> min
+            {remainingMinutes !== 0 && (
               <span className="ml-2 opacity-80">
-                ({remainingSeconds > 0
-                  ? `+${remainingMinutesDisplay} unallocated`
-                  : `${remainingMinutesDisplay} over`})
+                ({remainingMinutes > 0
+                  ? `+${remainingMinutes} unallocated`
+                  : `${remainingMinutes} over`})
               </span>
             )}
           </span>
@@ -287,7 +287,7 @@ export function StopGroupTimerDialog({
           </button>
         </div>
 
-        {totalSeconds > 0 && rows.some((r) => r.seconds === 0) && (
+        {totalMinutes > 0 && rows.some((r) => r.minutes === 0) && (
           <div className="text-xs text-amber-300 bg-amber-500/10 hairline rounded-lg px-3 py-2">
             One or more tickets ended up with 0 minutes. They'll be skipped on save — adjust the split below if every ticket should get time.
           </div>
