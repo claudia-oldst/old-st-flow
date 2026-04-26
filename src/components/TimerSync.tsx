@@ -34,26 +34,43 @@ export function TimerSync() {
 
       const { data: groupRows } = await supabase
         .from("active_timer_tickets")
-        .select(
-          "position, ticket:tickets(id, formatted_id, title, fe_status, be_status, status_id, project_id)"
-        )
+        .select("position, ticket_id")
         .eq("user_id", user.id)
         .order("position", { ascending: true });
 
       if (!mounted) return;
 
-      let tickets: TimerTicket[] = ((groupRows as any[]) ?? [])
-        .filter((r) => r.ticket)
-        .map((r) => ({
-          id: r.ticket.id,
-          formatted_id: r.ticket.formatted_id,
-          title: r.ticket.title,
-          position: r.position,
-          fe_status: r.ticket.fe_status,
-          be_status: r.ticket.be_status,
-          status_id: r.ticket.status_id,
-          project_id: r.ticket.project_id,
-        }));
+      let tickets: TimerTicket[] = [];
+      const rows = ((groupRows as any[]) ?? []).filter((r) => r.ticket_id);
+      if (rows.length > 0) {
+        const { data: ticketRows } = await supabase
+          .from("tickets")
+          .select("id, formatted_id, title, fe_status, be_status, status_id, project_id")
+          .in(
+            "id",
+            rows.map((r) => r.ticket_id)
+          );
+
+        if (!mounted) return;
+
+        const byId = new Map((ticketRows ?? []).map((t) => [t.id, t]));
+        tickets = rows
+          .map((r) => {
+            const t = byId.get(r.ticket_id);
+            if (!t) return null;
+            return {
+              id: t.id,
+              formatted_id: t.formatted_id,
+              title: t.title,
+              position: r.position,
+              fe_status: t.fe_status as any,
+              be_status: t.be_status as any,
+              status_id: t.status_id,
+              project_id: t.project_id,
+            };
+          })
+          .filter(Boolean) as TimerTicket[];
+      }
 
       // Fallback for legacy single-ticket timers (no group rows yet)
       if (tickets.length === 0 && active.ticket_id) {
