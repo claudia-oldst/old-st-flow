@@ -160,7 +160,7 @@ export function StopGroupTimerDialog({
       for (const r of statusUpdates) {
         await supabase
           .from("tickets")
-          .update({ [disciplineKey]: r.status })
+          .update({ [disciplineKey]: r.status } as any)
           .eq("id", r.ticket.id);
       }
     }
