@@ -64,13 +64,23 @@ export function LogTimeModal({ open, onOpenChange, ticket, role, onLogged }: Pro
   const handleStartTimer = async () => {
     if (!user) return toast.error("Pick a user first");
     setBusy(true);
-    // Upsert: replaces any existing running timer for this user
+    // Upsert the primary timer (one running timer per user).
     const { error } = await supabase.from("active_timers").upsert(
       { user_id: user.id, ticket_id: ticket.id, discipline, started_at: new Date().toISOString() },
       { onConflict: "user_id" }
     );
+    if (error) {
+      setBusy(false);
+      return toast.error(error.message);
+    }
+    // Reset group ticket rows to a single entry for this ticket so the
+    // Stop dialog (which iterates active_timer_tickets) sees the right ticket.
+    await supabase.from("active_timer_tickets").delete().eq("user_id", user.id);
+    const { error: gErr } = await supabase
+      .from("active_timer_tickets")
+      .insert({ user_id: user.id, ticket_id: ticket.id, position: 0 });
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (gErr) return toast.error(gErr.message);
     toast.success("Timer started");
     // Auto-prompt to move to active if backlog
     await maybePromoteToActive();
