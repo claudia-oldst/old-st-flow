@@ -45,11 +45,11 @@ export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(project.name);
   const [acronym, setAcronym] = useState(project.acronym);
-  const [clientName, setClientName] = useState((project as any).client_name ?? "");
-  const [rate, setRate] = useState<string>(String((project as any).rate_per_hour ?? 0));
-  const [startDate, setStartDate] = useState<string>(((project as any).start_date as string) ?? "");
+  const [clientName, setClientName] = useState(project.client_name ?? "");
+  const [rate, setRate] = useState<string>(String(project.rate_per_hour ?? 0));
+  const [startDate, setStartDate] = useState<string>(project.start_date ?? "");
   const [links, setLinks] = useState<ProjectLink[]>(
-    Array.isArray((project as any).links) ? ((project as any).links as ProjectLink[]) : []
+    Array.isArray(project.links) ? (project.links as unknown as ProjectLink[]) : []
   );
 
   const [members, setMembers] = useState<(ProjectMember & { member: TeamMember })[]>([]);
@@ -74,10 +74,10 @@ export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
       loadMembers();
       setName(project.name);
       setAcronym(project.acronym);
-      setClientName((project as any).client_name ?? "");
-      setRate(String((project as any).rate_per_hour ?? 0));
-      setStartDate(((project as any).start_date as string) ?? "");
-      setLinks(Array.isArray((project as any).links) ? ((project as any).links as ProjectLink[]) : []);
+      setClientName(project.client_name ?? "");
+      setRate(String(project.rate_per_hour ?? 0));
+      setStartDate(project.start_date ?? "");
+      setLinks(Array.isArray(project.links) ? (project.links as unknown as ProjectLink[]) : []);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, project.id]);
@@ -102,8 +102,8 @@ export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
         client_name: clientName.trim() || null,
         rate_per_hour: numericRate,
         start_date: startDate ? startDate : null,
-        links: cleanedLinks as any,
-      } as any)
+        links: cleanedLinks as unknown as Project["links"],
+      })
       .eq("id", project.id)
       .select("*")
       .single();
