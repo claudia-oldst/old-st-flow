@@ -234,7 +234,7 @@ function Ring({ title, actual, estimate, original }: { title: string; actual: nu
   const c = 2 * Math.PI * r;
   const dash = (pct / 100) * c;
 
-  const rInner = 38;
+  const rInner = 30;
   const cInner = 2 * Math.PI * rInner;
   const dashInner = (origPct / 100) * cInner;
 
