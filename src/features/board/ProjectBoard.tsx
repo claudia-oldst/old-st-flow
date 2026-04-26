@@ -43,14 +43,22 @@ export function ProjectBoard({
   search = "",
   filterMine: filterMineProp,
   onFilterMineChange,
+  tickets: ticketsProp,
+  reload: reloadProp,
 }: {
   projectId: string;
   search?: string;
   filterMine?: boolean;
   onFilterMineChange?: (v: boolean) => void;
+  /** Optional: pass tickets from a parent to avoid double-fetching. */
+  tickets?: TicketRow[];
+  reload?: () => void;
 }) {
   const { statuses } = useStatuses();
-  const { tickets: allTickets, reload } = useProjectTickets(projectId);
+  // Only spin up the local fetch+realtime when no parent supplied tickets.
+  const local = useProjectTickets(ticketsProp ? undefined : projectId);
+  const allTickets = ticketsProp ?? local.tickets;
+  const reload = reloadProp ?? local.reload;
   const tickets = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return allTickets;
@@ -63,6 +71,7 @@ export function ProjectBoard({
   const role = useProjectRole(projectId);
   const user = useCurrentUser((s) => s.user);
   const pmba = isPMBA(role);
+  const isControlled = filterMineProp !== undefined;
   const [internalFilterMine, setInternalFilterMine] = useState<boolean>(true);
   const filterMine = filterMineProp ?? internalFilterMine;
   const setFilterMine = (v: boolean) => {
@@ -74,17 +83,14 @@ export function ProjectBoard({
   const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
 
-  // Apply role-based defaults once we know the role (until the user changes a toggle)
+  // Apply role-based defaults once we know the role (until the user changes a toggle).
+  // When filterMine is controlled by a parent, the parent owns that default — we only
+  // set the local board mode here to avoid double-writes that cause toggle flicker.
   useEffect(() => {
     if (touched || role === null) return;
-    if (pmba) {
-      setMode("project");
-      if (filterMineProp === undefined) setInternalFilterMine(false);
-      else onFilterMineChange?.(false);
-    } else {
-      setMode("discipline");
-      if (filterMineProp === undefined) setInternalFilterMine(true);
-      else onFilterMineChange?.(true);
+    setMode(pmba ? "project" : "discipline");
+    if (!isControlled) {
+      setInternalFilterMine(!pmba);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [role, pmba, touched]);
