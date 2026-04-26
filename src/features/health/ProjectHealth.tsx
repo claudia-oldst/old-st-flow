@@ -274,7 +274,7 @@ function Ring({ title, actual, estimate, original }: { title: string; actual: nu
             {original > 0 && (
               <>
                 <div className="text-[10px] uppercase tracking-wider text-dimmer leading-none mt-2">Original</div>
-                <div className="text-sm font-mono leading-none mt-1 text-dim">{Math.round(origRatio * 100)}%</div>
+                <div className="text-sm font-mono leading-none mt-1 text-dim text-destructive-foreground font-semibold">{Math.round(origRatio * 100)}%</div>
               </>
             )}
           </div>
