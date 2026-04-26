@@ -132,27 +132,24 @@ export function StopGroupTimerDialog({
 
   const handleSave = async () => {
     if (rows.length === 0) return toast.error("Add at least one ticket");
-    // Allow tiny rounding mismatch (≤2s) caused by manual minute edits.
-    if (Math.abs(remainingSeconds) > 2)
+    if (remainingMinutes !== 0)
       return toast.error(
-        `Allocated ${allocatedMinutesDisplay}m, expected ${totalMinutesDisplay}m`
+        `Allocated ${allocatedMinutes}m, expected ${totalMinutes}m`
       );
-    if (rows.some((r) => r.seconds < 0))
+    if (rows.some((r) => r.minutes < 0))
       return toast.error("Time must be ≥ 0");
 
     setBusy(true);
 
-    // 1) Insert one time_logs row per ticket.
-    // We log every ticket the user explicitly chose, even if seconds rounds to
-    // a tiny number, so no ticket is silently dropped from the log.
+    // 1) Insert one time_logs row per ticket (whole-minute precision).
     const logs = rows
-      .filter((r) => r.seconds > 0)
+      .filter((r) => r.minutes > 0)
       .map((r) => ({
         ticket_id: r.ticket.id,
         user_id: active.user_id,
         discipline: active.discipline,
-        // 4 decimals → 0.0003h ≈ 1 second resolution
-        hours: Math.round((r.seconds / 3600) * 10000) / 10000,
+        // Minutes → hours, 4 decimals is plenty for whole-minute values.
+        hours: Math.round((r.minutes / 60) * 10000) / 10000,
         note: note.trim() || null,
         source: "timer" as const,
       }));
@@ -161,8 +158,7 @@ export function StopGroupTimerDialog({
       return toast.error("Nothing to log — every ticket was set to 0.");
     }
     if (logs.length < rows.length) {
-      // Tell the user which ones we skipped instead of silently swallowing them.
-      const skipped = rows.filter((r) => r.seconds <= 0).map((r) => r.ticket.formatted_id);
+      const skipped = rows.filter((r) => r.minutes <= 0).map((r) => r.ticket.formatted_id);
       toast.warning(
         `Skipped ${skipped.length} ticket${skipped.length === 1 ? "" : "s"} with 0 time: ${skipped.join(", ")}`
       );
@@ -187,7 +183,7 @@ export function StopGroupTimerDialog({
     }
 
     // 3) Backlog → Active promotion per ticket (only those that got time logged)
-    const loggedRows = rows.filter((r) => r.seconds > 0);
+    const loggedRows = rows.filter((r) => r.minutes > 0);
     if (loggedRows.length > 0) {
       const statusIds = Array.from(
         new Set(loggedRows.map((r) => r.ticket.status_id).filter(Boolean) as string[])
