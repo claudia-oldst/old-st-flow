@@ -21,7 +21,9 @@ interface Row {
   actual_backend_hours: number;
   project: { id: string; name: string; acronym: string };
   status: { name: string; color: string; category: string } | null;
-  slot: "FE" | "BE" | "Other";
+  slot: "FE" | "BE" | "Project";
+  current_project_estimate?: number;
+  actual_project_hours?: number;
 }
 
 export default function MyWork() {
