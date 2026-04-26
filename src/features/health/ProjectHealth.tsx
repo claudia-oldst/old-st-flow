@@ -5,7 +5,7 @@ import { useProjectTickets } from "@/features/tickets/useProjectTickets";
 import { useStatuses } from "@/features/statuses/useStatuses";
 import { formatHours, healthRatio } from "@/lib/utils";
 import { MemberAvatar } from "@/components/MemberAvatar";
-import { TrendingUp, AlertTriangle, CheckCircle2, Activity } from "lucide-react";
+import { TrendingUp, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { EstimateEvolution } from "@/features/health/EstimateEvolution";
 import { DateRangeControl, defaultRange, type DateRange } from "@/features/health/DateRangeControl";
 
