@@ -64,8 +64,8 @@ export function StopGroupTimerDialog({
   const setActive = useTimerStore((s) => s.setActive);
   const setTickets = useTimerStore((s) => s.setTickets);
 
-  const totalSeconds = Math.max(0, Math.round(elapsedMs / 1000));
-  const totalMinutesDisplay = secondsToMinutes(totalSeconds);
+  // Round DOWN to the nearest whole minute.
+  const totalMinutes = Math.max(0, Math.floor(elapsedMs / 60000));
   const isOverhead = active.discipline === "Overhead";
   const disciplineKey: "fe_status" | "be_status" | null =
     active.discipline === "FE"
@@ -82,7 +82,7 @@ export function StopGroupTimerDialog({
   useEffect(() => {
     if (!open) return;
     const sorted = [...groupTickets].sort((a, b) => a.position - b.position);
-    const split = evenSplit(totalSeconds, sorted.length);
+    const split = evenSplit(totalMinutes, sorted.length);
     setRows(
       sorted.map((t, i) => {
         const initialStatus = disciplineKey
@@ -90,7 +90,7 @@ export function StopGroupTimerDialog({
           : null;
         return {
           ticket: t,
-          seconds: split[i] ?? 0,
+          minutes: split[i] ?? 0,
           status: initialStatus,
           initialStatus,
         };
@@ -100,13 +100,11 @@ export function StopGroupTimerDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  const allocatedSeconds = useMemo(
-    () => rows.reduce((sum, r) => sum + (Number.isFinite(r.seconds) ? r.seconds : 0), 0),
+  const allocatedMinutes = useMemo(
+    () => rows.reduce((sum, r) => sum + (Number.isFinite(r.minutes) ? r.minutes : 0), 0),
     [rows]
   );
-  const allocatedMinutesDisplay = secondsToMinutes(allocatedSeconds);
-  const remainingSeconds = totalSeconds - allocatedSeconds;
-  const remainingMinutesDisplay = secondsToMinutes(remainingSeconds);
+  const remainingMinutes = totalMinutes - allocatedMinutes;
 
   const updateRow = (id: string, patch: Partial<Row>) => {
     setRows((prev) => prev.map((r) => (r.ticket.id === id ? { ...r, ...patch } : r)));
