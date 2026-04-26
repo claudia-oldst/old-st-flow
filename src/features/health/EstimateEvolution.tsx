@@ -60,7 +60,7 @@ export function EstimateEvolution({ projectId }: { projectId: string }) {
       });
   }, [projectId]);
 
-  // Pull all FE/BE time logs for the project's tickets (ignore overhead).
+  // Pull FE/BE time logs for the project's tickets (Project hours tracked separately).
   useEffect(() => {
     const ids = tickets.map((t) => t.id);
     if (ids.length === 0) {

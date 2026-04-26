@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import type { Project, ProjectMember, ProjectRole, TeamMember } from "@/lib/types";
+import { PROJECT_ROLES as ROLES, PROJECT_ROLE_COLORS as ROLE_COLORS, type Project, type ProjectMember, type ProjectRole, type TeamMember } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,16 +29,6 @@ import { MemberAvatar } from "@/components/MemberAvatar";
 import { Plus, Settings, Trash2, ExternalLink, Eye } from "lucide-react";
 import { toast } from "sonner";
 
-const ROLES: ProjectRole[] = ["Frontend", "Backend", "Fullstack", "QA", "PMBA", "Design"];
-
-const ROLE_COLORS: Record<ProjectRole, string> = {
-  Frontend: "bg-blue-500/15 text-blue-300 ring-blue-400/20",
-  Backend: "bg-emerald-500/15 text-emerald-300 ring-emerald-400/20",
-  Fullstack: "bg-purple-500/15 text-purple-300 ring-purple-400/20",
-  QA: "bg-amber-500/15 text-amber-300 ring-amber-400/20",
-  PMBA: "bg-pink-500/15 text-pink-300 ring-pink-400/20",
-  Design: "bg-fuchsia-500/15 text-fuchsia-300 ring-fuchsia-400/20",
-};
 
 export interface ProjectLink {
   name: string;
@@ -55,11 +45,11 @@ export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(project.name);
   const [acronym, setAcronym] = useState(project.acronym);
-  const [clientName, setClientName] = useState((project as any).client_name ?? "");
-  const [rate, setRate] = useState<string>(String((project as any).rate_per_hour ?? 0));
-  const [startDate, setStartDate] = useState<string>(((project as any).start_date as string) ?? "");
+  const [clientName, setClientName] = useState(project.client_name ?? "");
+  const [rate, setRate] = useState<string>(String(project.rate_per_hour ?? 0));
+  const [startDate, setStartDate] = useState<string>(project.start_date ?? "");
   const [links, setLinks] = useState<ProjectLink[]>(
-    Array.isArray((project as any).links) ? ((project as any).links as ProjectLink[]) : []
+    Array.isArray(project.links) ? (project.links as unknown as ProjectLink[]) : []
   );
 
   const [members, setMembers] = useState<(ProjectMember & { member: TeamMember })[]>([]);
@@ -84,10 +74,10 @@ export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
       loadMembers();
       setName(project.name);
       setAcronym(project.acronym);
-      setClientName((project as any).client_name ?? "");
-      setRate(String((project as any).rate_per_hour ?? 0));
-      setStartDate(((project as any).start_date as string) ?? "");
-      setLinks(Array.isArray((project as any).links) ? ((project as any).links as ProjectLink[]) : []);
+      setClientName(project.client_name ?? "");
+      setRate(String(project.rate_per_hour ?? 0));
+      setStartDate(project.start_date ?? "");
+      setLinks(Array.isArray(project.links) ? (project.links as unknown as ProjectLink[]) : []);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, project.id]);
@@ -112,8 +102,8 @@ export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
         client_name: clientName.trim() || null,
         rate_per_hour: numericRate,
         start_date: startDate ? startDate : null,
-        links: cleanedLinks as any,
-      } as any)
+        links: cleanedLinks as unknown as Project["links"],
+      })
       .eq("id", project.id)
       .select("*")
       .single();

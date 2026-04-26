@@ -37,7 +37,7 @@ interface Row {
   ticket: TimerTicket;
   // Stored and edited as whole minutes.
   minutes: number;
-  status: DisciplineStatus | null; // null for Overhead
+  status: DisciplineStatus | null; // null for Project (no per-discipline status)
   initialStatus: DisciplineStatus | null;
 }
 
@@ -66,9 +66,8 @@ export function StopGroupTimerDialog({
 
   // Round DOWN to the nearest whole minute.
   const totalMinutes = Math.max(0, Math.floor(elapsedMs / 60000));
+  // Project logs don't have a per-discipline status field.
   const isProject = active.discipline === "Project";
-  // Project (and previously Overhead) logs don't have a per-discipline status field.
-  const isOverhead = isProject;
   const disciplineKey: "fe_status" | "be_status" | null =
     active.discipline === "FE"
       ? "fe_status"
@@ -253,9 +252,7 @@ export function StopGroupTimerDialog({
                 ? "Frontend"
                 : active.discipline === "BE"
                 ? "Backend"
-                : active.discipline === "Project"
-                ? "Project"
-                : "Overhead"}
+                : "Project"}
             </span>
           </div>
         </DialogHeader>
@@ -334,7 +331,7 @@ export function StopGroupTimerDialog({
                   />
                   <span className="text-[11px] text-dimmer">min</span>
                 </div>
-                {!isOverhead && r.status && (
+                {!isProject && r.status && (
                   <Select
                     value={r.status}
                     onValueChange={(v) =>

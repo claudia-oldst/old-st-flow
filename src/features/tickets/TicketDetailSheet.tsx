@@ -21,6 +21,7 @@ import { MemberAvatar } from "@/components/MemberAvatar";
 import { DisciplineStatusChip } from "@/features/tickets/DisciplineStatusChip";
 import { RequestMoreTimeDialog } from "@/features/tickets/RequestMoreTimeDialog";
 import { useTicketEstimateChanges } from "@/features/estimates/useEstimateChanges";
+import { useTicketTimeLogs } from "@/features/timelog/useTicketTimeLogs";
 import { DISCIPLINE_STATUS_LABEL, type DisciplineStatus } from "@/lib/types";
 import {
   Select,
@@ -40,16 +41,6 @@ interface Props {
   onChange: () => void;
 }
 
-interface LogEntry {
-  id: string;
-  hours: number;
-  discipline: "FE" | "BE" | "Project";
-  note: string | null;
-  logged_at: string;
-  source: "timer" | "manual";
-  user: { name: string; avatar_color: string };
-}
-
 export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onChange }: Props) {
   const role = useProjectRole(projectId);
   const user = useCurrentUser((s) => s.user);
@@ -59,7 +50,7 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
   const [requestOpen, setRequestOpen] = useState(false);
   const [requestSlot, setRequestSlot] = useState<"FE" | "BE" | undefined>(undefined);
   const [showAllChanges, setShowAllChanges] = useState(false);
-  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const { logs, reload: reloadLogs } = useTicketTimeLogs(ticket?.id);
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState("");
   const [feEst, setFeEst] = useState("");
@@ -76,12 +67,6 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
     setProjEst(String(ticket.current_project_estimate));
     setEditing(false);
     setShowAllChanges(false);
-    supabase
-      .from("time_logs")
-      .select("id,hours,discipline,note,logged_at,source,user:team_members(name,avatar_color)")
-      .eq("ticket_id", ticket.id)
-      .order("logged_at", { ascending: false })
-      .then(({ data }) => setLogs((data as any) ?? []));
   }, [ticket]);
 
   if (!ticket) return null;
@@ -598,13 +583,7 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
           role={role}
           onLogged={() => {
             onChange();
-            // Refresh logs in panel
-            supabase
-              .from("time_logs")
-              .select("id,hours,discipline,note,logged_at,source,user:team_members(name,avatar_color)")
-              .eq("ticket_id", ticket.id)
-              .order("logged_at", { ascending: false })
-              .then(({ data }) => setLogs((data as any) ?? []));
+            reloadLogs();
           }}
         />
       )}
