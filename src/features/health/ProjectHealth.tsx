@@ -54,19 +54,23 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
       (acc, t) => {
         acc.feEst += t.current_fe_estimate;
         acc.beEst += t.current_be_estimate;
+        acc.feOrig += t.original_fe_estimate;
+        acc.beOrig += t.original_be_estimate;
         acc.feAct += t.actual_frontend_hours;
         acc.beAct += t.actual_backend_hours;
         acc.over += t.actual_overhead_hours;
         return acc;
       },
-      { feEst: 0, beEst: 0, feAct: 0, beAct: 0, over: 0 }
+      { feEst: 0, beEst: 0, feOrig: 0, beOrig: 0, feAct: 0, beAct: 0, over: 0 }
     );
   }, [tickets]);
 
   const totalEst = totals.feEst + totals.beEst;
+  const totalOrig = totals.feOrig + totals.beOrig;
   const totalAct = totals.feAct + totals.beAct;
   const overall = healthRatio(totalAct, totalEst);
   const profitabilityPct = totalEst > 0 ? Math.round((totalAct / totalEst) * 100) : 0;
+  const profitabilityOrigPct = totalOrig > 0 ? Math.round((totalAct / totalOrig) * 100) : 0;
 
   const unassignedCount = unassignedOpen.filter((t) => t.assignees.length === 0).length;
 
@@ -107,8 +111,8 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
     <div className="space-y-6">
       {/* Top row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Ring title="Frontend" actual={totals.feAct} estimate={totals.feEst} />
-        <Ring title="Backend" actual={totals.beAct} estimate={totals.beEst} />
+        <Ring title="Frontend" actual={totals.feAct} estimate={totals.feEst} original={totals.feOrig} />
+        <Ring title="Backend" actual={totals.beAct} estimate={totals.beEst} original={totals.beOrig} />
         <div className="glass rounded-2xl p-5 flex flex-col">
           <div className="text-xs uppercase tracking-wider text-dimmer mb-2">Profitability</div>
           <div className="flex items-center gap-3">
@@ -116,12 +120,21 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
             <div>
               <div className="text-2xl font-semibold font-mono ticker">{profitabilityPct}%</div>
               <div className="text-xs text-dim">of estimate burned</div>
+              {totalOrig > 0 && (
+                <div className="text-[11px] text-dimmer mt-0.5 font-mono">
+                  {profitabilityOrigPct}% <span className="font-sans">of original</span>
+                </div>
+              )}
             </div>
           </div>
-          <div className="mt-auto pt-4 grid grid-cols-2 gap-3 text-xs">
+          <div className="mt-auto pt-4 grid grid-cols-3 gap-3 text-xs">
             <div>
               <div className="text-dimmer">Total est.</div>
               <div className="font-mono">{formatHours(totalEst)}</div>
+            </div>
+            <div>
+              <div className="text-dimmer">Original</div>
+              <div className="font-mono">{totalOrig > 0 ? formatHours(totalOrig) : "—"}</div>
             </div>
             <div>
               <div className="text-dimmer">Total actual</div>
@@ -198,7 +211,7 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
   );
 }
 
-function Ring({ title, actual, estimate }: { title: string; actual: number; estimate: number }) {
+function Ring({ title, actual, estimate, original }: { title: string; actual: number; estimate: number; original: number }) {
   const ratio = estimate > 0 ? Math.min(actual / estimate, 1.5) : 0;
   const pct = Math.min(ratio * 100, 100);
   const health = healthRatio(actual, estimate);
@@ -208,9 +221,22 @@ function Ring({ title, actual, estimate }: { title: string; actual: number; esti
     health === "bad" ? "hsl(var(--health-bad))" :
     "hsl(0 0% 30%)";
 
+  const origRatio = original > 0 ? Math.min(actual / original, 1.5) : 0;
+  const origPct = Math.min(origRatio * 100, 100);
+  const origHealth = healthRatio(actual, original);
+  const origColor =
+    origHealth === "good" ? "hsl(var(--health-good))" :
+    origHealth === "warn" ? "hsl(var(--health-warn))" :
+    origHealth === "bad" ? "hsl(var(--health-bad))" :
+    "hsl(0 0% 30%)";
+
   const r = 56;
   const c = 2 * Math.PI * r;
   const dash = (pct / 100) * c;
+
+  const rInner = 38;
+  const cInner = 2 * Math.PI * rInner;
+  const dashInner = (origPct / 100) * cInner;
 
   return (
     <div className="glass rounded-2xl p-5">
@@ -228,10 +254,26 @@ function Ring({ title, actual, estimate }: { title: string; actual: number; esti
               strokeLinecap="round"
               className="transition-all"
             />
+            <circle cx="70" cy="70" r={rInner} stroke="hsl(0 0% 100% / 0.05)" strokeWidth="6" fill="none" />
+            {original > 0 && (
+              <circle
+                cx="70" cy="70" r={rInner}
+                stroke={origColor}
+                strokeWidth="6"
+                fill="none"
+                strokeDasharray={`${dashInner} ${cInner}`}
+                strokeLinecap="round"
+                opacity={0.7}
+                className="transition-all"
+              />
+            )}
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <div className="text-2xl font-semibold font-mono">{Math.round(ratio * 100)}%</div>
-            <div className="text-[10px] text-dimmer">burned</div>
+            <div className="text-2xl font-semibold font-mono leading-none">{Math.round(ratio * 100)}%</div>
+            <div className="text-[10px] text-dimmer mt-0.5">burned</div>
+            {original > 0 && (
+              <div className="text-[10px] text-dimmer font-mono mt-0.5">vs orig {Math.round(origRatio * 100)}%</div>
+            )}
           </div>
         </div>
         <div className="text-sm space-y-1">
@@ -242,6 +284,10 @@ function Ring({ title, actual, estimate }: { title: string; actual: number; esti
           <div>
             <div className="text-dimmer text-xs">Estimate</div>
             <div className="font-mono">{formatHours(estimate)}</div>
+          </div>
+          <div>
+            <div className="text-dimmer text-xs">Original</div>
+            <div className="font-mono">{original > 0 ? formatHours(original) : "—"}</div>
           </div>
         </div>
       </div>
