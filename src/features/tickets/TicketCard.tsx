@@ -116,7 +116,15 @@ export function TicketCard({
               </div>
             </div>
           )}
-          {fe.length === 0 && be.length === 0 && <span>Unassigned</span>}
+          {other.length > 0 && (
+            <div className="flex items-center gap-1">
+              <span>O</span>
+              <div className="flex -space-x-1.5">
+                {other.map((m) => <MemberAvatar key={m.id} name={m.name} color={m.avatar_color} size="xs" />)}
+              </div>
+            </div>
+          )}
+          {fe.length === 0 && be.length === 0 && other.length === 0 && <span>Unassigned</span>}
         </div>
       </div>
     </div>
