@@ -383,9 +383,9 @@ export function StopGroupTimerDialog({
             disabled={
               busy ||
               rows.length === 0 ||
-              Math.abs(remainingSeconds) > 2 ||
-              totalSeconds === 0 ||
-              rows.every((r) => r.seconds === 0)
+              remainingMinutes !== 0 ||
+              totalMinutes === 0 ||
+              rows.every((r) => r.minutes === 0)
             }
           >
             Save logs
