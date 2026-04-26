@@ -171,7 +171,26 @@ export function StartGroupTimerDialog({ open, onOpenChange, tickets, role }: Pro
   };
 
   const disciplineLabel =
-    discipline === "FE" ? "Frontend" : discipline === "BE" ? "Backend" : "Overhead";
+    discipline === "FE"
+      ? "Frontend"
+      : discipline === "BE"
+      ? "Backend"
+      : discipline === "Project"
+      ? "Project"
+      : "Overhead";
+
+  // Build the discipline picker options based on role + assignments.
+  const disciplineOptions: { value: LogDiscipline; label: string }[] = [];
+  if (!isOverhead) {
+    if (role === "Fullstack") {
+      disciplineOptions.push({ value: "FE", label: "Frontend" }, { value: "BE", label: "Backend" });
+    } else if (role === "Frontend") {
+      disciplineOptions.push({ value: "FE", label: "Frontend" });
+    } else if (role === "Backend") {
+      disciplineOptions.push({ value: "BE", label: "Backend" });
+    }
+  }
+  if (hasProjAssignments) disciplineOptions.push({ value: "Project", label: "Project" });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -190,29 +209,29 @@ export function StartGroupTimerDialog({ open, onOpenChange, tickets, role }: Pro
         )}
 
         {/* Discipline */}
-        {isOverhead ? (
+        {isOverhead && !hasProjAssignments ? (
           <div className="text-xs text-dim">
             Logging to project <span className="text-foreground font-medium">overhead</span> hours.
           </div>
-        ) : role === "Fullstack" ? (
+        ) : disciplineOptions.length > 1 ? (
           <div className="space-y-1.5">
             <div className="text-xs uppercase tracking-wider text-dimmer">Discipline</div>
             <div className="flex gap-1 p-1 rounded-lg bg-white/5 hairline w-fit">
-              {(["FE", "BE"] as const).map((d) => (
+              {disciplineOptions.map((d) => (
                 <button
-                  key={d}
+                  key={d.value}
                   onClick={() => {
-                    setDiscipline(d);
+                    setDiscipline(d.value);
                     setSelected(new Set());
                   }}
                   className={cn(
                     "px-3 py-1 text-xs rounded-md transition",
-                    discipline === d
+                    discipline === d.value
                       ? "bg-foreground text-background"
                       : "text-dim hover:text-foreground"
                   )}
                 >
-                  {d === "FE" ? "Frontend" : "Backend"}
+                  {d.label}
                 </button>
               ))}
             </div>
