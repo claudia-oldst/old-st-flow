@@ -46,13 +46,13 @@ function TimerChip() {
 
   return (
     <>
-      <TooltipProvider delayDuration={200}>
+      <TooltipProvider delayDuration={150}>
         <Tooltip>
           <TooltipTrigger asChild>
             <button
               onClick={() => setStopOpen(true)}
               className="group inline-flex items-center gap-2 rounded-full bg-accent/15 px-3 py-1.5 text-sm hairline hover:bg-accent/25 transition"
-              title="Stop timer and log hours"
+              aria-label="Stop timer and log hours"
             >
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-pulse-soft rounded-full bg-accent opacity-75" />
@@ -69,7 +69,17 @@ function TimerChip() {
             </button>
           </TooltipTrigger>
           <TooltipContent side="bottom" className="max-w-xs">
-            <div className="text-xs font-mono break-words">{fullList}</div>
+            <div className="text-[10px] uppercase tracking-wider text-dimmer mb-1">
+              {sorted.length === 1 ? "Logging time on" : `Logging time on ${sorted.length} tickets`}
+            </div>
+            <div className="text-xs font-mono space-y-0.5">
+              {sorted.map((t) => (
+                <div key={t.id}>{t.formatted_id}</div>
+              ))}
+            </div>
+            <div className="mt-2 pt-2 border-t border-white/10 text-[10px] text-dimmer">
+              Click to stop & log
+            </div>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
