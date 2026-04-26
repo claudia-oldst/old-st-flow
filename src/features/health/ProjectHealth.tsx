@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useProjectTickets } from "@/features/tickets/useProjectTickets";
 import { useStatuses } from "@/features/statuses/useStatuses";
@@ -6,12 +7,14 @@ import { formatHours, healthRatio } from "@/lib/utils";
 import { MemberAvatar } from "@/components/MemberAvatar";
 import { TrendingUp, AlertTriangle, CheckCircle2, Activity } from "lucide-react";
 import { EstimateEvolution } from "@/features/health/EstimateEvolution";
+import { DateRangeControl, defaultRange, type DateRange } from "@/features/health/DateRangeControl";
 
 export function ProjectHealth({ projectId }: { projectId: string }) {
   const { tickets } = useProjectTickets(projectId);
   const { statuses } = useStatuses();
   const [members, setMembers] = useState<{ user_id: string; role: string; member: { id: string; name: string; avatar_color: string } }[]>([]);
   const [weekHours, setWeekHours] = useState<Record<string, number>>({});
+  const [range, setRange] = useState<DateRange>(() => defaultRange());
 
   useEffect(() => {
     supabase
@@ -19,9 +22,9 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
       .select("user_id,role,member:team_members(id,name,avatar_color)")
       .eq("project_id", projectId)
       .then(({ data }) => setMembers((data as any) ?? []));
+  }, [projectId]);
 
-    const since = new Date();
-    since.setDate(since.getDate() - 7);
+  useEffect(() => {
     const ticketIds = tickets.map((t) => t.id);
     if (ticketIds.length === 0) {
       setWeekHours({});
@@ -31,7 +34,8 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
       .from("time_logs")
       .select("user_id,hours")
       .in("ticket_id", ticketIds)
-      .gte("logged_at", since.toISOString())
+      .gte("logged_at", range.from.toISOString())
+      .lte("logged_at", range.to.toISOString())
       .then(({ data }) => {
         const map: Record<string, number> = {};
         data?.forEach((l) => {
@@ -39,7 +43,7 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
         });
         setWeekHours(map);
       });
-  }, [projectId, tickets]);
+  }, [projectId, tickets, range.from, range.to]);
 
   const openTickets = useMemo(() => {
     const doneIds = new Set(statuses.filter((s) => s.category === "done").map((s) => s.id));
@@ -89,12 +93,17 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
     return map;
   }, [tickets, members]);
 
-  // Sum of remaining hours per member, scoped to their slot, only for active (non-done) slots.
+  // Sum of remaining hours per member, scoped to their slot, only for active (non-done) slots
+  // AND only counting assignments whose assignee row was created within the selected range.
   const remainingByMember = useMemo(() => {
     const map: Record<string, number> = {};
     members.forEach((m) => (map[m.user_id] = 0));
+    const fromMs = range.from.getTime();
+    const toMs = range.to.getTime();
     tickets.forEach((t) => {
       t.assignees.forEach((a) => {
+        const created = a.created_at ? new Date(a.created_at).getTime() : 0;
+        if (created < fromMs || created > toMs) return;
         if (a.slot === "FE" && t.fe_status !== "done") {
           const remaining = Math.max(0, t.current_fe_estimate - t.actual_frontend_hours);
           map[a.user_id] = (map[a.user_id] ?? 0) + remaining;
@@ -105,7 +114,7 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
       });
     });
     return map;
-  }, [tickets, members]);
+  }, [tickets, members, range.from, range.to]);
 
   return (
     <div className="space-y-6">
@@ -147,8 +156,14 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
       {/* Second row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="glass rounded-2xl p-5 md:col-span-2">
-          <div className="mb-3">
-            <div className="text-xs uppercase tracking-wider text-dimmer">Member capacity</div>
+          <div className="mb-3 flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <div className="text-xs uppercase tracking-wider text-dimmer">Member capacity</div>
+              <div className="text-[10px] text-dimmer mt-0.5">
+                Assigned & Logged scoped to {format(range.from, "MMM d")} – {format(range.to, "MMM d, yyyy")}
+              </div>
+            </div>
+            <DateRangeControl value={range} onChange={setRange} />
           </div>
           {members.length === 0 ? (
             <div className="text-sm text-dim">No members yet.</div>
@@ -170,13 +185,13 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
                       <div className="text-sm">{m.member.name}</div>
                       <div className="text-[10px] text-dimmer">{m.role}</div>
                     </div>
-                    <div className="text-xs font-mono text-dim w-14 text-right" title="Open tickets assigned to this member">
+                    <div className="text-xs font-mono text-dim w-14 text-right" title="Open tickets currently assigned to this member (not date-filtered)">
                       <span className="text-foreground">{ticketsByMember[m.user_id] ?? 0}</span>
                     </div>
-                    <div className="text-xs font-mono text-dim w-20 text-right" title="Remaining hours on assigned active tickets">
+                    <div className="text-xs font-mono text-dim w-20 text-right" title="Remaining hours on active tickets assigned within the selected period">
                       <span className="text-foreground">{formatHours(remainingByMember[m.user_id] ?? 0)}</span>
                     </div>
-                    <div className="text-xs font-mono text-dim w-16 text-right" title="Hours logged in the last 7 days">
+                    <div className="text-xs font-mono text-dim w-16 text-right" title="Hours logged within the selected period">
                       {formatHours(weekHours[m.user_id] ?? 0)}
                     </div>
                   </div>
