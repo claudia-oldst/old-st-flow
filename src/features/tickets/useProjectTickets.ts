@@ -83,7 +83,7 @@ export function useProjectTickets(projectId: string | undefined) {
         current_project_estimate: Number(t.current_project_estimate ?? 0),
         actual_frontend_hours: Number(t.actual_frontend_hours),
         actual_backend_hours: Number(t.actual_backend_hours),
-        actual_overhead_hours: Number(t.actual_overhead_hours),
+        
         actual_project_hours: Number(t.actual_project_hours ?? 0),
         position: t.position,
         created_at: t.created_at,
