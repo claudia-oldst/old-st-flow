@@ -28,32 +28,41 @@ export function QuickAddRow({
   const [type, setType] = useState<TicketType>("Standard");
   const [fe, setFe] = useState("");
   const [be, setBe] = useState("");
+  const [proj, setProj] = useState("");
   const [epicId, setEpicId] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const isProj = type === "Proj";
 
   const submit = async () => {
     const t = title.trim();
     if (!t) return;
     setBusy(true);
+    const projHrs = parseFloat(proj) || 0;
+    const feHrs = parseFloat(fe) || 0;
+    const beHrs = parseFloat(be) || 0;
     const { error } = await supabase.from("tickets").insert({
       project_id: projectId,
       title: t,
       ticket_type: type,
       status_id: statusId,
       epic_id: epicId,
-      original_fe_estimate: parseFloat(fe) || 0,
-      original_be_estimate: parseFloat(be) || 0,
-      current_fe_estimate: parseFloat(fe) || 0,
-      current_be_estimate: parseFloat(be) || 0,
+      original_fe_estimate: isProj ? 0 : feHrs,
+      original_be_estimate: isProj ? 0 : beHrs,
+      current_fe_estimate: isProj ? 0 : feHrs,
+      current_be_estimate: isProj ? 0 : beHrs,
+      original_project_estimate: isProj ? projHrs : 0,
+      current_project_estimate: isProj ? projHrs : 0,
       // ticket_number + formatted_id are filled by the before-insert trigger
       ticket_number: 0,
       formatted_id: "",
-    });
+    } as any);
     setBusy(false);
     if (error) return toast.error(error.message);
     setTitle("");
     setFe("");
     setBe("");
+    setProj("");
     setType("Standard");
     setEpicId(null);
     onCreated();
@@ -88,10 +97,17 @@ export function QuickAddRow({
             <SelectItem value="Standard">Standard</SelectItem>
             <SelectItem value="Bug">Bug</SelectItem>
             <SelectItem value="CR">CR</SelectItem>
+            <SelectItem value="Proj">Proj</SelectItem>
           </SelectContent>
         </Select>
-        <Input value={fe} onChange={(e) => setFe(e.target.value)} placeholder="FE" className="h-7 text-xs w-12" type="number" step="0.5" />
-        <Input value={be} onChange={(e) => setBe(e.target.value)} placeholder="BE" className="h-7 text-xs w-12" type="number" step="0.5" />
+        {isProj ? (
+          <Input value={proj} onChange={(e) => setProj(e.target.value)} placeholder="Project hrs" className="h-7 text-xs w-24" type="number" step="0.5" />
+        ) : (
+          <>
+            <Input value={fe} onChange={(e) => setFe(e.target.value)} placeholder="FE" className="h-7 text-xs w-12" type="number" step="0.5" />
+            <Input value={be} onChange={(e) => setBe(e.target.value)} placeholder="BE" className="h-7 text-xs w-12" type="number" step="0.5" />
+          </>
+        )}
       </div>
       <EpicSelect projectId={projectId} value={epicId} onChange={setEpicId} size="sm" />
       <div className="flex justify-end gap-1">

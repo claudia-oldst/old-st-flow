@@ -14,22 +14,26 @@ import { Check, Users } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-type Slot = "FE" | "BE" | "Other";
+type Slot = "FE" | "BE" | "Other" | "Project";
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   ticketId: string;
   projectId: string;
+  /** Type of the ticket — drives which slot pickers are shown. */
+  ticketType?: "Standard" | "Bug" | "CR" | "Proj";
   current: Array<{ user_id: string; slot: Slot }>;
   onSaved: () => void;
 }
 
-export function AssignDialog({ open, onOpenChange, ticketId, projectId, current, onSaved }: Props) {
+export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketType = "Standard", current, onSaved }: Props) {
+  const isProj = ticketType === "Proj";
   const [members, setMembers] = useState<(ProjectMember & { member: TeamMember })[]>([]);
   const [feUserIds, setFeUserIds] = useState<Set<string>>(new Set());
   const [beUserIds, setBeUserIds] = useState<Set<string>>(new Set());
   const [otherUserIds, setOtherUserIds] = useState<Set<string>>(new Set());
+  const [projectUserIds, setProjectUserIds] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -37,6 +41,7 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, current,
     setFeUserIds(new Set(current.filter((c) => c.slot === "FE").map((c) => c.user_id)));
     setBeUserIds(new Set(current.filter((c) => c.slot === "BE").map((c) => c.user_id)));
     setOtherUserIds(new Set(current.filter((c) => c.slot === "Other").map((c) => c.user_id)));
+    setProjectUserIds(new Set(current.filter((c) => c.slot === "Project").map((c) => c.user_id)));
     supabase
       .from("project_members")
       .select("*, member:team_members(*)")
@@ -46,8 +51,7 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, current,
 
   const feEligible = members.filter((m) => m.role === "Frontend" || m.role === "Fullstack");
   const beEligible = members.filter((m) => m.role === "Backend" || m.role === "Fullstack");
-  // Other slot accepts anyone on the project — handy for QA, PMBA, Designers, or
-  // a dev who wants to be looped in outside their primary discipline.
+  // Other / Project slots accept anyone on the project.
   const otherEligible = members;
 
   const toggle = (set: Set<string>, setter: (s: Set<string>) => void, id: string) => {
@@ -62,9 +66,13 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, current,
     // Replace all assignees for this ticket
     await supabase.from("ticket_assignees").delete().eq("ticket_id", ticketId);
     const rows: { ticket_id: string; user_id: string; slot: Slot }[] = [];
-    feUserIds.forEach((uid) => rows.push({ ticket_id: ticketId, user_id: uid, slot: "FE" }));
-    beUserIds.forEach((uid) => rows.push({ ticket_id: ticketId, user_id: uid, slot: "BE" }));
-    otherUserIds.forEach((uid) => rows.push({ ticket_id: ticketId, user_id: uid, slot: "Other" }));
+    if (isProj) {
+      projectUserIds.forEach((uid) => rows.push({ ticket_id: ticketId, user_id: uid, slot: "Project" }));
+    } else {
+      feUserIds.forEach((uid) => rows.push({ ticket_id: ticketId, user_id: uid, slot: "FE" }));
+      beUserIds.forEach((uid) => rows.push({ ticket_id: ticketId, user_id: uid, slot: "BE" }));
+      otherUserIds.forEach((uid) => rows.push({ ticket_id: ticketId, user_id: uid, slot: "Other" }));
+    }
     if (rows.length) {
       const { error } = await supabase.from("ticket_assignees").insert(rows);
       if (error) {
@@ -73,15 +81,17 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, current,
         return;
       }
     }
-    // If a slot lost its last assignee in this save, reset that slot's status to "todo"
-    // so an unassigned slot can't keep influencing the auto-derived project status.
-    const hadFE = current.some((c) => c.slot === "FE");
-    const hadBE = current.some((c) => c.slot === "BE");
-    const patch: { fe_status?: "todo"; be_status?: "todo" } = {};
-    if (hadFE && feUserIds.size === 0) patch.fe_status = "todo";
-    if (hadBE && beUserIds.size === 0) patch.be_status = "todo";
-    if (Object.keys(patch).length) {
-      await supabase.from("tickets").update(patch).eq("id", ticketId);
+    if (!isProj) {
+      // If a slot lost its last assignee in this save, reset that slot's status to "todo"
+      // so an unassigned slot can't keep influencing the auto-derived project status.
+      const hadFE = current.some((c) => c.slot === "FE");
+      const hadBE = current.some((c) => c.slot === "BE");
+      const patch: { fe_status?: "todo"; be_status?: "todo" } = {};
+      if (hadFE && feUserIds.size === 0) patch.fe_status = "todo";
+      if (hadBE && beUserIds.size === 0) patch.be_status = "todo";
+      if (Object.keys(patch).length) {
+        await supabase.from("tickets").update(patch).eq("id", ticketId);
+      }
     }
     setBusy(false);
     toast.success("Assignees updated");
@@ -99,28 +109,41 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, current,
         </DialogHeader>
 
         <div className="space-y-6 pt-2 max-h-[60vh] overflow-y-auto">
-          <SlotPicker
-            label="Frontend"
-            description="Drives FE estimates, status & timer."
-            members={feEligible}
-            selected={feUserIds}
-            onToggle={(id) => toggle(feUserIds, setFeUserIds, id)}
-          />
-          <SlotPicker
-            label="Backend"
-            description="Drives BE estimates, status & timer."
-            members={beEligible}
-            selected={beUserIds}
-            onToggle={(id) => toggle(beUserIds, setBeUserIds, id)}
-          />
-          <SlotPicker
-            label="Other contributors"
-            description="QA, PMBA, Design — anyone else involved. Time logged here goes to project Overhead."
-            members={otherEligible}
-            selected={otherUserIds}
-            onToggle={(id) => toggle(otherUserIds, setOtherUserIds, id)}
-            showRole
-          />
+          {isProj ? (
+            <SlotPicker
+              label="Team members"
+              description="Anyone assigned can log time to this ticket's shared project estimate."
+              members={otherEligible}
+              selected={projectUserIds}
+              onToggle={(id) => toggle(projectUserIds, setProjectUserIds, id)}
+              showRole
+            />
+          ) : (
+            <>
+              <SlotPicker
+                label="Frontend"
+                description="Drives FE estimates, status & timer."
+                members={feEligible}
+                selected={feUserIds}
+                onToggle={(id) => toggle(feUserIds, setFeUserIds, id)}
+              />
+              <SlotPicker
+                label="Backend"
+                description="Drives BE estimates, status & timer."
+                members={beEligible}
+                selected={beUserIds}
+                onToggle={(id) => toggle(beUserIds, setBeUserIds, id)}
+              />
+              <SlotPicker
+                label="Other contributors"
+                description="QA, PMBA, Design — anyone else involved. Time logged here goes to project Overhead."
+                members={otherEligible}
+                selected={otherUserIds}
+                onToggle={(id) => toggle(otherUserIds, setOtherUserIds, id)}
+                showRole
+              />
+            </>
+          )}
         </div>
 
         <DialogFooter>

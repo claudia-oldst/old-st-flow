@@ -8,7 +8,7 @@ export interface TicketRow {
   ticket_number: number;
   formatted_id: string;
   title: string;
-  ticket_type: "Standard" | "Bug" | "CR";
+  ticket_type: "Standard" | "Bug" | "CR" | "Proj";
   status_id: string | null;
   fe_status: DisciplineStatus;
   be_status: DisciplineStatus;
@@ -20,12 +20,15 @@ export interface TicketRow {
   original_be_estimate: number;
   current_fe_estimate: number;
   current_be_estimate: number;
+  original_project_estimate: number;
+  current_project_estimate: number;
   actual_frontend_hours: number;
   actual_backend_hours: number;
   actual_overhead_hours: number;
+  actual_project_hours: number;
   position: number;
   created_at: string;
-  assignees: Array<{ user_id: string; slot: "FE" | "BE" | "Other"; member: TeamMember; created_at: string }>;
+  assignees: Array<{ user_id: string; slot: "FE" | "BE" | "Other" | "Project"; member: TeamMember; created_at: string }>;
 }
 
 export function useProjectTickets(projectId: string | undefined) {
@@ -77,9 +80,12 @@ export function useProjectTickets(projectId: string | undefined) {
         original_be_estimate: Number(t.original_be_estimate),
         current_fe_estimate: Number(t.current_fe_estimate),
         current_be_estimate: Number(t.current_be_estimate),
+        original_project_estimate: Number(t.original_project_estimate ?? 0),
+        current_project_estimate: Number(t.current_project_estimate ?? 0),
         actual_frontend_hours: Number(t.actual_frontend_hours),
         actual_backend_hours: Number(t.actual_backend_hours),
         actual_overhead_hours: Number(t.actual_overhead_hours),
+        actual_project_hours: Number(t.actual_project_hours ?? 0),
         position: t.position,
         created_at: t.created_at,
         assignees: grouped[t.id] ?? [],

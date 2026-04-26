@@ -43,7 +43,7 @@ interface Props {
 interface LogEntry {
   id: string;
   hours: number;
-  discipline: "FE" | "BE" | "Overhead";
+  discipline: "FE" | "BE" | "Overhead" | "Project";
   note: string | null;
   logged_at: string;
   source: "timer" | "manual";
@@ -64,6 +64,7 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
   const [title, setTitle] = useState("");
   const [feEst, setFeEst] = useState("");
   const [beEst, setBeEst] = useState("");
+  const [projEst, setProjEst] = useState("");
   const { changes: estimateChanges, reload: reloadChanges } =
     useTicketEstimateChanges(ticket?.id);
 
@@ -72,6 +73,7 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
     setTitle(ticket.title);
     setFeEst(String(ticket.current_fe_estimate));
     setBeEst(String(ticket.current_be_estimate));
+    setProjEst(String(ticket.current_project_estimate));
     setEditing(false);
     setShowAllChanges(false);
     supabase
@@ -84,16 +86,19 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
 
   if (!ticket) return null;
 
+  const isProj = ticket.ticket_type === "Proj";
   const status = statuses.find((s) => s.id === ticket.status_id);
   const isMine = !!user && ticket.assignees.some((a) => a.user_id === user.id);
   const canLog = isMine || isPMBA(role);
   const myFE = !!user && ticket.assignees.some((a) => a.user_id === user.id && a.slot === "FE");
   const myBE = !!user && ticket.assignees.some((a) => a.user_id === user.id && a.slot === "BE");
   // A discipline only "exists" on a ticket once someone is assigned for that role.
-  const hasFE = ticket.assignees.some((a) => a.slot === "FE");
-  const hasBE = ticket.assignees.some((a) => a.slot === "BE");
+  const hasFE = !isProj && ticket.assignees.some((a) => a.slot === "FE");
+  const hasBE = !isProj && ticket.assignees.some((a) => a.slot === "BE");
   const canEditFE = hasFE && (isPMBA(role) || myFE);
   const canEditBE = hasBE && (isPMBA(role) || myBE);
+  // Proj tickets: anyone assigned (or PMBA) can edit the shared estimate.
+  const canEditProj = isProj && (isPMBA(role) || isMine);
 
   const updateDiscipline = async (slot: "FE" | "BE", value: DisciplineStatus) => {
     const patch = slot === "FE" ? { fe_status: value } : { be_status: value };
@@ -126,22 +131,27 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
   const handleSaveEdit = async () => {
     const fe = parseFloat(feEst) || 0;
     const be = parseFloat(beEst) || 0;
+    const pj = parseFloat(projEst) || 0;
     const prevFE = ticket.current_fe_estimate;
     const prevBE = ticket.current_be_estimate;
+    const prevProj = ticket.current_project_estimate;
 
+    const patch: any = { title: title.trim() };
+    if (isProj) {
+      patch.current_project_estimate = pj;
+    } else {
+      patch.current_fe_estimate = fe;
+      patch.current_be_estimate = be;
+    }
     const { error } = await supabase
       .from("tickets")
-      .update({
-        title: title.trim(),
-        current_fe_estimate: fe,
-        current_be_estimate: be,
-      })
+      .update(patch)
       .eq("id", ticket.id);
     if (error) return toast.error(error.message);
 
     // Log changes for any discipline that actually moved.
     const audit: any[] = [];
-    if (fe !== prevFE) {
+    if (!isProj && fe !== prevFE) {
       audit.push({
         ticket_id: ticket.id,
         user_id: user?.id,
@@ -154,13 +164,26 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
         decided_at: new Date().toISOString(),
       });
     }
-    if (be !== prevBE) {
+    if (!isProj && be !== prevBE) {
       audit.push({
         ticket_id: ticket.id,
         user_id: user?.id,
         discipline: "BE",
         previous_hours: prevBE,
         new_hours: be,
+        reason: "PMBA edit",
+        status: "approved",
+        decided_by: user?.id,
+        decided_at: new Date().toISOString(),
+      });
+    }
+    if (isProj && pj !== prevProj) {
+      audit.push({
+        ticket_id: ticket.id,
+        user_id: user?.id,
+        discipline: "Project",
+        previous_hours: prevProj,
+        new_hours: pj,
         reason: "PMBA edit",
         status: "approved",
         decided_by: user?.id,
@@ -277,32 +300,38 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
             <div className="space-y-3">
               <div className="text-xs uppercase tracking-wider text-dimmer">Status</div>
 
-              <div className="rounded-xl hairline bg-white/[0.02] p-3 space-y-2.5">
-                <div className="flex items-center gap-2 text-[11px] text-dimmer uppercase tracking-wider">
-                  Discipline
+              {!isProj && (
+                <div className="rounded-xl hairline bg-white/[0.02] p-3 space-y-2.5">
+                  <div className="flex items-center gap-2 text-[11px] text-dimmer uppercase tracking-wider">
+                    Discipline
+                  </div>
+                  <DisciplineRow
+                    slot="FE"
+                    value={ticket.fe_status}
+                    canEdit={canEditFE}
+                    hasAssignee={hasFE}
+                    onAssign={isPMBA(role) ? () => setAssignOpen(true) : undefined}
+                    onChange={(v) => updateDiscipline("FE", v)}
+                  />
+                  <DisciplineRow
+                    slot="BE"
+                    value={ticket.be_status}
+                    canEdit={canEditBE}
+                    hasAssignee={hasBE}
+                    onAssign={isPMBA(role) ? () => setAssignOpen(true) : undefined}
+                    onChange={(v) => updateDiscipline("BE", v)}
+                  />
                 </div>
-                <DisciplineRow
-                  slot="FE"
-                  value={ticket.fe_status}
-                  canEdit={canEditFE}
-                  hasAssignee={hasFE}
-                  onAssign={isPMBA(role) ? () => setAssignOpen(true) : undefined}
-                  onChange={(v) => updateDiscipline("FE", v)}
-                />
-                <DisciplineRow
-                  slot="BE"
-                  value={ticket.be_status}
-                  canEdit={canEditBE}
-                  hasAssignee={hasBE}
-                  onAssign={isPMBA(role) ? () => setAssignOpen(true) : undefined}
-                  onChange={(v) => updateDiscipline("BE", v)}
-                />
-              </div>
+              )}
 
               <div className="rounded-xl hairline bg-white/[0.02] p-3 space-y-2.5">
                 <div className="flex items-center justify-between gap-2">
                   <div className="text-[11px] text-dimmer uppercase tracking-wider">Project status</div>
-                  {ticket.project_status_override ? (
+                  {isProj ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] text-dim">
+                      <Pin className="h-2.5 w-2.5" /> Manual
+                    </span>
+                  ) : ticket.project_status_override ? (
                     <span className="inline-flex items-center gap-1 text-[10px] text-amber-300/80">
                       <Pin className="h-2.5 w-2.5" /> Manual override
                     </span>
@@ -351,7 +380,7 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
               <div className="flex items-center justify-between mb-2">
                 <div className="text-xs uppercase tracking-wider text-dimmer">Estimates & actuals</div>
                 <div className="flex items-center gap-1">
-                  {!editing && (canEditFE || canEditBE) && (
+                  {!editing && !isProj && (canEditFE || canEditBE) && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -367,7 +396,7 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
                       <TrendingUp className="h-3 w-3" /> Request more time
                     </Button>
                   )}
-                  {isPMBA(role) && !editing && (
+                  {(isPMBA(role) || (isProj && canEditProj)) && !editing && (
                     <Button variant="ghost" size="sm" onClick={() => setEditing(true)} className="gap-1 text-xs">
                       <Edit3 className="h-3 w-3" /> Edit
                     </Button>
@@ -375,22 +404,43 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
                 </div>
               </div>
               {editing ? (
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs">FE estimate (hrs)</Label>
-                    <Input type="number" step="0.5" value={feEst} onChange={(e) => setFeEst(e.target.value)} />
-                    <div className="text-[10px] text-dimmer">Original: {formatHours(ticket.original_fe_estimate)}</div>
+                isProj ? (
+                  <div className="grid grid-cols-1 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Project estimate (hrs)</Label>
+                      <Input type="number" step="0.5" value={projEst} onChange={(e) => setProjEst(e.target.value)} />
+                      <div className="text-[10px] text-dimmer">Original: {formatHours(ticket.original_project_estimate)}</div>
+                    </div>
+                    <div className="flex gap-2 justify-end">
+                      <Button variant="ghost" size="sm" onClick={() => setEditing(false)}>Cancel</Button>
+                      <Button size="sm" onClick={handleSaveEdit}>Save</Button>
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">BE estimate (hrs)</Label>
-                    <Input type="number" step="0.5" value={beEst} onChange={(e) => setBeEst(e.target.value)} />
-                    <div className="text-[10px] text-dimmer">Original: {formatHours(ticket.original_be_estimate)}</div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">FE estimate (hrs)</Label>
+                      <Input type="number" step="0.5" value={feEst} onChange={(e) => setFeEst(e.target.value)} />
+                      <div className="text-[10px] text-dimmer">Original: {formatHours(ticket.original_fe_estimate)}</div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">BE estimate (hrs)</Label>
+                      <Input type="number" step="0.5" value={beEst} onChange={(e) => setBeEst(e.target.value)} />
+                      <div className="text-[10px] text-dimmer">Original: {formatHours(ticket.original_be_estimate)}</div>
+                    </div>
+                    <div className="col-span-2 flex gap-2 justify-end">
+                      <Button variant="ghost" size="sm" onClick={() => setEditing(false)}>Cancel</Button>
+                      <Button size="sm" onClick={handleSaveEdit}>Save</Button>
+                    </div>
                   </div>
-                  <div className="col-span-2 flex gap-2 justify-end">
-                    <Button variant="ghost" size="sm" onClick={() => setEditing(false)}>Cancel</Button>
-                    <Button size="sm" onClick={handleSaveEdit}>Save</Button>
-                  </div>
-                </div>
+                )
+              ) : isProj ? (
+                <Stat
+                  label="Project"
+                  actual={ticket.actual_project_hours}
+                  estimate={ticket.current_project_estimate}
+                  original={ticket.original_project_estimate}
+                />
               ) : (
                 <div className="grid grid-cols-2 gap-3">
                   <Stat
@@ -407,7 +457,7 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
                   />
                 </div>
               )}
-              {ticket.actual_overhead_hours > 0 && (
+              {!isProj && ticket.actual_overhead_hours > 0 && (
                 <div className="mt-3 text-xs text-dim">
                   Overhead logged: <span className="text-foreground font-mono">{formatHours(ticket.actual_overhead_hours)}</span>
                 </div>
@@ -469,10 +519,16 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
                   </Button>
                 )}
               </div>
-              <AssigneeBlock label="Frontend" assignees={ticket.assignees.filter(a => a.slot === "FE")} />
-              <AssigneeBlock label="Backend" assignees={ticket.assignees.filter(a => a.slot === "BE")} />
-              {ticket.assignees.some((a) => a.slot === "Other") && (
-                <AssigneeBlock label="Other" assignees={ticket.assignees.filter(a => a.slot === "Other")} />
+              {isProj ? (
+                <AssigneeBlock label="Members" assignees={ticket.assignees.filter(a => a.slot === "Project")} />
+              ) : (
+                <>
+                  <AssigneeBlock label="Frontend" assignees={ticket.assignees.filter(a => a.slot === "FE")} />
+                  <AssigneeBlock label="Backend" assignees={ticket.assignees.filter(a => a.slot === "BE")} />
+                  {ticket.assignees.some((a) => a.slot === "Other") && (
+                    <AssigneeBlock label="Other" assignees={ticket.assignees.filter(a => a.slot === "Other")} />
+                  )}
+                </>
               )}
             </div>
 

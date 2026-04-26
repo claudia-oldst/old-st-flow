@@ -32,6 +32,8 @@ export function LogTimeModal({ open, onOpenChange, ticket, role, onLogged }: Pro
   const user = useCurrentUser((s) => s.user);
   const activeTimer = useTimerStore((s) => s.active);
 
+  const isProjTicket = ticket.ticket_type === "Proj";
+
   // Determine which discipline buckets the user can log to
   const canFE = role === "Frontend" || role === "Fullstack";
   const canBE = role === "Backend" || role === "Fullstack";
@@ -40,11 +42,12 @@ export function LogTimeModal({ open, onOpenChange, ticket, role, onLogged }: Pro
   const mySlotsOnTicket = user
     ? ticket.assignees.filter((a) => a.user_id === user.id).map((a) => a.slot)
     : [];
-  const onlyOtherSlot = mySlotsOnTicket.length > 0 && mySlotsOnTicket.every((s) => s === "Other");
-  const isOverhead = role === "QA" || role === "PMBA" || role === "Design" || onlyOtherSlot;
+  const onlyOtherSlot = !isProjTicket && mySlotsOnTicket.length > 0 && mySlotsOnTicket.every((s) => s === "Other");
+  const isOverhead = !isProjTicket && (role === "QA" || role === "PMBA" || role === "Design" || onlyOtherSlot);
 
-  // Default discipline based on role + assignment
+  // Default discipline based on ticket type, role + assignment
   const defaultDiscipline: LogDiscipline = (() => {
+    if (isProjTicket) return "Project";
     if (isOverhead) return "Overhead";
     if (role === "Frontend") return "FE";
     if (role === "Backend") return "BE";
@@ -144,7 +147,11 @@ export function LogTimeModal({ open, onOpenChange, ticket, role, onLogged }: Pro
           </div>
         </DialogHeader>
 
-        {!isOverhead && role === "Fullstack" && (
+        {isProjTicket ? (
+          <div className="text-xs text-dim">
+            Logging to the shared <span className="text-foreground font-medium">Project</span> estimate.
+          </div>
+        ) : !isOverhead && role === "Fullstack" ? (
           <div className="flex gap-1 p-1 rounded-lg bg-white/5 hairline w-fit">
             {(["FE", "BE"] as const).map((d) => (
               <button
@@ -159,13 +166,11 @@ export function LogTimeModal({ open, onOpenChange, ticket, role, onLogged }: Pro
               </button>
             ))}
           </div>
-        )}
-        {!isOverhead && role !== "Fullstack" && (
+        ) : !isOverhead && role !== "Fullstack" ? (
           <div className="text-xs text-dim">
             Logging to <span className="text-foreground font-medium">{discipline === "FE" ? "Frontend" : "Backend"}</span> hours.
           </div>
-        )}
-        {isOverhead && (
+        ) : (
           <div className="text-xs text-dim">
             Logging to project <span className="text-foreground font-medium">overhead</span> hours.
           </div>
