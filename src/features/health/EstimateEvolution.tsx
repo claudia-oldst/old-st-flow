@@ -10,7 +10,8 @@ import {
   Legend,
   CartesianGrid,
 } from "recharts";
-import { CalendarIcon, TrendingUp } from "lucide-react";
+import { CalendarIcon, ChevronDown, TrendingUp } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
