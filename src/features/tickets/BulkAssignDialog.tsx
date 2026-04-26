@@ -87,7 +87,9 @@ export function BulkAssignDialog({
     setter(next);
   };
 
-  const totalPicked = feUserIds.size + beUserIds.size + otherUserIds.size;
+  const totalPicked = feUserIds.size + beUserIds.size + otherUserIds.size + projectUserIds.size;
+  const hasProj = projTicketIds.size > 0;
+  const hasStandard = standardTicketIds.size > 0;
 
   const handleSave = async () => {
     if (ticketIds.length === 0) return;
@@ -107,11 +109,16 @@ export function BulkAssignDialog({
       }
     }
 
-    let rows: { ticket_id: string; user_id: string; slot: "FE" | "BE" | "Other" }[] = [];
-    ticketIds.forEach((tid) => {
+    let rows: { ticket_id: string; user_id: string; slot: "FE" | "BE" | "Other" | "Project" }[] = [];
+    // Standard / Bug / CR tickets: FE / BE / Other slots only.
+    standardTicketIds.forEach((tid) => {
       feUserIds.forEach((uid) => rows.push({ ticket_id: tid, user_id: uid, slot: "FE" }));
       beUserIds.forEach((uid) => rows.push({ ticket_id: tid, user_id: uid, slot: "BE" }));
       otherUserIds.forEach((uid) => rows.push({ ticket_id: tid, user_id: uid, slot: "Other" }));
+    });
+    // Proj tickets: Project slot only.
+    projTicketIds.forEach((tid) => {
+      projectUserIds.forEach((uid) => rows.push({ ticket_id: tid, user_id: uid, slot: "Project" }));
     });
 
     // In "add" mode, skip rows that already exist to avoid duplicate-key errors.
