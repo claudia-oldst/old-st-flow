@@ -582,6 +582,7 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
           onOpenChange={setAssignOpen}
           ticketId={ticket.id}
           projectId={projectId}
+          ticketType={ticket.ticket_type}
           current={ticket.assignees.map((a) => ({ user_id: a.user_id, slot: a.slot }))}
           onSaved={onChange}
         />
