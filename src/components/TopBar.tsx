@@ -5,6 +5,7 @@ import { useCurrentUser } from "@/store/currentUser";
 import { useTimerStore } from "@/store/timer";
 import type { TeamMember } from "@/lib/types";
 import { MemberAvatar } from "@/components/MemberAvatar";
+import { StopGroupTimerDialog } from "@/features/timelog/StopGroupTimerDialog";
 import oldStLogo from "@/assets/oldst-logo.png";
 import {
   DropdownMenu,
@@ -14,13 +15,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { ChevronDown, Settings, FolderKanban, ListChecks, User, Square } from "lucide-react";
 import { cn, formatDuration } from "@/lib/utils";
-import { toast } from "sonner";
 
 function TimerChip() {
   const active = useTimerStore((s) => s.active);
+  const tickets = useTimerStore((s) => s.tickets);
   const [now, setNow] = useState(Date.now());
+  const [stopOpen, setStopOpen] = useState(false);
 
   useEffect(() => {
     if (!active) return;
@@ -31,43 +39,51 @@ function TimerChip() {
   if (!active) return null;
 
   const elapsed = now - new Date(active.started_at).getTime();
-
-  const handleStop = async () => {
-    const hours = elapsed / 1000 / 3600;
-    if (hours < 1 / 60) {
-      // less than a minute, just discard
-      await supabase.from("active_timers").delete().eq("user_id", active.user_id);
-      toast.info("Timer discarded (under a minute).");
-      return;
-    }
-    const { error: logErr } = await supabase.from("time_logs").insert({
-      ticket_id: active.ticket_id,
-      user_id: active.user_id,
-      discipline: active.discipline,
-      hours: Math.round(hours * 100) / 100,
-      source: "timer",
-    });
-    if (logErr) {
-      toast.error("Failed to save time: " + logErr.message);
-      return;
-    }
-    await supabase.from("active_timers").delete().eq("user_id", active.user_id);
-    toast.success(`Logged ${(Math.round(hours * 100) / 100).toFixed(2)}h`);
-  };
+  const sorted = [...tickets].sort((a, b) => a.position - b.position);
+  const primaryLabel = sorted[0]?.formatted_id ?? "…";
+  const extraCount = Math.max(0, sorted.length - 1);
+  const fullList = sorted.map((t) => t.formatted_id).join(", ") || primaryLabel;
 
   return (
-    <button
-      onClick={handleStop}
-      className="group inline-flex items-center gap-2 rounded-full bg-accent/15 px-3 py-1.5 text-sm hairline hover:bg-accent/25 transition"
-      title="Stop timer and log hours"
-    >
-      <span className="relative flex h-2 w-2">
-        <span className="absolute inline-flex h-full w-full animate-pulse-soft rounded-full bg-accent opacity-75" />
-        <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
-      </span>
-      <span className="font-mono ticker">{formatDuration(elapsed)}</span>
-      <Square className="h-3 w-3 opacity-60 group-hover:opacity-100" />
-    </button>
+    <>
+      <TooltipProvider delayDuration={200}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={() => setStopOpen(true)}
+              className="group inline-flex items-center gap-2 rounded-full bg-accent/15 px-3 py-1.5 text-sm hairline hover:bg-accent/25 transition"
+              title="Stop timer and log hours"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-pulse-soft rounded-full bg-accent opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
+              </span>
+              <span className="font-mono text-xs text-dim">
+                {primaryLabel}
+                {extraCount > 0 && (
+                  <span className="ml-1 text-foreground">+{extraCount}</span>
+                )}
+              </span>
+              <span className="font-mono ticker">{formatDuration(elapsed)}</span>
+              <Square className="h-3 w-3 opacity-60 group-hover:opacity-100" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="max-w-xs">
+            <div className="text-xs font-mono break-words">{fullList}</div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
+      {stopOpen && tickets.length > 0 && (
+        <StopGroupTimerDialog
+          open={stopOpen}
+          onOpenChange={setStopOpen}
+          active={active}
+          groupTickets={tickets}
+          elapsedMs={elapsed}
+        />
+      )}
+    </>
   );
 }
 
