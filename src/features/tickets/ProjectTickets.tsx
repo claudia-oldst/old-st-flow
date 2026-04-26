@@ -85,8 +85,8 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-
-  // Role-based default: PMBA → All, others → My tickets
+  const [groupTimerOpen, setGroupTimerOpen] = useState(false);
+  const activeTimer = useTimerStore((s) => s.active);
   useEffect(() => {
     if (touched || role === null) return;
     setFilterMine(!pmba);
