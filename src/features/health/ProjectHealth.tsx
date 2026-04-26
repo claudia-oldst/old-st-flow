@@ -223,14 +223,6 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
 
         <div className="space-y-4">
           <div className="glass rounded-2xl p-5">
-            <div className="text-xs uppercase tracking-wider text-dimmer mb-2">Overhead</div>
-            <div className="flex items-center gap-2">
-              <Activity className="h-4 w-4 text-amber-300" />
-              <div className="text-2xl font-semibold font-mono ticker">{formatHours(totals.over)}</div>
-            </div>
-            <div className="text-xs text-dim mt-1">QA / PMBA hours (not in estimates)</div>
-          </div>
-          <div className="glass rounded-2xl p-5">
             <div className="text-xs uppercase tracking-wider text-dimmer mb-2">Unassigned backlog</div>
             <div className="flex items-center gap-2">
               <AlertTriangle className={`h-4 w-4 ${unassignedCount > 0 ? "text-health-warn" : "text-dimmer"}`} />
