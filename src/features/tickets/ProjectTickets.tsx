@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCurrentUser } from "@/store/currentUser";
+import { useTimerStore } from "@/store/timer";
 import Papa from "papaparse";
 import { Button } from "@/components/ui/button";
-import { Upload, FileText, AlertCircle, LayoutGrid, List, Download, X, FileUp, Search } from "lucide-react";
+import { Upload, FileText, AlertCircle, LayoutGrid, List, Download, X, FileUp, Search, Clock } from "lucide-react";
+import { StartGroupTimerDialog } from "@/features/timelog/StartGroupTimerDialog";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import {
