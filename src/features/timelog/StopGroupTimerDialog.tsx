@@ -318,12 +318,12 @@ export function StopGroupTimerDialog({
                 <div className="flex items-center gap-1">
                   <Input
                     type="number"
-                    step="0.25"
+                    step="1"
                     min="0"
-                    value={secondsToMinutes(r.seconds)}
+                    value={r.minutes}
                     onChange={(e) =>
                       updateRow(r.ticket.id, {
-                        seconds: Math.max(0, minutesToSeconds(parseFloat(e.target.value) || 0)),
+                        minutes: Math.max(0, Math.floor(parseFloat(e.target.value) || 0)),
                       })
                     }
                     className="h-8 w-20 text-sm font-mono"
