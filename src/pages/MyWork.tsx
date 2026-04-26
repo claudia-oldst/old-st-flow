@@ -97,15 +97,15 @@ export default function MyWork() {
                       </span>
                     </div>
                   </div>
-                  {r.slot === "Other" ? (
+                  {r.slot === "Project" ? (
                     <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-fuchsia-500/15 text-fuchsia-300 ring-1 ring-fuchsia-400/20">
-                      Other
+                      Project
                     </span>
                   ) : (
                     <DisciplineStatusChip slot={r.slot} status={isFE ? r.fe_status : r.be_status} />
                   )}
                   <div className="text-xs font-mono text-dim w-24 text-right">
-                    {r.slot === "Other" ? "—" : `${formatHours(actual)} / ${formatHours(estimate)}`}
+                    {r.slot === "Project" ? "—" : `${formatHours(actual)} / ${formatHours(estimate)}`}
                   </div>
                   <ArrowRight className="h-4 w-4 text-dimmer group-hover:text-foreground transition" />
                 </Link>
