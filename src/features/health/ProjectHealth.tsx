@@ -30,19 +30,35 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
       setWeekHours({});
       return;
     }
-    supabase
-      .from("time_logs")
-      .select("user_id,hours")
-      .in("ticket_id", ticketIds)
-      .gte("logged_at", range.from.toISOString())
-      .lte("logged_at", range.to.toISOString())
-      .then(({ data }) => {
-        const map: Record<string, number> = {};
-        data?.forEach((l) => {
+    let cancelled = false;
+    (async () => {
+      const ticketIdSet = new Set(ticketIds);
+      const map: Record<string, number> = {};
+      // Fetch all logs in the date range for this project, paginated, then filter to project tickets.
+      // We avoid a giant .in() URL (which gets truncated when the project has hundreds of tickets).
+      const PAGE = 1000;
+      let offset = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from("time_logs")
+          .select("user_id,hours,ticket_id")
+          .gte("logged_at", range.from.toISOString())
+          .lte("logged_at", range.to.toISOString())
+          .order("logged_at", { ascending: false })
+          .range(offset, offset + PAGE - 1);
+        if (error || !data) break;
+        for (const l of data) {
+          if (!ticketIdSet.has(l.ticket_id)) continue;
           map[l.user_id] = (map[l.user_id] ?? 0) + Number(l.hours);
-        });
-        setWeekHours(map);
-      });
+        }
+        if (data.length < PAGE) break;
+        offset += PAGE;
+      }
+      if (!cancelled) setWeekHours(map);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [projectId, tickets, range.from, range.to]);
 
   const openTickets = useMemo(() => {
