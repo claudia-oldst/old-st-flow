@@ -109,15 +109,37 @@ export function ProjectBoard({
   // Discipline-mode: produce one card per (ticket, slot)
   // - "My tickets": only slots the current user is assigned to
   // - "All" (PMBA): both FE and BE for every ticket, bucketed by their fe_status / be_status
+  //   Proj tickets show as their own card (collapsed project status -> discipline column)
+  //   for any role that isn't pinned to a single discipline (Frontend / Backend only).
   const showAll = !filterMine;
+  const statusCategoryById = useMemo(() => {
+    const m: Record<string, string> = {};
+    statuses.forEach((s) => (m[s.id] = s.category));
+    return m;
+  }, [statuses]);
   const disciplineCards: DisciplineCard[] = useMemo(() => {
     if (!user && !showAll) return [];
     // In "All" mode, restrict slots based on the viewer's role:
-    // Frontend → FE only, Backend → BE only, PMBA/Fullstack/QA → both.
+    // Frontend → FE only, Backend → BE only, PMBA/Fullstack/QA/Design → all (incl. Project).
     const showFE = role !== "Backend";
     const showBE = role !== "Frontend";
+    const showProject = role !== "Frontend" && role !== "Backend";
     const out: DisciplineCard[] = [];
     visible.forEach((t) => {
+      if (t.ticket_type === "Proj") {
+        // Proj tickets: single Project card, status derived from project status category.
+        const hasProject = t.assignees.some((a) => a.slot === "Project");
+        if (!hasProject) return;
+        const cat = t.status_id ? statusCategoryById[t.status_id] : undefined;
+        const dStatus: DisciplineStatus = (cat && CATEGORY_TO_DISCIPLINE[cat]) ?? "todo";
+        if (showAll) {
+          if (showProject) out.push({ ticket: t, slot: "Project", status: dStatus });
+        } else {
+          const mine = t.assignees.some((a) => a.user_id === user!.id && a.slot === "Project");
+          if (mine) out.push({ ticket: t, slot: "Project", status: dStatus });
+        }
+        return;
+      }
       // A discipline only "exists" once someone is assigned for that role.
       const hasFE = t.assignees.some((a) => a.slot === "FE");
       const hasBE = t.assignees.some((a) => a.slot === "BE");
@@ -140,7 +162,7 @@ export function ProjectBoard({
       }
     });
     return out;
-  }, [visible, user, showAll, role]);
+  }, [visible, user, showAll, role, statusCategoryById]);
 
   const byDisciplineStatus = useMemo(() => {
     const map: Record<DisciplineStatus, DisciplineCard[]> = {
