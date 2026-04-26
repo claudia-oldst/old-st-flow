@@ -109,12 +109,12 @@ export function BulkAssignDialog({
       }
     }
 
-    let rows: { ticket_id: string; user_id: string; slot: "FE" | "BE" | "Other" | "Project" }[] = [];
-    // Standard / Bug / CR tickets: FE / BE / Other slots only.
+    let rows: { ticket_id: string; user_id: string; slot: "FE" | "BE" | "Project" }[] = [];
+    // Standard / Bug / CR tickets: FE / BE / Project Contributors.
     standardTicketIds.forEach((tid) => {
       feUserIds.forEach((uid) => rows.push({ ticket_id: tid, user_id: uid, slot: "FE" }));
       beUserIds.forEach((uid) => rows.push({ ticket_id: tid, user_id: uid, slot: "BE" }));
-      otherUserIds.forEach((uid) => rows.push({ ticket_id: tid, user_id: uid, slot: "Other" }));
+      otherUserIds.forEach((uid) => rows.push({ ticket_id: tid, user_id: uid, slot: "Project" }));
     });
     // Proj tickets: Project slot only.
     projTicketIds.forEach((tid) => {
