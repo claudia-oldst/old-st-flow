@@ -212,6 +212,26 @@ export function ProjectBoard({
     // Defensive: if the slot has no assignees (race with realtime), don't allow status changes.
     const hasSlot = t.assignees.some((a) => a.slot === slot);
     if (!hasSlot) return;
+
+    if (slot === "Project") {
+      // Proj ticket: map discipline column → project status category, set status_id
+      // and flip override so the auto-derive trigger doesn't undo it.
+      const targetCategory = DISCIPLINE_TO_CATEGORY[newStatus];
+      const currentCategory = t.status_id ? statusCategoryById[t.status_id] : undefined;
+      if (currentCategory === targetCategory) return;
+      const target = statuses
+        .filter((s) => s.category === targetCategory)
+        .sort((a, b) => a.position - b.position)[0];
+      if (!target) return;
+      const { error } = await supabase
+        .from("tickets")
+        .update({ status_id: target.id, project_status_override: true })
+        .eq("id", ticketId);
+      if (error) toast.error(error.message);
+      else reload();
+      return;
+    }
+
     const current = slot === "FE" ? t.fe_status : t.be_status;
     if (current === newStatus) return;
     const patch =
