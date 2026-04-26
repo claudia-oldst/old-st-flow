@@ -438,6 +438,15 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
               </button>
             )}
           </div>
+          {filterMine && user && role && !activeTimer && (
+            <Button
+              size="sm"
+              onClick={() => setGroupTimerOpen(true)}
+              className="gap-2"
+            >
+              <Clock className="h-4 w-4" /> Start group timer
+            </Button>
+          )}
           {isPMBA(role) && (
             <Button size="sm" variant="outline" onClick={() => setImportOpen(true)} className="gap-2">
               <Upload className="h-4 w-4" /> Import CSV
