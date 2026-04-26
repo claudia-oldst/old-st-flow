@@ -54,19 +54,23 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
       (acc, t) => {
         acc.feEst += t.current_fe_estimate;
         acc.beEst += t.current_be_estimate;
+        acc.feOrig += t.original_fe_estimate;
+        acc.beOrig += t.original_be_estimate;
         acc.feAct += t.actual_frontend_hours;
         acc.beAct += t.actual_backend_hours;
         acc.over += t.actual_overhead_hours;
         return acc;
       },
-      { feEst: 0, beEst: 0, feAct: 0, beAct: 0, over: 0 }
+      { feEst: 0, beEst: 0, feOrig: 0, beOrig: 0, feAct: 0, beAct: 0, over: 0 }
     );
   }, [tickets]);
 
   const totalEst = totals.feEst + totals.beEst;
+  const totalOrig = totals.feOrig + totals.beOrig;
   const totalAct = totals.feAct + totals.beAct;
   const overall = healthRatio(totalAct, totalEst);
   const profitabilityPct = totalEst > 0 ? Math.round((totalAct / totalEst) * 100) : 0;
+  const profitabilityOrigPct = totalOrig > 0 ? Math.round((totalAct / totalOrig) * 100) : 0;
 
   const unassignedCount = unassignedOpen.filter((t) => t.assignees.length === 0).length;
 

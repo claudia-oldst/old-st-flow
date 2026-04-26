@@ -1,82 +1,46 @@
 ## Goal
 
-Bring `tickets.current_fe_estimate` and `tickets.current_be_estimate` in sync with the most recent approved row in `ticket_estimate_changes` for each `(ticket_id, discipline)`. No application code changes.
+Surface **original** estimates alongside current estimates in the three top cards on the Project Health board (Frontend, Backend, Profitability). Each ring gets a second, inner arc showing the original-estimate burn ratio, plus an "Original" hours label.
 
-## Scope
-
-- Only `status = 'approved'` changes are applied. Pending requests (e.g. COU-322 FE, COU-016 BE) are skipped.
-- For each `(ticket_id, discipline)`, the latest approved row's `new_hours` becomes the corresponding `current_*_estimate`.
-- Tickets with no approved change rows are left untouched.
-
-## Affected rows
-
-22 ticket/discipline pairs are out of sync and will be updated, including:
+## Visual
 
 ```text
-COU-001 FE  44.89 → 94.89
-COU-003 BE   1.61 →  9.61
-COU-006 BE   5.22 → 25.22
-COU-008 FE   5.22 → 61.22
-COU-008 BE   0    →  6.00
-COU-010 FE   3.22 →  8.22
-COU-045 FE   2.61 → 28.61
-COU-055 BE   0    →  5.00
-COU-068 BE   1.61 →  7.61
-COU-069 BE   0    →  1.00
-COU-071 FE   2.42 →  7.42
-COU-073 FE   0.71 →  1.71
-COU-099 FE   0.81 →  6.31
-COU-100 FE   1.61 →  5.61
-COU-117 FE   1.42 →  2.92
-COU-126 FE   1.61 →  9.61
-COU-128 BE   1.61 →  4.00
-COU-231 FE   0    →  2.00
-COU-272 FE   1.42 →  5.42
-COU-276 FE   2.61 →  7.11
-COU-281 FE   1.61 →  3.61
-COU-345 FE   5.22 → 12.22
+┌──────────── Frontend ─────────────┐
+│   ╭───────╮                       │
+│  ╱  outer  ╲   Actual    87.0 h   │
+│ │ ╭─────╮ │   Current   120.0 h   │
+│ │ │inner│ │   Original  100.0 h   │
+│ │ ╰─────╯ │                       │
+│  ╲       ╱   72% burned (curr)    │
+│   ╰─────╯    87% burned (orig)    │
+└───────────────────────────────────┘
 ```
 
-## SQL to run (single migration)
+- **Outer ring**: actual vs **current** estimate (existing behavior, unchanged).
+- **Inner ring**: actual vs **original** estimate, drawn at a smaller radius with the same health-color logic but slightly thinner stroke and reduced opacity so the outer ring still reads as primary.
+- Center label keeps the current % (primary metric); a small `vs orig N%` chip sits under "burned".
+- Right-hand stats list adds an **Original** row under Estimate.
 
-```sql
-WITH latest AS (
-  SELECT DISTINCT ON (ticket_id, discipline)
-    ticket_id, discipline, new_hours
-  FROM public.ticket_estimate_changes
-  WHERE status = 'approved'
-  ORDER BY ticket_id, discipline, created_at DESC, id DESC
-)
-UPDATE public.tickets t
-SET
-  current_fe_estimate = COALESCE(fe.new_hours, t.current_fe_estimate),
-  current_be_estimate = COALESCE(be.new_hours, t.current_be_estimate),
-  updated_at = now()
-FROM (SELECT ticket_id, new_hours FROM latest WHERE discipline = 'FE') fe
-FULL OUTER JOIN (SELECT ticket_id, new_hours FROM latest WHERE discipline = 'BE') be
-  ON fe.ticket_id = be.ticket_id
-WHERE t.id = COALESCE(fe.ticket_id, be.ticket_id);
-```
+Profitability card (no ring today) gets:
+- A new "Total original" stat next to the existing Total est. / Total actual grid.
+- A secondary percentage `N% of original` under the main `% of estimate burned` line.
 
-Notes:
-- `DISTINCT ON` picks the newest approved row per `(ticket_id, discipline)`.
-- `COALESCE` ensures that if only one discipline has a change, the other estimate is preserved.
-- `updated_at` is bumped so downstream listeners see the change.
+## Files to edit
 
-## Verification
+- `src/features/health/ProjectHealth.tsx`
+  - Sum `original_fe_estimate` / `original_be_estimate` in the `totals` memo (add `feOrig`, `beOrig`).
+  - Pass `original` to each `<Ring />` and to the profitability block.
+  - Update `Ring` component:
+    - Accept `original: number` prop.
+    - Compute `origRatio`, `origPct`, and a separate health color.
+    - Render a second `<circle>` at `r = 40` with `strokeWidth="6"` and `opacity-60`.
+    - Add an "Original" line in the stat list and a small `vs orig N%` caption under "burned".
+  - Profitability card: add `totalOrig = feOrig + beOrig`, render a "Total original" cell in the grid and a secondary `vs orig N%` line.
 
-After running, this query should return zero rows:
+## Technical details
 
-```sql
-WITH latest AS (
-  SELECT DISTINCT ON (ticket_id, discipline)
-    ticket_id, discipline, new_hours
-  FROM public.ticket_estimate_changes
-  WHERE status = 'approved'
-  ORDER BY ticket_id, discipline, created_at DESC, id DESC
-)
-SELECT t.formatted_id, l.discipline, l.new_hours
-FROM latest l JOIN public.tickets t ON t.id = l.ticket_id
-WHERE (l.discipline='FE' AND t.current_fe_estimate <> l.new_hours)
-   OR (l.discipline='BE' AND t.current_be_estimate <> l.new_hours);
-```
+- All values come from the already-loaded `tickets` array (`original_fe_estimate`, `original_be_estimate` are present on the typed ticket).
+- Reuse `healthRatio()` and `formatHours()` for consistency.
+- Inner ring math mirrors outer ring: `dash = (min(actual/original, 1) * 100 / 100) * (2π * 40)`.
+- When `original === 0`, render the inner ring as the empty track only and show `—` for the Original stat.
+- No DB changes, no new dependencies, no new components.
