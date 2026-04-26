@@ -23,9 +23,20 @@ const DISCIPLINE_STATUSES: DisciplineStatus[] = ["todo", "in_progress", "done"];
 
 interface DisciplineCard {
   ticket: TicketRow;
-  slot: "FE" | "BE";
+  slot: "FE" | "BE" | "Project";
   status: DisciplineStatus;
 }
+
+const CATEGORY_TO_DISCIPLINE: Record<string, DisciplineStatus> = {
+  backlog: "todo",
+  active: "in_progress",
+  done: "done",
+};
+const DISCIPLINE_TO_CATEGORY: Record<DisciplineStatus, "backlog" | "active" | "done"> = {
+  todo: "backlog",
+  in_progress: "active",
+  done: "done",
+};
 
 export function ProjectBoard({
   projectId,
@@ -98,15 +109,37 @@ export function ProjectBoard({
   // Discipline-mode: produce one card per (ticket, slot)
   // - "My tickets": only slots the current user is assigned to
   // - "All" (PMBA): both FE and BE for every ticket, bucketed by their fe_status / be_status
+  //   Proj tickets show as their own card (collapsed project status -> discipline column)
+  //   for any role that isn't pinned to a single discipline (Frontend / Backend only).
   const showAll = !filterMine;
+  const statusCategoryById = useMemo(() => {
+    const m: Record<string, string> = {};
+    statuses.forEach((s) => (m[s.id] = s.category));
+    return m;
+  }, [statuses]);
   const disciplineCards: DisciplineCard[] = useMemo(() => {
     if (!user && !showAll) return [];
     // In "All" mode, restrict slots based on the viewer's role:
-    // Frontend → FE only, Backend → BE only, PMBA/Fullstack/QA → both.
+    // Frontend → FE only, Backend → BE only, PMBA/Fullstack/QA/Design → all (incl. Project).
     const showFE = role !== "Backend";
     const showBE = role !== "Frontend";
+    const showProject = role !== "Frontend" && role !== "Backend";
     const out: DisciplineCard[] = [];
     visible.forEach((t) => {
+      if (t.ticket_type === "Proj") {
+        // Proj tickets: single Project card, status derived from project status category.
+        const hasProject = t.assignees.some((a) => a.slot === "Project");
+        if (!hasProject) return;
+        const cat = t.status_id ? statusCategoryById[t.status_id] : undefined;
+        const dStatus: DisciplineStatus = (cat ? CATEGORY_TO_DISCIPLINE[cat] : undefined) ?? "todo";
+        if (showAll) {
+          if (showProject) out.push({ ticket: t, slot: "Project", status: dStatus });
+        } else {
+          const mine = t.assignees.some((a) => a.user_id === user!.id && a.slot === "Project");
+          if (mine) out.push({ ticket: t, slot: "Project", status: dStatus });
+        }
+        return;
+      }
       // A discipline only "exists" once someone is assigned for that role.
       const hasFE = t.assignees.some((a) => a.slot === "FE");
       const hasBE = t.assignees.some((a) => a.slot === "BE");
@@ -129,7 +162,7 @@ export function ProjectBoard({
       }
     });
     return out;
-  }, [visible, user, showAll, role]);
+  }, [visible, user, showAll, role, statusCategoryById]);
 
   const byDisciplineStatus = useMemo(() => {
     const map: Record<DisciplineStatus, DisciplineCard[]> = {
@@ -179,6 +212,26 @@ export function ProjectBoard({
     // Defensive: if the slot has no assignees (race with realtime), don't allow status changes.
     const hasSlot = t.assignees.some((a) => a.slot === slot);
     if (!hasSlot) return;
+
+    if (slot === "Project") {
+      // Proj ticket: map discipline column → project status category, set status_id
+      // and flip override so the auto-derive trigger doesn't undo it.
+      const targetCategory = DISCIPLINE_TO_CATEGORY[newStatus];
+      const currentCategory = t.status_id ? statusCategoryById[t.status_id] : undefined;
+      if (currentCategory === targetCategory) return;
+      const target = statuses
+        .filter((s) => s.category === targetCategory)
+        .sort((a, b) => a.position - b.position)[0];
+      if (!target) return;
+      const { error } = await supabase
+        .from("tickets")
+        .update({ status_id: target.id, project_status_override: true })
+        .eq("id", ticketId);
+      if (error) toast.error(error.message);
+      else reload();
+      return;
+    }
+
     const current = slot === "FE" ? t.fe_status : t.be_status;
     if (current === newStatus) return;
     const patch =
@@ -385,7 +438,7 @@ function DraggableDisciplineCard({
         className="absolute -top-1.5 -right-1.5 z-10 px-1.5 py-0.5 rounded-full text-[9px] font-semibold ring-1 ring-white/15"
         style={{ background: "hsl(var(--background))", color: "hsl(var(--foreground))" }}
       >
-        {card.slot}
+        {card.slot === "Project" ? "P" : card.slot}
       </span>
       <TicketCard ticket={card.ticket} onClick={onClick} isDragging={isDragging} />
     </div>
