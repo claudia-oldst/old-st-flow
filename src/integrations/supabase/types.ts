@@ -169,6 +169,47 @@ export type Database = {
         }
         Relationships: []
       }
+      status_derivation_rules: {
+        Row: {
+          be_statuses: Database["public"]["Enums"]["discipline_status"][]
+          created_at: string
+          fe_statuses: Database["public"]["Enums"]["discipline_status"][]
+          id: string
+          operator: string
+          position: number
+          status_id: string
+          updated_at: string
+        }
+        Insert: {
+          be_statuses?: Database["public"]["Enums"]["discipline_status"][]
+          created_at?: string
+          fe_statuses?: Database["public"]["Enums"]["discipline_status"][]
+          id?: string
+          operator: string
+          position: number
+          status_id: string
+          updated_at?: string
+        }
+        Update: {
+          be_statuses?: Database["public"]["Enums"]["discipline_status"][]
+          created_at?: string
+          fe_statuses?: Database["public"]["Enums"]["discipline_status"][]
+          id?: string
+          operator?: string
+          position?: number
+          status_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "status_derivation_rules_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "statuses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       statuses: {
         Row: {
           category: Database["public"]["Enums"]["status_category"]
@@ -488,6 +529,7 @@ export type Database = {
         Args: { _cat: Database["public"]["Enums"]["status_category"] }
         Returns: string
       }
+      reapply_status_rules: { Args: never; Returns: undefined }
     }
     Enums: {
       assignee_slot: "FE" | "BE" | "Project"
