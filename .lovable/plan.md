@@ -1,89 +1,71 @@
-# Configurable Status Derivation Rules (multi-select) + auto-clear override
+## Problem
 
-PMBAs configure global IF/THEN rules at the platform level. Each rule expresses a flexible condition on FE and BE statuses (multi-select on each side, joined by AND or OR) and assigns a Project status when matched. Rules apply automatically across every project and every ticket.
+Ticket `COU-004` (`50faaecd…`) shows:
+- `actual_frontend_hours = 70.09`
+- `actual_backend_hours = 68.81`
 
-A manual project-status override sticks **only until the next FE or BE change** — at that point the ticket re-enters the rules engine.
+But every `time_logs` row for this ticket is `discipline = BE`, summing to exactly **138.90 h**. Correct values should be FE = 0, BE = 138.90.
 
-## What you'll see
+## Root Cause
 
-A new **Status rules** tab in Admin, PMBA-only.
+The `apply_time_log` trigger updates `tickets.actual_*_hours` only on `INSERT` and `DELETE` of `time_logs`. It does **not** handle `UPDATE`. When Ida's logs (originally `FE` because her global `team_members.role` is Frontend, even though her project role on COU is Backend) were later edited to `BE`, the cached actuals on the ticket were not adjusted — leaving FE hours stuck and BE hours undercounted.
 
-Each rule reads naturally:
+This is a systemic bug, not just one ticket.
 
-```text
-Rule 1  IF  FE status IN [Done]                 AND  BE status IN [Done]                 THEN  Project = Released
-Rule 2  IF  FE status IN [In progress, Done]    OR   BE status IN [In progress, Done]    THEN  Project = In progress
-Rule 3  IF  FE status IN [Todo]                 AND  BE status IN [Todo]                 THEN  Project = Backlog
-```
+## Fix — Two parts
 
-Each rule has:
-- **FE status** — multi-select chips (Todo / In progress / Done). Empty = "any FE status".
-- **Operator** — AND / OR.
-- **BE status** — multi-select chips. Empty = "any BE status".
-- **Then Project status** — single select from global statuses.
-- **Priority** — drag to reorder; first matching rule wins.
+### 1. Patch the trigger to handle UPDATEs (schema migration)
 
-Actions: add rule, delete rule, reorder, "Reset to defaults" (re-seeds the original 3-rule set above).
-
-A live **preview matrix** (3×3 grid of FE × BE) shows which rule wins each cell, so PMBAs can spot gaps or overlaps instantly. Cells with no matching rule are flagged.
-
-## How project status behaves
-
-- **Auto-derive (default):** when a ticket's FE or BE status changes, the engine walks rules in priority order; the first matching rule sets the project status.
-- **Manual override:** if a PMBA changes the project status directly on a ticket, that pick is honoured and `project_status_override` is set to true (existing behaviour).
-- **Override auto-clears on next FE/BE change:** the very next time someone updates the ticket's FE or BE status, the override flag is reset and the rules engine re-evaluates the project status from the new FE/BE combination. So manual picks are a one-shot snapshot, not a permanent lock.
-- A rule with empty FE list matches any FE status (same for BE) — lets you write "IF BE = Done, project = Done" regardless of FE.
-- `Proj`-type tickets are skipped (status managed manually, unchanged).
-- Saving any rule re-evaluates every eligible ticket (override flag respected at that moment) so the board reflects the new mapping immediately.
-- If no rule matches, the ticket's status is left untouched and the matrix shows a warning.
-
-## Technical plan
-
-### Database
+Extend `apply_time_log()` with an `UPDATE` branch that subtracts the OLD contribution and adds the NEW contribution across `ticket_id`, `discipline`, and `hours` (handles edits to any of those three fields, including moving a log between tickets).
 
 ```sql
-CREATE TABLE public.status_derivation_rules (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  position int NOT NULL,                                 -- priority, lower = higher
-  fe_statuses discipline_status[] NOT NULL DEFAULT '{}', -- empty = any
-  be_statuses discipline_status[] NOT NULL DEFAULT '{}', -- empty = any
-  operator text NOT NULL CHECK (operator IN ('AND','OR')),
-  status_id uuid NOT NULL REFERENCES public.statuses(id) ON DELETE RESTRICT,
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
+ELSIF TG_OP = 'UPDATE' THEN
+  -- reverse OLD
+  UPDATE public.tickets SET
+    actual_frontend_hours = GREATEST(0, actual_frontend_hours - CASE WHEN OLD.discipline='FE' THEN OLD.hours ELSE 0 END),
+    actual_backend_hours  = GREATEST(0, actual_backend_hours  - CASE WHEN OLD.discipline='BE' THEN OLD.hours ELSE 0 END),
+    actual_project_hours  = GREATEST(0, actual_project_hours  - CASE WHEN OLD.discipline='Project' THEN OLD.hours ELSE 0 END)
+  WHERE id = OLD.ticket_id;
+  -- apply NEW
+  UPDATE public.tickets SET
+    actual_frontend_hours = actual_frontend_hours + CASE WHEN NEW.discipline='FE' THEN NEW.hours ELSE 0 END,
+    actual_backend_hours  = actual_backend_hours  + CASE WHEN NEW.discipline='BE' THEN NEW.hours ELSE 0 END,
+    actual_project_hours  = actual_project_hours  + CASE WHEN NEW.discipline='Project' THEN NEW.hours ELSE 0 END
+  WHERE id = NEW.ticket_id;
+  RETURN NEW;
 ```
 
-- RLS readable/writable by all (matches existing public pattern); PMBA gating in UI via `isPMBA`.
-- Seed three default rules matching today's hardcoded behaviour.
+Ensure the trigger is bound for `AFTER INSERT OR UPDATE OR DELETE` on `time_logs`.
 
-Rewrite `public.derive_project_status()`:
-- Skip if `ticket_type = 'Proj'`.
-- **Auto-clear override on FE/BE change:** if `NEW.fe_status IS DISTINCT FROM OLD.fe_status` OR `NEW.be_status IS DISTINCT FROM OLD.be_status`, set `NEW.project_status_override := false` before evaluating rules. (On INSERT, `OLD` is null → treat as a change so override starts false.)
-- If `NEW.project_status_override` is still true (i.e. this update didn't touch FE/BE), return NEW unchanged so the manual pick is preserved.
-- Otherwise loop `status_derivation_rules` ordered by `position`. For each row:
-  - `fe_match = cardinality(fe_statuses) = 0 OR NEW.fe_status = ANY(fe_statuses)`
-  - `be_match = cardinality(be_statuses) = 0 OR NEW.be_status = ANY(be_statuses)`
-  - Match if `(operator='AND' AND fe_match AND be_match) OR (operator='OR' AND (fe_match OR be_match))`
-  - On first match, set `NEW.status_id` and exit.
-- If nothing matches, leave `NEW.status_id` unchanged.
+### 2. One-time retroactive recompute (data fix)
 
-`flag_project_status_override()` is unchanged — it still flips the override flag on whenever a PMBA edits `status_id` directly without touching FE/BE.
+Recompute every ticket's cached actuals from the source-of-truth `time_logs` table:
 
-Add `public.reapply_status_rules()` SECURITY DEFINER — re-runs derivation across all eligible (non-overridden, non-Proj) tickets so saved rule edits propagate immediately.
+```sql
+UPDATE public.tickets t SET
+  actual_frontend_hours = COALESCE(s.fe, 0),
+  actual_backend_hours  = COALESCE(s.be, 0),
+  actual_project_hours  = COALESCE(s.pj, 0)
+FROM (
+  SELECT ticket_id,
+    SUM(hours) FILTER (WHERE discipline='FE')      AS fe,
+    SUM(hours) FILTER (WHERE discipline='BE')      AS be,
+    SUM(hours) FILTER (WHERE discipline='Project') AS pj
+  FROM public.time_logs
+  GROUP BY ticket_id
+) s
+WHERE t.id = s.ticket_id;
 
-### Frontend
+-- also zero out tickets that have no logs at all
+UPDATE public.tickets SET
+  actual_frontend_hours = 0, actual_backend_hours = 0, actual_project_hours = 0
+WHERE id NOT IN (SELECT DISTINCT ticket_id FROM public.time_logs);
+```
 
-- New `src/features/admin/StatusRulesAdmin.tsx`:
-  - Lists rules with chip-based multi-select for FE and BE, AND/OR toggle, project-status select, drag handle for reordering.
-  - "Add rule" / "Delete" / "Reset defaults".
-  - Preview 3×3 matrix computed client-side from current rules; flags uncovered cells.
-  - On save: upsert/delete rule rows, then `supabase.rpc('reapply_status_rules')`.
-  - Realtime subscription on `status_derivation_rules`.
-- `src/pages/Admin.tsx`: add PMBA-only "Status rules" tab.
+After this, COU-004 will read FE = 0, BE = 138.90, matching the logs.
 
-### Files touched
-- New migration (table, seed, rewritten trigger function with override-clearing, reapply function).
-- New: `src/features/admin/StatusRulesAdmin.tsx`
-- Edit: `src/pages/Admin.tsx`
+## Note on the broader Ida scenario
 
-No ticket-component changes needed — derivation and override-clearing flow through the existing trigger.
+This explains *why* Ida's logs needed editing in the first place: `LogTimeModal` derives the discipline tab default from `team_members.role` (global), not `project_members.role` (per-project). That mismatch is the same theme as the earlier "derive discipline from project role" discussion — but this plan does **not** touch that logic. It only repairs the cache + trigger so manual edits to `time_logs.discipline` correctly update ticket actuals going forward.
+
+If you want, I can follow up with a separate change to default the LogTimeModal discipline tab from the project role.
