@@ -6,7 +6,9 @@ import { useStatuses } from "@/features/statuses/useStatuses";
 import { useProjectEpics } from "@/features/epics/useProjectEpics";
 import { DISCIPLINE_STATUS_LABEL, type DisciplineStatus } from "@/lib/types";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
-import { cn } from "@/lib/utils";
+import { cn, healthRatio } from "@/lib/utils";
+
+export type HealthColor = "good" | "warn" | "bad";
 
 export interface TicketFilters {
   epicIds: string[]; // string of epic id, or "_none" for no epic
@@ -16,6 +18,9 @@ export interface TicketFilters {
   beStatuses: DisciplineStatus[];
   assigneeIds: string[]; // user ids, or "_unassigned"
   types: string[]; // Standard | Bug | CR
+  feHealth: HealthColor[];
+  beHealth: HealthColor[];
+  projectHealth: HealthColor[];
 }
 
 export const EMPTY_FILTERS: TicketFilters = {
@@ -26,6 +31,9 @@ export const EMPTY_FILTERS: TicketFilters = {
   beStatuses: [],
   assigneeIds: [],
   types: [],
+  feHealth: [],
+  beHealth: [],
+  projectHealth: [],
 };
 
 export function activeFilterCount(f: TicketFilters): number {
@@ -36,7 +44,10 @@ export function activeFilterCount(f: TicketFilters): number {
     f.feStatuses.length +
     f.beStatuses.length +
     f.assigneeIds.length +
-    f.types.length
+    f.types.length +
+    f.feHealth.length +
+    f.beHealth.length +
+    f.projectHealth.length
   );
 }
 
@@ -73,12 +84,34 @@ export function applyFilters(tickets: TicketRow[], f: TicketFilters): TicketRow[
       }
     }
     if (f.types.length && !f.types.includes(t.ticket_type)) return false;
+    if (f.feHealth.length) {
+      const hasFE = t.assignees.some((a) => a.slot === "FE");
+      if (!hasFE) return false;
+      const h = healthRatio(t.actual_frontend_hours, t.current_fe_estimate);
+      if (h === "none" || !f.feHealth.includes(h)) return false;
+    }
+    if (f.beHealth.length) {
+      const hasBE = t.assignees.some((a) => a.slot === "BE");
+      if (!hasBE) return false;
+      const h = healthRatio(t.actual_backend_hours, t.current_be_estimate);
+      if (h === "none" || !f.beHealth.includes(h)) return false;
+    }
+    if (f.projectHealth.length) {
+      if (t.ticket_type !== "Proj") return false;
+      const h = healthRatio(t.actual_project_hours, t.current_project_estimate);
+      if (h === "none" || !f.projectHealth.includes(h)) return false;
+    }
     return true;
   });
 }
 
 const DISC_OPTS: DisciplineStatus[] = ["todo", "in_progress", "for_integration", "done"];
 const TYPE_OPTS = ["Standard", "Bug", "CR"];
+const HEALTH_OPTS: { value: HealthColor; label: string; dot: string }[] = [
+  { value: "good", label: "Green — under 80%", dot: "hsl(var(--health-good))" },
+  { value: "warn", label: "Orange — 80–99%", dot: "hsl(var(--health-warn))" },
+  { value: "bad", label: "Red — at or over estimate", dot: "hsl(var(--health-bad))" },
+];
 
 export function TicketsFilter({
   projectId,
@@ -194,6 +227,42 @@ export function TicketsFilter({
                   label={DISCIPLINE_STATUS_LABEL[s]}
                   selected={filters.beStatuses.includes(s)}
                   onClick={() => toggle("beStatuses", s)}
+                />
+              ))}
+            </FilterSection>
+
+            <FilterSection title="Estimate vs actual — Frontend">
+              {HEALTH_OPTS.map((h) => (
+                <FilterRow
+                  key={h.value}
+                  label={h.label}
+                  dot={h.dot}
+                  selected={filters.feHealth.includes(h.value)}
+                  onClick={() => toggle("feHealth", h.value)}
+                />
+              ))}
+            </FilterSection>
+
+            <FilterSection title="Estimate vs actual — Backend">
+              {HEALTH_OPTS.map((h) => (
+                <FilterRow
+                  key={h.value}
+                  label={h.label}
+                  dot={h.dot}
+                  selected={filters.beHealth.includes(h.value)}
+                  onClick={() => toggle("beHealth", h.value)}
+                />
+              ))}
+            </FilterSection>
+
+            <FilterSection title="Estimate vs actual — Project (shared)">
+              {HEALTH_OPTS.map((h) => (
+                <FilterRow
+                  key={h.value}
+                  label={h.label}
+                  dot={h.dot}
+                  selected={filters.projectHealth.includes(h.value)}
+                  onClick={() => toggle("projectHealth", h.value)}
                 />
               ))}
             </FilterSection>
