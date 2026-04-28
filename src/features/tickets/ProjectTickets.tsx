@@ -100,12 +100,16 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
     setFilterMine(!pmba);
   }, [role, pmba, touched]);
 
+  // Tickets after explicit filters (shared by board + list).
+  // Note: filterMine and search are applied inside ProjectBoard / TicketsList
+  // (board does it itself; list receives the fully-filtered set below).
+  const filteredTickets = useMemo(() => applyFilters(tickets, filters), [tickets, filters]);
+
   const visibleTickets = useMemo(() => {
-    let out = tickets;
+    let out = filteredTickets;
     if (filterMine && user) {
       out = out.filter((t) => t.assignees.some((a) => a.user_id === user.id));
     }
-    out = applyFilters(out, filters);
     const q = search.trim().toLowerCase();
     if (q) {
       out = out.filter(
@@ -115,7 +119,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
       );
     }
     return out;
-  }, [tickets, filterMine, user, filters, search]);
+  }, [filteredTickets, filterMine, user, search]);
 
   // Drop selections that are no longer visible (filter change, deletion, view switch)
   useEffect(() => {
@@ -415,15 +419,15 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
                 </SelectContent>
               </Select>
             </div>
-
-            <TicketsFilter
-              projectId={projectId}
-              tickets={tickets}
-              filters={filters}
-              onChange={setFilters}
-            />
           </>
         )}
+
+        <TicketsFilter
+          projectId={projectId}
+          tickets={tickets}
+          filters={filters}
+          onChange={setFilters}
+        />
 
         <div className="ml-auto flex items-center gap-2">
           <div className="relative">
@@ -494,7 +498,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
             setTouched(true);
             setFilterMine(v);
           }}
-          tickets={tickets}
+          tickets={filteredTickets}
           reload={reload}
         />
       ) : visibleTickets.length === 0 ? (
