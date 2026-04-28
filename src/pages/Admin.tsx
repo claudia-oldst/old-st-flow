@@ -36,7 +36,9 @@ const PRESET_COLORS = ["#94a3b8", "#3b82f6", "#a855f7", "#22c55e", "#f59e0b", "#
 
 
 export default function Admin() {
-  const [tab, setTab] = useState<"team" | "statuses">("team");
+  const user = useCurrentUser((s) => s.user);
+  const isPMBA = user?.role === "PMBA";
+  const [tab, setTab] = useState<"team" | "statuses" | "rules">("team");
   return (
     <div className="mx-auto max-w-[1480px] px-4 sm:px-6 py-10">
       <div className="mb-8">
@@ -53,9 +55,16 @@ export default function Admin() {
         <TabButton active={tab === "statuses"} onClick={() => setTab("statuses")} icon={<Layers className="h-3.5 w-3.5" />}>
           Statuses
         </TabButton>
+        {isPMBA && (
+          <TabButton active={tab === "rules"} onClick={() => setTab("rules")} icon={<GitBranch className="h-3.5 w-3.5" />}>
+            Status rules
+          </TabButton>
+        )}
       </div>
 
-      {tab === "team" ? <TeamAdmin /> : <StatusesAdmin />}
+      {tab === "team" && <TeamAdmin />}
+      {tab === "statuses" && <StatusesAdmin />}
+      {tab === "rules" && isPMBA && <StatusRulesAdmin canEdit={isPMBA} />}
     </div>
   );
 }
