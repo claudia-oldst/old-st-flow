@@ -98,10 +98,7 @@ export function applyFilters(tickets: TicketRow[], f: TicketFilters): TicketRow[
     }
     if (f.projectHealth.length) {
       if (t.ticket_type !== "Proj") return false;
-      const h = healthRatio(
-        (t as any).actual_project_hours ?? 0,
-        (t as any).current_project_estimate ?? 0
-      );
+      const h = healthRatio(t.actual_project_hours, t.current_project_estimate);
       if (h === "none" || !f.projectHealth.includes(h)) return false;
     }
     return true;
