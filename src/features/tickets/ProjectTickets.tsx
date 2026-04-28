@@ -3,8 +3,15 @@ import { useCurrentUser } from "@/store/currentUser";
 import { useTimerStore } from "@/store/timer";
 import Papa from "papaparse";
 import { Button } from "@/components/ui/button";
-import { Upload, FileText, AlertCircle, LayoutGrid, List, Download, X, FileUp, Search, Clock } from "lucide-react";
+import { Upload, FileText, AlertCircle, LayoutGrid, List, Download, X, FileUp, Search, Clock, Plus, ChevronDown } from "lucide-react";
 import { StartGroupTimerDialog } from "@/features/timelog/StartGroupTimerDialog";
+import { AddTicketsDialog } from "@/features/tickets/AddTicketsDialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -72,6 +79,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
   const { tickets, reload } = useProjectTickets(projectId);
   const fileRef = useRef<HTMLInputElement>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [fileName, setFileName] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -448,9 +456,31 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
             </Button>
           )}
           {isPMBA(role) && (
-            <Button size="sm" variant="outline" onClick={() => setImportOpen(true)} className="gap-2">
-              <Upload className="h-4 w-4" /> Import CSV
-            </Button>
+            <div className="inline-flex rounded-md overflow-hidden">
+              <Button
+                size="sm"
+                onClick={() => setAddOpen(true)}
+                className="gap-2 rounded-r-none"
+              >
+                <Plus className="h-4 w-4" /> Add ticket
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="sm"
+                    aria-label="More add options"
+                    className="rounded-l-none px-2 border-l border-primary-foreground/20"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setImportOpen(true)} className="gap-2">
+                    <Upload className="h-4 w-4" /> Import from CSV…
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           )}
         </div>
       </div>
