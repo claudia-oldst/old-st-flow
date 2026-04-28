@@ -6,7 +6,9 @@ import { useStatuses } from "@/features/statuses/useStatuses";
 import { useProjectEpics } from "@/features/epics/useProjectEpics";
 import { DISCIPLINE_STATUS_LABEL, type DisciplineStatus } from "@/lib/types";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
-import { cn } from "@/lib/utils";
+import { cn, healthRatio } from "@/lib/utils";
+
+export type HealthColor = "good" | "warn" | "bad";
 
 export interface TicketFilters {
   epicIds: string[]; // string of epic id, or "_none" for no epic
@@ -16,6 +18,9 @@ export interface TicketFilters {
   beStatuses: DisciplineStatus[];
   assigneeIds: string[]; // user ids, or "_unassigned"
   types: string[]; // Standard | Bug | CR
+  feHealth: HealthColor[];
+  beHealth: HealthColor[];
+  projectHealth: HealthColor[];
 }
 
 export const EMPTY_FILTERS: TicketFilters = {
@@ -26,6 +31,9 @@ export const EMPTY_FILTERS: TicketFilters = {
   beStatuses: [],
   assigneeIds: [],
   types: [],
+  feHealth: [],
+  beHealth: [],
+  projectHealth: [],
 };
 
 export function activeFilterCount(f: TicketFilters): number {
@@ -36,7 +44,10 @@ export function activeFilterCount(f: TicketFilters): number {
     f.feStatuses.length +
     f.beStatuses.length +
     f.assigneeIds.length +
-    f.types.length
+    f.types.length +
+    f.feHealth.length +
+    f.beHealth.length +
+    f.projectHealth.length
   );
 }
 
