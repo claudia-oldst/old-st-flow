@@ -646,7 +646,7 @@ function Stat({
   );
 }
 
-const DISCIPLINE_OPTIONS: DisciplineStatus[] = ["todo", "in_progress", "done"];
+const DISCIPLINE_OPTIONS: DisciplineStatus[] = ["todo", "in_progress", "for_integration", "done"];
 
 function DisciplineRow({
   slot,

@@ -342,7 +342,7 @@ export function StopGroupTimerDialog({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {(["todo", "in_progress", "done"] as const).map((s) => (
+                      {(["todo", "in_progress", "for_integration", "done"] as const).map((s) => (
                         <SelectItem key={s} value={s} className="text-xs">
                           {DISCIPLINE_STATUS_LABEL[s]}
                         </SelectItem>

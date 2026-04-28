@@ -19,7 +19,7 @@ import {
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 type BoardMode = "project" | "discipline";
-const DISCIPLINE_STATUSES: DisciplineStatus[] = ["todo", "in_progress", "done"];
+const DISCIPLINE_STATUSES: DisciplineStatus[] = ["todo", "in_progress", "for_integration", "done"];
 
 interface DisciplineCard {
   ticket: TicketRow;
@@ -35,6 +35,7 @@ const CATEGORY_TO_DISCIPLINE: Record<string, DisciplineStatus> = {
 const DISCIPLINE_TO_CATEGORY: Record<DisciplineStatus, "backlog" | "active" | "done"> = {
   todo: "backlog",
   in_progress: "active",
+  for_integration: "active",
   done: "done",
 };
 
@@ -174,6 +175,7 @@ export function ProjectBoard({
     const map: Record<DisciplineStatus, DisciplineCard[]> = {
       todo: [],
       in_progress: [],
+      for_integration: [],
       done: [],
     };
     disciplineCards.forEach((c) => map[c.status].push(c));

@@ -6,17 +6,19 @@ export type TicketType = Database["public"]["Enums"]["ticket_type"];
 export type AssigneeSlot = Database["public"]["Enums"]["assignee_slot"];
 export type LogDiscipline = Database["public"]["Enums"]["log_discipline"];
 export type LogSource = Database["public"]["Enums"]["log_source"];
-export type DisciplineStatus = "todo" | "in_progress" | "done";
+export type DisciplineStatus = "todo" | "in_progress" | "for_integration" | "done";
 
 export const DISCIPLINE_STATUS_LABEL: Record<DisciplineStatus, string> = {
   todo: "To-do",
   in_progress: "In progress",
+  for_integration: "For integration",
   done: "Done",
 };
 
 export const DISCIPLINE_STATUS_COLOR: Record<DisciplineStatus, string> = {
   todo: "#94a3b8",
   in_progress: "#3b82f6",
+  for_integration: "#a855f7",
   done: "#22c55e",
 };
 

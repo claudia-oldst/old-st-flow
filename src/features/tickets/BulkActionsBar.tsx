@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils";
 import { DISCIPLINE_STATUS_LABEL, type DisciplineStatus } from "@/lib/types";
 import { BulkAssignDialog } from "@/features/tickets/BulkAssignDialog";
 
-const DISC_OPTS: DisciplineStatus[] = ["todo", "in_progress", "done"];
+const DISC_OPTS: DisciplineStatus[] = ["todo", "in_progress", "for_integration", "done"];
 
 export function BulkActionsBar({
   projectId,
