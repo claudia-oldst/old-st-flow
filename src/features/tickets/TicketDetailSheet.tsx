@@ -30,7 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Clock, Users, Trash2, Edit3, Bookmark, Sparkles, Pin, TrendingUp, History } from "lucide-react";
+import { Clock, Users, Trash2, Edit3, Bookmark, Sparkles, Pin, TrendingUp, History, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
