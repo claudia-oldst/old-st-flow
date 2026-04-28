@@ -541,18 +541,56 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
                   No time logged yet.
                 </div>
               ) : (
-                <div className="space-y-1.5">
-                  {logs.map((l) => (
-                    <div key={l.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/[0.02] hairline text-sm">
-                      <MemberAvatar name={l.user.name} color={l.user.avatar_color} size="xs" />
-                      <span className="text-dim flex-1 truncate">
-                        {l.user.name} · <span className="font-mono">{formatHours(l.hours)}</span> · {l.discipline}
-                        {l.note && <span className="text-dimmer"> — {l.note}</span>}
-                      </span>
-                      <span className="text-[10px] text-dimmer">{new Date(l.logged_at).toLocaleDateString()}</span>
+                (() => {
+                  const totalPages = Math.max(1, Math.ceil(logs.length / LOGS_PER_PAGE));
+                  const page = Math.min(logPage, totalPages - 1);
+                  const start = page * LOGS_PER_PAGE;
+                  const visible = logs.slice(start, start + LOGS_PER_PAGE);
+                  return (
+                    <div className="space-y-1.5">
+                      {visible.map((l) => (
+                        <div key={l.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/[0.02] hairline text-sm">
+                          <MemberAvatar name={l.user.name} color={l.user.avatar_color} size="xs" />
+                          <span className="text-dim flex-1 truncate">
+                            {l.user.name} · <span className="font-mono">{formatHours(l.hours)}</span> · {l.discipline}
+                            {l.note && <span className="text-dimmer"> — {l.note}</span>}
+                          </span>
+                          <span className="text-[10px] text-dimmer">{new Date(l.logged_at).toLocaleDateString()}</span>
+                        </div>
+                      ))}
+                      {totalPages > 1 && (
+                        <div className="flex items-center justify-between pt-2">
+                          <span className="text-[11px] text-dimmer">
+                            {start + 1}–{Math.min(start + LOGS_PER_PAGE, logs.length)} of {logs.length}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0"
+                              disabled={page === 0}
+                              onClick={() => setLogPage(page - 1)}
+                            >
+                              <ChevronLeft className="h-3.5 w-3.5" />
+                            </Button>
+                            <span className="text-[11px] text-dim font-mono px-1">
+                              {page + 1} / {totalPages}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0"
+                              disabled={page >= totalPages - 1}
+                              onClick={() => setLogPage(page + 1)}
+                            >
+                              <ChevronRight className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  ))}
-                </div>
+                  );
+                })()
               )}
             </div>
 
