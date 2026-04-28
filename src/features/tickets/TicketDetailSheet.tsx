@@ -51,6 +51,9 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
   const [requestSlot, setRequestSlot] = useState<"FE" | "BE" | undefined>(undefined);
   const [showAllChanges, setShowAllChanges] = useState(false);
   const { logs, reload: reloadLogs } = useTicketTimeLogs(ticket?.id);
+  const [logPage, setLogPage] = useState(0);
+  const LOGS_PER_PAGE = 10;
+  useEffect(() => { setLogPage(0); }, [ticket?.id, logs.length]);
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState("");
   const [feEst, setFeEst] = useState("");
