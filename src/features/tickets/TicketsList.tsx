@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, ArrowUp, ArrowDown, ChevronsUpDown } from "lucide-react";
 import { useStatuses } from "@/features/statuses/useStatuses";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { displayTitle, formatHours, cn } from "@/lib/utils";
@@ -50,6 +50,32 @@ const COLS: Record<ColKey, ColDef> = {
 };
 
 const STORAGE_KEY = "tickets-list-col-widths-v1";
+const SORT_STORAGE_KEY = "tickets-list-sort-v1";
+
+type SortDir = "asc" | "desc";
+interface SortState {
+  key: ColKey;
+  dir: SortDir;
+}
+
+const SORTABLE: Record<ColKey, boolean> = {
+  id: true,
+  title: true,
+  epic: true,
+  version: true,
+  status: true,
+  dev_status: true,
+  fe: true,
+  be: true,
+  assignees: true,
+};
+
+const DISC_ORDER: Record<DisciplineStatus, number> = {
+  todo: 0,
+  in_progress: 1,
+  for_integration: 2,
+  done: 3,
+};
 
 function loadWidths(): Partial<Record<ColKey, number>> {
   if (typeof window === "undefined") return {};
@@ -57,6 +83,16 @@ function loadWidths(): Partial<Record<ColKey, number>> {
     return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
   } catch {
     return {};
+  }
+}
+
+function loadSort(): SortState | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(SORT_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
   }
 }
 
@@ -79,6 +115,7 @@ export function TicketsList({
   const { statuses } = useStatuses();
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [widths, setWidths] = useState<Partial<Record<ColKey, number>>>(() => loadWidths());
+  const [sort, setSort] = useState<SortState | null>(() => loadSort());
 
   useEffect(() => {
     try {
@@ -87,6 +124,73 @@ export function TicketsList({
       /* ignore */
     }
   }, [widths]);
+
+  useEffect(() => {
+    try {
+      if (sort) localStorage.setItem(SORT_STORAGE_KEY, JSON.stringify(sort));
+      else localStorage.removeItem(SORT_STORAGE_KEY);
+    } catch {
+      /* ignore */
+    }
+  }, [sort]);
+
+  const toggleSort = useCallback((key: ColKey) => {
+    if (!SORTABLE[key]) return;
+    setSort((prev) => {
+      if (!prev || prev.key !== key) return { key, dir: "asc" };
+      if (prev.dir === "asc") return { key, dir: "desc" };
+      return null; // third click clears
+    });
+  }, []);
+
+  const statusOrder = useMemo(() => {
+    const m = new Map<string, number>();
+    statuses.forEach((s, i) => m.set(s.id, i));
+    return m;
+  }, [statuses]);
+
+  const sortTickets = useCallback(
+    (arr: TicketRow[]): TicketRow[] => {
+      if (!sort) return arr;
+      const dir = sort.dir === "asc" ? 1 : -1;
+      const cmpStr = (a: string, b: string) =>
+        a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
+      const valFor = (t: TicketRow): string | number => {
+        switch (sort.key) {
+          case "id":
+            return t.formatted_id ?? "";
+          case "title":
+            return (t.title ?? "").toLowerCase();
+          case "epic":
+            return (t.epic_name ?? "").toLowerCase();
+          case "version":
+            return t.version ?? "";
+          case "status":
+            return statusOrder.get(t.status_id ?? "") ?? Number.MAX_SAFE_INTEGER;
+          case "dev_status": {
+            const hasFE = t.assignees.some((a) => a.slot === "FE");
+            const hasBE = t.assignees.some((a) => a.slot === "BE");
+            const fe = hasFE ? DISC_ORDER[t.fe_status] : 99;
+            const be = hasBE ? DISC_ORDER[t.be_status] : 99;
+            return fe * 100 + be;
+          }
+          case "fe":
+            return Number(t.actual_frontend_hours ?? 0);
+          case "be":
+            return Number(t.actual_backend_hours ?? 0);
+          case "assignees":
+            return (t.assignees[0]?.member.name ?? "~").toLowerCase();
+        }
+      };
+      return [...arr].sort((a, b) => {
+        const va = valFor(a);
+        const vb = valFor(b);
+        if (typeof va === "number" && typeof vb === "number") return (va - vb) * dir;
+        return cmpStr(String(va), String(vb)) * dir;
+      });
+    },
+    [sort, statusOrder]
+  );
 
   const visibleCols: ColKey[] = useMemo(() => {
     const out: ColKey[] = ["id", "title"];
@@ -325,7 +429,8 @@ export function TicketsList({
   return (
     <TooltipProvider>
       <div className="flex flex-col gap-3">
-        {groups.map((g) => {
+        {groups.map((rawGroup) => {
+          const g = { ...rawGroup, tickets: sortTickets(rawGroup.tickets) };
           const isCollapsed = collapsed[g.key];
           return (
             <div key={g.key} className="glass rounded-2xl overflow-hidden">
@@ -388,6 +493,13 @@ export function TicketsList({
                         {visibleCols.map((k, idx) => {
                           const c = COLS[k];
                           const isLast = idx === visibleCols.length - 1;
+                          const sortable = SORTABLE[k];
+                          const active = sort?.key === k;
+                          const SortIcon = !active
+                            ? ChevronsUpDown
+                            : sort!.dir === "asc"
+                              ? ArrowUp
+                              : ArrowDown;
                           return (
                             <th
                               key={k}
@@ -396,7 +508,31 @@ export function TicketsList({
                                 c.align === "right" && "text-right"
                               )}
                             >
-                              <span className="truncate block">{c.label}</span>
+                              <button
+                                type="button"
+                                onClick={() => sortable && toggleSort(k)}
+                                className={cn(
+                                  "inline-flex items-center gap-1 max-w-full",
+                                  c.align === "right" && "ml-auto",
+                                  sortable ? "hover:text-foreground transition cursor-pointer" : "cursor-default",
+                                  active && "text-foreground"
+                                )}
+                                aria-label={
+                                  sortable
+                                    ? `Sort by ${c.label}${active ? ` (${sort!.dir})` : ""}`
+                                    : c.label
+                                }
+                              >
+                                <span className="truncate">{c.label}</span>
+                                {sortable && (
+                                  <SortIcon
+                                    className={cn(
+                                      "h-3 w-3 shrink-0",
+                                      active ? "opacity-100" : "opacity-40"
+                                    )}
+                                  />
+                                )}
+                              </button>
                               {!isLast && (
                                 <span
                                   onMouseDown={onResizeStart(k)}
