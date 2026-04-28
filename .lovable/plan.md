@@ -1,33 +1,59 @@
-## Code cleanup — safe pass
+## Goal
 
-I'll execute the following items from the review **without changing any user-facing functionality**. Skipping the bigger architectural lifts (React Query migration, file splitting) — those deserve their own dedicated pass.
+For PMBA users, replace the standalone "Import CSV" button in the ticket toolbar with a primary **"Add ticket"** CTA that opens a multi-row creation dialog. The CSV import becomes a secondary action accessible from a dropdown attached to the Add ticket button.
 
-### Changes
+## UX
 
-1. **Remove stale `actual_overhead_hours` reference** — `src/features/tickets/useProjectTickets.ts` writes a property that no longer exists on the type or DB column. Delete the line.
+**Toolbar (PMBA only)**
+- Primary button: `+ Add ticket` (opens AddTicketsDialog)
+- Adjacent caret button (chevron-down) opens a dropdown menu with: `Import from CSV…` → opens existing import dialog
+- Non-PMBA users: no change (still no Add ticket / no import).
 
-2. **Sweep leftover Overhead/Other copy** (no behavior change):
-   - `StopGroupTimerDialog.tsx`: drop the unreachable `"Overhead"` fallback label, rename the misleading `isOverhead` alias to `isProject`, fix the obsolete `// null for Overhead` comment.
-   - `ProjectTeam.tsx`: change *"'Other' contributor"* copy to *"Project contributor"*.
-   - `EstimateEvolution.tsx`: tweak the *"ignore overhead"* comment to *"only FE/BE"*.
+**AddTicketsDialog**
+- Modal with a vertical stack of "ticket draft" rows. Starts with one empty row.
+- Each row contains, on a single responsive line:
+  - Title (text input, required, autofocus on first row)
+  - Type (Select: Standard / Bug / CR / Proj)
+  - Epic (existing `EpicSelect` component — supports inline create)
+  - Project status (Select populated from `useStatuses()` — same options as elsewhere; defaults to first `backlog` status)
+  - FE estimate (number, hidden when type = Proj)
+  - BE estimate (number, hidden when type = Proj)
+  - Project estimate (number, shown only when type = Proj)
+  - Assign (button → opens a popover with the same FE / BE / Project Contributors slot pickers as `AssignDialog`, scoped to a not-yet-created ticket; selections held in local state). Trigger shows count + avatars.
+  - Trash icon to remove the row (disabled if it's the only row).
+- Footer:
+  - Left: `+ Add another ticket` ghost button — appends a fresh empty draft row.
+  - Right: `Cancel` and `Create N tickets` (label updates with valid count).
+- "Create" inserts all valid drafts in a single `supabase.from("tickets").insert([...])` call (with `select("id")` returned), then bulk-inserts `ticket_assignees` rows for any drafts that had assignments. On success: toast, close dialog, `reload()`.
+- Validation: rows with empty title are skipped (greyed out, "Title required" hint). Disable Create when zero valid rows.
+- Keyboard: Enter in title field on the last row → adds another row. Cmd/Ctrl+Enter anywhere → submit.
 
-3. **Centralize the `ROLES` list** in `src/lib/types.ts` and import everywhere. Fixes the bug where `Admin.tsx` was missing **Design**, while `ProjectTeam.tsx` and `ProjectSettingsDialog.tsx` had it. One source of truth going forward.
+## Implementation
 
-4. **Drop stale `as any` casts on `Project`** in `ProjectSettingsDialog.tsx`. The fields (`client_name`, `rate_per_hour`, `start_date`, `links`) all exist on the generated type — the casts are noise from a stale moment in the schema. ~10 casts removed, no behavior change.
+**New file**: `src/features/tickets/AddTicketsDialog.tsx`
+- Props: `{ open, onOpenChange, projectId, onCreated }`.
+- Loads `project_members` once (with joined `team_members`) for the assign popover, mirroring `AssignDialog`'s query.
+- Loads statuses via existing `useStatuses()` hook.
+- Internal `Draft` type holds title/type/epic_id/status_id/fe/be/proj/assignees{fe,be,project: Set<string>}.
+- Submit:
+  1. Build `payload` array (filter valid drafts) with same field shape as `QuickAddRow.submit` plus `status_id` and project estimates; let trigger fill `ticket_number`/`formatted_id`.
+  2. `insert(payload).select("id")` to get new ticket IDs in order.
+  3. Build `ticket_assignees` rows from drafts that have any selections, paired with returned IDs by index.
+  4. `insert(assigneeRows)` if any.
+  5. Toast success, call `onCreated()`, close.
 
-5. **Extract `useTicketTimeLogs(ticketId)` hook** to remove the duplicated time-logs fetch in `TicketDetailSheet.tsx` (defined twice with the same select statement). Pure refactor.
+**Edit**: `src/features/tickets/ProjectTickets.tsx`
+- Add `addOpen` state.
+- Replace the PMBA `Import CSV` button (lines ~450-454) with a button group:
+  - Primary `Button` "Add ticket" (Plus icon) → `setAddOpen(true)`
+  - `DropdownMenu` trigger (chevron icon button, same height) with one item "Import from CSV…" → `setImportOpen(true)`
+- Render `<AddTicketsDialog open={addOpen} onOpenChange={setAddOpen} projectId={projectId} onCreated={reload} />` near the existing import Dialog.
+- Keep all existing CSV import logic untouched.
 
-6. **Include `actual_project_hours` in `ProjectHealth` totals.** Profitability and overall ratio currently sum FE+BE only, ignoring the new Project bucket. Add it so totals reflect all logged time post-Overhead-removal. (If you'd rather keep totals as FE+BE only, say so and I'll skip this one item.)
+**Reused components** (no changes): `EpicSelect`, `useStatuses`, `MemberAvatar`, `Dialog`, `Select`, `DropdownMenu`, `Popover`.
 
-### Explicitly **not** doing (deferred / bigger lifts)
+## Out of scope
 
-- React Query migration of `useProjectTickets`, `useStatuses`, `useProjectRole`, `useProjectEpics` (biggest perf win, but a larger refactor).
-- Splitting `ProjectTickets.tsx` (676 lines) and `TicketDetailSheet.tsx` (746 lines) into smaller files.
-- Lifting `filterMine` state out of duplication between `ProjectTickets` and `ProjectBoard`.
-- Auth hardening (currentUser is just localStorage — needs real auth, not a quick win).
-
-### Risk
-
-Items 1, 2, 4, 5 are pure cleanups with zero behavior change. Item 3 is a one-line addition to one constant + import swaps. Item 6 is the only one that visibly changes a number on the Health page — flag it if you want the old behavior preserved.
-
-I'll TypeScript-check after the changes to make sure nothing broke.
+- Editing CSV import flow itself.
+- Changing `QuickAddRow` (per-column inline add stays).
+- Permission changes — gating mirrors current `isPMBA(role)` check.
