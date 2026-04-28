@@ -534,7 +534,7 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
                     <Clock className="h-3.5 w-3.5" /> Log time
                   </Button>
                 )}
-                {!canLog && role && (
+                {!canLog && (
                   <span className="text-[10px] text-dimmer">Assign yourself to log time</span>
                 )}
               </div>
