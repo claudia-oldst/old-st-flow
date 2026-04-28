@@ -429,7 +429,8 @@ export function TicketsList({
   return (
     <TooltipProvider>
       <div className="flex flex-col gap-3">
-        {groups.map((g) => {
+        {groups.map((rawGroup) => {
+          const g = { ...rawGroup, tickets: sortTickets(rawGroup.tickets) };
           const isCollapsed = collapsed[g.key];
           return (
             <div key={g.key} className="glass rounded-2xl overflow-hidden">
