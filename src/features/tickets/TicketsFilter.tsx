@@ -18,9 +18,7 @@ export interface TicketFilters {
   beStatuses: DisciplineStatus[];
   assigneeIds: string[]; // user ids, or "_unassigned"
   types: string[]; // Standard | Bug | CR
-  feHealth: HealthColor[];
-  beHealth: HealthColor[];
-  projectHealth: HealthColor[];
+  health: HealthColor[]; // matches if ANY of FE/BE/Project ratio matches
 }
 
 export const EMPTY_FILTERS: TicketFilters = {
@@ -31,9 +29,7 @@ export const EMPTY_FILTERS: TicketFilters = {
   beStatuses: [],
   assigneeIds: [],
   types: [],
-  feHealth: [],
-  beHealth: [],
-  projectHealth: [],
+  health: [],
 };
 
 export function activeFilterCount(f: TicketFilters): number {
@@ -45,9 +41,7 @@ export function activeFilterCount(f: TicketFilters): number {
     f.beStatuses.length +
     f.assigneeIds.length +
     f.types.length +
-    f.feHealth.length +
-    f.beHealth.length +
-    f.projectHealth.length
+    f.health.length
   );
 }
 
@@ -84,22 +78,23 @@ export function applyFilters(tickets: TicketRow[], f: TicketFilters): TicketRow[
       }
     }
     if (f.types.length && !f.types.includes(t.ticket_type)) return false;
-    if (f.feHealth.length) {
+    if (f.health.length) {
+      const candidates: HealthColor[] = [];
       const hasFE = t.assignees.some((a) => a.slot === "FE");
-      if (!hasFE) return false;
-      const h = healthRatio(t.actual_frontend_hours, t.current_fe_estimate);
-      if (h === "none" || !f.feHealth.includes(h)) return false;
-    }
-    if (f.beHealth.length) {
       const hasBE = t.assignees.some((a) => a.slot === "BE");
-      if (!hasBE) return false;
-      const h = healthRatio(t.actual_backend_hours, t.current_be_estimate);
-      if (h === "none" || !f.beHealth.includes(h)) return false;
-    }
-    if (f.projectHealth.length) {
-      if (t.ticket_type !== "Proj") return false;
-      const h = healthRatio(t.actual_project_hours, t.current_project_estimate);
-      if (h === "none" || !f.projectHealth.includes(h)) return false;
+      if (hasFE) {
+        const h = healthRatio(t.actual_frontend_hours, t.current_fe_estimate);
+        if (h !== "none") candidates.push(h);
+      }
+      if (hasBE) {
+        const h = healthRatio(t.actual_backend_hours, t.current_be_estimate);
+        if (h !== "none") candidates.push(h);
+      }
+      if (t.ticket_type === "Proj") {
+        const h = healthRatio(t.actual_project_hours, t.current_project_estimate);
+        if (h !== "none") candidates.push(h);
+      }
+      if (!candidates.some((c) => f.health.includes(c))) return false;
     }
     return true;
   });
@@ -231,38 +226,14 @@ export function TicketsFilter({
               ))}
             </FilterSection>
 
-            <FilterSection title="Estimate vs actual — Frontend">
+            <FilterSection title="Estimate vs actual">
               {HEALTH_OPTS.map((h) => (
                 <FilterRow
                   key={h.value}
                   label={h.label}
                   dot={h.dot}
-                  selected={filters.feHealth.includes(h.value)}
-                  onClick={() => toggle("feHealth", h.value)}
-                />
-              ))}
-            </FilterSection>
-
-            <FilterSection title="Estimate vs actual — Backend">
-              {HEALTH_OPTS.map((h) => (
-                <FilterRow
-                  key={h.value}
-                  label={h.label}
-                  dot={h.dot}
-                  selected={filters.beHealth.includes(h.value)}
-                  onClick={() => toggle("beHealth", h.value)}
-                />
-              ))}
-            </FilterSection>
-
-            <FilterSection title="Estimate vs actual — Project (shared)">
-              {HEALTH_OPTS.map((h) => (
-                <FilterRow
-                  key={h.value}
-                  label={h.label}
-                  dot={h.dot}
-                  selected={filters.projectHealth.includes(h.value)}
-                  onClick={() => toggle("projectHealth", h.value)}
+                  selected={filters.health.includes(h.value)}
+                  onClick={() => toggle("health", h.value)}
                 />
               ))}
             </FilterSection>
