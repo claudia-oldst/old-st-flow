@@ -533,7 +533,7 @@ export type Database = {
     }
     Enums: {
       assignee_slot: "FE" | "BE" | "Project"
-      discipline_status: "todo" | "in_progress" | "done"
+      discipline_status: "todo" | "in_progress" | "for_integration" | "done"
       log_discipline: "FE" | "BE" | "Project"
       log_source: "timer" | "manual"
       project_role:
@@ -673,7 +673,7 @@ export const Constants = {
   public: {
     Enums: {
       assignee_slot: ["FE", "BE", "Project"],
-      discipline_status: ["todo", "in_progress", "done"],
+      discipline_status: ["todo", "in_progress", "for_integration", "done"],
       log_discipline: ["FE", "BE", "Project"],
       log_source: ["timer", "manual"],
       project_role: [
