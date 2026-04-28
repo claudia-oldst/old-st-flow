@@ -138,14 +138,29 @@ export default function StatusRulesAdmin({ canEdit }: { canEdit: boolean }) {
   const addRule = async () => {
     if (!statuses.length) return toast.error("Add a status first");
     const nextPos = sorted.length ? Math.max(...sorted.map((r) => r.position)) + 1 : 1;
-    const { error } = await supabase.from("status_derivation_rules").insert({
-      position: nextPos,
-      fe_statuses: [],
-      be_statuses: [],
-      operator: "AND",
-      status_id: statuses[0].id,
-    } as any);
-    if (error) return toast.error(error.message);
+    const { data, error } = await supabase
+      .from("status_derivation_rules")
+      .insert({
+        position: nextPos,
+        fe_statuses: [],
+        be_statuses: [],
+        operator: "AND",
+        status_id: statuses[0].id,
+      } as any)
+      .select()
+      .single();
+    if (error || !data) return toast.error(error?.message ?? "Failed to add rule");
+    setRules((rs) => [
+      ...rs,
+      {
+        id: (data as any).id,
+        position: (data as any).position,
+        fe_statuses: (data as any).fe_statuses ?? [],
+        be_statuses: (data as any).be_statuses ?? [],
+        operator: (data as any).operator,
+        status_id: (data as any).status_id,
+      },
+    ]);
     toast.success("Rule added");
   };
 
