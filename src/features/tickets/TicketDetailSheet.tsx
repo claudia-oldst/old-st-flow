@@ -77,7 +77,9 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
   const isProj = ticket.ticket_type === "Proj";
   const status = statuses.find((s) => s.id === ticket.status_id);
   const isMine = !!user && ticket.assignees.some((a) => a.user_id === user.id);
-  const canLog = isMine || isPMBA(role);
+  // Time logging is restricted to users assigned to the ticket (any slot).
+  // PMBA does not bypass — they must be assigned to log time.
+  const canLog = isMine;
   const myFE = !!user && ticket.assignees.some((a) => a.user_id === user.id && a.slot === "FE");
   const myBE = !!user && ticket.assignees.some((a) => a.user_id === user.id && a.slot === "BE");
   // A discipline only "exists" on a ticket once someone is assigned for that role.
@@ -532,7 +534,7 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
                     <Clock className="h-3.5 w-3.5" /> Log time
                   </Button>
                 )}
-                {!canLog && role && (
+                {!canLog && (
                   <span className="text-[10px] text-dimmer">Assign yourself to log time</span>
                 )}
               </div>
