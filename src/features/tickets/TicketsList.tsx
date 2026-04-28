@@ -50,6 +50,32 @@ const COLS: Record<ColKey, ColDef> = {
 };
 
 const STORAGE_KEY = "tickets-list-col-widths-v1";
+const SORT_STORAGE_KEY = "tickets-list-sort-v1";
+
+type SortDir = "asc" | "desc";
+interface SortState {
+  key: ColKey;
+  dir: SortDir;
+}
+
+const SORTABLE: Record<ColKey, boolean> = {
+  id: true,
+  title: true,
+  epic: true,
+  version: true,
+  status: true,
+  dev_status: true,
+  fe: true,
+  be: true,
+  assignees: true,
+};
+
+const DISC_ORDER: Record<DisciplineStatus, number> = {
+  todo: 0,
+  in_progress: 1,
+  for_integration: 2,
+  done: 3,
+};
 
 function loadWidths(): Partial<Record<ColKey, number>> {
   if (typeof window === "undefined") return {};
@@ -57,6 +83,16 @@ function loadWidths(): Partial<Record<ColKey, number>> {
     return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
   } catch {
     return {};
+  }
+}
+
+function loadSort(): SortState | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(SORT_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
   }
 }
 
