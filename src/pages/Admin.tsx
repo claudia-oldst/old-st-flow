@@ -20,8 +20,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { MemberAvatar } from "@/components/MemberAvatar";
-import { Plus, Trash2, GripVertical, ArrowUp, ArrowDown, Settings, Users, Layers } from "lucide-react";
+import { Plus, Trash2, GripVertical, ArrowUp, ArrowDown, Settings, Users, Layers, GitBranch } from "lucide-react";
 import { toast } from "sonner";
+import { useCurrentUser } from "@/store/currentUser";
+import StatusRulesAdmin from "@/features/admin/StatusRulesAdmin";
 
 const CATEGORIES: { value: StatusCategory; label: string; description: string }[] = [
   { value: "backlog", label: "Backlog", description: "Not started; logging time prompts move to active" },
