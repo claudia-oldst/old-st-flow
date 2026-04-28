@@ -27,6 +27,7 @@ interface Rule {
 const DISC_OPTIONS: { value: DisciplineStatus; label: string }[] = [
   { value: "todo", label: "Todo" },
   { value: "in_progress", label: "In progress" },
+  { value: "for_integration", label: "For integration" },
   { value: "done", label: "Done" },
 ];
 
