@@ -234,6 +234,42 @@ export function TicketsFilter({
               ))}
             </FilterSection>
 
+            <FilterSection title="Estimate vs actual — Frontend">
+              {HEALTH_OPTS.map((h) => (
+                <FilterRow
+                  key={h.value}
+                  label={h.label}
+                  dot={h.dot}
+                  selected={filters.feHealth.includes(h.value)}
+                  onClick={() => toggle("feHealth", h.value)}
+                />
+              ))}
+            </FilterSection>
+
+            <FilterSection title="Estimate vs actual — Backend">
+              {HEALTH_OPTS.map((h) => (
+                <FilterRow
+                  key={h.value}
+                  label={h.label}
+                  dot={h.dot}
+                  selected={filters.beHealth.includes(h.value)}
+                  onClick={() => toggle("beHealth", h.value)}
+                />
+              ))}
+            </FilterSection>
+
+            <FilterSection title="Estimate vs actual — Project (shared)">
+              {HEALTH_OPTS.map((h) => (
+                <FilterRow
+                  key={h.value}
+                  label={h.label}
+                  dot={h.dot}
+                  selected={filters.projectHealth.includes(h.value)}
+                  onClick={() => toggle("projectHealth", h.value)}
+                />
+              ))}
+            </FilterSection>
+
             <FilterSection title="Epic">
               {epics.map((e) => (
                 <FilterRow
