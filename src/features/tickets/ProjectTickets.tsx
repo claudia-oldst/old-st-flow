@@ -498,7 +498,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
             setTouched(true);
             setFilterMine(v);
           }}
-          tickets={tickets}
+          tickets={filteredTickets}
           reload={reload}
         />
       ) : visibleTickets.length === 0 ? (
