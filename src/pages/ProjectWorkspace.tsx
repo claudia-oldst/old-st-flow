@@ -6,8 +6,10 @@ import type { Project } from "@/lib/types";
 import { ProjectTickets } from "@/features/tickets/ProjectTickets";
 import { ProjectHealth } from "@/features/health/ProjectHealth";
 import { ProjectSettingsDialog } from "@/features/project/ProjectSettingsDialog";
+import { ExportProjectDialog } from "@/features/project/ExportProjectDialog";
 import { useProjectRole, isPMBA } from "@/features/team/useProjectRole";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export default function ProjectWorkspace() {
@@ -15,6 +17,7 @@ export default function ProjectWorkspace() {
   const [project, setProject] = useState<Project | null>(null);
   const role = useProjectRole(id);
   const canEdit = isPMBA(role);
+  const [exportOpen, setExportOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -44,12 +47,30 @@ export default function ProjectWorkspace() {
         {project?.client_name && (
           <span className="text-sm text-dim">· {project.client_name}</span>
         )}
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-1">
+          {project && canEdit && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setExportOpen(true)}
+              aria-label="Export project data"
+              title="Export project data"
+            >
+              <Download className="h-4 w-4" />
+            </Button>
+          )}
           {project && (
             <ProjectSettingsDialog
               project={project}
               canEdit={canEdit}
               onUpdated={(p) => setProject(p)}
+            />
+          )}
+          {project && (
+            <ExportProjectDialog
+              open={exportOpen}
+              onOpenChange={setExportOpen}
+              project={project}
             />
           )}
         </div>
