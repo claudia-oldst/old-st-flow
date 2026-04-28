@@ -69,7 +69,8 @@ export function RequestMoreTimeDialog({
 
   const submit = async () => {
     if (!user) return toast.error("Sign in first");
-    if (additional === 0) return toast.error("Enter the additional hours");
+    if (additional === 0) return toast.error("Enter a non-zero adjustment");
+    if (next < 0) return toast.error("New estimate cannot be negative");
     if (!reason.trim()) return toast.error("Reason is required");
     setBusy(true);
 
@@ -111,7 +112,7 @@ export function RequestMoreTimeDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="glass-strong max-w-md">
         <DialogHeader>
-          <DialogTitle>Request more time</DialogTitle>
+          <DialogTitle>Adjust estimate</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
@@ -136,14 +137,17 @@ export function RequestMoreTimeDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs">Additional hours</Label>
+            <Label className="text-xs">Adjustment (hours)</Label>
             <Input
               type="number"
               step="0.5"
               value={hours}
               onChange={(e) => setHours(e.target.value)}
-              placeholder="e.g. 4"
+              placeholder="e.g. 4 or -2"
             />
+            <p className="text-[11px] text-dimmer">
+              Use a negative number to reduce the estimate.
+            </p>
             <div className="flex items-center justify-between text-[11px] text-dim">
               <span>
                 {formatHours(previous)} →{" "}

@@ -381,7 +381,7 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
                       }}
                       className="gap-1 text-xs"
                     >
-                      <TrendingUp className="h-3 w-3" /> Request more time
+                      <TrendingUp className="h-3 w-3" /> Adjust estimate
                     </Button>
                   )}
                   {(isPMBA(role) || (isProj && canEditProj)) && !editing && (
