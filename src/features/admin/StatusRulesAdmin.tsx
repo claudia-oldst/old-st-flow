@@ -177,8 +177,23 @@ export default function StatusRulesAdmin({ canEdit }: { canEdit: boolean }) {
     const swap = sorted[idx + dir];
     if (!swap) return;
     const me = sorted[idx];
-    await supabase.from("status_derivation_rules").update({ position: swap.position }).eq("id", me.id);
-    await supabase.from("status_derivation_rules").update({ position: me.position }).eq("id", swap.id);
+    const myPos = me.position;
+    const swapPos = swap.position;
+    // Optimistic local update so the UI reorders instantly
+    setRules((rs) =>
+      rs.map((r) =>
+        r.id === me.id ? { ...r, position: swapPos } : r.id === swap.id ? { ...r, position: myPos } : r,
+      ),
+    );
+    const [a, b] = await Promise.all([
+      supabase.from("status_derivation_rules").update({ position: swapPos }).eq("id", me.id),
+      supabase.from("status_derivation_rules").update({ position: myPos }).eq("id", swap.id),
+    ]);
+    if (a.error || b.error) {
+      toast.error(a.error?.message ?? b.error?.message ?? "Reorder failed");
+      load();
+      return;
+    }
     await reapply();
   };
 
