@@ -1,79 +1,89 @@
-## Goal
+# Configurable Status Derivation Rules (multi-select) + auto-clear override
 
-Allow PMBAs to export all project data to a multi-tab Excel workbook, accessed via a small download icon next to the project settings cog in the workspace header. The export supports a date range (project start → user-picked end date) so estimates and actuals reflect the state of the project as of that end date.
+PMBAs configure global IF/THEN rules at the platform level. Each rule expresses a flexible condition on FE and BE statuses (multi-select on each side, joined by AND or OR) and assigns a Project status when matched. Rules apply automatically across every project and every ticket.
 
-## UX
+A manual project-status override sticks **only until the next FE or BE change** — at that point the ticket re-enters the rules engine.
 
-**Workspace header (PMBA only)**
-- New icon button (`Download` icon, ghost variant, same height as settings cog) placed immediately to the left of `ProjectSettingsDialog` trigger in `src/pages/ProjectWorkspace.tsx`.
-- Tooltip: "Export project data".
-- Click → opens an `ExportProjectDialog`.
+## What you'll see
 
-**ExportProjectDialog**
-- Title: "Export project data"
-- Body:
-  - Read-only "From" date showing the project start (defaults to project's `start_date`, or the project's earliest ticket `created_at` if `start_date` is null). Editable as a fallback.
-  - "As of" date picker (shadcn DatePicker, defaults to today). Defines the cutoff for all "as of" calculations.
-  - Three checkboxes (all on by default): Tickets, Change Requests, Time Logs — lets the user skip tabs.
-  - Helper text: "Estimates and actuals are computed as of the selected date."
-- Footer: `Cancel` and `Download .xlsx` (disables while generating, shows a spinner).
-- On success: toast "Export ready", file downloads, dialog closes.
+A new **Status rules** tab in Admin, PMBA-only.
 
-## Export contents (per tab)
+Each rule reads naturally:
 
-All three tabs are filtered by `as_of` (everything ≤ end-of-day of the picked date).
+```text
+Rule 1  IF  FE status IN [Done]                 AND  BE status IN [Done]                 THEN  Project = Released
+Rule 2  IF  FE status IN [In progress, Done]    OR   BE status IN [In progress, Done]    THEN  Project = In progress
+Rule 3  IF  FE status IN [Todo]                 AND  BE status IN [Todo]                 THEN  Project = Backlog
+```
 
-**Tab 1 — Tickets**
-Columns: `Ticket ID` (formatted_id), `Ticket Type`, `Ticket Name` (title), `Epic`, `FE Original Estimate`, `BE Original Estimate`, `Project Original Estimate`, `Updated FE Estimate`, `Updated BE Estimate`, `Updated Project Estimate`, `FE Status`, `BE Status`, `FE Actual`, `BE Actual`, `Project Actual`, `Assignees`.
+Each rule has:
+- **FE status** — multi-select chips (Todo / In progress / Done). Empty = "any FE status".
+- **Operator** — AND / OR.
+- **BE status** — multi-select chips. Empty = "any BE status".
+- **Then Project status** — single select from global statuses.
+- **Priority** — drag to reorder; first matching rule wins.
 
-- "Updated …" estimates are computed as `original + Σ(approved estimate_changes.delta WHERE created_at ≤ as_of)` per discipline. (Project discipline is not currently in `ticket_estimate_changes` — falls back to `current_project_estimate`.)
-- "… Actual" hours = `Σ(time_logs.hours WHERE ticket_id = … AND discipline = … AND logged_at ≤ as_of)`.
-- "FE/BE Status" = current value (snapshotting status history is out of scope; the table doesn't store it).
-- `Assignees` = comma-separated `Name (Slot)`, e.g. `Alice (FE), Bob (BE)`.
-- Only includes tickets with `created_at ≤ as_of`.
+Actions: add rule, delete rule, reorder, "Reset to defaults" (re-seeds the original 3-rule set above).
 
-**Tab 2 — Change Requests**
-Source: `ticket_estimate_changes` joined with `tickets` (project filter) and `team_members` for the requester.
-Columns: `Ticket ID`, `Ticket Type`, `Ticket Name`, `Epic`, `Discipline`, `Previous Hours`, `New Hours`, `Delta`, `Status` (approved/pending/rejected), `Assignee Requested` (the requester `team_members.name`), `Reason`, `Date` (`created_at`).
-Filter: `created_at ≤ as_of`. Sorted ascending by date.
+A live **preview matrix** (3×3 grid of FE × BE) shows which rule wins each cell, so PMBAs can spot gaps or overlaps instantly. Cells with no matching rule are flagged.
 
-**Tab 3 — Time Logs**
-Source: `time_logs` joined with `tickets` (project filter) and `team_members`.
-Columns: `Ticket ID`, `Ticket Type`, `Ticket Name`, `Epic`, `Discipline`, `Hours Logged`, `Assignee Logged` (`team_members.name`), `Source` (timer/manual), `Note`, `Date` (`logged_at`).
-Filter: `logged_at ≤ as_of`. Sorted ascending by date.
+## How project status behaves
 
-## Implementation
+- **Auto-derive (default):** when a ticket's FE or BE status changes, the engine walks rules in priority order; the first matching rule sets the project status.
+- **Manual override:** if a PMBA changes the project status directly on a ticket, that pick is honoured and `project_status_override` is set to true (existing behaviour).
+- **Override auto-clears on next FE/BE change:** the very next time someone updates the ticket's FE or BE status, the override flag is reset and the rules engine re-evaluates the project status from the new FE/BE combination. So manual picks are a one-shot snapshot, not a permanent lock.
+- A rule with empty FE list matches any FE status (same for BE) — lets you write "IF BE = Done, project = Done" regardless of FE.
+- `Proj`-type tickets are skipped (status managed manually, unchanged).
+- Saving any rule re-evaluates every eligible ticket (override flag respected at that moment) so the board reflects the new mapping immediately.
+- If no rule matches, the ticket's status is left untouched and the matrix shows a warning.
 
-**New file**: `src/features/project/ExportProjectDialog.tsx`
-- Props: `{ open, onOpenChange, project: Project }`.
-- Uses shadcn `Dialog`, `Calendar`/`Popover` (matching the pattern in `DateRangeControl.tsx`), `Checkbox`, `Button`.
-- Internal `generate()`:
-  1. Resolve `fromDate` (project.start_date or earliest ticket created_at) and `asOf` (end-of-day of picker value).
-  2. Parallel-fetch from Supabase, scoped to project + `as_of`:
-     - `tickets` with joined `epic:project_epics(epic_name)`, `assignees:ticket_assignees(slot, member:team_members(name))`, `status:statuses(name)`.
-     - `ticket_estimate_changes` joined with `ticket:tickets!inner(formatted_id, title, ticket_type, project_id, epic:project_epics(epic_name))` and `user:team_members(name)`, filtered `ticket.project_id = projectId`, `created_at ≤ as_of`.
-     - `time_logs` with the same shape of joins, filtered `logged_at ≤ as_of`.
-  3. Compute per-ticket adjusted estimates and actual hours by aggregating the change-request and time-log result sets in JS (one pass each, keyed by ticket_id), so we don't issue N queries.
-  4. Build three `aoa` (array-of-arrays) tables and feed them to **SheetJS (`xlsx`)** via `XLSX.utils.aoa_to_sheet` + `XLSX.utils.book_new` + `XLSX.utils.book_append_sheet`. Set basic column widths.
-  5. `XLSX.writeFile(wb, '<acronym>-export-<YYYY-MM-DD>.xlsx')`.
-- Toast + close on success; toast.error on failure.
+## Technical plan
 
-**Edit**: `src/pages/ProjectWorkspace.tsx`
-- Import `ExportProjectDialog` and `Download` icon.
-- Add `const [exportOpen, setExportOpen] = useState(false)`.
-- In the right side of the header (before `ProjectSettingsDialog`), render — gated by `canEdit` (PMBA):
-  ```tsx
-  <Button variant="ghost" size="icon" onClick={() => setExportOpen(true)} aria-label="Export project data">
-    <Download className="h-4 w-4" />
-  </Button>
-  ```
-- Render `<ExportProjectDialog open={exportOpen} onOpenChange={setExportOpen} project={project} />`.
+### Database
 
-**Dependency**: add `xlsx` (`bun add xlsx`). It's a well-supported, browser-friendly, ~600 KB minified library; no native deps. Generation runs entirely client-side.
+```sql
+CREATE TABLE public.status_derivation_rules (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  position int NOT NULL,                                 -- priority, lower = higher
+  fe_statuses discipline_status[] NOT NULL DEFAULT '{}', -- empty = any
+  be_statuses discipline_status[] NOT NULL DEFAULT '{}', -- empty = any
+  operator text NOT NULL CHECK (operator IN ('AND','OR')),
+  status_id uuid NOT NULL REFERENCES public.statuses(id) ON DELETE RESTRICT,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+```
 
-## Out of scope
+- RLS readable/writable by all (matches existing public pattern); PMBA gating in UI via `isPMBA`.
+- Seed three default rules matching today's hardcoded behaviour.
 
-- CSV-only export option (xlsx covers all needs and supports tabs).
-- Historical FE/BE status snapshots (the schema doesn't track status history).
-- Server-side / edge-function export — current data volumes don't require it.
-- Permission changes beyond the existing `isPMBA(role)` check.
+Rewrite `public.derive_project_status()`:
+- Skip if `ticket_type = 'Proj'`.
+- **Auto-clear override on FE/BE change:** if `NEW.fe_status IS DISTINCT FROM OLD.fe_status` OR `NEW.be_status IS DISTINCT FROM OLD.be_status`, set `NEW.project_status_override := false` before evaluating rules. (On INSERT, `OLD` is null → treat as a change so override starts false.)
+- If `NEW.project_status_override` is still true (i.e. this update didn't touch FE/BE), return NEW unchanged so the manual pick is preserved.
+- Otherwise loop `status_derivation_rules` ordered by `position`. For each row:
+  - `fe_match = cardinality(fe_statuses) = 0 OR NEW.fe_status = ANY(fe_statuses)`
+  - `be_match = cardinality(be_statuses) = 0 OR NEW.be_status = ANY(be_statuses)`
+  - Match if `(operator='AND' AND fe_match AND be_match) OR (operator='OR' AND (fe_match OR be_match))`
+  - On first match, set `NEW.status_id` and exit.
+- If nothing matches, leave `NEW.status_id` unchanged.
+
+`flag_project_status_override()` is unchanged — it still flips the override flag on whenever a PMBA edits `status_id` directly without touching FE/BE.
+
+Add `public.reapply_status_rules()` SECURITY DEFINER — re-runs derivation across all eligible (non-overridden, non-Proj) tickets so saved rule edits propagate immediately.
+
+### Frontend
+
+- New `src/features/admin/StatusRulesAdmin.tsx`:
+  - Lists rules with chip-based multi-select for FE and BE, AND/OR toggle, project-status select, drag handle for reordering.
+  - "Add rule" / "Delete" / "Reset defaults".
+  - Preview 3×3 matrix computed client-side from current rules; flags uncovered cells.
+  - On save: upsert/delete rule rows, then `supabase.rpc('reapply_status_rules')`.
+  - Realtime subscription on `status_derivation_rules`.
+- `src/pages/Admin.tsx`: add PMBA-only "Status rules" tab.
+
+### Files touched
+- New migration (table, seed, rewritten trigger function with override-clearing, reapply function).
+- New: `src/features/admin/StatusRulesAdmin.tsx`
+- Edit: `src/pages/Admin.tsx`
+
+No ticket-component changes needed — derivation and override-clearing flow through the existing trigger.
