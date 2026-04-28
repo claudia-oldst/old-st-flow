@@ -226,38 +226,14 @@ export function TicketsFilter({
               ))}
             </FilterSection>
 
-            <FilterSection title="Estimate vs actual — Frontend">
+            <FilterSection title="Estimate vs actual">
               {HEALTH_OPTS.map((h) => (
                 <FilterRow
                   key={h.value}
                   label={h.label}
                   dot={h.dot}
-                  selected={filters.feHealth.includes(h.value)}
-                  onClick={() => toggle("feHealth", h.value)}
-                />
-              ))}
-            </FilterSection>
-
-            <FilterSection title="Estimate vs actual — Backend">
-              {HEALTH_OPTS.map((h) => (
-                <FilterRow
-                  key={h.value}
-                  label={h.label}
-                  dot={h.dot}
-                  selected={filters.beHealth.includes(h.value)}
-                  onClick={() => toggle("beHealth", h.value)}
-                />
-              ))}
-            </FilterSection>
-
-            <FilterSection title="Estimate vs actual — Project (shared)">
-              {HEALTH_OPTS.map((h) => (
-                <FilterRow
-                  key={h.value}
-                  label={h.label}
-                  dot={h.dot}
-                  selected={filters.projectHealth.includes(h.value)}
-                  onClick={() => toggle("projectHealth", h.value)}
+                  selected={filters.health.includes(h.value)}
+                  onClick={() => toggle("health", h.value)}
                 />
               ))}
             </FilterSection>
