@@ -175,6 +175,7 @@ export function ProjectBoard({
     const map: Record<DisciplineStatus, DisciplineCard[]> = {
       todo: [],
       in_progress: [],
+      for_integration: [],
       done: [],
     };
     disciplineCards.forEach((c) => map[c.status].push(c));
