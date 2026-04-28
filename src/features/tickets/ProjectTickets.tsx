@@ -100,12 +100,16 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
     setFilterMine(!pmba);
   }, [role, pmba, touched]);
 
+  // Tickets after explicit filters (shared by board + list).
+  // Note: filterMine and search are applied inside ProjectBoard / TicketsList
+  // (board does it itself; list receives the fully-filtered set below).
+  const filteredTickets = useMemo(() => applyFilters(tickets, filters), [tickets, filters]);
+
   const visibleTickets = useMemo(() => {
-    let out = tickets;
+    let out = filteredTickets;
     if (filterMine && user) {
       out = out.filter((t) => t.assignees.some((a) => a.user_id === user.id));
     }
-    out = applyFilters(out, filters);
     const q = search.trim().toLowerCase();
     if (q) {
       out = out.filter(
@@ -115,7 +119,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
       );
     }
     return out;
-  }, [tickets, filterMine, user, filters, search]);
+  }, [filteredTickets, filterMine, user, search]);
 
   // Drop selections that are no longer visible (filter change, deletion, view switch)
   useEffect(() => {
