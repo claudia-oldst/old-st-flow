@@ -77,7 +77,7 @@ export function applyFilters(tickets: TicketRow[], f: TicketFilters): TicketRow[
   });
 }
 
-const DISC_OPTS: DisciplineStatus[] = ["todo", "in_progress", "done"];
+const DISC_OPTS: DisciplineStatus[] = ["todo", "in_progress", "for_integration", "done"];
 const TYPE_OPTS = ["Standard", "Bug", "CR"];
 
 export function TicketsFilter({

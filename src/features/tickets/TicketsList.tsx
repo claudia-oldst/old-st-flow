@@ -9,7 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 export type GroupBy = "none" | "status" | "assignee" | "type" | "epic" | "version" | "fe_status" | "be_status";
 
-const DISC_OPTS: DisciplineStatus[] = ["todo", "in_progress", "done"];
+const DISC_OPTS: DisciplineStatus[] = ["todo", "in_progress", "for_integration", "done"];
 
 interface Group {
   key: string;
