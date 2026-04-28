@@ -493,6 +493,13 @@ export function TicketsList({
                         {visibleCols.map((k, idx) => {
                           const c = COLS[k];
                           const isLast = idx === visibleCols.length - 1;
+                          const sortable = SORTABLE[k];
+                          const active = sort?.key === k;
+                          const SortIcon = !active
+                            ? ChevronsUpDown
+                            : sort!.dir === "asc"
+                              ? ArrowUp
+                              : ArrowDown;
                           return (
                             <th
                               key={k}
@@ -501,7 +508,31 @@ export function TicketsList({
                                 c.align === "right" && "text-right"
                               )}
                             >
-                              <span className="truncate block">{c.label}</span>
+                              <button
+                                type="button"
+                                onClick={() => sortable && toggleSort(k)}
+                                className={cn(
+                                  "inline-flex items-center gap-1 max-w-full",
+                                  c.align === "right" && "ml-auto",
+                                  sortable ? "hover:text-foreground transition cursor-pointer" : "cursor-default",
+                                  active && "text-foreground"
+                                )}
+                                aria-label={
+                                  sortable
+                                    ? `Sort by ${c.label}${active ? ` (${sort!.dir})` : ""}`
+                                    : c.label
+                                }
+                              >
+                                <span className="truncate">{c.label}</span>
+                                {sortable && (
+                                  <SortIcon
+                                    className={cn(
+                                      "h-3 w-3 shrink-0",
+                                      active ? "opacity-100" : "opacity-40"
+                                    )}
+                                  />
+                                )}
+                              </button>
                               {!isLast && (
                                 <span
                                   onMouseDown={onResizeStart(k)}
