@@ -696,6 +696,13 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
         </DialogContent>
       </Dialog>
 
+      <AddTicketsDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        projectId={projectId}
+        onCreated={reload}
+      />
+
       <TicketDetailSheet
         open={!!openTicket}
         onOpenChange={(o) => !o && setOpenTicket(null)}
