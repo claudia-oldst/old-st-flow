@@ -65,7 +65,7 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   projectId: string;
-  onCreated: () => void;
+  onCreated: () => void | Promise<void>;
 }
 
 export function AddTicketsDialog({ open, onOpenChange, projectId, onCreated }: Props) {
@@ -179,11 +179,17 @@ export function AddTicketsDialog({ open, onOpenChange, projectId, onCreated }: P
       }
     }
 
+    // Await the parent reload BEFORE closing so the list/board reflects new
+    // tickets immediately — no perceived flash or refresh.
+    try {
+      await onCreated();
+    } catch {
+      /* parent handles its own errors */
+    }
     setBusy(false);
     toast.success(
       `Created ${created.length} ticket${created.length === 1 ? "" : "s"}`
     );
-    onCreated();
     onOpenChange(false);
   };
 
