@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -61,6 +61,12 @@ export function LogTimeModal({ open, onOpenChange, ticket, role, onLogged }: Pro
   })();
 
   const [discipline, setDiscipline] = useState<LogDiscipline>(defaultDiscipline);
+
+  // Re-seed default when role/ticket/user changes (project_members.role resolves async)
+  useEffect(() => {
+    setDiscipline(defaultDiscipline);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [role, ticket.id, user?.id, open]);
   const [hours, setHours] = useState("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);

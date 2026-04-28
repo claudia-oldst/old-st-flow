@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -52,6 +52,12 @@ export function StartGroupTimerDialog({ open, onOpenChange, tickets, role }: Pro
     : "Project";
 
   const [discipline, setDiscipline] = useState<LogDiscipline>(defaultDiscipline);
+
+  // Re-seed when role resolves (project_members lookup is async) or user/dialog changes
+  useEffect(() => {
+    setDiscipline(defaultDiscipline);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [role, user?.id, open]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("open");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
