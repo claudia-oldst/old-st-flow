@@ -18,9 +18,7 @@ export interface TicketFilters {
   beStatuses: DisciplineStatus[];
   assigneeIds: string[]; // user ids, or "_unassigned"
   types: string[]; // Standard | Bug | CR
-  feHealth: HealthColor[];
-  beHealth: HealthColor[];
-  projectHealth: HealthColor[];
+  health: HealthColor[]; // matches if ANY of FE/BE/Project ratio matches
 }
 
 export const EMPTY_FILTERS: TicketFilters = {
@@ -31,9 +29,7 @@ export const EMPTY_FILTERS: TicketFilters = {
   beStatuses: [],
   assigneeIds: [],
   types: [],
-  feHealth: [],
-  beHealth: [],
-  projectHealth: [],
+  health: [],
 };
 
 export function activeFilterCount(f: TicketFilters): number {
@@ -45,9 +41,7 @@ export function activeFilterCount(f: TicketFilters): number {
     f.beStatuses.length +
     f.assigneeIds.length +
     f.types.length +
-    f.feHealth.length +
-    f.beHealth.length +
-    f.projectHealth.length
+    f.health.length
   );
 }
 
