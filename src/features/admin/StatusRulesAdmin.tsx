@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowDown, ArrowUp, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Plus, RefreshCw, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 type Operator = "AND" | "OR";
@@ -243,6 +243,24 @@ export default function StatusRulesAdmin({ canEdit }: { canEdit: boolean }) {
         </div>
         {canEdit && (
           <div className="flex gap-2 shrink-0">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="gap-2"
+              onClick={async () => {
+                const ok = confirm(
+                  "Re-evaluate all tickets now? This applies the current rules to every ticket that doesn't have a manual project-status override.",
+                );
+                if (!ok) return;
+                setSaving(true);
+                const { error } = await supabase.rpc("reapply_status_rules");
+                setSaving(false);
+                if (error) toast.error(error.message);
+                else toast.success("Tickets re-evaluated");
+              }}
+            >
+              <RefreshCw className="h-4 w-4" /> Re-evaluate now
+            </Button>
             <Button size="sm" variant="ghost" className="gap-2" onClick={resetDefaults}>
               <RotateCcw className="h-4 w-4" /> Reset defaults
             </Button>
