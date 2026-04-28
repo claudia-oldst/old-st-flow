@@ -78,22 +78,23 @@ export function applyFilters(tickets: TicketRow[], f: TicketFilters): TicketRow[
       }
     }
     if (f.types.length && !f.types.includes(t.ticket_type)) return false;
-    if (f.feHealth.length) {
+    if (f.health.length) {
+      const candidates: HealthColor[] = [];
       const hasFE = t.assignees.some((a) => a.slot === "FE");
-      if (!hasFE) return false;
-      const h = healthRatio(t.actual_frontend_hours, t.current_fe_estimate);
-      if (h === "none" || !f.feHealth.includes(h)) return false;
-    }
-    if (f.beHealth.length) {
       const hasBE = t.assignees.some((a) => a.slot === "BE");
-      if (!hasBE) return false;
-      const h = healthRatio(t.actual_backend_hours, t.current_be_estimate);
-      if (h === "none" || !f.beHealth.includes(h)) return false;
-    }
-    if (f.projectHealth.length) {
-      if (t.ticket_type !== "Proj") return false;
-      const h = healthRatio(t.actual_project_hours, t.current_project_estimate);
-      if (h === "none" || !f.projectHealth.includes(h)) return false;
+      if (hasFE) {
+        const h = healthRatio(t.actual_frontend_hours, t.current_fe_estimate);
+        if (h !== "none") candidates.push(h);
+      }
+      if (hasBE) {
+        const h = healthRatio(t.actual_backend_hours, t.current_be_estimate);
+        if (h !== "none") candidates.push(h);
+      }
+      if (t.ticket_type === "Proj") {
+        const h = healthRatio(t.actual_project_hours, t.current_project_estimate);
+        if (h !== "none") candidates.push(h);
+      }
+      if (!candidates.some((c) => f.health.includes(c))) return false;
     }
     return true;
   });
