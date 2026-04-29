@@ -142,9 +142,10 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
   return (
     <div className="space-y-6">
       {/* Top row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         <Ring title="Frontend" actual={totals.feAct} estimate={totals.feEst} original={totals.feOrig} />
         <Ring title="Backend" actual={totals.beAct} estimate={totals.beEst} original={totals.beOrig} />
+        <Ring title="Project" actual={totals.projAct} estimate={totals.projEst} original={totals.projOrig} />
         <div className="glass rounded-2xl p-5 flex flex-col">
           <div className="text-xs uppercase tracking-wider text-dimmer mb-2">Profitability</div>
           <div className="flex items-center gap-3">
