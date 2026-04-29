@@ -619,7 +619,17 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
                 </Button>
               </div>
             )}
-          </div>
+            </TabsContent>
+
+            <TabsContent value="discussion" className="mt-4">
+              <AcceptanceCriteria
+                ticketId={ticket.id}
+                value={ticket.acceptance_criteria}
+                canEdit={isPMBA(role)}
+                onSaved={onChange}
+              />
+            </TabsContent>
+          </Tabs>
         </SheetContent>
       </Sheet>
 
