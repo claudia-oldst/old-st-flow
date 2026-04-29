@@ -356,6 +356,7 @@ function Column({
   onCardClick,
   onCreated,
   prefs,
+  forceBars,
 }: {
   status: { id: string; name: string; color: string; category: string };
   tickets: TicketRow[];
@@ -364,6 +365,7 @@ function Column({
   onCardClick: (t: TicketRow) => void;
   onCreated: () => void;
   prefs: CardDisplayPrefs;
+  forceBars: boolean;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status.id });
   return (
@@ -383,7 +385,7 @@ function Column({
       </div>
       <div className="flex flex-col gap-2 flex-1 min-h-[20px]">
         {tickets.map((t) => (
-          <DraggableCard key={t.id} ticket={t} onClick={() => onCardClick(t)} prefs={prefs} />
+          <DraggableCard key={t.id} ticket={t} onClick={() => onCardClick(t)} prefs={prefs} forceBars={forceBars} />
         ))}
       </div>
       {canQuickAdd && (
@@ -398,11 +400,13 @@ function DisciplineColumn({
   cards,
   onCardClick,
   prefs,
+  forceBars,
 }: {
   column: DisciplineStatus;
   cards: DisciplineCard[];
   onCardClick: (c: DisciplineCard) => void;
   prefs: CardDisplayPrefs;
+  forceBars: boolean;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: column });
   const color = DISCIPLINE_STATUS_COLOR[column];
@@ -424,18 +428,18 @@ function DisciplineColumn({
       </div>
       <div className="flex flex-col gap-2 flex-1 min-h-[20px]">
         {cards.map((c) => (
-          <DraggableDisciplineCard key={`${c.ticket.id}::${c.slot}`} card={c} onClick={() => onCardClick(c)} prefs={prefs} />
+          <DraggableDisciplineCard key={`${c.ticket.id}::${c.slot}`} card={c} onClick={() => onCardClick(c)} prefs={prefs} forceBars={forceBars} />
         ))}
       </div>
     </div>
   );
 }
 
-function DraggableCard({ ticket, onClick, prefs }: { ticket: TicketRow; onClick: () => void; prefs: CardDisplayPrefs }) {
+function DraggableCard({ ticket, onClick, prefs, forceBars }: { ticket: TicketRow; onClick: () => void; prefs: CardDisplayPrefs; forceBars: boolean }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: ticket.id });
   return (
     <div ref={setNodeRef} {...attributes} {...listeners}>
-      <TicketCard ticket={ticket} onClick={onClick} isDragging={isDragging} prefs={prefs} />
+      <TicketCard ticket={ticket} onClick={onClick} isDragging={isDragging} prefs={prefs} forceBars={forceBars} />
     </div>
   );
 }
@@ -444,10 +448,12 @@ function DraggableDisciplineCard({
   card,
   onClick,
   prefs,
+  forceBars,
 }: {
   card: DisciplineCard;
   onClick: () => void;
   prefs: CardDisplayPrefs;
+  forceBars: boolean;
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `${card.ticket.id}::${card.slot}`,
@@ -460,7 +466,7 @@ function DraggableDisciplineCard({
       >
         {card.slot === "Project" ? "P" : card.slot}
       </span>
-      <TicketCard ticket={card.ticket} onClick={onClick} isDragging={isDragging} prefs={prefs} />
+      <TicketCard ticket={card.ticket} onClick={onClick} isDragging={isDragging} prefs={prefs} forceBars={forceBars} />
     </div>
   );
 }
