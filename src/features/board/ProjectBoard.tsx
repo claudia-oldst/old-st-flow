@@ -84,6 +84,7 @@ export function ProjectBoard({
   const [touched, setTouched] = useState(false);
   const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const { prefs } = useCardDisplayPrefs();
 
   // Apply role-based defaults once we know the role (until the user changes a toggle).
   // When filterMine is controlled by a parent, the parent owns that default — we only
