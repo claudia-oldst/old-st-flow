@@ -40,6 +40,8 @@ import {
   type TicketFilters,
 } from "@/features/tickets/TicketsFilter";
 import { ProjectBoard } from "@/features/board/ProjectBoard";
+import { CardDisplayMenu } from "@/features/tickets/CardDisplayMenu";
+import { useCardDisplayPrefs } from "@/features/tickets/useCardDisplayPrefs";
 import { useProjectRole, isPMBA } from "@/features/team/useProjectRole";
 import { cn } from "@/lib/utils";
 import type { TicketType } from "@/lib/types";
@@ -95,6 +97,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
   const [search, setSearch] = useState("");
   const [groupTimerOpen, setGroupTimerOpen] = useState(false);
   const activeTimer = useTimerStore((s) => s.active);
+  const { prefs: cardPrefs, setPrefs: setCardPrefs, reset: resetCardPrefs } = useCardDisplayPrefs();
   useEffect(() => {
     if (touched || role === null) return;
     setFilterMine(!pmba);
@@ -429,6 +432,13 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
           onChange={setFilters}
         />
 
+        {view === "board" && (
+          <CardDisplayMenu
+            prefs={cardPrefs}
+            onChange={setCardPrefs}
+            onReset={resetCardPrefs}
+          />
+        )}
         <div className="ml-auto flex items-center gap-2">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-dimmer pointer-events-none" />

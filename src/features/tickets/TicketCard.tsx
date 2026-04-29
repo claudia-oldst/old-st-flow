@@ -4,6 +4,7 @@ import { Bug, GitPullRequest, FileText, FolderKanban } from "lucide-react";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { DisciplineStatusChip } from "@/features/tickets/DisciplineStatusChip";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DEFAULT_CARD_PREFS, type CardDisplayPrefs } from "@/features/tickets/useCardDisplayPrefs";
 
 const HEALTH_BG: Record<string, string> = {
   good: "bg-health-good",
@@ -47,10 +48,12 @@ export function TicketCard({
   ticket,
   onClick,
   isDragging,
+  prefs = DEFAULT_CARD_PREFS,
 }: {
   ticket: TicketRow;
   onClick?: () => void;
   isDragging?: boolean;
+  prefs?: CardDisplayPrefs;
 }) {
   const isProj = ticket.ticket_type === "Proj";
   const fe = ticket.assignees.filter((a) => a.slot === "FE").map((a) => a.member);
@@ -58,10 +61,12 @@ export function TicketCard({
   const team = ticket.assignees.filter((a) => a.slot === "Project").map((a) => a.member);
   const hasFE = fe.length > 0;
   const hasBE = be.length > 0;
-  const showFEBar = !isProj && hasFE && (ticket.current_fe_estimate > 0 || ticket.actual_frontend_hours > 0);
-  const showBEBar = !isProj && hasBE && (ticket.current_be_estimate > 0 || ticket.actual_backend_hours > 0);
-  const showProjectBar = isProj && (ticket.current_project_estimate > 0 || ticket.actual_project_hours > 0);
-  const showAnyChipsOrBars = !isProj && (hasFE || hasBE);
+  const showFEBar = prefs.bars && !isProj && hasFE && (ticket.current_fe_estimate > 0 || ticket.actual_frontend_hours > 0);
+  const showBEBar = prefs.bars && !isProj && hasBE && (ticket.current_be_estimate > 0 || ticket.actual_backend_hours > 0);
+  const showProjectBar = prefs.bars && isProj && (ticket.current_project_estimate > 0 || ticket.actual_project_hours > 0);
+  const showChips = prefs.chips && !isProj && (hasFE || hasBE);
+  const anyBars = showFEBar || showBEBar || showProjectBar;
+  const showHeaderRow = prefs.type || prefs.id;
 
   return (
     <div
@@ -73,7 +78,7 @@ export function TicketCard({
       )}
     >
       {/* "P" badge for Proj tickets — black corner dot with white P */}
-      {isProj && (
+      {isProj && prefs.projBadge && (
         <span
           className="absolute -top-1.5 -right-1.5 z-10 h-5 w-5 rounded-full text-[10px] font-bold ring-1 ring-white/15 flex items-center justify-center"
           style={{ background: "#000", color: "#fff" }}
@@ -84,13 +89,17 @@ export function TicketCard({
         </span>
       )}
 
-      <div className="flex items-center gap-1.5 mb-1.5">
-        <TypeIcon type={ticket.ticket_type} />
-        <span className="font-mono text-[10px] text-dimmer">{ticket.formatted_id}</span>
-      </div>
+      {showHeaderRow && (
+        <div className="flex items-center gap-1.5 mb-1.5">
+          {prefs.type && <TypeIcon type={ticket.ticket_type} />}
+          {prefs.id && (
+            <span className="font-mono text-[10px] text-dimmer">{ticket.formatted_id}</span>
+          )}
+        </div>
+      )}
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="text-sm leading-snug mb-2 line-clamp-2">
+          <div className={cn("text-sm leading-snug line-clamp-2", (showChips || anyBars || prefs.assignees) ? "mb-2" : "")}>
             {displayTitle(ticket.title, ticket.ticket_type)}
           </div>
         </TooltipTrigger>
@@ -99,63 +108,67 @@ export function TicketCard({
         </TooltipContent>
       </Tooltip>
 
-      {showAnyChipsOrBars && (
+      {showChips && (
         <div className="flex flex-wrap gap-1 mb-2.5">
           {hasFE && <DisciplineStatusChip slot="FE" status={ticket.fe_status} />}
           {hasBE && <DisciplineStatusChip slot="BE" status={ticket.be_status} />}
         </div>
       )}
 
-      <div className="space-y-1.5 mb-3">
-        {showFEBar && <Bar label="FE" actual={ticket.actual_frontend_hours} estimate={ticket.current_fe_estimate} />}
-        {showBEBar && <Bar label="BE" actual={ticket.actual_backend_hours} estimate={ticket.current_be_estimate} />}
-        {showProjectBar && <Bar label="Project" actual={ticket.actual_project_hours} estimate={ticket.current_project_estimate} />}
-      </div>
+      {anyBars && (
+        <div className="space-y-1.5 mb-3">
+          {showFEBar && <Bar label="FE" actual={ticket.actual_frontend_hours} estimate={ticket.current_fe_estimate} />}
+          {showBEBar && <Bar label="BE" actual={ticket.actual_backend_hours} estimate={ticket.current_be_estimate} />}
+          {showProjectBar && <Bar label="Project" actual={ticket.actual_project_hours} estimate={ticket.current_project_estimate} />}
+        </div>
+      )}
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-[10px] text-dimmer">
-          {isProj ? (
-            team.length > 0 ? (
-              <div className="flex items-center gap-1">
-                <span>Team</span>
-                <div className="flex -space-x-1.5">
-                  {team.map((m) => <MemberAvatar key={m.id} name={m.name} color={m.avatar_color} size="xs" />)}
-                </div>
-              </div>
-            ) : (
-              <span>Unassigned</span>
-            )
-          ) : (
-            <>
-              {fe.length > 0 && (
+      {prefs.assignees && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-[10px] text-dimmer">
+            {isProj ? (
+              team.length > 0 ? (
                 <div className="flex items-center gap-1">
-                  <span>FE</span>
-                  <div className="flex -space-x-1.5">
-                    {fe.map((m) => <MemberAvatar key={m.id} name={m.name} color={m.avatar_color} size="xs" />)}
-                  </div>
-                </div>
-              )}
-              {be.length > 0 && (
-                <div className="flex items-center gap-1">
-                  <span>BE</span>
-                  <div className="flex -space-x-1.5">
-                    {be.map((m) => <MemberAvatar key={m.id} name={m.name} color={m.avatar_color} size="xs" />)}
-                  </div>
-                </div>
-              )}
-              {team.length > 0 && (
-                <div className="flex items-center gap-1">
-                  <span>P</span>
+                  <span>Team</span>
                   <div className="flex -space-x-1.5">
                     {team.map((m) => <MemberAvatar key={m.id} name={m.name} color={m.avatar_color} size="xs" />)}
                   </div>
                 </div>
-              )}
-              {fe.length === 0 && be.length === 0 && team.length === 0 && <span>Unassigned</span>}
-            </>
-          )}
+              ) : (
+                <span>Unassigned</span>
+              )
+            ) : (
+              <>
+                {fe.length > 0 && (
+                  <div className="flex items-center gap-1">
+                    <span>FE</span>
+                    <div className="flex -space-x-1.5">
+                      {fe.map((m) => <MemberAvatar key={m.id} name={m.name} color={m.avatar_color} size="xs" />)}
+                    </div>
+                  </div>
+                )}
+                {be.length > 0 && (
+                  <div className="flex items-center gap-1">
+                    <span>BE</span>
+                    <div className="flex -space-x-1.5">
+                      {be.map((m) => <MemberAvatar key={m.id} name={m.name} color={m.avatar_color} size="xs" />)}
+                    </div>
+                  </div>
+                )}
+                {team.length > 0 && (
+                  <div className="flex items-center gap-1">
+                    <span>P</span>
+                    <div className="flex -space-x-1.5">
+                      {team.map((m) => <MemberAvatar key={m.id} name={m.name} color={m.avatar_color} size="xs" />)}
+                    </div>
+                  </div>
+                )}
+                {fe.length === 0 && be.length === 0 && team.length === 0 && <span>Unassigned</span>}
+              </>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
