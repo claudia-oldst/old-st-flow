@@ -248,6 +248,7 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
             </TabsList>
 
             <TabsContent value="detail" className="mt-4 space-y-6">
+              {/* Epic */}
             {isPMBA(role) && (
               <div>
                 <div className="text-xs uppercase tracking-wider text-dimmer mb-2">Epic</div>
