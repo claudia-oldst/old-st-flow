@@ -312,6 +312,7 @@ export function ProjectBoard({
                   canQuickAdd={isPMBA(role)}
                   onCardClick={setOpenTicket}
                   onCreated={reload}
+                  prefs={prefs}
                 />
               ))}
             </div>
@@ -323,12 +324,13 @@ export function ProjectBoard({
                   column={s}
                   cards={byDisciplineStatus[s]}
                   onCardClick={(c) => setOpenTicket(c.ticket)}
+                  prefs={prefs}
                 />
               ))}
             </div>
           )}
           <DragOverlay>
-            {activeTicket && <TicketCard ticket={activeTicket} />}
+            {activeTicket && <TicketCard ticket={activeTicket} prefs={prefs} />}
           </DragOverlay>
         </DndContext>
 
