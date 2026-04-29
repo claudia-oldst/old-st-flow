@@ -481,6 +481,7 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
                           : c.delta < 0
                           ? "text-health-good"
                           : "text-dim";
+                      const isAuto = (c.reason ?? "").startsWith("Auto-trimmed");
                       return (
                         <div key={c.id} className="flex items-start gap-2 text-xs">
                           <span className={`font-mono font-semibold ${color} w-12 shrink-0`}>
@@ -488,6 +489,11 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
                           </span>
                           <span className="text-dim shrink-0">{c.discipline}</span>
                           <span className="flex-1 min-w-0 text-dim truncate">
+                            {isAuto ? (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded ring-1 ring-white/10 bg-white/5 text-[10px] uppercase tracking-wider text-dimmer mr-1">
+                                auto
+                              </span>
+                            ) : null}
                             {c.user?.name ?? "—"}
                             {c.reason && <span className="text-dimmer"> — {c.reason}</span>}
                           </span>
