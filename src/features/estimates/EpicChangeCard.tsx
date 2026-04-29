@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
+import { Tooltip as UiTooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { MemberAvatar } from "@/components/MemberAvatar";
 import { cn, formatHours } from "@/lib/utils";
 import type { ChangeRow } from "./useAllEstimateChanges";
