@@ -142,44 +142,15 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
   return (
     <div className="space-y-6">
       {/* Top row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Ring title="Frontend" actual={totals.feAct} estimate={totals.feEst} original={totals.feOrig} />
         <Ring title="Backend" actual={totals.beAct} estimate={totals.beEst} original={totals.beOrig} />
         <Ring title="Project" actual={totals.projAct} estimate={totals.projEst} original={totals.projOrig} />
-        <div className="glass rounded-2xl p-5 flex flex-col">
-          <div className="text-xs uppercase tracking-wider text-dimmer mb-2">Profitability</div>
-          <div className="flex items-center gap-3">
-            <ProfitabilityPill state={overall} />
-            <div>
-              <div className="text-2xl font-semibold font-mono ticker">{profitabilityPct}%</div>
-              <div className="text-xs text-dim">of estimate burned</div>
-              {totalOrig > 0 && (
-                <div className="text-[11px] text-dimmer mt-0.5 font-mono">
-                  {profitabilityOrigPct}% <span className="font-sans">of original</span>
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="mt-auto pt-4 grid grid-cols-3 gap-3 text-xs">
-            <div>
-              <div className="text-dimmer">Total est.</div>
-              <div className="font-mono">{formatHours(totalEst)}</div>
-            </div>
-            <div>
-              <div className="text-dimmer">Original</div>
-              <div className="font-mono">{totalOrig > 0 ? formatHours(totalOrig) : "—"}</div>
-            </div>
-            <div>
-              <div className="text-dimmer">Total actual</div>
-              <div className="font-mono">{formatHours(totalAct)}</div>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Second row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="glass rounded-2xl p-5 md:col-span-2">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="glass rounded-2xl p-5 md:col-span-3">
           <div className="mb-3 flex items-center justify-between gap-3 flex-wrap">
             <div>
               <div className="text-xs uppercase tracking-wider text-dimmer">Member capacity</div>
@@ -226,6 +197,36 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
         </div>
 
         <div className="space-y-4">
+          <div className="glass rounded-2xl p-5 flex flex-col">
+            <div className="text-xs uppercase tracking-wider text-dimmer mb-2">Profitability</div>
+            <div className="flex items-center gap-3">
+              <ProfitabilityPill state={overall} />
+              <div>
+                <div className="text-2xl font-semibold font-mono ticker">{profitabilityPct}%</div>
+                <div className="text-xs text-dim">of estimate burned</div>
+                {totalOrig > 0 && (
+                  <div className="text-[11px] text-dimmer mt-0.5 font-mono">
+                    {profitabilityOrigPct}% <span className="font-sans">of original</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="mt-4 pt-4 grid grid-cols-3 gap-3 text-xs border-t border-white/5">
+              <div>
+                <div className="text-dimmer">Total est.</div>
+                <div className="font-mono">{formatHours(totalEst)}</div>
+              </div>
+              <div>
+                <div className="text-dimmer">Original</div>
+                <div className="font-mono">{totalOrig > 0 ? formatHours(totalOrig) : "—"}</div>
+              </div>
+              <div>
+                <div className="text-dimmer">Total actual</div>
+                <div className="font-mono">{formatHours(totalAct)}</div>
+              </div>
+            </div>
+          </div>
+
           <div className="glass rounded-2xl p-5">
             <div className="text-xs uppercase tracking-wider text-dimmer mb-2">Unassigned backlog</div>
             <div className="flex items-center gap-2">
