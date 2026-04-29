@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
+import { Tooltip as UiTooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { MemberAvatar } from "@/components/MemberAvatar";
 import { cn, formatHours } from "@/lib/utils";
 import type { ChangeRow } from "./useAllEstimateChanges";
@@ -21,6 +22,7 @@ import type { ChangeRow } from "./useAllEstimateChanges";
 interface EpicTicket {
   id: string;
   formatted_id: string;
+  title: string;
   project_id: string;
   epic_id: number | null;
   original_fe_estimate: number;
@@ -248,12 +250,23 @@ export function EpicChangeCard({
                     return (
                       <tr key={c.id} className="border-t border-white/5 hover:bg-white/[0.02]">
                         <td className="px-3 py-2 font-mono text-[11px]">
-                          <Link
-                            to={`/projects/${projectId}`}
-                            className="text-foreground hover:text-primary transition"
-                          >
-                            {c.ticket?.formatted_id ?? "?"}
-                          </Link>
+                          <TooltipProvider>
+                            <UiTooltip>
+                              <TooltipTrigger asChild>
+                                <Link
+                                  to={`/projects/${projectId}`}
+                                  className="text-foreground hover:text-primary transition"
+                                >
+                                  {c.ticket?.formatted_id ?? "?"}
+                                </Link>
+                              </TooltipTrigger>
+                              {c.ticket?.title && (
+                                <TooltipContent side="top" align="start" className="max-w-xs">
+                                  <p className="text-sm">{c.ticket.title}</p>
+                                </TooltipContent>
+                              )}
+                            </UiTooltip>
+                          </TooltipProvider>
                         </td>
                         <td className="px-2 py-2 text-dim">{c.discipline}</td>
                         <td className="px-2 py-2 text-right font-mono text-dim">

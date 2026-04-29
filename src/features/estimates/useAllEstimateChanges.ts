@@ -18,6 +18,7 @@ export interface ChangeRow {
   ticket: {
     id: string;
     formatted_id: string;
+    title: string;
     project_id: string;
     epic_id: number | null;
     original_fe_estimate: number;
@@ -57,7 +58,7 @@ export function useAllEstimateChanges() {
         .select(
           `id,ticket_id,user_id,discipline,previous_hours,new_hours,delta,reason,status,decided_by,decided_at,created_at,
            requester:team_members!ticket_estimate_changes_user_id_fkey(id,name,avatar_color),
-           ticket:tickets!inner(id,formatted_id,project_id,epic_id,
+           ticket:tickets!inner(id,formatted_id,title,project_id,epic_id,
              original_fe_estimate,original_be_estimate,original_project_estimate,
              current_fe_estimate,current_be_estimate,current_project_estimate,
              actual_frontend_hours,actual_backend_hours,actual_project_hours)`
@@ -76,7 +77,7 @@ export function useAllEstimateChanges() {
         .select(
           `id,ticket_id,user_id,discipline,previous_hours,new_hours,delta,reason,status,decided_by,decided_at,created_at,
            requester:team_members(id,name,avatar_color),
-           ticket:tickets!inner(id,formatted_id,project_id,epic_id,
+           ticket:tickets!inner(id,formatted_id,title,project_id,epic_id,
              original_fe_estimate,original_be_estimate,original_project_estimate,
              current_fe_estimate,current_be_estimate,current_project_estimate,
              actual_frontend_hours,actual_backend_hours,actual_project_hours)`
