@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ShieldOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +10,7 @@ import {
 } from "@/features/estimates/useAllEstimateChanges";
 import { MultiSelectFilter } from "@/features/estimates/MultiSelectFilter";
 import { EpicChangeCard } from "@/features/estimates/EpicChangeCard";
+import { DateRangeControl, defaultRange, type DateRange } from "@/features/health/DateRangeControl";
 
 const NO_EPIC_KEY = (projectId: string) => `noepic:${projectId}`;
 const STATUS_OPTIONS = [
