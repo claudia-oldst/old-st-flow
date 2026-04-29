@@ -150,11 +150,12 @@ export default function ChangeRequests() {
     // Apply delta to the ticket's current estimate for that discipline.
     const t = row.ticket;
     if (t) {
-      const patch: Record<string, number> = {};
-      if (row.discipline === "FE") patch.current_fe_estimate = t.current_fe_estimate + row.delta;
-      if (row.discipline === "BE") patch.current_be_estimate = t.current_be_estimate + row.delta;
-      if (row.discipline === "Project")
-        patch.current_project_estimate = t.current_project_estimate + row.delta;
+      const patch =
+        row.discipline === "FE"
+          ? { current_fe_estimate: t.current_fe_estimate + row.delta }
+          : row.discipline === "BE"
+          ? { current_be_estimate: t.current_be_estimate + row.delta }
+          : { current_project_estimate: t.current_project_estimate + row.delta };
       const { error: tErr } = await supabase.from("tickets").update(patch).eq("id", t.id);
       if (tErr) return toast.error(tErr.message);
     }
