@@ -1,61 +1,90 @@
-# Snap estimates to actuals on Done
 
-When a ticket's project-level status transitions into the **Done** category, automatically reduce any **inflated estimates** (FE / BE / Project) so that `current_*_estimate = actual_*_hours`. Each adjustment is recorded in `ticket_estimate_changes` so it shows up in the existing audit history exactly like a manual "Adjust estimate" action.
+# PMBA Change Requests review
+
+A new global page that lets PMBAs see all `ticket_estimate_changes` across all projects, broken down by epic with an evolution graph per epic, filterable by **status** (multi-select) and **requesting user** (multi-select). Clicking an epic expands the underlying change requests with original/new/reason and (for `pending` rows) Approve / Reject buttons. Only `approved` requests are reflected in the ticket's `current_*_estimate`.
 
 ## Behavior
 
-For each of the three disciplines (FE, BE, Project) on the ticket being closed:
-- If `current_estimate > actual_hours`, set `current_estimate = actual_hours` and insert an audit row.
-- If `actual >= current` (estimate already met or exceeded), leave it alone — we never inflate estimates upward here.
-- If `actual = 0` and `current = 0`, skip (nothing to log).
+1. Top-level filters (multi-select, AND between groups, OR within a group):
+   - **Status**: `pending`, `approved`, `rejected` — defaults to `pending` so PMBAs land on actionable items.
+   - **Requester**: any team member who has ever filed a change. Defaults to all.
+   - Optional **Project** multi-select so PMBAs can scope to one or more projects (it's a global page).
+2. Below the filters, a list of **epic cards**. Only epics that contain at least one ticket with a change request matching the filters appear.
+3. Each epic card shows:
+   - Epic name + project acronym, ticket count, and a totals strip (Original / Current-with-approved-only / Current-if-all-approved / Actual).
+   - The same mini evolution graph used on Health (Original dashed, Current solid, Actual solid). The "Current" line only includes deltas from changes that match the selected status filter — so if the PMBA filters by `pending`, they immediately see the projected impact of approving everything pending.
+4. Clicking an epic card expands to a table of the matching `ticket_estimate_changes`, newest first:
+   - Columns: Ticket (linked formatted_id), Discipline, Previous, New, Δ, Reason, Requester (avatar+name), Requested at, Status badge, Actions.
+   - For rows with `status='pending'`, show **Approve** and **Reject** buttons inline.
+5. Approving a pending row:
+   - Sets `status='approved'`, `decided_by=current user`, `decided_at=now()`.
+   - Updates the corresponding ticket's `current_fe_estimate` / `current_be_estimate` / `current_project_estimate` by adding the row's `delta` (matches the existing approved-row semantics).
+6. Rejecting:
+   - Sets `status='rejected'`, `decided_by=current user`, `decided_at=now()`. Ticket estimates are not touched.
+7. Existing flows that already insert `status='approved'` directly (PMBA "Adjust estimate" dialog, the auto-trim trigger) keep working unchanged — those rows just appear with the `approved` badge and no action buttons.
 
-Triggers on:
-- Any status change where the **new** status has `category = 'done'` and the **old** status did not (i.e. real transitions into Done — re-saving an already-Done ticket does nothing).
+## Surfacing
 
-This covers all UI paths uniformly (kanban drag, detail sheet, bulk actions, board) since they all update `tickets.status_id`.
-
-## Audit log shape
-
-For each trimmed discipline, insert into `ticket_estimate_changes`:
-- `discipline`: `'FE'` | `'BE'` | `'Project'`
-- `previous_hours`: the old `current_*_estimate`
-- `new_hours`: the actual hours (the new estimate)
-- `delta`: negative (auto-computed)
-- `reason`: `"Auto-trimmed to actuals on completion"`
-- `status`: `'approved'`
-- `user_id` / `decided_by`: `auth.uid()` if available, else the most recent time-logger on the ticket as a sensible fallback (so the row is never orphaned with NULL).
+- New top-bar nav item **"Change Requests"** (PMBA-only — hidden via `useProjectRole` global fallback when the current user's `team_members.role !== 'PMBA'`).
+- New route: `/change-requests` → `src/pages/ChangeRequests.tsx`.
 
 ## Technical implementation
 
-**1. DB migration** — add a `BEFORE UPDATE` trigger on `public.tickets`:
+**1. Hook — `src/features/estimates/useAllEstimateChanges.ts`** (new)
+- Fetches `ticket_estimate_changes` joined with `tickets!inner(id, formatted_id, project_id, epic_id, original_fe_estimate, original_be_estimate, original_project_estimate, current_fe_estimate, current_be_estimate, current_project_estimate, actual_frontend_hours, actual_backend_hours, actual_project_hours)` and the requester via `team_members(name, avatar_color)`. Realtime subscription on `ticket_estimate_changes` to refresh.
+- Also exposes `projects` and `epics` lookups (lightweight queries) so the page can render names without N+1.
 
+**2. Page — `src/pages/ChangeRequests.tsx`** (new)
 ```text
-trigger: trim_estimates_on_done
-  fires: BEFORE UPDATE OF status_id ON tickets
-  function: public.trim_estimates_on_done()
-    - resolve old/new status categories from public.statuses
-    - if NEW category = 'done' AND OLD category <> 'done':
-        for each (FE, BE, Project):
-          if current_estimate > actual_hours:
-            insert ticket_estimate_changes row (discipline, prev, new=actual, reason, user)
-            set NEW.current_*_estimate = actual_*_hours
-    - return NEW
+ChangeRequests
+├── FiltersBar  (Status multi-select, Requester multi-select, Project multi-select)
+├── For each epic group (filtered):
+│   └── EpicChangeCard
+│       ├── Header: project acronym · epic name · counts · totals
+│       ├── Mini chart (recharts LineChart, 80–120px tall) with the same
+│       │     three series as EstimateEvolution but the "Current" line
+│       │     applies deltas from changes whose status matches the active
+│       │     status filter (pending → preview, approved → real current).
+│       └── Collapsible: table of matching changes with Approve/Reject
+└── Empty-state when no epics match.
 ```
+Reuse `MemberAvatar`, the `Collapsible` primitive, and the existing `formatHours` / `healthRatio` helpers. Multi-select is built with `Popover` + `Checkbox` (no new dep needed — pattern already used elsewhere for compact filter chips; if not, fall back to a plain dropdown of toggles inside a `Popover`).
 
-Function uses `SECURITY DEFINER` + `SET search_path = public` (matches existing trigger patterns). User attribution: `coalesce(auth.uid(), (select user_id from time_logs where ticket_id = NEW.id order by logged_at desc limit 1))`.
+**3. Approve / reject actions** — inline in the table, calling Supabase from the page:
+```text
+approve(row):
+  update ticket_estimate_changes set status='approved', decided_by=user, decided_at=now() where id=row.id
+  update tickets
+    set current_fe_estimate = current_fe_estimate + (row.discipline='FE' ? row.delta : 0),
+        current_be_estimate = current_be_estimate + (row.discipline='BE' ? row.delta : 0),
+        current_project_estimate = current_project_estimate + (row.discipline='Project' ? row.delta : 0)
+    where id = row.ticket_id
+reject(row):
+  update ticket_estimate_changes set status='rejected', decided_by=user, decided_at=now() where id=row.id
+```
+Both wrapped in `toast.promise` for feedback, then the realtime subscription refreshes the view.
 
-**2. Frontend** — no required changes. The existing `useTicketEstimateChanges` hook already lists every row and listens via realtime, so the auto-trim entries will appear in the ticket's estimate history immediately.
+**4. Nav** — add the item to `TopBar.tsx`. Visibility: read the current user's global `role` from the store; only render when `role === 'PMBA'`. Route guard inside `ChangeRequests.tsx` shows a friendly "PMBA only" message otherwise.
 
-Optional polish (small): in the row renderer for estimate history, when `reason` starts with `"Auto-trimmed"`, show a subtle "auto" badge so users can distinguish manual vs. automatic adjustments. I'll include this.
+**5. Defaults & UX**
+- Status filter defaults to `['pending']`.
+- Requester defaults to all selected.
+- Sticky filter bar; epic cards are collapsed by default; toggle "Expand all" button.
+- Status badges use existing health palette (pending=warn, approved=good, rejected=dim).
 
-## Files touched
+## Files touched / created
 
-- **New migration**: `trim_estimates_on_done` function + trigger on `tickets`.
-- **Edited**: the component that renders estimate-change rows (small visual badge for auto entries) — I'll locate it during implementation (likely inside `TicketDetailSheet.tsx` or a sibling history component).
+- **New**: `src/pages/ChangeRequests.tsx`
+- **New**: `src/features/estimates/useAllEstimateChanges.ts`
+- **New**: `src/features/estimates/EpicChangeCard.tsx` (epic header + mini chart + table)
+- **New**: `src/features/estimates/ChangeRequestsFilters.tsx` (multi-select chips)
+- **Edited**: `src/components/TopBar.tsx` (PMBA-only "Change Requests" nav item)
+- **Edited**: `src/App.tsx` (add `/change-requests` route)
 
-## Edge cases handled
+## Edge cases
 
-- Re-opening then re-closing a ticket re-runs the trim (idempotent — if actuals haven't grown past the trimmed estimate, nothing changes; otherwise no row is inserted because `current <= actual`).
-- Proj-type tickets: same logic applies; their `status_id` is set manually and the trigger still fires.
-- Bulk status updates: trigger fires per row.
-- If the new status doesn't exist or has no category, the trigger no-ops safely.
+- A change request whose ticket has been deleted: the inner join drops it (acceptable — orphaned).
+- Tickets with no epic: grouped under a synthetic "No epic" bucket per project so they're still visible.
+- Approving the same row twice: idempotency guarded by `WHERE status = 'pending'` in the approve update; a second click no-ops with a toast.
+- Auto-trim entries (`reason LIKE 'Auto-trimmed%'`) are inserted as `approved` so they only show when the `approved` filter is on, with a small "auto" badge — no Approve/Reject buttons.
+- The existing `RequestMoreTimeDialog` currently writes rows as `status='approved'` directly. To make the new pending-flow useful, a separate small follow-up could let non-PMBAs file `status='pending'` instead — out of scope for this task but flagged.
