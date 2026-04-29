@@ -104,6 +104,7 @@ export default function ProjectWorkspace() {
 
       <Routes>
         <Route index element={<ProjectTickets projectId={id} />} />
+        <Route path="change-requests" element={<ProjectChangeRequests projectId={id} />} />
         <Route path="health" element={<ProjectHealth projectId={id} />} />
       </Routes>
     </div>
