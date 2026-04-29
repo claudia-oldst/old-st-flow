@@ -21,6 +21,7 @@ import type { ChangeRow } from "./useAllEstimateChanges";
 interface EpicTicket {
   id: string;
   formatted_id: string;
+  title: string;
   project_id: string;
   epic_id: number | null;
   original_fe_estimate: number;
