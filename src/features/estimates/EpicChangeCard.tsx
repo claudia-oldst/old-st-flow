@@ -127,7 +127,7 @@ export function EpicChangeCard({
       });
     }
     return out;
-  }, [tickets, approvedChanges, changes]);
+  }, [tickets, approvedChanges, changes, range]);
 
   return (
     <div className="glass rounded-2xl overflow-hidden">
