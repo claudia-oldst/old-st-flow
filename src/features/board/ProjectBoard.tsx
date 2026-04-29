@@ -17,6 +17,7 @@ import {
   type DisciplineStatus,
 } from "@/lib/types";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { useCardDisplayPrefs, type CardDisplayPrefs } from "@/features/tickets/useCardDisplayPrefs";
 
 type BoardMode = "project" | "discipline";
 const DISCIPLINE_STATUSES: DisciplineStatus[] = ["todo", "in_progress", "for_integration", "done"];
