@@ -9,6 +9,7 @@ import Projects from "./pages/Projects";
 import ProjectWorkspace from "./pages/ProjectWorkspace";
 import Admin from "./pages/Admin";
 import MyWork from "./pages/MyWork";
+import ChangeRequests from "./pages/ChangeRequests";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,7 @@ const App = () => (
             <Route path="/projects/:id/*" element={<ProjectWorkspace />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/my-work" element={<MyWork />} />
+            <Route path="/change-requests" element={<ChangeRequests />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </div>
