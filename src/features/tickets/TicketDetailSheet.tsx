@@ -241,8 +241,13 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
             </SheetTitle>
           </SheetHeader>
 
-          <div className="mt-6 space-y-6">
-            {/* Epic */}
+          <Tabs defaultValue="detail" className="mt-6">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="detail">Ticket Detail</TabsTrigger>
+              <TabsTrigger value="discussion">Ticket Discussion</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="detail" className="mt-4 space-y-6">
             {isPMBA(role) && (
               <div>
                 <div className="text-xs uppercase tracking-wider text-dimmer mb-2">Epic</div>
