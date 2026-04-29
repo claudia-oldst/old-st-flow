@@ -250,12 +250,23 @@ export function EpicChangeCard({
                     return (
                       <tr key={c.id} className="border-t border-white/5 hover:bg-white/[0.02]">
                         <td className="px-3 py-2 font-mono text-[11px]">
-                          <Link
-                            to={`/projects/${projectId}`}
-                            className="text-foreground hover:text-primary transition"
-                          >
-                            {c.ticket?.formatted_id ?? "?"}
-                          </Link>
+                          <TooltipProvider>
+                            <UiTooltip>
+                              <TooltipTrigger asChild>
+                                <Link
+                                  to={`/projects/${projectId}`}
+                                  className="text-foreground hover:text-primary transition"
+                                >
+                                  {c.ticket?.formatted_id ?? "?"}
+                                </Link>
+                              </TooltipTrigger>
+                              {c.ticket?.title && (
+                                <TooltipContent side="top" align="start" className="max-w-xs">
+                                  <p className="text-sm">{c.ticket.title}</p>
+                                </TooltipContent>
+                              )}
+                            </UiTooltip>
+                          </TooltipProvider>
                         </td>
                         <td className="px-2 py-2 text-dim">{c.discipline}</td>
                         <td className="px-2 py-2 text-right font-mono text-dim">
