@@ -97,6 +97,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
   const [search, setSearch] = useState("");
   const [groupTimerOpen, setGroupTimerOpen] = useState(false);
   const activeTimer = useTimerStore((s) => s.active);
+  const { prefs: cardPrefs, setPrefs: setCardPrefs, reset: resetCardPrefs } = useCardDisplayPrefs();
   useEffect(() => {
     if (touched || role === null) return;
     setFilterMine(!pmba);
