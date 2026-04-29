@@ -47,6 +47,8 @@ interface Props {
   onApprove: (row: ChangeRow) => void;
   onReject: (row: ChangeRow) => void;
   defaultOpen?: boolean;
+  /** Optional time window for the chart (defaults to first event → now). */
+  range?: { from: Date; to: Date };
 }
 
 export function EpicChangeCard({
@@ -59,6 +61,7 @@ export function EpicChangeCard({
   onApprove,
   onReject,
   defaultOpen,
+  range,
 }: Props) {
   const [open, setOpen] = useState(!!defaultOpen);
 
@@ -84,12 +87,20 @@ export function EpicChangeCard({
 
   // Sparkline-style data: a couple of buckets along the timeline of matching changes.
   const chartData = useMemo(() => {
-    const events = [...approvedChanges, ...changes]
-      .map((c) => new Date(c.created_at).getTime())
-      .filter((n) => !Number.isNaN(n))
-      .sort((a, b) => a - b);
-    const start = events[0] ?? Date.now() - 86_400_000 * 7;
-    const end = Date.now();
+    let start: number;
+    let end: number;
+    if (range) {
+      start = range.from.getTime();
+      end = range.to.getTime();
+    } else {
+      const events = [...approvedChanges, ...changes]
+        .map((c) => new Date(c.created_at).getTime())
+        .filter((n) => !Number.isNaN(n))
+        .sort((a, b) => a - b);
+      start = events[0] ?? Date.now() - 86_400_000 * 7;
+      end = Date.now();
+    }
+    if (end <= start) end = start + 86_400_000;
     const buckets = 24;
     const step = Math.max(1, Math.floor((end - start) / buckets));
 
@@ -116,7 +127,7 @@ export function EpicChangeCard({
       });
     }
     return out;
-  }, [tickets, approvedChanges, changes]);
+  }, [tickets, approvedChanges, changes, range]);
 
   return (
     <div className="glass rounded-2xl overflow-hidden">

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ShieldOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +10,7 @@ import {
 } from "@/features/estimates/useAllEstimateChanges";
 import { MultiSelectFilter } from "@/features/estimates/MultiSelectFilter";
 import { EpicChangeCard } from "@/features/estimates/EpicChangeCard";
+import { DateRangeControl, defaultRange, type DateRange } from "@/features/health/DateRangeControl";
 
 const NO_EPIC_KEY = (projectId: string) => `noepic:${projectId}`;
 const STATUS_OPTIONS = [
@@ -26,6 +27,34 @@ export function ProjectChangeRequests({ projectId }: { projectId: string }) {
 
   const [statusFilter, setStatusFilter] = useState<string[]>(["pending"]);
   const [requesterFilter, setRequesterFilter] = useState<string[] | null>(null);
+  const [range, setRange] = useState<DateRange>(() => defaultRange());
+  const [rangeInitialized, setRangeInitialized] = useState(false);
+
+  // Default the range to start at the project's start_date the first time we load it.
+  useEffect(() => {
+    if (rangeInitialized) return;
+    let cancelled = false;
+    supabase
+      .from("projects")
+      .select("start_date")
+      .eq("id", projectId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled) return;
+        const sd = (data as any)?.start_date as string | null | undefined;
+        if (sd) {
+          const from = new Date(sd);
+          from.setHours(0, 0, 0, 0);
+          const to = new Date();
+          to.setHours(23, 59, 59, 999);
+          setRange({ from, to });
+        }
+        setRangeInitialized(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId, rangeInitialized]);
 
   // Scope everything to this project up-front.
   const projectChanges = useMemo(
@@ -48,13 +77,17 @@ export function ProjectChangeRequests({ projectId }: { projectId: string }) {
   const effectiveRequester = requesterFilter ?? requesterOptions.map((o) => o.value);
 
   const matching = useMemo(() => {
+    const fromMs = range.from.getTime();
+    const toMs = range.to.getTime();
     return projectChanges.filter((c) => {
       if (!c.ticket) return false;
       if (!statusFilter.includes(c.status)) return false;
       if (!effectiveRequester.includes(c.user_id)) return false;
+      const t = new Date(c.created_at).getTime();
+      if (t < fromMs || t > toMs) return false;
       return true;
     });
-  }, [projectChanges, statusFilter, effectiveRequester]);
+  }, [projectChanges, statusFilter, effectiveRequester, range.from, range.to]);
 
   const groups = useMemo(() => {
     const projectMap = new Map(projects.map((p) => [p.id, p]));
@@ -192,6 +225,8 @@ export function ProjectChangeRequests({ projectId }: { projectId: string }) {
           onChange={setRequesterFilter}
           searchable
         />
+        <div className="h-5 w-px bg-white/10 mx-1" />
+        <DateRangeControl value={range} onChange={setRange} />
         <div className="ml-auto text-[11px] text-dimmer">
           {loading
             ? "Loading…"
@@ -220,6 +255,7 @@ export function ProjectChangeRequests({ projectId }: { projectId: string }) {
               onApprove={handleApprove}
               onReject={handleReject}
               defaultOpen={statusFilter.includes("pending") && g.changes.length <= 5}
+              range={range}
             />
           ))}
         </div>
