@@ -4,6 +4,7 @@ import { Bug, GitPullRequest, FileText, FolderKanban } from "lucide-react";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { DisciplineStatusChip } from "@/features/tickets/DisciplineStatusChip";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DEFAULT_CARD_PREFS, type CardDisplayPrefs } from "@/features/tickets/useCardDisplayPrefs";
 
 const HEALTH_BG: Record<string, string> = {
   good: "bg-health-good",
