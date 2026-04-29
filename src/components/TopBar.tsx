@@ -21,7 +21,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ChevronDown, Settings, FolderKanban, ListChecks, User, Square, GitPullRequest } from "lucide-react";
+import { ChevronDown, Settings, FolderKanban, ListChecks, User, Square } from "lucide-react";
 import { cn, formatDuration } from "@/lib/utils";
 
 function TimerChip() {
@@ -152,15 +152,10 @@ function UserPicker() {
 
 export function TopBar() {
   const location = useLocation();
-  const currentUser = useCurrentUser((s) => s.user);
-  const isPMBA = currentUser?.role === "PMBA";
 
   const navItems = [
     { to: "/", label: "Projects", icon: FolderKanban },
     { to: "/my-work", label: "My Work", icon: ListChecks },
-    ...(isPMBA
-      ? [{ to: "/change-requests", label: "Change Requests", icon: GitPullRequest }]
-      : []),
     { to: "/admin", label: "Admin", icon: Settings },
   ];
 
