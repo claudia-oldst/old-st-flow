@@ -56,6 +56,7 @@ interface ParsedRow {
   version: string;
   fe_status: "todo" | "in_progress" | "done";
   be_status: "todo" | "in_progress" | "done";
+  acceptance_criteria: string;
   error?: string;
 }
 
@@ -183,10 +184,10 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
 
   const downloadTemplate = () => {
     const csv =
-      "Ticket #,Title,Type,FE Estimate,BE Estimate,Epic,Version,FE Status,BE Status\n" +
-      ",Example: build login page,Standard,4,2,Authentication,v1,todo,todo\n" +
-      "42,Example: fix header overflow,Bug,1,0,UI polish,v1,in_progress,todo\n" +
-      ",Example: add export endpoint,CR,0,3,Reporting,v2,todo,done\n";
+      "Ticket #,Title,Type,FE Estimate,BE Estimate,Epic,Version,FE Status,BE Status,Acceptance Criteria\n" +
+      ",Example: build login page,Standard,4,2,Authentication,v1,todo,todo,\"- User can log in with email\\n- Errors shown inline\"\n" +
+      "42,Example: fix header overflow,Bug,1,0,UI polish,v1,in_progress,todo,\n" +
+      ",Example: add export endpoint,CR,0,3,Reporting,v2,todo,done,\n";
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -220,6 +221,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
         const versionCol = findCol("Version", "version", "Phase");
         const feStatusCol = findCol("FE Status", "fe status", "Frontend Status");
         const beStatusCol = findCol("BE Status", "be status", "Backend Status");
+        const acCol = findCol("Acceptance Criteria", "acceptance_criteria", "AC", "Acceptance");
 
         if (!titleCol) {
           toast.error("CSV must include a Title column");
@@ -243,6 +245,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
           const version = versionCol ? (r[versionCol] ?? "").trim() : "";
           const fe_status = parseDiscipline(feStatusCol ? r[feStatusCol] : undefined);
           const be_status = parseDiscipline(beStatusCol ? r[beStatusCol] : undefined);
+          const acceptance_criteria = acCol ? (r[acCol] ?? "").trim() : "";
 
           // Parse ticket number (accept "42" or "ACR-042")
           let ticket_number: number | null = null;
@@ -275,6 +278,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
             version,
             fe_status,
             be_status,
+            acceptance_criteria,
             error: !titleRaw ? "Missing title" : numError,
           };
         });
@@ -352,6 +356,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
       be_status: r.be_status,
       epic_id: r.epic.trim() ? epicMap.get(r.epic.trim().toLowerCase()) ?? null : null,
       version: r.version.trim() || null,
+      acceptance_criteria: r.acceptance_criteria.trim() || null,
       ticket_number: r.ticket_number ?? nextFree(),
       formatted_id: "",
     }));

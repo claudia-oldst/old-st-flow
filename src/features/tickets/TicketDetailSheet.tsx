@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -237,8 +241,14 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
             </SheetTitle>
           </SheetHeader>
 
-          <div className="mt-6 space-y-6">
-            {/* Epic */}
+          <Tabs defaultValue="detail" className="mt-6">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="detail">Ticket Detail</TabsTrigger>
+              <TabsTrigger value="discussion">Ticket Discussion</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="detail" className="mt-4 space-y-6">
+              {/* Epic */}
             {isPMBA(role) && (
               <div>
                 <div className="text-xs uppercase tracking-wider text-dimmer mb-2">Epic</div>
@@ -609,7 +619,17 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
                 </Button>
               </div>
             )}
-          </div>
+            </TabsContent>
+
+            <TabsContent value="discussion" className="mt-4">
+              <AcceptanceCriteria
+                ticketId={ticket.id}
+                value={ticket.acceptance_criteria}
+                canEdit={isPMBA(role)}
+                onSaved={onChange}
+              />
+            </TabsContent>
+          </Tabs>
         </SheetContent>
       </Sheet>
 
@@ -769,6 +789,130 @@ function AssigneeBlock({ label, assignees }: { label: string; assignees: TicketR
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function AcceptanceCriteria({
+  ticketId,
+  value,
+  canEdit,
+  onSaved,
+}: {
+  ticketId: string;
+  value: string | null;
+  canEdit: boolean;
+  onSaved: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [preview, setPreview] = useState(false);
+  const [draft, setDraft] = useState(value ?? "");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setDraft(value ?? "");
+    setEditing(false);
+    setPreview(false);
+  }, [value, ticketId]);
+
+  const save = async () => {
+    setSaving(true);
+    const next = draft.trim() ? draft : null;
+    const { error } = await supabase
+      .from("tickets")
+      .update({ acceptance_criteria: next })
+      .eq("id", ticketId);
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("Acceptance criteria saved");
+    setEditing(false);
+    setPreview(false);
+    onSaved();
+  };
+
+  const hasContent = !!(value && value.trim());
+
+  if (!editing) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="text-xs uppercase tracking-wider text-dimmer">Acceptance criteria</div>
+          {canEdit && (
+            <Button variant="ghost" size="sm" onClick={() => setEditing(true)} className="gap-1 text-xs">
+              <Edit3 className="h-3 w-3" /> {hasContent ? "Edit" : "Add"}
+            </Button>
+          )}
+        </div>
+        {hasContent ? (
+          <div className="rounded-lg bg-white/[0.02] hairline p-4">
+            <MarkdownView source={value!} />
+          </div>
+        ) : (
+          <div className="text-sm text-dim p-4 rounded-lg bg-white/[0.02] hairline">
+            No acceptance criteria yet.
+            {canEdit && " Click Add to write some — markdown is supported."}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="text-xs uppercase tracking-wider text-dimmer">Acceptance criteria</div>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setPreview((v) => !v)}
+            className="text-xs"
+          >
+            {preview ? "Edit" : "Preview"}
+          </Button>
+        </div>
+      </div>
+      {preview ? (
+        <div className="rounded-lg bg-white/[0.02] hairline p-4 min-h-[280px]">
+          {draft.trim() ? (
+            <MarkdownView source={draft} />
+          ) : (
+            <div className="text-sm text-dimmer">Nothing to preview.</div>
+          )}
+        </div>
+      ) : (
+        <Textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder={"Markdown supported.\n\n- Given …\n- When …\n- Then …"}
+          className="min-h-[280px] font-mono text-sm"
+        />
+      )}
+      <div className="flex justify-end gap-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            setDraft(value ?? "");
+            setEditing(false);
+            setPreview(false);
+          }}
+          disabled={saving}
+        >
+          Cancel
+        </Button>
+        <Button size="sm" onClick={save} disabled={saving}>
+          {saving ? "Saving…" : "Save"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function MarkdownView({ source }: { source: string }) {
+  return (
+    <div className="text-sm text-foreground/90 leading-relaxed space-y-2 [&_h1]:text-base [&_h1]:font-semibold [&_h1]:mt-3 [&_h2]:text-sm [&_h2]:font-semibold [&_h2]:mt-3 [&_h3]:text-sm [&_h3]:font-semibold [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5 [&_a]:text-primary [&_a]:underline [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:bg-white/10 [&_code]:text-xs [&_code]:font-mono [&_pre]:bg-white/5 [&_pre]:p-3 [&_pre]:rounded [&_pre]:overflow-x-auto [&_blockquote]:border-l-2 [&_blockquote]:border-white/20 [&_blockquote]:pl-3 [&_blockquote]:text-dim [&_input[type=checkbox]]:mr-1.5">
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{source}</ReactMarkdown>
     </div>
   );
 }

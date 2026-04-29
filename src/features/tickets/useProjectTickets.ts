@@ -25,6 +25,7 @@ export interface TicketRow {
   actual_frontend_hours: number;
   actual_backend_hours: number;
   actual_project_hours: number;
+  acceptance_criteria: string | null;
   position: number;
   created_at: string;
   assignees: Array<{ user_id: string; slot: "FE" | "BE" | "Project"; member: TeamMember; created_at: string }>;
@@ -89,6 +90,7 @@ export function useProjectTickets(projectId: string | undefined) {
         actual_backend_hours: Number(t.actual_backend_hours),
         
         actual_project_hours: Number(t.actual_project_hours ?? 0),
+        acceptance_criteria: t.acceptance_criteria ?? null,
         position: t.position,
         created_at: t.created_at,
         assignees: grouped[t.id] ?? [],

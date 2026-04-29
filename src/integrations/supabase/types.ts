@@ -368,6 +368,7 @@ export type Database = {
       }
       tickets: {
         Row: {
+          acceptance_criteria: string | null
           actual_backend_hours: number
           actual_frontend_hours: number
           actual_project_hours: number
@@ -394,6 +395,7 @@ export type Database = {
           version: string | null
         }
         Insert: {
+          acceptance_criteria?: string | null
           actual_backend_hours?: number
           actual_frontend_hours?: number
           actual_project_hours?: number
@@ -420,6 +422,7 @@ export type Database = {
           version?: string | null
         }
         Update: {
+          acceptance_criteria?: string | null
           actual_backend_hours?: number
           actual_frontend_hours?: number
           actual_project_hours?: number
