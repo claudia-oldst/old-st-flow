@@ -5,6 +5,7 @@ import type { Project } from "@/lib/types";
 
 import { ProjectTickets } from "@/features/tickets/ProjectTickets";
 import { ProjectHealth } from "@/features/health/ProjectHealth";
+import { ProjectChangeRequests } from "@/features/estimates/ProjectChangeRequests";
 import { ProjectSettingsDialog } from "@/features/project/ProjectSettingsDialog";
 import { ExportProjectDialog } from "@/features/project/ExportProjectDialog";
 import { useProjectRole, isPMBA } from "@/features/team/useProjectRole";
@@ -25,11 +26,13 @@ export default function ProjectWorkspace() {
   }, [id]);
 
   const tabs = useMemo(
-    () => [
-      { to: "", label: "Tickets", end: true },
-      { to: "health", label: "Health" },
-    ],
-    []
+    () =>
+      [
+        { to: "", label: "Tickets", end: true },
+        canEdit ? { to: "change-requests", label: "Change Requests" } : null,
+        { to: "health", label: "Health" },
+      ].filter(Boolean) as Array<{ to: string; label: string; end?: boolean }>,
+    [canEdit]
   );
 
   if (!id) return null;
@@ -101,6 +104,7 @@ export default function ProjectWorkspace() {
 
       <Routes>
         <Route index element={<ProjectTickets projectId={id} />} />
+        <Route path="change-requests" element={<ProjectChangeRequests projectId={id} />} />
         <Route path="health" element={<ProjectHealth projectId={id} />} />
       </Routes>
     </div>
