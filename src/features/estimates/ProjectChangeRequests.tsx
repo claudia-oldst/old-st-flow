@@ -77,13 +77,17 @@ export function ProjectChangeRequests({ projectId }: { projectId: string }) {
   const effectiveRequester = requesterFilter ?? requesterOptions.map((o) => o.value);
 
   const matching = useMemo(() => {
+    const fromMs = range.from.getTime();
+    const toMs = range.to.getTime();
     return projectChanges.filter((c) => {
       if (!c.ticket) return false;
       if (!statusFilter.includes(c.status)) return false;
       if (!effectiveRequester.includes(c.user_id)) return false;
+      const t = new Date(c.created_at).getTime();
+      if (t < fromMs || t > toMs) return false;
       return true;
     });
-  }, [projectChanges, statusFilter, effectiveRequester]);
+  }, [projectChanges, statusFilter, effectiveRequester, range.from, range.to]);
 
   const groups = useMemo(() => {
     const projectMap = new Map(projects.map((p) => [p.id, p]));
@@ -221,6 +225,8 @@ export function ProjectChangeRequests({ projectId }: { projectId: string }) {
           onChange={setRequesterFilter}
           searchable
         />
+        <div className="h-5 w-px bg-white/10 mx-1" />
+        <DateRangeControl value={range} onChange={setRange} />
         <div className="ml-auto text-[11px] text-dimmer">
           {loading
             ? "Loading…"
@@ -249,6 +255,7 @@ export function ProjectChangeRequests({ projectId }: { projectId: string }) {
               onApprove={handleApprove}
               onReject={handleReject}
               defaultOpen={statusFilter.includes("pending") && g.changes.length <= 5}
+              range={range}
             />
           ))}
         </div>
