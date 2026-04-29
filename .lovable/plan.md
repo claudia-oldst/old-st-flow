@@ -1,90 +1,64 @@
+## Goal
+Give users a subtle, low-friction way to declutter their kanban cards by hiding the parts they don't care about — without changing the layout when everything is on.
 
-# PMBA Change Requests review
+## UX
 
-A new global page that lets PMBAs see all `ticket_estimate_changes` across all projects, broken down by epic with an evolution graph per epic, filterable by **status** (multi-select) and **requesting user** (multi-select). Clicking an epic expands the underlying change requests with original/new/reason and (for `pending` rows) Approve / Reject buttons. Only `approved` requests are reflected in the ticket's `current_*_estimate`.
+Add a small icon-only button right next to the existing **Filter** button in the Project Tickets sticky toolbar (`src/features/tickets/ProjectTickets.tsx`). The button uses the `Eye` (lucide) icon, the same `outline` `h-8` styling as Filter, and shows a tiny dot indicator when one or more parts are hidden.
 
-## Behavior
+Click opens a Popover (matching the Filter popover styling) titled **"Card display"** with a checklist of toggleable card parts. Each row uses the same `FilterRow` look (checkbox + label) so it feels native.
 
-1. Top-level filters (multi-select, AND between groups, OR within a group):
-   - **Status**: `pending`, `approved`, `rejected` — defaults to `pending` so PMBAs land on actionable items.
-   - **Requester**: any team member who has ever filed a change. Defaults to all.
-   - Optional **Project** multi-select so PMBAs can scope to one or more projects (it's a global page).
-2. Below the filters, a list of **epic cards**. Only epics that contain at least one ticket with a change request matching the filters appear.
-3. Each epic card shows:
-   - Epic name + project acronym, ticket count, and a totals strip (Original / Current-with-approved-only / Current-if-all-approved / Actual).
-   - The same mini evolution graph used on Health (Original dashed, Current solid, Actual solid). The "Current" line only includes deltas from changes that match the selected status filter — so if the PMBA filters by `pending`, they immediately see the projected impact of approving everything pending.
-4. Clicking an epic card expands to a table of the matching `ticket_estimate_changes`, newest first:
-   - Columns: Ticket (linked formatted_id), Discipline, Previous, New, Δ, Reason, Requester (avatar+name), Requested at, Status badge, Actions.
-   - For rows with `status='pending'`, show **Approve** and **Reject** buttons inline.
-5. Approving a pending row:
-   - Sets `status='approved'`, `decided_by=current user`, `decided_at=now()`.
-   - Updates the corresponding ticket's `current_fe_estimate` / `current_be_estimate` / `current_project_estimate` by adding the row's `delta` (matches the existing approved-row semantics).
-6. Rejecting:
-   - Sets `status='rejected'`, `decided_by=current user`, `decided_at=now()`. Ticket estimates are not touched.
-7. Existing flows that already insert `status='approved'` directly (PMBA "Adjust estimate" dialog, the auto-trim trigger) keep working unchanged — those rows just appear with the `approved` badge and no action buttons.
+Toggleable parts (default: all visible):
+- Ticket ID (e.g. `ACR-042`)
+- Type icon
+- Title (always on — not toggleable; hiding makes the card meaningless)
+- Discipline status chips (FE/BE pills)
+- Hours bars (FE/BE/Project progress bars)
+- Assignee avatars row
+- "P" badge corner dot for Proj tickets
 
-## Surfacing
+A **"Reset"** link at the bottom restores all to visible.
 
-- New top-bar nav item **"Change Requests"** (PMBA-only — hidden via `useProjectRole` global fallback when the current user's `team_members.role !== 'PMBA'`).
-- New route: `/change-requests` → `src/pages/ChangeRequests.tsx`.
+## Persistence
 
-## Technical implementation
+Store preferences in `localStorage` under key `card-display-prefs-v1` as `{ id, type, chips, bars, assignees, projBadge }` booleans. Lives across sessions and projects (it's a viewing preference, not project data). No backend changes.
 
-**1. Hook — `src/features/estimates/useAllEstimateChanges.ts`** (new)
-- Fetches `ticket_estimate_changes` joined with `tickets!inner(id, formatted_id, project_id, epic_id, original_fe_estimate, original_be_estimate, original_project_estimate, current_fe_estimate, current_be_estimate, current_project_estimate, actual_frontend_hours, actual_backend_hours, actual_project_hours)` and the requester via `team_members(name, avatar_color)`. Realtime subscription on `ticket_estimate_changes` to refresh.
-- Also exposes `projects` and `epics` lookups (lightweight queries) so the page can render names without N+1.
+## Technical changes
 
-**2. Page — `src/pages/ChangeRequests.tsx`** (new)
+**New file**: `src/features/tickets/useCardDisplayPrefs.ts`
+- Exports `CardDisplayPrefs` type, defaults, and a `useCardDisplayPrefs()` hook returning `[prefs, setPrefs, reset]` with localStorage persistence.
+
+**New file**: `src/features/tickets/CardDisplayMenu.tsx`
+- Small Popover trigger (Eye icon button) + checklist UI. Reuses styling from `TicketsFilter`'s `FilterRow` pattern (kept local to this file for now, no extraction needed).
+- Shows subtle accent dot when any pref is off.
+
+**Modify** `src/features/tickets/TicketCard.tsx`
+- Accept optional `prefs?: CardDisplayPrefs` prop (default = all visible to preserve current behavior elsewhere, e.g. drag overlay).
+- Conditionally render: type icon, formatted_id line, discipline status chip row, hours bar block, assignee footer row, Proj "P" badge.
+- If hours bars hidden AND chips hidden, collapse the whitespace so the card visibly shrinks.
+
+**Modify** `src/features/board/ProjectBoard.tsx`
+- Read `prefs` from the hook and pass to `<TicketCard prefs={prefs} />` in `DraggableCard`, `DraggableDisciplineCard`, and the `DragOverlay` instance.
+
+**Modify** `src/features/tickets/ProjectTickets.tsx`
+- Render `<CardDisplayMenu />` immediately after `<TicketsFilter ... />` in the toolbar (line ~430). Only shown when `view === "board"` since list view doesn't use TicketCard.
+
+## What stays the same
+- No DB / migration changes.
+- No changes to filtering, data fetching, or list view.
+- TicketDetailSheet remains unaffected (always shows full info).
+- Default appearance unchanged for first-time users.
+
 ```text
-ChangeRequests
-├── FiltersBar  (Status multi-select, Requester multi-select, Project multi-select)
-├── For each epic group (filtered):
-│   └── EpicChangeCard
-│       ├── Header: project acronym · epic name · counts · totals
-│       ├── Mini chart (recharts LineChart, 80–120px tall) with the same
-│       │     three series as EstimateEvolution but the "Current" line
-│       │     applies deltas from changes whose status matches the active
-│       │     status filter (pending → preview, approved → real current).
-│       └── Collapsible: table of matching changes with Approve/Reject
-└── Empty-state when no epics match.
+Toolbar:  [Board|List]  [Filter ⌄]  [👁 ⌄]      ...search... [+ Add]
+                                     │
+                                     ▼ Popover
+                                  Card display
+                                  ☑ Ticket ID
+                                  ☑ Type icon
+                                  ☑ Status chips
+                                  ☑ Hours bars
+                                  ☑ Assignees
+                                  ☑ Project badge
+                                  ─────────────
+                                          Reset
 ```
-Reuse `MemberAvatar`, the `Collapsible` primitive, and the existing `formatHours` / `healthRatio` helpers. Multi-select is built with `Popover` + `Checkbox` (no new dep needed — pattern already used elsewhere for compact filter chips; if not, fall back to a plain dropdown of toggles inside a `Popover`).
-
-**3. Approve / reject actions** — inline in the table, calling Supabase from the page:
-```text
-approve(row):
-  update ticket_estimate_changes set status='approved', decided_by=user, decided_at=now() where id=row.id
-  update tickets
-    set current_fe_estimate = current_fe_estimate + (row.discipline='FE' ? row.delta : 0),
-        current_be_estimate = current_be_estimate + (row.discipline='BE' ? row.delta : 0),
-        current_project_estimate = current_project_estimate + (row.discipline='Project' ? row.delta : 0)
-    where id = row.ticket_id
-reject(row):
-  update ticket_estimate_changes set status='rejected', decided_by=user, decided_at=now() where id=row.id
-```
-Both wrapped in `toast.promise` for feedback, then the realtime subscription refreshes the view.
-
-**4. Nav** — add the item to `TopBar.tsx`. Visibility: read the current user's global `role` from the store; only render when `role === 'PMBA'`. Route guard inside `ChangeRequests.tsx` shows a friendly "PMBA only" message otherwise.
-
-**5. Defaults & UX**
-- Status filter defaults to `['pending']`.
-- Requester defaults to all selected.
-- Sticky filter bar; epic cards are collapsed by default; toggle "Expand all" button.
-- Status badges use existing health palette (pending=warn, approved=good, rejected=dim).
-
-## Files touched / created
-
-- **New**: `src/pages/ChangeRequests.tsx`
-- **New**: `src/features/estimates/useAllEstimateChanges.ts`
-- **New**: `src/features/estimates/EpicChangeCard.tsx` (epic header + mini chart + table)
-- **New**: `src/features/estimates/ChangeRequestsFilters.tsx` (multi-select chips)
-- **Edited**: `src/components/TopBar.tsx` (PMBA-only "Change Requests" nav item)
-- **Edited**: `src/App.tsx` (add `/change-requests` route)
-
-## Edge cases
-
-- A change request whose ticket has been deleted: the inner join drops it (acceptable — orphaned).
-- Tickets with no epic: grouped under a synthetic "No epic" bucket per project so they're still visible.
-- Approving the same row twice: idempotency guarded by `WHERE status = 'pending'` in the approve update; a second click no-ops with a toast.
-- Auto-trim entries (`reason LIKE 'Auto-trimmed%'`) are inserted as `approved` so they only show when the `approved` filter is on, with a small "auto" badge — no Approve/Reject buttons.
-- The existing `RequestMoreTimeDialog` currently writes rows as `status='approved'` directly. To make the new pending-flow useful, a separate small follow-up could let non-PMBAs file `status='pending'` instead — out of scope for this task but flagged.
