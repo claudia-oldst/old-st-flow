@@ -313,6 +313,7 @@ export function ProjectBoard({
                   onCardClick={setOpenTicket}
                   onCreated={reload}
                   prefs={prefs}
+                  forceBars={filterMine}
                 />
               ))}
             </div>
@@ -325,12 +326,13 @@ export function ProjectBoard({
                   cards={byDisciplineStatus[s]}
                   onCardClick={(c) => setOpenTicket(c.ticket)}
                   prefs={prefs}
+                  forceBars={filterMine}
                 />
               ))}
             </div>
           )}
           <DragOverlay>
-            {activeTicket && <TicketCard ticket={activeTicket} prefs={prefs} />}
+            {activeTicket && <TicketCard ticket={activeTicket} prefs={prefs} forceBars={filterMine} />}
           </DragOverlay>
         </DndContext>
 
