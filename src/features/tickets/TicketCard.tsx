@@ -49,11 +49,13 @@ export function TicketCard({
   onClick,
   isDragging,
   prefs = DEFAULT_CARD_PREFS,
+  forceBars = false,
 }: {
   ticket: TicketRow;
   onClick?: () => void;
   isDragging?: boolean;
   prefs?: CardDisplayPrefs;
+  forceBars?: boolean;
 }) {
   const isProj = ticket.ticket_type === "Proj";
   const fe = ticket.assignees.filter((a) => a.slot === "FE").map((a) => a.member);
@@ -61,9 +63,10 @@ export function TicketCard({
   const team = ticket.assignees.filter((a) => a.slot === "Project").map((a) => a.member);
   const hasFE = fe.length > 0;
   const hasBE = be.length > 0;
-  const showFEBar = prefs.bars && !isProj && hasFE && (ticket.current_fe_estimate > 0 || ticket.actual_frontend_hours > 0);
-  const showBEBar = prefs.bars && !isProj && hasBE && (ticket.current_be_estimate > 0 || ticket.actual_backend_hours > 0);
-  const showProjectBar = prefs.bars && isProj && (ticket.current_project_estimate > 0 || ticket.actual_project_hours > 0);
+  const barsOn = prefs.bars || forceBars;
+  const showFEBar = barsOn && !isProj && hasFE && (ticket.current_fe_estimate > 0 || ticket.actual_frontend_hours > 0);
+  const showBEBar = barsOn && !isProj && hasBE && (ticket.current_be_estimate > 0 || ticket.actual_backend_hours > 0);
+  const showProjectBar = barsOn && isProj && (ticket.current_project_estimate > 0 || ticket.actual_project_hours > 0);
   const showChips = prefs.chips && !isProj && (hasFE || hasBE);
   const anyBars = showFEBar || showBEBar || showProjectBar;
   const showHeaderRow = prefs.type || prefs.id;
