@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { TrendingUp, ShieldOff } from "lucide-react";
+import { ShieldOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/store/currentUser";
+import { useProjectRole, isPMBA } from "@/features/team/useProjectRole";
 import {
   useAllEstimateChanges,
   type ChangeRow,
@@ -17,18 +18,24 @@ const STATUS_OPTIONS = [
   { value: "rejected", label: "Rejected" },
 ];
 
-export default function ChangeRequests() {
+export function ProjectChangeRequests({ projectId }: { projectId: string }) {
   const user = useCurrentUser((s) => s.user);
-  const isPMBA = user?.role === "PMBA";
+  const role = useProjectRole(projectId);
+  const canReview = isPMBA(role);
   const { changes, projects, epics, loading, reload } = useAllEstimateChanges();
 
   const [statusFilter, setStatusFilter] = useState<string[]>(["pending"]);
   const [requesterFilter, setRequesterFilter] = useState<string[] | null>(null);
-  const [projectFilter, setProjectFilter] = useState<string[] | null>(null);
+
+  // Scope everything to this project up-front.
+  const projectChanges = useMemo(
+    () => changes.filter((c) => c.ticket?.project_id === projectId),
+    [changes, projectId]
+  );
 
   const requesterOptions = useMemo(() => {
     const seen = new Map<string, { id: string; name: string }>();
-    changes.forEach((c) => {
+    projectChanges.forEach((c) => {
       if (c.requester && !seen.has(c.requester.id)) {
         seen.set(c.requester.id, { id: c.requester.id, name: c.requester.name });
       }
@@ -36,33 +43,19 @@ export default function ChangeRequests() {
     return Array.from(seen.values())
       .sort((a, b) => a.name.localeCompare(b.name))
       .map((m) => ({ value: m.id, label: m.name }));
-  }, [changes]);
+  }, [projectChanges]);
 
-  const projectOptions = useMemo(
-    () =>
-      projects
-        .slice()
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .map((p) => ({ value: p.id, label: `${p.acronym} · ${p.name}` })),
-    [projects]
-  );
-
-  // Initialize "all selected" defaults when options first arrive.
-  const effectiveRequester =
-    requesterFilter ?? requesterOptions.map((o) => o.value);
-  const effectiveProject = projectFilter ?? projectOptions.map((o) => o.value);
+  const effectiveRequester = requesterFilter ?? requesterOptions.map((o) => o.value);
 
   const matching = useMemo(() => {
-    return changes.filter((c) => {
+    return projectChanges.filter((c) => {
       if (!c.ticket) return false;
       if (!statusFilter.includes(c.status)) return false;
       if (!effectiveRequester.includes(c.user_id)) return false;
-      if (!effectiveProject.includes(c.ticket.project_id)) return false;
       return true;
     });
-  }, [changes, statusFilter, effectiveRequester, effectiveProject]);
+  }, [projectChanges, statusFilter, effectiveRequester]);
 
-  // Group matching changes by epic key (project + epic_id).
   const groups = useMemo(() => {
     const projectMap = new Map(projects.map((p) => [p.id, p]));
     const epicMap = new Map(epics.map((e) => [e.id, e]));
@@ -107,10 +100,8 @@ export default function ChangeRequests() {
       b.ticketsById.set(c.ticket.id, c.ticket);
     });
 
-    // For each group, also collect approved-status changes for those tickets so the chart
-    // can show the real "current" line independent of the active filter.
     const approvedByTicket = new Map<string, ChangeRow[]>();
-    changes.forEach((c) => {
+    projectChanges.forEach((c) => {
       if (c.status !== "approved" || !c.ticket) return;
       const arr = approvedByTicket.get(c.ticket.id) ?? [];
       arr.push(c);
@@ -129,13 +120,11 @@ export default function ChangeRequests() {
         return { ...b, tickets, approvedChanges };
       })
       .sort((a, b) => b.changes.length - a.changes.length);
-  }, [matching, projects, epics, changes]);
+  }, [matching, projects, epics, projectChanges]);
 
   const handleApprove = async (row: ChangeRow) => {
     if (!user) return toast.error("Sign in first");
-    if (row.status !== "pending") {
-      return toast.message("Already decided");
-    }
+    if (row.status !== "pending") return toast.message("Already decided");
     const decideAt = new Date().toISOString();
     const { error: updErr, data: updated } = await supabase
       .from("ticket_estimate_changes")
@@ -147,7 +136,6 @@ export default function ChangeRequests() {
     if (updErr) return toast.error(updErr.message);
     if (!updated) return toast.message("Already decided");
 
-    // Apply delta to the ticket's current estimate for that discipline.
     const t = row.ticket;
     if (t) {
       const patch =
@@ -176,30 +164,20 @@ export default function ChangeRequests() {
     reload();
   };
 
-  if (!isPMBA) {
+  if (!canReview) {
     return (
-      <div className="mx-auto max-w-[680px] px-6 pt-20 text-center space-y-3">
+      <div className="mx-auto max-w-[680px] pt-12 text-center space-y-3">
         <ShieldOff className="h-8 w-8 text-dim mx-auto" />
-        <h1 className="font-display text-xl">PMBA only</h1>
+        <h2 className="font-display text-lg">PMBA only</h2>
         <p className="text-sm text-dim">
-          You need the PMBA role to review estimate change requests.
+          You need the PMBA role on this project to review estimate change requests.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-[1480px] px-4 sm:px-6 pt-6 pb-12 space-y-6">
-      <div className="flex items-center gap-3 flex-wrap">
-        <TrendingUp className="h-5 w-5 text-primary" />
-        <div>
-          <h1 className="font-display text-2xl font-semibold tracking-tight">Change requests</h1>
-          <p className="text-xs text-dim">
-            Review estimate change requests across all projects, grouped by epic.
-          </p>
-        </div>
-      </div>
-
+    <div className="space-y-6">
       <div className="glass rounded-2xl p-3 flex items-center gap-2 flex-wrap sticky top-14 z-30">
         <MultiSelectFilter
           label="Status"
@@ -214,15 +192,12 @@ export default function ChangeRequests() {
           onChange={setRequesterFilter}
           searchable
         />
-        <MultiSelectFilter
-          label="Project"
-          options={projectOptions}
-          selected={effectiveProject}
-          onChange={setProjectFilter}
-          searchable
-        />
         <div className="ml-auto text-[11px] text-dimmer">
-          {loading ? "Loading…" : `${matching.length} change${matching.length === 1 ? "" : "s"} · ${groups.length} epic${groups.length === 1 ? "" : "s"}`}
+          {loading
+            ? "Loading…"
+            : `${matching.length} change${matching.length === 1 ? "" : "s"} · ${groups.length} epic${
+                groups.length === 1 ? "" : "s"
+              }`}
         </div>
       </div>
 
