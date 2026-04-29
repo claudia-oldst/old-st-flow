@@ -40,6 +40,8 @@ import {
   type TicketFilters,
 } from "@/features/tickets/TicketsFilter";
 import { ProjectBoard } from "@/features/board/ProjectBoard";
+import { CardDisplayMenu } from "@/features/tickets/CardDisplayMenu";
+import { useCardDisplayPrefs } from "@/features/tickets/useCardDisplayPrefs";
 import { useProjectRole, isPMBA } from "@/features/team/useProjectRole";
 import { cn } from "@/lib/utils";
 import type { TicketType } from "@/lib/types";
