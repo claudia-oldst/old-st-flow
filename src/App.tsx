@@ -21,16 +21,24 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <TimerSync />
-        <div className="min-h-screen">
-          <TopBar />
-          <Routes>
-            <Route path="/" element={<Projects />} />
-            <Route path="/projects/:id/*" element={<ProjectWorkspace />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="/my-work" element={<MyWork />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </div>
+        <Routes>
+          <Route path="/h/:hash" element={<ClientPortalPublic />} />
+          <Route
+            path="*"
+            element={
+              <div className="min-h-screen">
+                <TopBar />
+                <Routes>
+                  <Route path="/" element={<Projects />} />
+                  <Route path="/projects/:id/*" element={<ProjectWorkspace />} />
+                  <Route path="/admin" element={<Admin />} />
+                  <Route path="/my-work" element={<MyWork />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </div>
+            }
+          />
+        </Routes>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
