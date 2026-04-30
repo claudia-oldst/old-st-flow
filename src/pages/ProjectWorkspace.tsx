@@ -8,6 +8,7 @@ import { ProjectHealth } from "@/features/health/ProjectHealth";
 import { ProjectChangeRequests } from "@/features/estimates/ProjectChangeRequests";
 import { ProjectSettingsDialog } from "@/features/project/ProjectSettingsDialog";
 import { ExportProjectDialog } from "@/features/project/ExportProjectDialog";
+import { ClientPortalEditor } from "@/features/client-portal/ClientPortalEditor";
 import { useProjectRole, isPMBA } from "@/features/team/useProjectRole";
 import { ArrowLeft, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
