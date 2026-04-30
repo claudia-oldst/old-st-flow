@@ -275,51 +275,66 @@ export function ClientPortalEditor() {
           />
         </div>
 
-        {/* Per-epic summaries */}
-        {payload && payload.epics.some((e) => epicDeltas.has(e.id)) && (
+        {/* Per-epic summaries (only included == true) */}
+        {payload && payload.epics.some((e) => epicDeltas.has(e.id) && (e.included ?? true)) && (
           <div className="glass rounded-2xl p-4 space-y-3">
             <div className="text-xs uppercase tracking-wider text-dimmer">
               Epics with scope changes
             </div>
-            {payload.epics
-              .filter((e) => epicDeltas.has(e.id))
-              .map((e) => (
-                <EpicSummaryEditor
-                  key={e.id}
-                  projectId={id}
-                  projectName={project?.name ?? ""}
-                  epicId={e.id}
-                  epicName={e.epic_name ?? "Untitled epic"}
-                  originalHours={e.original_estimate}
-                  currentHours={e.current_estimate}
-                  delta={epicDeltas.get(e.id)?.delta ?? 0}
-                  changes={epicDeltas.get(e.id)?.rows ?? []}
-                  initialText={e.pmba_text ?? ""}
-                  initialIncluded={e.included ?? true}
-                  onSaved={refresh}
-                />
-              ))}
+            <div className={cn(!previewOpen && "grid lg:grid-cols-2 gap-3")}>
+              {payload.epics
+                .filter((e) => epicDeltas.has(e.id) && (e.included ?? true))
+                .map((e) => (
+                  <EpicSummaryEditor
+                    key={e.id}
+                    projectId={id}
+                    projectName={project?.name ?? ""}
+                    epicId={e.id}
+                    epicName={e.epic_name ?? "Untitled epic"}
+                    originalHours={e.original_estimate}
+                    currentHours={e.current_estimate}
+                    delta={epicDeltas.get(e.id)?.delta ?? 0}
+                    changes={epicDeltas.get(e.id)?.rows ?? []}
+                    initialText={e.pmba_text ?? ""}
+                    initialIncluded={e.included ?? true}
+                    onSaved={refresh}
+                  />
+                ))}
+            </div>
           </div>
         )}
       </div>
 
       {/* RIGHT: live preview */}
-      <div>
-        <div className="text-[10px] uppercase tracking-wider text-dimmer mb-2 px-1">
-          Client preview
-        </div>
-        <div className="glass rounded-2xl p-6 lg:p-8">
-          {payload ? (
-            <PortalView payload={payload} showRate />
-          ) : (
-            <div className="text-sm text-dim text-center py-12">
-              {hash
-                ? "Loading preview…"
-                : "Click Publish to enable the portal and generate a preview."}
+      {previewOpen && (
+        <div>
+          <div className="flex items-center justify-between mb-2 px-1">
+            <div className="text-[10px] uppercase tracking-wider text-dimmer">
+              Client preview
             </div>
-          )}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setPreviewOpen(false)}
+              className="h-6 px-2 gap-1.5 text-[10px] uppercase tracking-wider text-dimmer hover:text-foreground"
+            >
+              <PanelRightClose className="h-3 w-3" />
+              Hide
+            </Button>
+          </div>
+          <div className="glass rounded-2xl p-6 lg:p-8">
+            {payload ? (
+              <PortalView payload={payload} showRate />
+            ) : (
+              <div className="text-sm text-dim text-center py-12">
+                {hash
+                  ? "Loading preview…"
+                  : "Click Publish to enable the portal and generate a preview."}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
