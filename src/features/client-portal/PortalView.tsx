@@ -1,6 +1,7 @@
 import { format } from "date-fns";
 import { formatHours } from "@/lib/utils";
 import { formatGBP, type PortalPayload } from "./types";
+import { PortalEpicTrend } from "./PortalEpicTrend";
 
 /**
  * Visual render of the client-facing portal payload.
