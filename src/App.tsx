@@ -10,7 +10,6 @@ import ProjectWorkspace from "./pages/ProjectWorkspace";
 import Admin from "./pages/Admin";
 import MyWork from "./pages/MyWork";
 import NotFound from "./pages/NotFound.tsx";
-import ClientPortal from "./pages/ClientPortal";
 
 const queryClient = new QueryClient();
 
@@ -28,7 +27,6 @@ const App = () => (
             <Route path="/projects/:id/*" element={<ProjectWorkspace />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/my-work" element={<MyWork />} />
-            <Route path="/h/:hash" element={<ClientPortal />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </div>

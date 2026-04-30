@@ -153,9 +153,6 @@ function UserPicker() {
 export function TopBar() {
   const location = useLocation();
 
-  // Public client portal pages get a clean header — no internal nav.
-  if (location.pathname.startsWith("/h/")) return null;
-
   const navItems = [
     { to: "/", label: "Projects", icon: FolderKanban },
     { to: "/my-work", label: "My Work", icon: ListChecks },

@@ -27,7 +27,6 @@ import {
 } from "@/components/ui/tabs";
 import { MemberAvatar } from "@/components/MemberAvatar";
 import { Plus, Settings, Trash2, ExternalLink, Eye } from "lucide-react";
-import { ClientPortalSettings } from "@/features/project/ClientPortalSettings";
 import { toast } from "sonner";
 
 
@@ -174,10 +173,9 @@ export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
         </DialogHeader>
 
         <Tabs defaultValue="details" className="mt-2">
-          <TabsList className={`grid w-full ${canEdit ? "grid-cols-3" : "grid-cols-2"}`}>
+          <TabsList className="grid grid-cols-2 w-full">
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="team">Team</TabsTrigger>
-            {canEdit && <TabsTrigger value="portal">Client Portal</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="details" className="space-y-4 mt-4">
@@ -387,12 +385,6 @@ export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
               </div>
             )}
           </TabsContent>
-
-          {canEdit && (
-            <TabsContent value="portal" className="space-y-4 mt-4">
-              <ClientPortalSettings project={project} onUpdated={onUpdated} />
-            </TabsContent>
-          )}
         </Tabs>
       </DialogContent>
     </Dialog>
