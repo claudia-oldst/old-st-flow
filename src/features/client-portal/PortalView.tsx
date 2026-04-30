@@ -96,6 +96,13 @@ export function PortalView({
         <div className="text-xs uppercase tracking-wider text-dimmer px-1">
           Epics
         </div>
+        <PortalEpicTrend
+          projectId={project.id}
+          cutoff={project.cutoff}
+          includedEpics={epics
+            .filter((e) => (e.included ?? true) && e.total_tickets > 0)
+            .map((e) => ({ id: e.id, name: e.epic_name ?? "Untitled epic" }))}
+        />
         {epics.length === 0 && (
           <div className="text-sm text-dim glass rounded-2xl p-5">
             No epics yet.
