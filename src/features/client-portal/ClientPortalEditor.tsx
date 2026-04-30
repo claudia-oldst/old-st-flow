@@ -402,27 +402,37 @@ function EpicSummaryEditor({
     }
   }
 
-  async function save() {
-    setSaving(true);
+  async function persist(nextText: string, nextIncluded: boolean, opts?: { silent?: boolean }) {
     const { error } = await supabase
       .from("project_epic_summaries")
       .upsert(
         {
           project_id: projectId,
           epic_id: epicId,
-          pmba_text: text,
-          included,
+          pmba_text: nextText,
+          included: nextIncluded,
           delta_hours: delta,
         },
         { onConflict: "project_id,epic_id" },
       );
-    setSaving(false);
     if (error) {
       toast.error(error.message);
-    } else {
-      toast.success("Saved");
-      onSaved();
+      return false;
     }
+    if (!opts?.silent) toast.success("Saved");
+    onSaved();
+    return true;
+  }
+
+  async function save() {
+    setSaving(true);
+    await persist(text, included);
+    setSaving(false);
+  }
+
+  async function handleToggleIncluded(next: boolean) {
+    setIncluded(next);
+    await persist(text, next, { silent: true });
   }
 
   return (
