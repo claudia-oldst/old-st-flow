@@ -1,55 +1,82 @@
-## Goal
+# Client Transparency Portal
 
-In the ticket side sheet, add tabs so users can switch between the existing **Ticket Detail** view and a new **Ticket Discussion** tab containing **Acceptance Criteria**. PMBA can edit (markdown), everyone can read. AC can also be populated via CSV import.
+A public, hash-protected, read-only "Client Health" dashboard for each project. PMBAs control exactly what the client sees via a billing-style cutoff date and a publishable AI executive summary.
 
-## Database
+---
 
-Add one column to `tickets`:
+## 1. Database changes (single migration)
 
-- `acceptance_criteria text` — nullable, default `null`. Stores raw markdown.
+Add to `projects`:
+- `client_visibility_cutoff timestamptz` — null = portal disabled
+- `client_portal_hash text unique` — random 32-char slug for the URL
+- `client_summary_published text` — PMBA-edited markdown shown on the portal
+- `client_summary_draft text` — AI-generated draft, not yet visible to client
+- `client_summary_updated_at timestamptz`
 
-Migration only (no RLS change needed — existing `tickets` policies already cover it). The Supabase types will regenerate automatically.
+RLS: keep `projects` policies as-is internally, but add a **SECURITY DEFINER** RPC `get_client_portal(_hash text)` returning a single JSON payload (project meta + tickets + epics + estimate changes + time-log totals, all already filtered by `<= client_visibility_cutoff`). The client-facing page only ever calls this RPC, so no internal data leaks via direct table reads. Public anon may execute it; the function returns NULL if hash is unknown or cutoff is null.
 
-## CSV import
+The RPC also redacts: ticket titles only (no description), epic names, hour numbers, estimate-change `reason` and `delta`. No `time_logs.note` text — only aggregated hours per discipline per ticket.
 
-Extend the importer in `src/features/tickets/ProjectTickets.tsx`:
+## 2. PMBA controls (Project Settings → new "Client Portal" tab)
 
-- Detect a new column: `Acceptance Criteria` (also `acceptance_criteria`, `AC`).
-- Add `acceptance_criteria` to the `ParsedRow` type and the insert payload.
-- Add the column to the downloaded CSV template (`downloadTemplate`).
-- For multi-line AC inside a CSV cell, Papa Parse already handles quoted newlines — no extra work.
+In `ProjectSettingsDialog.tsx` add a third tab:
+- DateTime picker for `client_visibility_cutoff` (with "Now" shortcut and "Disable portal" button that nulls it)
+- Generate / regenerate hash button → shows full URL with copy-to-clipboard
+- "Open in new tab" link
+- Toggle: `Internal View ⇄ Client View` (stored in zustand or URL param) that re-renders the existing Health page with the cutoff applied — so PMBAs can verify before sharing
+- Executive Summary section:
+  - "Generate with AI" button → calls edge function, fills `client_summary_draft`
+  - Markdown textarea + preview (reuse the AcceptanceCriteria editor pattern)
+  - "Publish to client" button → copies draft to `client_summary_published`
 
-## Ticket sheet — tabs
+## 3. AI Executive Summary (edge function)
 
-Refactor `src/features/tickets/TicketDetailSheet.tsx`:
+New `supabase/functions/client-summary/index.ts`:
+- Input: `{ project_id }`
+- Loads project, approved `ticket_estimate_changes` and `time_logs` (notes included server-side only) where dates ≤ cutoff
+- Calls Lovable AI Gateway (`google/gemini-3-flash-preview`) with a system prompt to produce a 2–3 sentence client-friendly status + budget justification
+- Writes result to `projects.client_summary_draft`
+- Surfaces 429/402 errors as toasts
 
-1. Wrap the existing body content in a `<Tabs>` from `@/components/ui/tabs` with two triggers: **Detail** (current content) and **Discussion**. The header (formatted_id chips + title) stays above the tabs.
-2. **Detail tab** = everything currently rendered (status, estimates, assignees, time logs, delete). No behavior change.
-3. **Discussion tab** = new `AcceptanceCriteria` section:
-   - **View mode** (default, all roles): renders `ticket.acceptance_criteria` as markdown. Empty state: "No acceptance criteria yet." with an Edit button if PMBA.
-   - **Edit mode** (PMBA only): a `<Textarea>` (min-h ~280px) with markdown content + Save / Cancel. On save, `update tickets set acceptance_criteria = ... where id = ...`, then `onChange()`.
-   - Toolbar above the textarea shows a small "Preview" toggle so PMBA can flip between editing and previewing before saving.
+## 4. Public portal route
 
-### Markdown rendering
+New page `src/pages/ClientPortal.tsx` mounted at `/h/:hash` (outside the auth-gated TopBar layout — render a slim branded header instead).
 
-Add `react-markdown` + `remark-gfm` (small, well-maintained, no heavy WYSIWYG deps). Render inside a `prose prose-invert prose-sm` Tailwind container so headings, lists, checkboxes, links match the dark theme. (Tailwind typography plugin is not currently in the project — we'll style minimally with custom classes on the wrapper to avoid adding `@tailwindcss/typography`. Specifically: paragraph spacing, list bullets, `<code>` background, link color using `text-primary`.)
+Sections, all built from the single RPC payload:
 
-### Read TicketRow
+1. **Header band** — Project name, client name, "Data verified and finalized up to: {cutoff date}", Old St logo.
+2. **Health pill** — Green / Yellow / Red based on burn vs progress (per spec).
+3. **Two large gauges** — Budget Burn (`actual_project_hours / current_project_estimate`) and Completion (% tickets in `done` category). Reuse the SVG ring style from `ProjectHealth.tsx`.
+4. **Discipline split** — Stacked horizontal bar: FE actual vs BE actual.
+5. **Epics list** — Each epic with completion %, ticket count, and current vs original estimate hours (mono font).
+6. **Executive Summary card** — Renders `client_summary_published` markdown (hidden if empty).
+7. **Change Log timeline** — Vertical list of approved `ticket_estimate_changes`: ticket id, discipline, `previous → new` hours, delta chip, reason. Newest first.
 
-Add `acceptance_criteria: string | null` to the `TicketRow` interface in `src/features/tickets/useProjectTickets.ts` (the `select("*")` already returns it; just surface the field in the mapped object).
+Mobile-first: single column < 768px, two-column gauges from md, max-width 760px.
 
-## Files to change
+## 5. Visual identity
 
-- **DB migration**: add `acceptance_criteria text` to `tickets`.
-- `src/features/tickets/useProjectTickets.ts` — surface `acceptance_criteria` on `TicketRow`.
-- `src/features/tickets/TicketDetailSheet.tsx` — add `<Tabs>`, new `AcceptanceCriteria` subcomponent, save handler.
-- `src/features/tickets/ProjectTickets.tsx` — CSV column detection, template, payload.
-- `package.json` — add `react-markdown`, `remark-gfm`.
+Reuse existing tokens (`glass`, `font-display`, `font-mono`, `--health-good/warn/bad`, brand-coral, brand-gold). Background stays the project's deep navy (matches existing dark theme — the brief's `#0A0A0A` would conflict with the established design system, so we'll use the existing `--background`).
 
-## Out of scope
+## 6. Files
 
-- Comments/threaded discussion (deferred per your answer).
-- WYSIWYG toolbar (using markdown textarea + preview).
-- Versioning/audit log of AC edits.
+**New**
+- `supabase/migrations/{ts}_client_portal.sql` — columns + RPC
+- `supabase/functions/client-summary/index.ts` + `config.toml` entry (verify_jwt = false; PMBA-only check via passed user id is overkill — gate on UI button; the function only writes draft, not published)
+- `src/pages/ClientPortal.tsx`
+- `src/features/client-portal/useClientPortalData.ts` (calls the RPC)
+- `src/features/client-portal/HealthGauges.tsx`, `EpicsList.tsx`, `ChangeLogTimeline.tsx`, `ExecutiveSummary.tsx`
+- `src/features/project/ClientPortalSettings.tsx` (rendered as the new tab)
 
-Approve and I'll implement.
+**Modified**
+- `src/App.tsx` — add `/h/:hash` route (no TopBar)
+- `src/features/project/ProjectSettingsDialog.tsx` — add "Client Portal" tab
+- `src/lib/types.ts` — Project type picks up new columns automatically via regenerated `Database` types
+- `src/integrations/supabase/types.ts` — auto-regenerated by migration
+
+## 7. Out of scope (call out explicitly)
+
+- Per-note client/internal flag on `time_logs` — current schema has no such column. The portal already hides note text entirely, so no leakage. If you want per-note opt-in later, that's a follow-up migration adding `time_logs.client_visible boolean`.
+- Custom domain `portal.old.st/h/...` — the route works on whatever domain the app is deployed to. Custom domain mapping is a hosting setup, not code.
+
+Approve and I'll implement in one pass: migration → edge function → settings tab → public portal page.
