@@ -36,6 +36,7 @@ export function ClientPortalEditor() {
   const [asOf, setAsOf] = useState<Date>(new Date());
   const [intro, setIntro] = useState("");
   const [busy, setBusy] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(true);
 
   useEffect(() => {
     if (!id) return;
