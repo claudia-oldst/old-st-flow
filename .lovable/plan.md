@@ -1,82 +1,120 @@
-# Client Transparency Portal
+# Client Portal — Wireframes
 
-A public, hash-protected, read-only "Client Health" dashboard for each project. PMBAs control exactly what the client sees via a billing-style cutoff date and a publishable AI executive summary.
+Two views share the same visual building blocks. The PMBA editor on the left adds controls; the public page is a read-only stripped-down version.
 
 ---
 
-## 1. Database changes (single migration)
+## A. PMBA Editor — `/projects/:id/client`
 
-Add to `projects`:
-- `client_visibility_cutoff timestamptz` — null = portal disabled
-- `client_portal_hash text unique` — random 32-char slug for the URL
-- `client_summary_published text` — PMBA-edited markdown shown on the portal
-- `client_summary_draft text` — AI-generated draft, not yet visible to client
-- `client_summary_updated_at timestamptz`
+```text
+┌─ ← All projects ─────────────────────────────────────────────────────────┐
+│  [ACME]  Acme Rebuild  · Acme Corp                  [Export] [⚙] [👥 Client]│  ← "Client" CTA added
+├──────────────────────────────────────────────────────────────────────────┤
+│  Tickets   Change Requests   Health   ●Client                            │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  ┌─ Toolbar ─────────────────────────────────────────────────────────┐   │
+│  │ As of: [📅 30 Apr 2026 ▾]   Status: ● Published 28 Apr           │   │
+│  │ Public link: /h/k3n…q9   [Copy]   [Disable]   [▶ Publish to client]│  │
+│  └───────────────────────────────────────────────────────────────────┘   │
+│                                                                          │
+│  ┌─ Intro for client (markdown) ─────────────────────────────────────┐   │
+│  │ ┌──────────────────┐  ┌────────────────────┐                     │   │
+│  │ │ Edit             │  │ Preview            │                     │   │
+│  │ │ We've completed  │  │ We've completed... │                     │   │
+│  │ │ the auth flow…   │  │                    │                     │   │
+│  │ └──────────────────┘  └────────────────────┘                     │   │
+│  └───────────────────────────────────────────────────────────────────┘   │
+│                                                                          │
+│  ┌─ Tickets ──┐ ┌─ Progress ─┐ ┌─ Hours ─────┐ ┌─ Cost (GBP) ──────┐   │
+│  │   84       │ │  ██████░░  │ │ 312 / 410   │ │  £24,960          │   │
+│  │ 12 ▢  9 ◐  │ │  62% done  │ │  76% burn   │ │  of £32,800       │   │
+│  │ 63 ✓       │ │            │ │  ● healthy  │ │  rate £80/h       │   │
+│  └────────────┘ └────────────┘ └─────────────┘ └───────────────────┘   │
+│                                                                          │
+│  ┌─ Discipline status ───────────────────────────────────────────────┐   │
+│  │ FE  ████████████░░░░░░░░░░  18 done · 6 in-prog · 4 todo          │   │
+│  │ BE  ██████████████░░░░░░░░  22 done · 5 in-prog · 3 todo          │   │
+│  └───────────────────────────────────────────────────────────────────┘   │
+│                                                                          │
+│  ┌─ Estimate evolution ──────────────────────────────────────────────┐   │
+│  │       hrs                                              ___ Actual │   │
+│  │   500 ┤                                       ___,---'           │   │
+│  │   400 ┤              ____------''''''                  Current   │   │
+│  │   300 ┤────────────                                    Original  │   │
+│  │       └────────────────────────────────────────────             │   │
+│  │        Jan   Feb   Mar   Apr   ▲ as of                           │   │
+│  └───────────────────────────────────────────────────────────────────┘   │
+│                                                                          │
+│  ┌─ Epics ───────────────────────────────────────────────────────────┐   │
+│  │ ▾ Authentication              [4✓ 1◐ 0▢]   80h → 96h  +16h  £7.7k │   │
+│  │   ┌────────────────────────────────────────────────────────────┐ │   │
+│  │   │ Why estimate changed (visible to client)   [✨ Generate]   │ │   │
+│  │   │ ┌──────────────────────────┐ ┌─────────────────────────┐  │ │   │
+│  │   │ │ We expanded SSO scope to │ │ We expanded SSO scope…  │  │ │   │
+│  │   │ │ cover Google + Azure…    │ │                         │  │ │   │
+│  │   │ └──────────────────────────┘ └─────────────────────────┘  │ │   │
+│  │   │ [✓] Include in client view              [↻ Regenerate]    │ │   │
+│  │   └────────────────────────────────────────────────────────────┘ │   │
+│  │ ▸ Onboarding                  [3✓ 2◐ 1▢]   60h → 60h   0h   £4.8k │   │
+│  │ ▾ Billing                     [1✓ 3◐ 2▢]  120h →148h  +28h £11.8k │   │
+│  │   … (summary block as above) …                                    │   │
+│  └───────────────────────────────────────────────────────────────────┘   │
+└──────────────────────────────────────────────────────────────────────────┘
+```
 
-RLS: keep `projects` policies as-is internally, but add a **SECURITY DEFINER** RPC `get_client_portal(_hash text)` returning a single JSON payload (project meta + tickets + epics + estimate changes + time-log totals, all already filtered by `<= client_visibility_cutoff`). The client-facing page only ever calls this RPC, so no internal data leaks via direct table reads. Public anon may execute it; the function returns NULL if hash is unknown or cutoff is null.
+---
 
-The RPC also redacts: ticket titles only (no description), epic names, hour numbers, estimate-change `reason` and `delta`. No `time_logs.note` text — only aggregated hours per discipline per ticket.
+## B. Public Client View — `/h/:hash` (no TopBar, max-w 880px)
 
-## 2. PMBA controls (Project Settings → new "Client Portal" tab)
+```text
+┌──────────────────────────────────────────────────────────────────┐
+│  [oldst]                              Acme Rebuild · Acme Corp   │
+│                                       As of  30 April 2026       │
+├──────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  We've completed the authentication flow this sprint and are     │
+│  now focused on the billing module ahead of the May launch.      │
+│                                                                  │
+│  ┌─ Tickets ────┐ ┌─ Progress ──┐ ┌─ Cost ──────────┐           │
+│  │     84       │ │   ██████░░  │ │   £24,960       │           │
+│  │  62% done    │ │   62%       │ │   of £32,800    │           │
+│  └──────────────┘ └─────────────┘ └─────────────────┘           │
+│                                                                  │
+│  Frontend  ████████████░░░░  64% done                            │
+│  Backend   ██████████████░░  72% done                            │
+│                                                                  │
+│  ── Epics ──────────────────────────────────────────────         │
+│                                                                  │
+│  Authentication                                  ● 100% done     │
+│  4 done · 1 in progress                  96h  (orig 80h)  £7.7k  │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │ We expanded SSO scope to cover Google and Azure logins, │    │
+│  │ which added roughly two days of work across the team.   │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                  │
+│  Onboarding                                      ◐ 50% done      │
+│  3 done · 2 in progress · 1 to do        60h  (orig 60h)  £4.8k  │
+│                                                                  │
+│  Billing                                         ◐ 17% done      │
+│  1 done · 3 in progress · 2 to do       148h  (orig 120h) £11.8k │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │ We added support for VAT-inclusive pricing and an extra │    │
+│  │ retry flow for failed payments at your request.         │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                  │
+│  ── Last updated 28 April 2026 ────────────────────              │
+└──────────────────────────────────────────────────────────────────┘
+```
 
-In `ProjectSettingsDialog.tsx` add a third tab:
-- DateTime picker for `client_visibility_cutoff` (with "Now" shortcut and "Disable portal" button that nulls it)
-- Generate / regenerate hash button → shows full URL with copy-to-clipboard
-- "Open in new tab" link
-- Toggle: `Internal View ⇄ Client View` (stored in zustand or URL param) that re-renders the existing Health page with the cutoff applied — so PMBAs can verify before sharing
-- Executive Summary section:
-  - "Generate with AI" button → calls edge function, fills `client_summary_draft`
-  - Markdown textarea + preview (reuse the AcceptanceCriteria editor pattern)
-  - "Publish to client" button → copies draft to `client_summary_published`
+---
 
-## 3. AI Executive Summary (edge function)
+## Visual notes
 
-New `supabase/functions/client-summary/index.ts`:
-- Input: `{ project_id }`
-- Loads project, approved `ticket_estimate_changes` and `time_logs` (notes included server-side only) where dates ≤ cutoff
-- Calls Lovable AI Gateway (`google/gemini-3-flash-preview`) with a system prompt to produce a 2–3 sentence client-friendly status + budget justification
-- Writes result to `projects.client_summary_draft`
-- Surfaces 429/402 errors as toasts
+- **Tiles**: glass surface, mono numerics, semantic health colors (`--health-good/warn/bad`) for the burn ring.
+- **Cost tile**: only renders if `projects.rate_per_hour > 0`; uses `Intl.NumberFormat("en-GB", {style:"currency", currency:"GBP", maximumFractionDigits:0})`.
+- **Status chips per epic**: reuse `DISCIPLINE_STATUS_COLOR`. ▢ todo · ◐ in progress · ✓ done.
+- **Editor vs public**: the public page omits the toolbar, intro editor, evolution chart, and all controls. Same building blocks, same data shape from the RPC, just rendered without affordances.
+- **Mobile**: tiles stack to a single column under 640px; epic rows wrap status chips below the title.
 
-## 4. Public portal route
-
-New page `src/pages/ClientPortal.tsx` mounted at `/h/:hash` (outside the auth-gated TopBar layout — render a slim branded header instead).
-
-Sections, all built from the single RPC payload:
-
-1. **Header band** — Project name, client name, "Data verified and finalized up to: {cutoff date}", Old St logo.
-2. **Health pill** — Green / Yellow / Red based on burn vs progress (per spec).
-3. **Two large gauges** — Budget Burn (`actual_project_hours / current_project_estimate`) and Completion (% tickets in `done` category). Reuse the SVG ring style from `ProjectHealth.tsx`.
-4. **Discipline split** — Stacked horizontal bar: FE actual vs BE actual.
-5. **Epics list** — Each epic with completion %, ticket count, and current vs original estimate hours (mono font).
-6. **Executive Summary card** — Renders `client_summary_published` markdown (hidden if empty).
-7. **Change Log timeline** — Vertical list of approved `ticket_estimate_changes`: ticket id, discipline, `previous → new` hours, delta chip, reason. Newest first.
-
-Mobile-first: single column < 768px, two-column gauges from md, max-width 760px.
-
-## 5. Visual identity
-
-Reuse existing tokens (`glass`, `font-display`, `font-mono`, `--health-good/warn/bad`, brand-coral, brand-gold). Background stays the project's deep navy (matches existing dark theme — the brief's `#0A0A0A` would conflict with the established design system, so we'll use the existing `--background`).
-
-## 6. Files
-
-**New**
-- `supabase/migrations/{ts}_client_portal.sql` — columns + RPC
-- `supabase/functions/client-summary/index.ts` + `config.toml` entry (verify_jwt = false; PMBA-only check via passed user id is overkill — gate on UI button; the function only writes draft, not published)
-- `src/pages/ClientPortal.tsx`
-- `src/features/client-portal/useClientPortalData.ts` (calls the RPC)
-- `src/features/client-portal/HealthGauges.tsx`, `EpicsList.tsx`, `ChangeLogTimeline.tsx`, `ExecutiveSummary.tsx`
-- `src/features/project/ClientPortalSettings.tsx` (rendered as the new tab)
-
-**Modified**
-- `src/App.tsx` — add `/h/:hash` route (no TopBar)
-- `src/features/project/ProjectSettingsDialog.tsx` — add "Client Portal" tab
-- `src/lib/types.ts` — Project type picks up new columns automatically via regenerated `Database` types
-- `src/integrations/supabase/types.ts` — auto-regenerated by migration
-
-## 7. Out of scope (call out explicitly)
-
-- Per-note client/internal flag on `time_logs` — current schema has no such column. The portal already hides note text entirely, so no leakage. If you want per-note opt-in later, that's a follow-up migration adding `time_logs.client_visible boolean`.
-- Custom domain `portal.old.st/h/...` — the route works on whatever domain the app is deployed to. Custom domain mapping is a hosting setup, not code.
-
-Approve and I'll implement in one pass: migration → edge function → settings tab → public portal page.
+Approve and I'll proceed with the plan from the prior turn (migration + edge function + editor + public page).
