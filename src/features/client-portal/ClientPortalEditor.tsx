@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { format } from "date-fns";
-import { CalendarIcon, Copy, ExternalLink, Sparkles, Loader2 } from "lucide-react";
+import { CalendarIcon, Copy, ExternalLink, Sparkles, Loader2, PanelRightOpen, PanelRightClose } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -36,6 +36,7 @@ export function ClientPortalEditor() {
   const [asOf, setAsOf] = useState<Date>(new Date());
   const [intro, setIntro] = useState("");
   const [busy, setBusy] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(true);
 
   useEffect(() => {
     if (!id) return;
@@ -163,9 +164,17 @@ export function ClientPortalEditor() {
   const portalUrl = hash ? `${window.location.origin}/h/${hash}` : null;
 
   return (
-    <div className="grid lg:grid-cols-[420px_1fr] gap-6">
+    <div className={cn("grid gap-6", previewOpen ? "lg:grid-cols-[420px_1fr]" : "grid-cols-1")}>
       {/* LEFT: controls */}
-      <div className="space-y-4">
+      <div className={cn("space-y-4", !previewOpen && "max-w-5xl mx-auto w-full")}>
+        {!previewOpen && (
+          <div className="flex justify-end">
+            <Button size="sm" variant="outline" onClick={() => setPreviewOpen(true)} className="gap-2 text-xs">
+              <PanelRightOpen className="h-3.5 w-3.5" />
+              Show client preview
+            </Button>
+          </div>
+        )}
         {/* Toolbar */}
         <div className="glass rounded-2xl p-4 space-y-3">
           <div className="text-xs uppercase tracking-wider text-dimmer">
@@ -266,51 +275,66 @@ export function ClientPortalEditor() {
           />
         </div>
 
-        {/* Per-epic summaries */}
-        {payload && payload.epics.some((e) => epicDeltas.has(e.id)) && (
+        {/* Per-epic summaries (only included == true) */}
+        {payload && payload.epics.some((e) => epicDeltas.has(e.id) && (e.included ?? true)) && (
           <div className="glass rounded-2xl p-4 space-y-3">
             <div className="text-xs uppercase tracking-wider text-dimmer">
               Epics with scope changes
             </div>
-            {payload.epics
-              .filter((e) => epicDeltas.has(e.id))
-              .map((e) => (
-                <EpicSummaryEditor
-                  key={e.id}
-                  projectId={id}
-                  projectName={project?.name ?? ""}
-                  epicId={e.id}
-                  epicName={e.epic_name ?? "Untitled epic"}
-                  originalHours={e.original_estimate}
-                  currentHours={e.current_estimate}
-                  delta={epicDeltas.get(e.id)?.delta ?? 0}
-                  changes={epicDeltas.get(e.id)?.rows ?? []}
-                  initialText={e.pmba_text ?? ""}
-                  initialIncluded={e.included ?? true}
-                  onSaved={refresh}
-                />
-              ))}
+            <div className={cn(!previewOpen && "grid lg:grid-cols-2 gap-3")}>
+              {payload.epics
+                .filter((e) => epicDeltas.has(e.id) && (e.included ?? true))
+                .map((e) => (
+                  <EpicSummaryEditor
+                    key={e.id}
+                    projectId={id}
+                    projectName={project?.name ?? ""}
+                    epicId={e.id}
+                    epicName={e.epic_name ?? "Untitled epic"}
+                    originalHours={e.original_estimate}
+                    currentHours={e.current_estimate}
+                    delta={epicDeltas.get(e.id)?.delta ?? 0}
+                    changes={epicDeltas.get(e.id)?.rows ?? []}
+                    initialText={e.pmba_text ?? ""}
+                    initialIncluded={e.included ?? true}
+                    onSaved={refresh}
+                  />
+                ))}
+            </div>
           </div>
         )}
       </div>
 
       {/* RIGHT: live preview */}
-      <div>
-        <div className="text-[10px] uppercase tracking-wider text-dimmer mb-2 px-1">
-          Client preview
-        </div>
-        <div className="glass rounded-2xl p-6 lg:p-8">
-          {payload ? (
-            <PortalView payload={payload} showRate />
-          ) : (
-            <div className="text-sm text-dim text-center py-12">
-              {hash
-                ? "Loading preview…"
-                : "Click Publish to enable the portal and generate a preview."}
+      {previewOpen && (
+        <div>
+          <div className="flex items-center justify-between mb-2 px-1">
+            <div className="text-[10px] uppercase tracking-wider text-dimmer">
+              Client preview
             </div>
-          )}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setPreviewOpen(false)}
+              className="h-6 px-2 gap-1.5 text-[10px] uppercase tracking-wider text-dimmer hover:text-foreground"
+            >
+              <PanelRightClose className="h-3 w-3" />
+              Hide
+            </Button>
+          </div>
+          <div className="glass rounded-2xl p-6 lg:p-8">
+            {payload ? (
+              <PortalView payload={payload} showRate />
+            ) : (
+              <div className="text-sm text-dim text-center py-12">
+                {hash
+                  ? "Loading preview…"
+                  : "Click Publish to enable the portal and generate a preview."}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
