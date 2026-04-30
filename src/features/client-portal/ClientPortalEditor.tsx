@@ -68,7 +68,7 @@ export function ClientPortalEditor() {
     >();
     for (const c of changes) {
       if (c.status !== "approved") continue;
-      const occurredAt = new Date(c.decided_at ?? c.created_at).getTime();
+      const occurredAt = new Date(c.created_at).getTime();
       if (occurredAt > cutoffMs) continue;
       const epicId = ticketEpic.get(c.ticket_id);
       if (epicId == null) continue;
