@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { cn, formatHours } from "@/lib/utils";
+import { formatHours } from "@/lib/utils";
 import { formatGBP, type PortalPayload } from "./types";
 import { PortalEpicTrend } from "./PortalEpicTrend";
 
