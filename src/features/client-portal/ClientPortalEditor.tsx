@@ -164,9 +164,17 @@ export function ClientPortalEditor() {
   const portalUrl = hash ? `${window.location.origin}/h/${hash}` : null;
 
   return (
-    <div className="grid lg:grid-cols-[420px_1fr] gap-6">
+    <div className={cn("grid gap-6", previewOpen ? "lg:grid-cols-[420px_1fr]" : "grid-cols-1")}>
       {/* LEFT: controls */}
-      <div className="space-y-4">
+      <div className={cn("space-y-4", !previewOpen && "max-w-5xl mx-auto w-full")}>
+        {!previewOpen && (
+          <div className="flex justify-end">
+            <Button size="sm" variant="outline" onClick={() => setPreviewOpen(true)} className="gap-2 text-xs">
+              <PanelRightOpen className="h-3.5 w-3.5" />
+              Show client preview
+            </Button>
+          </div>
+        )}
         {/* Toolbar */}
         <div className="glass rounded-2xl p-4 space-y-3">
           <div className="text-xs uppercase tracking-wider text-dimmer">
