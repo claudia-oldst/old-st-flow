@@ -72,7 +72,7 @@ export function ClientPortalSettings({ project, onUpdated }: Props) {
   const persist = async (patch: Record<string, any>): Promise<Project | null> => {
     const { data, error } = await supabase
       .from("projects")
-      .update(patch)
+      .update(patch as any)
       .eq("id", project.id)
       .select("*")
       .single();
