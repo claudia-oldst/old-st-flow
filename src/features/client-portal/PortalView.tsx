@@ -100,7 +100,7 @@ export function PortalView({
           projectId={project.id}
           cutoff={project.cutoff}
           includedEpics={epics
-            .filter((e) => (e.included ?? true) && e.total_tickets > 0)
+            .filter((e) => e.total_tickets > 0)
             .map((e) => ({ id: e.id, name: e.epic_name ?? "Untitled epic" }))}
         />
         {epics.length === 0 && (
