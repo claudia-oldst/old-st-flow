@@ -275,15 +275,15 @@ export function ClientPortalEditor() {
           />
         </div>
 
-        {/* Per-epic summaries (only included == true) */}
-        {payload && payload.epics.some((e) => epicDeltas.has(e.id) && (e.included ?? true)) && (
+        {/* Per-epic summaries — all scope-changed epics shown so PMBA can edit/toggle. */}
+        {payload && payload.epics.some((e) => epicDeltas.has(e.id)) && (
           <div className="glass rounded-2xl p-4 space-y-3">
             <div className="text-xs uppercase tracking-wider text-dimmer">
               Epics with scope changes
             </div>
             <div className={cn(!previewOpen && "grid lg:grid-cols-2 gap-3")}>
               {payload.epics
-                .filter((e) => epicDeltas.has(e.id) && (e.included ?? true))
+                .filter((e) => epicDeltas.has(e.id))
                 .map((e) => (
                   <EpicSummaryEditor
                     key={e.id}
