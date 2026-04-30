@@ -68,6 +68,42 @@ export type Database = {
           },
         ]
       }
+      project_epic_summaries: {
+        Row: {
+          ai_draft: string | null
+          created_at: string
+          delta_hours: number
+          epic_id: number
+          id: string
+          included: boolean
+          pmba_text: string | null
+          project_id: string
+          updated_at: string
+        }
+        Insert: {
+          ai_draft?: string | null
+          created_at?: string
+          delta_hours?: number
+          epic_id: number
+          id?: string
+          included?: boolean
+          pmba_text?: string | null
+          project_id: string
+          updated_at?: string
+        }
+        Update: {
+          ai_draft?: string | null
+          created_at?: string
+          delta_hours?: number
+          epic_id?: number
+          id?: string
+          included?: boolean
+          pmba_text?: string | null
+          project_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       project_epics: {
         Row: {
           created_at: string

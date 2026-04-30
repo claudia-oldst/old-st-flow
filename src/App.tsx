@@ -9,6 +9,7 @@ import Projects from "./pages/Projects";
 import ProjectWorkspace from "./pages/ProjectWorkspace";
 import Admin from "./pages/Admin";
 import MyWork from "./pages/MyWork";
+import ClientPortalPublic from "./pages/ClientPortalPublic";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -20,16 +21,24 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <TimerSync />
-        <div className="min-h-screen">
-          <TopBar />
-          <Routes>
-            <Route path="/" element={<Projects />} />
-            <Route path="/projects/:id/*" element={<ProjectWorkspace />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="/my-work" element={<MyWork />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </div>
+        <Routes>
+          <Route path="/h/:hash" element={<ClientPortalPublic />} />
+          <Route
+            path="*"
+            element={
+              <div className="min-h-screen">
+                <TopBar />
+                <Routes>
+                  <Route path="/" element={<Projects />} />
+                  <Route path="/projects/:id/*" element={<ProjectWorkspace />} />
+                  <Route path="/admin" element={<Admin />} />
+                  <Route path="/my-work" element={<MyWork />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </div>
+            }
+          />
+        </Routes>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

@@ -8,6 +8,7 @@ import { ProjectHealth } from "@/features/health/ProjectHealth";
 import { ProjectChangeRequests } from "@/features/estimates/ProjectChangeRequests";
 import { ProjectSettingsDialog } from "@/features/project/ProjectSettingsDialog";
 import { ExportProjectDialog } from "@/features/project/ExportProjectDialog";
+import { ClientPortalEditor } from "@/features/client-portal/ClientPortalEditor";
 import { useProjectRole, isPMBA } from "@/features/team/useProjectRole";
 import { ArrowLeft, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ export default function ProjectWorkspace() {
         { to: "", label: "Tickets", end: true },
         canEdit ? { to: "change-requests", label: "Change Requests" } : null,
         { to: "health", label: "Health" },
+        canEdit ? { to: "client", label: "Client" } : null,
       ].filter(Boolean) as Array<{ to: string; label: string; end?: boolean }>,
     [canEdit]
   );
@@ -106,6 +108,7 @@ export default function ProjectWorkspace() {
         <Route index element={<ProjectTickets projectId={id} />} />
         <Route path="change-requests" element={<ProjectChangeRequests projectId={id} />} />
         <Route path="health" element={<ProjectHealth projectId={id} />} />
+        <Route path="client" element={<ClientPortalEditor />} />
       </Routes>
     </div>
   );
