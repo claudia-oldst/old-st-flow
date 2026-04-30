@@ -387,6 +387,12 @@ export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
               </div>
             )}
           </TabsContent>
+
+          {canEdit && (
+            <TabsContent value="portal" className="space-y-4 mt-4">
+              <ClientPortalSettings project={project} onUpdated={onUpdated} />
+            </TabsContent>
+          )}
         </Tabs>
       </DialogContent>
     </Dialog>
