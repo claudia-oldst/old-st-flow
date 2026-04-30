@@ -460,7 +460,7 @@ function EpicSummaryEditor({
       />
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <label className="flex items-center gap-2 text-xs text-dim">
-          <Switch checked={included} onCheckedChange={setIncluded} />
+          <Switch checked={included} onCheckedChange={handleToggleIncluded} />
           Show to client
         </label>
         <div className="flex items-center gap-1.5">
