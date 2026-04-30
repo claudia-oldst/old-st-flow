@@ -109,7 +109,7 @@ export function PortalView({
           </div>
         )}
         {epics
-          .filter((e) => e.total_tickets > 0)
+          .filter((e) => e.total_tickets > 0 && (e.included ?? true))
           .map((e) => {
             const pct =
               e.total_tickets > 0
