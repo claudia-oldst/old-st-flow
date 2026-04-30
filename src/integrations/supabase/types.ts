@@ -137,6 +137,11 @@ export type Database = {
         Row: {
           acronym: string
           client_name: string | null
+          client_portal_hash: string | null
+          client_summary_draft: string | null
+          client_summary_published: string | null
+          client_summary_updated_at: string | null
+          client_visibility_cutoff: string | null
           created_at: string
           id: string
           links: Json
@@ -148,6 +153,11 @@ export type Database = {
         Insert: {
           acronym: string
           client_name?: string | null
+          client_portal_hash?: string | null
+          client_summary_draft?: string | null
+          client_summary_published?: string | null
+          client_summary_updated_at?: string | null
+          client_visibility_cutoff?: string | null
           created_at?: string
           id?: string
           links?: Json
@@ -159,6 +169,11 @@ export type Database = {
         Update: {
           acronym?: string
           client_name?: string | null
+          client_portal_hash?: string | null
+          client_summary_draft?: string | null
+          client_summary_published?: string | null
+          client_summary_updated_at?: string | null
+          client_visibility_cutoff?: string | null
           created_at?: string
           id?: string
           links?: Json
@@ -532,6 +547,7 @@ export type Database = {
         Args: { _cat: Database["public"]["Enums"]["status_category"] }
         Returns: string
       }
+      get_client_portal: { Args: { _hash: string }; Returns: Json }
       reapply_status_rules: { Args: never; Returns: undefined }
     }
     Enums: {
