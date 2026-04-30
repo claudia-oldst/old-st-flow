@@ -109,14 +109,13 @@ export function PortalView({
           </div>
         )}
         {epics
-          .filter((e) => e.total_tickets > 0 && (e.included ?? true))
+          .filter((e) => e.total_tickets > 0)
           .map((e) => {
             const pct =
               e.total_tickets > 0
                 ? Math.round((e.done_tickets / e.total_tickets) * 100)
                 : 0;
             const delta = e.current_estimate - e.original_estimate;
-            const summary = (e.included ?? true) ? e.pmba_text ?? null : null;
             return (
               <div key={e.id} className="glass rounded-2xl p-5 space-y-3">
                 <div className="flex items-baseline justify-between gap-3 flex-wrap">
@@ -153,15 +152,53 @@ export function PortalView({
                     </span>
                   )}
                 </div>
-                {summary && (
-                  <div className="rounded-xl bg-white/[0.03] hairline p-3 text-sm leading-relaxed whitespace-pre-wrap">
-                    {summary}
-                  </div>
-                )}
               </div>
             );
           })}
       </div>
+
+      {/* Estimate Change Detail — only included epics with a delta and a PMBA narrative. */}
+      {(() => {
+        const detail = epics.filter(
+          (e) =>
+            (e.included ?? true) &&
+            e.total_tickets > 0 &&
+            e.current_estimate - e.original_estimate !== 0 &&
+            (e.pmba_text ?? "").trim().length > 0,
+        );
+        if (detail.length === 0) return null;
+        return (
+          <div className="space-y-3">
+            <div className="text-xs uppercase tracking-wider text-dimmer px-1">
+              Estimate Change Detail
+            </div>
+            {detail.map((e) => {
+              const delta = e.current_estimate - e.original_estimate;
+              return (
+                <div key={e.id} className="glass rounded-2xl p-5 space-y-3">
+                  <div className="flex items-baseline justify-between gap-3 flex-wrap">
+                    <div className="font-medium">{e.epic_name ?? "Untitled epic"}</div>
+                    <div
+                      className={cn(
+                        "text-[10px] font-mono px-1.5 py-0.5 rounded-full ring-1",
+                        delta > 0
+                          ? "bg-health-warn/15 text-health-warn ring-health-warn/30"
+                          : "bg-health-good/15 text-health-good ring-health-good/30",
+                      )}
+                    >
+                      {delta > 0 ? "+" : ""}
+                      {formatHours(delta)}
+                    </div>
+                  </div>
+                  <div className="rounded-xl bg-white/[0.03] hairline p-3 text-sm leading-relaxed whitespace-pre-wrap">
+                    {e.pmba_text}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       {project.summary_updated_at && (
         <div className="text-[10px] text-dimmer text-center pt-4">
