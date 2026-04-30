@@ -81,28 +81,41 @@ export function PortalEpicTrend({
         setLogs([]);
         return;
       }
-      const [{ data: ch }, { data: lg }] = await Promise.all([
-        supabase
-          .from("ticket_estimate_changes")
-          .select("ticket_id,delta,created_at,status")
-          .in("ticket_id", ids)
-          .eq("status", "approved"),
-        supabase
-          .from("time_logs")
-          .select("ticket_id,hours,logged_at,discipline")
-          .in("ticket_id", ids)
-          .in("discipline", ["FE", "BE"]),
-      ]);
+      // Chunk .in() to avoid URL length limits with large ticket sets.
+      const CHUNK = 100;
+      const chunks: string[][] = [];
+      for (let i = 0; i < ids.length; i += CHUNK) chunks.push(ids.slice(i, i + CHUNK));
+
+      const chResults = await Promise.all(
+        chunks.map((c) =>
+          supabase
+            .from("ticket_estimate_changes")
+            .select("ticket_id,delta,created_at,status")
+            .in("ticket_id", c)
+            .eq("status", "approved"),
+        ),
+      );
+      const lgResults = await Promise.all(
+        chunks.map((c) =>
+          supabase
+            .from("time_logs")
+            .select("ticket_id,hours,logged_at,discipline")
+            .in("ticket_id", c)
+            .in("discipline", ["FE", "BE"]),
+        ),
+      );
       if (cancelled) return;
+      const chRows = chResults.flatMap((r) => (r.data ?? []) as any[]);
+      const lgRows = lgResults.flatMap((r) => (r.data ?? []) as any[]);
       setChanges(
-        ((ch ?? []) as any[]).map((c) => ({
+        chRows.map((c) => ({
           ticket_id: c.ticket_id,
           delta: Number(c.delta) || 0,
           created_at: c.created_at,
         })),
       );
       setLogs(
-        ((lg ?? []) as any[]).map((l) => ({
+        lgRows.map((l) => ({
           ticket_id: l.ticket_id,
           hours: Number(l.hours) || 0,
           logged_at: l.logged_at,
