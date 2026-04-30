@@ -32,6 +32,7 @@ export default function ProjectWorkspace() {
         { to: "", label: "Tickets", end: true },
         canEdit ? { to: "change-requests", label: "Change Requests" } : null,
         { to: "health", label: "Health" },
+        canEdit ? { to: "client", label: "Client" } : null,
       ].filter(Boolean) as Array<{ to: string; label: string; end?: boolean }>,
     [canEdit]
   );
