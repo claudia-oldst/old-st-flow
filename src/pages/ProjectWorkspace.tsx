@@ -108,6 +108,7 @@ export default function ProjectWorkspace() {
         <Route index element={<ProjectTickets projectId={id} />} />
         <Route path="change-requests" element={<ProjectChangeRequests projectId={id} />} />
         <Route path="health" element={<ProjectHealth projectId={id} />} />
+        <Route path="client" element={<ClientPortalEditor />} />
       </Routes>
     </div>
   );
