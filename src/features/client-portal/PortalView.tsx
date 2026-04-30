@@ -91,28 +91,21 @@ export function PortalView({
         />
       </div>
 
-      {/* Epic trend chart — only epics explicitly toggled on by PMBA. */}
-      {(() => {
-        const visibleEpics = epics.filter(
-          (e) => e.total_tickets > 0 && e.included === true,
-        );
-        if (visibleEpics.length === 0) return null;
-        return (
-          <div className="space-y-3">
-            <div className="text-xs uppercase tracking-wider text-dimmer px-1">
-              Epics
-            </div>
-            <PortalEpicTrend
-              projectId={project.id}
-              cutoff={project.cutoff}
-              includedEpics={visibleEpics.map((e) => ({
-                id: e.id,
-                name: e.epic_name ?? "Untitled epic",
-              }))}
-            />
+      {/* Epic trend chart — always shows all epics with tickets, regardless of toggles. */}
+      {epics.some((e) => e.total_tickets > 0) && (
+        <div className="space-y-3">
+          <div className="text-xs uppercase tracking-wider text-dimmer px-1">
+            Epics
           </div>
-        );
-      })()}
+          <PortalEpicTrend
+            projectId={project.id}
+            cutoff={project.cutoff}
+            includedEpics={epics
+              .filter((e) => e.total_tickets > 0)
+              .map((e) => ({ id: e.id, name: e.epic_name ?? "Untitled epic" }))}
+          />
+        </div>
+      )}
 
       {/* Estimate Change Detail — only included epics with a delta and a PMBA narrative.
           Combines per-epic progress, hours, and the change narrative in one card. */}
