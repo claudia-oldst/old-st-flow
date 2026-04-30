@@ -91,7 +91,7 @@ export function PortalView({
         />
       </div>
 
-      {/* Epics */}
+      {/* Epic trend chart (includes all epics) */}
       <div className="space-y-3">
         <div className="text-xs uppercase tracking-wider text-dimmer px-1">
           Epics
@@ -108,60 +108,14 @@ export function PortalView({
             No epics yet.
           </div>
         )}
-        {epics
-          .filter((e) => e.total_tickets > 0 && e.included === true)
-          .map((e) => {
-            const pct =
-              e.total_tickets > 0
-                ? Math.round((e.done_tickets / e.total_tickets) * 100)
-                : 0;
-            const delta = e.current_estimate - e.original_estimate;
-            return (
-              <div key={e.id} className="glass rounded-2xl p-5 space-y-3">
-                <div className="flex items-baseline justify-between gap-3 flex-wrap">
-                  <div className="font-medium">{e.epic_name ?? "Untitled epic"}</div>
-                  <div className="text-xs text-dim font-mono">
-                    {pct}% done
-                  </div>
-                </div>
-                <div className="text-xs text-dim">
-                  {e.done_tickets} done
-                  {e.in_progress_tickets > 0 && ` · ${e.in_progress_tickets} in progress`}
-                  {e.backlog_tickets > 0 && ` · ${e.backlog_tickets} to do`}
-                </div>
-                <div className="flex items-center gap-3 text-xs font-mono text-dim flex-wrap">
-                  <span>{formatHours(e.current_estimate)}</span>
-                  {e.original_estimate > 0 && delta !== 0 && (
-                    <>
-                      <span className="text-dimmer">
-                        (orig {formatHours(e.original_estimate)})
-                      </span>
-                      <span
-                        className={
-                          delta > 0 ? "text-health-warn" : "text-health-good"
-                        }
-                      >
-                        {delta > 0 ? "+" : ""}
-                        {formatHours(delta)}
-                      </span>
-                    </>
-                  )}
-                  {showRate && project.rate_per_hour > 0 && (
-                    <span className="ml-auto">
-                      {formatGBP(e.actual_hours * project.rate_per_hour)}
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
       </div>
 
-      {/* Estimate Change Detail — only included epics with a delta and a PMBA narrative. */}
+      {/* Estimate Change Detail — only included epics with a delta and a PMBA narrative.
+          Combines per-epic progress, hours, and the change narrative in one card. */}
       {(() => {
         const detail = epics.filter(
           (e) =>
-            (e.included ?? true) &&
+            e.included === true &&
             e.total_tickets > 0 &&
             e.current_estimate - e.original_estimate !== 0 &&
             (e.pmba_text ?? "").trim().length > 0,
@@ -174,21 +128,43 @@ export function PortalView({
             </div>
             {detail.map((e) => {
               const delta = e.current_estimate - e.original_estimate;
+              const pct =
+                e.total_tickets > 0
+                  ? Math.round((e.done_tickets / e.total_tickets) * 100)
+                  : 0;
               return (
                 <div key={e.id} className="glass rounded-2xl p-5 space-y-3">
                   <div className="flex items-baseline justify-between gap-3 flex-wrap">
                     <div className="font-medium">{e.epic_name ?? "Untitled epic"}</div>
-                    <div
-                      className={cn(
-                        "text-[10px] font-mono px-1.5 py-0.5 rounded-full ring-1",
-                        delta > 0
-                          ? "bg-health-warn/15 text-health-warn ring-health-warn/30"
-                          : "bg-health-good/15 text-health-good ring-health-good/30",
-                      )}
-                    >
-                      {delta > 0 ? "+" : ""}
-                      {formatHours(delta)}
-                    </div>
+                    <div className="text-xs text-dim font-mono">{pct}% done</div>
+                  </div>
+                  <div className="text-xs text-dim">
+                    {e.done_tickets} done
+                    {e.in_progress_tickets > 0 && ` · ${e.in_progress_tickets} in progress`}
+                    {e.backlog_tickets > 0 && ` · ${e.backlog_tickets} to do`}
+                  </div>
+                  <div className="flex items-center gap-3 text-xs font-mono text-dim flex-wrap">
+                    <span>{formatHours(e.current_estimate)}</span>
+                    {e.original_estimate > 0 && (
+                      <>
+                        <span className="text-dimmer">
+                          (orig {formatHours(e.original_estimate)})
+                        </span>
+                        <span
+                          className={
+                            delta > 0 ? "text-health-warn" : "text-health-good"
+                          }
+                        >
+                          {delta > 0 ? "+" : ""}
+                          {formatHours(delta)}
+                        </span>
+                      </>
+                    )}
+                    {showRate && project.rate_per_hour > 0 && (
+                      <span className="ml-auto">
+                        {formatGBP(e.actual_hours * project.rate_per_hour)}
+                      </span>
+                    )}
                   </div>
                   <div className="rounded-xl bg-white/[0.03] hairline p-3 text-sm leading-relaxed whitespace-pre-wrap">
                     {e.pmba_text}
