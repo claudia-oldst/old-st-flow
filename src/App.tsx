@@ -9,6 +9,7 @@ import Projects from "./pages/Projects";
 import ProjectWorkspace from "./pages/ProjectWorkspace";
 import Admin from "./pages/Admin";
 import MyWork from "./pages/MyWork";
+import ClientPortalPublic from "./pages/ClientPortalPublic";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
