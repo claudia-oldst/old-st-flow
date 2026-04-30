@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { format } from "date-fns";
-import { CalendarIcon, Copy, ExternalLink, Sparkles, Loader2 } from "lucide-react";
+import { CalendarIcon, Copy, ExternalLink, Sparkles, Loader2, PanelRightOpen, PanelRightClose } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
