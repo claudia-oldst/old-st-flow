@@ -402,27 +402,37 @@ function EpicSummaryEditor({
     }
   }
 
-  async function save() {
-    setSaving(true);
+  async function persist(nextText: string, nextIncluded: boolean, opts?: { silent?: boolean }) {
     const { error } = await supabase
       .from("project_epic_summaries")
       .upsert(
         {
           project_id: projectId,
           epic_id: epicId,
-          pmba_text: text,
-          included,
+          pmba_text: nextText,
+          included: nextIncluded,
           delta_hours: delta,
         },
         { onConflict: "project_id,epic_id" },
       );
-    setSaving(false);
     if (error) {
       toast.error(error.message);
-    } else {
-      toast.success("Saved");
-      onSaved();
+      return false;
     }
+    if (!opts?.silent) toast.success("Saved");
+    onSaved();
+    return true;
+  }
+
+  async function save() {
+    setSaving(true);
+    await persist(text, included);
+    setSaving(false);
+  }
+
+  async function handleToggleIncluded(next: boolean) {
+    setIncluded(next);
+    await persist(text, next, { silent: true });
   }
 
   return (
@@ -450,7 +460,7 @@ function EpicSummaryEditor({
       />
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <label className="flex items-center gap-2 text-xs text-dim">
-          <Switch checked={included} onCheckedChange={setIncluded} />
+          <Switch checked={included} onCheckedChange={handleToggleIncluded} />
           Show to client
         </label>
         <div className="flex items-center gap-1.5">
