@@ -1,64 +1,41 @@
-## Goal
+## Client tab updates
 
-Add a new **Change Requests** tab between **Tickets** and **Estimate Revisions** in the project workspace. It lists CR-type tickets grouped by epic, with a chart showing how approved CRs grow project scope, and PMBA-only Approve/Reject controls.
+Three changes to `src/features/client-portal/ClientPortalEditor.tsx` plus a small backend addition so the PMBA preview works even when the public link is disabled.
 
-## Schema change (migration)
+### 1. Remove per-epic Save CTA
 
-Add CR-approval columns to `tickets`:
-- `cr_approval text default 'pending'` — `'pending' | 'approved' | 'rejected'`
-- `cr_decided_by uuid` (nullable)
-- `cr_decided_at timestamptz` (nullable)
+In `EpicSummaryEditor`:
+- Remove the "Save" button.
+- Auto-save `pmba_text` on textarea blur (and keep silent auto-save on the "Show to client" toggle, which already exists).
+- Keep the "Generate / Regenerate" button as-is.
 
-Only CR tickets use these. Non-CR tickets ignore them.
+Result: epic cards have no manual save; edits persist automatically.
 
-## Routing + nav
+### 2. Split the Snapshot card into "Update" + "Publish to client"
 
-`src/pages/ProjectWorkspace.tsx`
-- Insert tab `{ to: "change-requests-cr", label: "Change Requests" }` between Tickets and Estimate Revisions (visible to all roles; Approve/Reject gated to PMBA inside).
-- Add `<Route path="change-requests-cr" element={<ProjectChangeRequestTickets projectId={id} />} />`.
+Currently a single "Publish to client" button writes both `client_summary_draft` and `client_summary_published` and rotates the cutoff.
 
-The existing `change-requests` route stays as Estimate Revisions.
+New behaviour:
+- **Update** (primary, in the Snapshot card): saves `client_visibility_cutoff = asOf` and `client_summary_draft = intro`. Refreshes the preview. Does NOT touch `client_summary_published`, so the public URL keeps showing the previously published version.
+- **Publish to client** (separate button, also in the Snapshot card): copies the current draft to `client_summary_published`, sets `client_summary_updated_at = now()`, and ensures a hash exists. This is what pushes the saved updates to the public `/h/:hash` URL.
+- The "Last published …" timestamp stays tied to `client_summary_updated_at` (i.e. only changes on Publish, not on Update).
 
-## New feature: `src/features/change-requests/`
+Per-epic summaries (`project_epic_summaries`) are already written directly and visible to both preview and public RPC, so no change needed there beyond #1.
 
-**`useProjectCRTickets.ts`** — load + realtime-subscribe CR tickets for the project (joined with status, epic, assignees + member). Returns `{ tickets, loading, reload }`.
+### 3. PMBA preview works when the public URL is disabled
 
-**`ProjectChangeRequestTickets.tsx`** — main page:
-- Sticky glass toolbar: status filter (Pending/Approved/Rejected, default Pending+Approved), date-range control (`DateRangeControl`, default = project start_date → today, mirroring `ProjectChangeRequests`), and **Add Ticket** button (PMBA only) that opens `AddTicketsDialog` with `defaultType="CR"`.
-- Groups CR tickets by `epic_id` (No-epic bucket for nulls), sorted by CR count desc.
-- Renders `space-y-3` stack of `EpicCRCard`s — same shell as Estimate Revisions tab.
+Today `usePortalPreview` early-returns when `hash` is null, and the existing `get_client_portal(_hash)` RPC requires a hash. So disabling the portal also blanks the PMBA editor — wrong.
 
-**`EpicCRCard.tsx`** — collapsible card mirroring `EpicChangeCard` styling:
-- Header stats: **Original scope** (sum of original FE+BE+Project across non-CR tickets in the epic), **Approved CR scope** (original + approved CR estimates), **If all approved** (+ pending), **Actual** (logged hours on epic tickets).
-- Recharts LineChart (same look as `EpicChangeCard`):
-  - `original` — flat baseline.
-  - `current` — original + cumulative approved-CR estimates by `cr_decided_at`.
-  - `projected` — current + pending CR estimates by `created_at`.
-- Table beneath the chart with the requested columns:
-  - **Ticket ID** (link to ticket detail), **Ticket** (title), **FE Estimate** (`current_fe_estimate`), **BE Estimate** (`current_be_estimate`), **Date Created**, **Status** (pending/approved/rejected badge), **Actions** (PMBA-only Approve/Reject when pending).
-- Approve → `update tickets set cr_approval='approved', cr_decided_by=user.id, cr_decided_at=now()`. Reject mirrors with `'rejected'`. Realtime triggers re-render.
+Fix:
+- Add a new SECURITY DEFINER RPC `get_project_portal_preview(_project_id uuid, _cutoff timestamptz)` that returns the same JSON shape as `get_client_portal`, but keyed off `project_id` directly and using the supplied cutoff (falling back to `now()` if null). It does NOT require `client_portal_hash` to be set. Intended for PMBA editor preview only.
+- Update `usePortalPreview` to:
+  - Always call the new RPC (passing `asOf`), regardless of whether `hash` is set.
+  - Stop writing `client_visibility_cutoff` to the projects table on every preview change (cutoff is now passed per-call). The cutoff is persisted only when the PMBA hits **Update** or **Publish to client**.
+- Update the editor's empty-state copy: when `hash` is null, the right-hand preview still renders normally; only the "Public link" block in the Snapshot card stays hidden, with copy like *"Public link disabled. The client cannot view the URL, but you can still plan what they'd see."*
+- "Disable" continues to clear `client_portal_hash`. "Publish to client" re-enables it (creates a new hash if missing).
 
-## Add Ticket integration
+### Technical notes
 
-`src/features/tickets/AddTicketsDialog.tsx`
-- Add optional prop `defaultType?: TicketType`; seed `newDraft()` with it. Tickets tab keeps current behaviour (Standard).
-
-## File list
-
-New:
-- `src/features/change-requests/useProjectCRTickets.ts`
-- `src/features/change-requests/ProjectChangeRequestTickets.tsx`
-- `src/features/change-requests/EpicCRCard.tsx`
-
-Edited:
-- `src/pages/ProjectWorkspace.tsx`
-- `src/features/tickets/AddTicketsDialog.tsx`
-
-Migration:
-- Add `cr_approval`, `cr_decided_by`, `cr_decided_at` to `tickets`.
-
-## Out of scope
-
-- No changes to Estimate Revisions tab or `ticket_estimate_changes` table.
-- No changes to how CRs appear on the Tickets board/list.
-- Health page / Client portal totals not retrofitted to use `cr_approval` in this pass.
+- New migration: create `public.get_project_portal_preview(uuid, timestamptz)` as a SECURITY DEFINER function, body adapted from `get_client_portal` but selecting the project by `id` and using `COALESCE(_cutoff, now())` for the cutoff. RLS on `projects` is permissive so no policy changes are needed; the function is gated by being called from the PMBA editor (which already checks `isPMBA`).
+- The public `/h/:hash` flow (`usePublicPortal` + `get_client_portal`) is unchanged — it keeps requiring a valid hash and a non-null cutoff, so disabling still hides the public page.
+- `EpicSummaryEditor.persist` already exists; reuse it from an `onBlur` handler on the text area.
