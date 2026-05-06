@@ -22,23 +22,25 @@ export function TicketComments({ ticketId, projectId }: Props) {
         <span className="text-xs text-dimmer">{count}</span>
       </div>
 
-      {loading ? (
-        <div className="text-xs text-dimmer py-4 text-center">Loading…</div>
-      ) : threads.length === 0 ? (
-        <div className="text-xs text-dimmer py-6 text-center">Start the conversation</div>
-      ) : (
-        <div className="space-y-3">
-          {threads.map((t) => (
-            <CommentThread
-              key={t.id}
-              thread={t}
-              projectId={projectId}
-              ticketId={ticketId}
-              onChanged={reload}
-            />
-          ))}
-        </div>
-      )}
+      <div className="max-h-[420px] overflow-y-auto pr-1 -mr-1">
+        {loading ? (
+          <div className="text-xs text-dimmer py-4 text-center">Loading…</div>
+        ) : threads.length === 0 ? (
+          <div className="text-xs text-dimmer py-6 text-center">Start the conversation</div>
+        ) : (
+          <div className="space-y-3">
+            {threads.map((t) => (
+              <CommentThread
+                key={t.id}
+                thread={t}
+                projectId={projectId}
+                ticketId={ticketId}
+                onChanged={reload}
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
       <CommentComposer
         ticketId={ticketId}
