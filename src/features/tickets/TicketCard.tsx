@@ -1,10 +1,14 @@
 import { cn, displayTitle, formatHours, healthRatio } from "@/lib/utils";
 import { MemberAvatar } from "@/components/MemberAvatar";
-import { Bug, GitPullRequest, FileText, FolderKanban } from "lucide-react";
+import { Bug, GitPullRequest, FileText, FolderKanban, Play } from "lucide-react";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { DisciplineStatusChip } from "@/features/tickets/DisciplineStatusChip";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DEFAULT_CARD_PREFS, type CardDisplayPrefs } from "@/features/tickets/useCardDisplayPrefs";
+import { useTimerStore } from "@/store/timer";
+import { startTicketTimer } from "@/features/timelog/startTicketTimer";
+import { toast } from "sonner";
+import type { LogDiscipline } from "@/lib/types";
 
 const HEALTH_BG: Record<string, string> = {
   good: "bg-health-good",
