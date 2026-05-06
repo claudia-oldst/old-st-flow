@@ -1,16 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtimeReload } from "@/hooks/useRealtimeReload";
 import type { PortalPayload } from "./types";
 
 /**
  * Compute the live portal payload for a project at a given cutoff date.
  * Used inside the PMBA editor to preview the dashboard for any "as of" date,
  * without requiring data to be published.
- *
- * It temporarily mirrors the server RPC by aggregating directly. To keep the
- * code simple and consistent we instead update the project's
- * `client_visibility_cutoff` to the requested date and then call the RPC.
- * That makes the editor behave exactly like the public page.
  */
 export function usePortalPreview(projectId: string, hash: string | null, asOf: Date) {
   const [data, setData] = useState<PortalPayload | null>(null);
@@ -24,7 +20,6 @@ export function usePortalPreview(projectId: string, hash: string | null, asOf: D
     }
     setLoading(true);
     setError(null);
-    // Push the cutoff so the RPC sees the requested as-of date.
     const { error: upErr } = await supabase
       .from("projects")
       .update({ client_visibility_cutoff: asOf.toISOString() })
@@ -50,6 +45,22 @@ export function usePortalPreview(projectId: string, hash: string | null, asOf: D
     refresh();
   }, [refresh]);
 
+  // Live updates whenever underlying portal data changes.
+  useRealtimeReload(
+    hash
+      ? [
+          { table: "projects", filter: `id=eq.${projectId}` },
+          { table: "tickets", filter: `project_id=eq.${projectId}` },
+          { table: "project_epics", filter: `project_id=eq.${projectId}` },
+          { table: "project_epic_summaries", filter: `project_id=eq.${projectId}` },
+          { table: "time_logs" },
+          { table: "ticket_estimate_changes" },
+        ]
+      : null,
+    refresh,
+    !!hash,
+  );
+
   return { data, loading, error, refresh };
 }
 
@@ -59,32 +70,47 @@ export function usePublicPortal(hash: string | undefined) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const projectId = data?.project?.id;
+
+  const refresh = useCallback(async () => {
     if (!hash) {
       setLoading(false);
       return;
     }
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      const { data: payload, error: err } = await supabase.rpc("get_client_portal", {
-        _hash: hash,
-      });
-      if (cancelled) return;
-      if (err) {
-        setError(err.message);
-        setData(null);
-      } else if (!payload) {
-        setError("Portal not found or not enabled.");
-      } else {
-        setData(payload as unknown as PortalPayload);
-      }
-      setLoading(false);
-    })();
-    return () => {
-      cancelled = true;
-    };
+    setLoading(true);
+    const { data: payload, error: err } = await supabase.rpc("get_client_portal", {
+      _hash: hash,
+    });
+    if (err) {
+      setError(err.message);
+      setData(null);
+    } else if (!payload) {
+      setError("Portal not found or not enabled.");
+    } else {
+      setData(payload as unknown as PortalPayload);
+      setError(null);
+    }
+    setLoading(false);
   }, [hash]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  useRealtimeReload(
+    projectId
+      ? [
+          { table: "projects", filter: `id=eq.${projectId}` },
+          { table: "tickets", filter: `project_id=eq.${projectId}` },
+          { table: "project_epics", filter: `project_id=eq.${projectId}` },
+          { table: "project_epic_summaries", filter: `project_id=eq.${projectId}` },
+          { table: "time_logs" },
+          { table: "ticket_estimate_changes" },
+        ]
+      : null,
+    refresh,
+    !!projectId,
+  );
 
   return { data, loading, error };
 }
