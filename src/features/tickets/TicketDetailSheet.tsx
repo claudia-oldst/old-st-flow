@@ -247,7 +247,7 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
             </SheetTitle>
           </SheetHeader>
 
-          <Tabs defaultValue="detail" className="mt-6 flex-1 flex flex-col min-h-0">
+          <Tabs defaultValue={ticket.acceptance_criteria && ticket.acceptance_criteria.trim() ? "acceptance" : "detail"} className="mt-6 flex-1 flex flex-col min-h-0">
             <TabsList className="grid w-full grid-cols-3 shrink-0">
               <TabsTrigger value="acceptance">Acceptance</TabsTrigger>
               <TabsTrigger value="discussion">Discussion</TabsTrigger>
