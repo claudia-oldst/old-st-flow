@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtimeReload } from "@/hooks/useRealtimeReload";
 import type { Project } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +25,7 @@ export default function Projects() {
   const [creating, setCreating] = useState(false);
   const [counts, setCounts] = useState<Record<string, { tickets: number; members: number }>>({});
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const { data } = await supabase.from("projects").select("*").order("created_at", { ascending: false });
     setProjects(data ?? []);
 
@@ -40,11 +41,16 @@ export default function Projects() {
       mems?.forEach((m) => (c[m.project_id].members++));
       setCounts(c);
     }
-  };
+  }, []);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
+
+  useRealtimeReload(
+    [{ table: "projects" }, { table: "tickets" }, { table: "project_members" }],
+    load,
+  );
 
   const handleCreate = async () => {
     const trimmedName = name.trim();
