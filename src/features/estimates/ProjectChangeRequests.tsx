@@ -11,6 +11,8 @@ import {
 import { MultiSelectFilter } from "@/features/estimates/MultiSelectFilter";
 import { EpicChangeCard } from "@/features/estimates/EpicChangeCard";
 import { DateRangeControl, defaultRange, type DateRange } from "@/features/health/DateRangeControl";
+import { useProjectTickets } from "@/features/tickets/useProjectTickets";
+import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
 
 const NO_EPIC_KEY = (projectId: string) => `noepic:${projectId}`;
 const STATUS_OPTIONS = [
