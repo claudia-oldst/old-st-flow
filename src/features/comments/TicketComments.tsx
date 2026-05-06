@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/store/currentUser";
 import { MessageSquare } from "lucide-react";
@@ -13,6 +14,22 @@ interface Props {
 export function TicketComments({ ticketId, projectId }: Props) {
   const user = useCurrentUser((s) => s.user);
   const { threads, count, loading, reload } = useTicketComments(ticketId);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const lastSigRef = useRef<string>("");
+
+  useEffect(() => {
+    const sig = threads
+      .flatMap((t) => [t.id, ...t.replies.map((r) => r.id)])
+      .join(",");
+    if (sig !== lastSigRef.current) {
+      lastSigRef.current = sig;
+      // jump to latest on new message (own or received)
+      requestAnimationFrame(() => {
+        bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+      });
+    }
+  }, [threads]);
 
   return (
     <div className="flex flex-col h-[60vh] min-h-[360px]">
