@@ -876,9 +876,21 @@ function AcceptanceCriteria({
         <div className="flex items-center justify-between">
           <div className="text-xs uppercase tracking-wider text-dimmer">Acceptance criteria</div>
           {canEdit && (
-            <Button variant="ghost" size="sm" onClick={() => setEditing(true)} className="gap-1 text-xs">
-              <Edit3 className="h-3 w-3" /> {hasContent ? "Edit" : "Add"}
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={startGenerate}
+                disabled={generating}
+                className="gap-1 text-xs"
+                title="Generate with AI based on project context"
+              >
+                <Sparkles className="h-3 w-3" /> {generating ? "Generating…" : hasContent ? "Regenerate" : "Generate"}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setEditing(true)} className="gap-1 text-xs">
+                <Edit3 className="h-3 w-3" /> {hasContent ? "Edit" : "Add"}
+              </Button>
+            </div>
           )}
         </div>
         {hasContent ? (
