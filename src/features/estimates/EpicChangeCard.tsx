@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { ChevronDown, Check, X, Sparkles } from "lucide-react";
-import { Link } from "react-router-dom";
+
 import {
   LineChart,
   Line,
