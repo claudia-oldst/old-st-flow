@@ -241,6 +241,7 @@ export function EpicChangeCard({
                     <th className="text-left font-medium px-2 py-2">Requester</th>
                     <th className="text-left font-medium px-2 py-2">When</th>
                     <th className="text-left font-medium px-2 py-2">Status</th>
+                    <th className="text-left font-medium px-2 py-2">Approved</th>
                     <th className="text-right font-medium px-3 py-2">Actions</th>
                   </tr>
                 </thead>
@@ -322,6 +323,11 @@ export function EpicChangeCard({
                         </td>
                         <td className="px-2 py-2">
                           <StatusBadge status={c.status} />
+                        </td>
+                        <td className="px-2 py-2 text-dimmer whitespace-nowrap">
+                          {c.status === "approved" && c.decided_at
+                            ? format(new Date(c.decided_at), "d MMM")
+                            : "—"}
                         </td>
                         <td className="px-3 py-2 text-right">
                           {c.status === "pending" ? (

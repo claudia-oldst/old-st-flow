@@ -213,13 +213,14 @@ export function EpicCRCard({
                     <th className="text-right font-medium px-2 py-2">BE</th>
                     <th className="text-left font-medium px-2 py-2">Created</th>
                     <th className="text-left font-medium px-2 py-2">Status</th>
+                    <th className="text-left font-medium px-2 py-2">Approved</th>
                     <th className="text-right font-medium px-3 py-2">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredCRs.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="px-3 py-6 text-center text-dimmer">
+                      <td colSpan={8} className="px-3 py-6 text-center text-dimmer">
                         No CRs match the current filters.
                       </td>
                     </tr>
@@ -251,6 +252,11 @@ export function EpicCRCard({
                       </td>
                       <td className="px-2 py-2">
                         <StatusBadge status={t.cr_approval} />
+                      </td>
+                      <td className="px-2 py-2 text-dimmer whitespace-nowrap">
+                        {t.cr_approval === "approved" && t.cr_decided_at
+                          ? format(new Date(t.cr_decided_at), "d MMM")
+                          : "—"}
                       </td>
                       <td className="px-3 py-2 text-right">
                         {canReview && t.cr_approval === "pending" ? (
