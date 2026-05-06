@@ -28,6 +28,9 @@ export interface TicketRow {
   acceptance_criteria: string | null;
   position: number;
   created_at: string;
+  cr_approval: "pending" | "approved" | "rejected";
+  cr_decided_by: string | null;
+  cr_decided_at: string | null;
   assignees: Array<{ user_id: string; slot: "FE" | "BE" | "Project"; member: TeamMember; created_at: string }>;
 }
 
