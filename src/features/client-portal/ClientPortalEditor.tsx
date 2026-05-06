@@ -419,7 +419,8 @@ function EpicSummaryEditor({
       const draft: string = (data as any)?.draft ?? "";
       if (draft) {
         setText(draft);
-        toast.success("Draft generated — review and save");
+        await persist(draft, included, { silent: true });
+        toast.success("Draft generated");
       } else {
         toast.error("No draft returned");
       }
