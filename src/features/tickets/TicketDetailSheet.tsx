@@ -207,10 +207,8 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent className="glass-strong w-full sm:max-w-xl flex flex-col overflow-hidden p-0">
-          <div className="px-6 pt-6 shrink-0">
-          {/* header */}
-          <SheetHeader className="space-y-2">
+        <SheetContent className="glass-strong w-full sm:max-w-xl flex flex-col overflow-hidden">
+          <SheetHeader className="space-y-2 shrink-0">
             <div className="flex items-center gap-2 text-xs">
               <span className="font-mono text-dimmer">{ticket.formatted_id}</span>
               {status && (
