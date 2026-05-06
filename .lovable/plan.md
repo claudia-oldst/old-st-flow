@@ -1,32 +1,19 @@
-Fix CR handling in both estimate trend charts.
+The CR approval (6 May 14:37) doesn't show on the chart because both trend builders sample daily starting from `startOfDay`. With `asOf = today`, the loop's last sample is 6 May 00:00 — before the CR's approval timestamp — so the +220h Original jump never appears. The per-epic snapshot bars use `endOfDay(asOf)` so they are correct; only the line chart is missing the final point.
 
-## Health page — `src/features/health/EstimateEvolution.tsx`
+## Fix
 
-Currently treats every ticket the same: original on `created_at`, current = original + approved deltas. Approved CRs aren't reflected correctly.
+Append a final bucket pinned to `end` (= `endOfDay(asOf)`) in both trend builders so any same-day event (CR approval, estimate change, time log) is reflected in the last sample on the chart.
 
-Changes:
-1. Query `ticket_type, cr_approval, cr_decided_at` alongside existing fields (via `useProjectTickets` it's already exposed for cr_approval/cr_decided_at; ticket_type is too).
-2. In trend + per-epic snapshot:
-   - Skip CRs that aren't `approved` (pending/rejected don't appear).
-   - Standard tickets: contribute `original_fe + original_be` to Original starting at `created_at` (unchanged).
-   - Approved CR tickets: contribute `original_fe + original_be` to Original starting at `cr_decided_at` (fallback `created_at`). This makes a 220h CR show as +220h Original on its approval date.
-   - Current line: original + sum of approved estimate-change deltas (ticket_estimate_changes), with deltas counted from their `created_at`. Since the CR's pre-approval trim from 220h → 80h is recorded as a `ticket_estimate_changes` delta (-140h), Current ends up at 80h post-approval. No special CR math needed.
-3. Per-epic snapshot rows above the chart use the same rules so bars match the chart.
+### `src/features/health/EstimateEvolution.tsx` (trendData)
+- Extract bucket sampling into a `sampleAt(cutoff)` helper.
+- After the daily loop, if the last bucket's timestamp is `< end`, push one more bucket sampled at `end` with label `format(end, "d MMM")`.
 
-## Client portal — `src/features/client-portal/PortalEpicTrend.tsx`
+### `src/features/client-portal/PortalEpicTrend.tsx` (buildSeries)
+- Same change: extract sampling, then ensure a final bucket at `end` (= `endOfDay(cutoff)`).
 
-Already special-cases CRs but uses the CR's `original` for the Original line and sets Current = `original + deltas`. That's structurally fine, BUT it currently double-counts: the pre-approval trim recorded in `ticket_estimate_changes` is added on top of `cr_fe/cr_be`, so Current is wrong.
-
-Changes:
-1. Keep CR Original contribution = `original_fe + original_be` from `cr_decided_at`.
-2. For Current line on CRs: do NOT also apply `ticket_estimate_changes` deltas dated before `cr_decided_at` — only deltas after approval should adjust Current. Simplest implementation: ignore all `ticket_estimate_changes` rows for CR tickets whose `created_at <= cr_decided_at`.
-3. Pending/rejected CRs continue to be excluded.
-4. Verify: 220h CR `COU-441` shows +220h Original and +80h Current on/after 6 May 2026; standard tickets unaffected.
+No other logic changes; CR effective-date handling stays as already implemented.
 
 ## Verification
-
-- Health and Client Portal `Estimate trend over time` charts both show:
-  - +220h Original step on the CR approval date.
-  - +80h Current step on the CR approval date.
-  - Pending/rejected CRs don't appear.
-  - Non-CR tickets unchanged.
+- Health chart shows +220h Original step and Current settling at +80h on 6 May for COU-441.
+- Client portal `Estimate trend over time` chart shows the same step on the approval date.
+- Pending/rejected CRs still excluded; standard tickets unaffected.

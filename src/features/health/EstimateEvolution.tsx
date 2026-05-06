@@ -218,42 +218,41 @@ export function EstimateEvolution({ projectId }: { projectId: string }) {
 
     const buckets: Array<{ date: number; label: string; original: number; current: number; actual: number }> = [];
 
-    for (let t = start; t <= end; t += stride * dayMs) {
-      const cutoff = t;
+    const sampleAt = (cutoff: number) => {
       let original = 0;
       let deltas = 0;
       let actual = 0;
-
       relevantTickets.forEach((tk) => {
         const eff = ticketEffMs.get(tk.id) ?? Infinity;
         if (eff > cutoff) return;
         original += tk.original_fe_estimate + tk.original_be_estimate;
       });
-
       changes.forEach((c) => {
         if (c.status !== "approved") return;
         if (!ticketFilter(c.ticket_id)) return;
         const tkEff = ticketEffMs.get(c.ticket_id);
-        if (tkEff == null) return; // ticket excluded (e.g. unapproved CR)
-        // For CR tickets, deltas only take effect once the CR itself is approved/effective.
+        if (tkEff == null) return;
         const deltaEff = Math.max(new Date(c.created_at).getTime(), tkEff);
         if (deltaEff > cutoff) return;
         deltas += c.delta;
       });
-
       logs.forEach((l) => {
         if (new Date(l.logged_at).getTime() > cutoff) return;
         if (!ticketFilter(l.ticket_id)) return;
         actual += l.hours;
       });
+      return { original, current: original + deltas, actual };
+    };
 
-      buckets.push({
-        date: t,
-        label: format(new Date(t), "d MMM"),
-        original,
-        current: original + deltas,
-        actual,
-      });
+    for (let t = start; t <= end; t += stride * dayMs) {
+      const s = sampleAt(t);
+      buckets.push({ date: t, label: format(new Date(t), "d MMM"), ...s });
+    }
+    // Ensure the final sample is exactly at `end` so same-day events
+    // (e.g. a CR approved later in the day) appear in the last bucket.
+    if (buckets.length === 0 || buckets[buckets.length - 1].date < end) {
+      const s = sampleAt(end);
+      buckets.push({ date: end, label: format(new Date(end), "d MMM"), ...s });
     }
 
     return buckets;
