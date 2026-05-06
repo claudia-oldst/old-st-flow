@@ -181,7 +181,7 @@ export function EstimateEvolution({ projectId }: { projectId: string }) {
       .map(([key, v]) => ({ key, ...v }))
       .filter((g) => g.original > 0 || g.current > 0 || g.actual > 0)
       .sort((a, b) => b.current - a.current);
-  }, [tickets, epics, changes, logs, ticketEpic, asOf]);
+  }, [tickets, epics, changes, logs, ticketEpic, asOf, ticketEffectiveMs]);
 
   // Trend chart data — daily samples for the selected epic from earliest ticket to asOf.
   const trendData = useMemo(() => {
