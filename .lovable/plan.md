@@ -1,64 +1,32 @@
-## Goal
+Fix CR handling in both estimate trend charts.
 
-Give clients (via `/h/:hash`) a second tab in their portal called **Change Requests**, mirroring the PMBA "Change Requests" tab (`ProjectChangeRequestTickets`). Clients can approve CRs and click into a ticket to read its Acceptance Criteria. The same view is rendered inside the PMBA `ClientPortalEditor` preview so PMBA sees exactly what the client sees.
+## Health page — `src/features/health/EstimateEvolution.tsx`
 
-## UX
+Currently treats every ticket the same: original on `created_at`, current = original + approved deltas. Approved CRs aren't reflected correctly.
 
-- `/h/:hash` and `ClientPortalEditor` preview wrap their content in a `Tabs` with two triggers: **Summary** (current `PortalView`) and **Change Requests**.
-- Change Requests tab reuses `EpicCRCard` exactly as on the PMBA tab — same per-epic card, totals, chart, ticket table — with `canReview={true}` for clients and a hash-aware `onApprove`. **Reject is hidden** for clients (only Approve, per spec).
-- Clicking a ticket row opens a read-only side sheet that shows **only the Acceptance Criteria** (rendered as markdown via the same `react-markdown` + `remark-gfm` setup used in `TicketDetailSheet`). The sheet header shows `formatted_id` + title only — **no Ticket Detail tab**, no estimates, no status, no edit affordances. If acceptance criteria is empty, show "No acceptance criteria yet." Used on both the public route and the PMBA preview so behaviour matches.
-- Filters/date-range from `ProjectChangeRequestTickets` are not shown to the client — they always see all CRs within the project's published cutoff window. Default status filter mirrors PMBA: `["pending", "approved"]`.
+Changes:
+1. Query `ticket_type, cr_approval, cr_decided_at` alongside existing fields (via `useProjectTickets` it's already exposed for cr_approval/cr_decided_at; ticket_type is too).
+2. In trend + per-epic snapshot:
+   - Skip CRs that aren't `approved` (pending/rejected don't appear).
+   - Standard tickets: contribute `original_fe + original_be` to Original starting at `created_at` (unchanged).
+   - Approved CR tickets: contribute `original_fe + original_be` to Original starting at `cr_decided_at` (fallback `created_at`). This makes a 220h CR show as +220h Original on its approval date.
+   - Current line: original + sum of approved estimate-change deltas (ticket_estimate_changes), with deltas counted from their `created_at`. Since the CR's pre-approval trim from 220h → 80h is recorded as a `ticket_estimate_changes` delta (-140h), Current ends up at 80h post-approval. No special CR math needed.
+3. Per-epic snapshot rows above the chart use the same rules so bars match the chart.
 
-## Backend (Supabase)
+## Client portal — `src/features/client-portal/PortalEpicTrend.tsx`
 
-Migration adds two RPCs (both `security definer`, gated on a valid `client_portal_hash`):
+Already special-cases CRs but uses the CR's `original` for the Original line and sets Current = `original + deltas`. That's structurally fine, BUT it currently double-counts: the pre-approval trim recorded in `ticket_estimate_changes` is added on top of `cr_fe/cr_be`, so Current is wrong.
 
-1. `get_client_portal_change_requests(_hash text)` → returns:
-   ```
-   {
-     project: { id, acronym, name },
-     epics: [{ id, epic_name }],
-     baseline_tickets: [...non-CR tickets with original/current estimates + actuals...],
-     cr_tickets: [...CR tickets with acceptance_criteria, current_fe/be/project estimates, cr_approval, cr_decided_at, created_at, epic_id, formatted_id, title...]
-   }
-   ```
-   Returns `null` if hash missing/disabled. No auth required.
-2. `client_approve_cr(_hash text, _ticket_id uuid)` → atomically sets `cr_approval='approved'`, `cr_decided_at=now()`, `cr_decided_by=null` only when ticket's project matches the hash and `cr_approval='pending'`. Returns boolean.
+Changes:
+1. Keep CR Original contribution = `original_fe + original_be` from `cr_decided_at`.
+2. For Current line on CRs: do NOT also apply `ticket_estimate_changes` deltas dated before `cr_decided_at` — only deltas after approval should adjust Current. Simplest implementation: ignore all `ticket_estimate_changes` rows for CR tickets whose `created_at <= cr_decided_at`.
+3. Pending/rejected CRs continue to be excluded.
+4. Verify: 220h CR `COU-441` shows +220h Original and +80h Current on/after 6 May 2026; standard tickets unaffected.
 
-No schema changes — `tickets.cr_approval`, `cr_decided_at`, `cr_decided_by` already exist. RLS on `tickets` unchanged; clients only access via these RPCs.
+## Verification
 
-## Frontend changes
-
-- **New** `src/features/client-portal/PortalChangeRequests.tsx`
-  - Renders the per-epic `EpicCRCard` list like `ProjectChangeRequestTickets`, hiding date-range and "Add Ticket" controls. Default range spans all CRs.
-  - Hides Reject by passing a new optional `hideReject` prop on `EpicCRCard` (additive change; PMBA tab unchanged).
-  - `onOpenTicket` opens the read-only acceptance-criteria sheet.
-
-- **New** `src/features/client-portal/ClientTicketSheet.tsx`
-  - Minimal `Sheet` containing: header (`formatted_id` + title) and one section — Acceptance Criteria rendered as markdown (read-only). Nothing else.
-
-- **New** `src/features/client-portal/useClientPortalCRs.ts`
-  - `useClientPortalCRsByHash(hash)` → calls `get_client_portal_change_requests`; subscribes to realtime on `tickets` for that project.
-  - PMBA preview reuses existing `useProjectTickets` + `useProjectEpics` already loaded in `ClientPortalEditor`.
-
-- **Edit** `src/pages/ClientPortalPublic.tsx`
-  - Wrap content in `Tabs`: Summary (`PortalView`) | Change Requests (`PortalChangeRequests` fed by hash hook). Approve handler calls `client_approve_cr`, then refresh.
-
-- **Edit** `src/features/client-portal/ClientPortalEditor.tsx`
-  - In the right-hand "Client preview" pane, wrap `PortalView` in the same `Tabs`. Change Requests tab uses already-fetched `tickets`/`epics`. Approve handler uses the existing authenticated update PMBA already uses.
-
-- **Edit** `src/features/change-requests/EpicCRCard.tsx`
-  - Add optional `hideReject?: boolean`. When true, render only the Approve button in the actions cell.
-
-## Reuse summary
-
-- `EpicCRCard` — reused (one optional prop).
-- `MultiSelectFilter` — reused for status filter.
-- `Tabs`, `Sheet` — reused.
-- Markdown rendering pattern — copied from `TicketDetailSheet`'s `AcceptanceCriteria` (read-only branch).
-- `PortalView` — unchanged.
-
-## Out of scope
-
-- Client cannot reject CRs.
-- Client ticket sheet shows only Acceptance Criteria — no Ticket Detail tab, no estimates/status/comments.
+- Health and Client Portal `Estimate trend over time` charts both show:
+  - +220h Original step on the CR approval date.
+  - +80h Current step on the CR approval date.
+  - Pending/rejected CRs don't appear.
+  - Non-CR tickets unchanged.

@@ -107,6 +107,18 @@ export function EstimateEvolution({ projectId }: { projectId: string }) {
     return m;
   }, [tickets]);
 
+  // Helper: when (ms) does a ticket's original estimate start contributing?
+  // Standard tickets: created_at. Approved CR tickets: cr_decided_at (fallback created_at).
+  // Pending/rejected CRs: never (return Infinity).
+  const ticketEffectiveMs = useCallback((t: typeof tickets[number]) => {
+    if (t.ticket_type === "CR") {
+      if (t.cr_approval !== "approved") return Infinity;
+      const d = t.cr_decided_at ?? t.created_at;
+      return new Date(d).getTime();
+    }
+    return new Date(t.created_at).getTime();
+  }, []);
+
   // Per-epic snapshot at the selected "as of" date.
   const epicSnapshots = useMemo(() => {
     const asOfMs = endOfDay(asOf).getTime();
@@ -118,7 +130,8 @@ export function EstimateEvolution({ projectId }: { projectId: string }) {
     >();
 
     tickets.forEach((t) => {
-      if (new Date(t.created_at).getTime() > asOfMs) return; // not yet created
+      if (t.ticket_type === "CR" && t.cr_approval !== "approved") return;
+      const effMs = ticketEffectiveMs(t);
       const key = t.epic_id != null ? `e:${t.epic_id}` : NO_EPIC_KEY;
       const name =
         t.epic_id != null
@@ -128,8 +141,9 @@ export function EstimateEvolution({ projectId }: { projectId: string }) {
         groups.set(key, { name, original: 0, current: 0, actual: 0, ticketIds: new Set() });
       }
       const g = groups.get(key)!;
-      g.original += t.original_fe_estimate + t.original_be_estimate;
       g.ticketIds.add(t.id);
+      if (effMs > asOfMs) return; // not yet effective on this date
+      g.original += t.original_fe_estimate + t.original_be_estimate;
     });
 
     // Apply approved changes up to asOf to derive current estimate
