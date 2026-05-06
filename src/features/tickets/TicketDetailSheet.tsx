@@ -207,8 +207,8 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent className="glass-strong w-full sm:max-w-xl overflow-y-auto">
-          <SheetHeader className="space-y-2">
+        <SheetContent className="glass-strong w-full sm:max-w-xl flex flex-col overflow-hidden">
+          <SheetHeader className="space-y-2 shrink-0">
             <div className="flex items-center gap-2 text-xs">
               <span className="font-mono text-dimmer">{ticket.formatted_id}</span>
               {status && (
@@ -247,14 +247,14 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
             </SheetTitle>
           </SheetHeader>
 
-          <Tabs defaultValue="detail" className="mt-6">
-            <TabsList className="grid w-full grid-cols-3">
+          <Tabs defaultValue="detail" className="mt-6 flex-1 flex flex-col min-h-0">
+            <TabsList className="grid w-full grid-cols-3 shrink-0">
               <TabsTrigger value="acceptance">Acceptance</TabsTrigger>
               <TabsTrigger value="discussion">Discussion</TabsTrigger>
               <TabsTrigger value="detail">Detail</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="acceptance" className="mt-4 space-y-6">
+            <TabsContent value="acceptance" className="mt-4 space-y-6 flex-1 overflow-y-auto">
               <AcceptanceCriteria
                 ticketId={ticket.id}
                 value={ticket.acceptance_criteria}
@@ -263,7 +263,7 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
               />
             </TabsContent>
 
-            <TabsContent value="detail" className="mt-4 space-y-6">
+            <TabsContent value="detail" className="mt-4 space-y-6 flex-1 overflow-y-auto">
               {/* Epic */}
             {isPMBA(role) && (
               <div>
@@ -637,7 +637,7 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
             )}
             </TabsContent>
 
-            <TabsContent value="discussion" className="mt-4 space-y-6">
+            <TabsContent value="discussion" className="mt-4 flex-1 min-h-0 data-[state=active]:flex flex-col">
               <TicketComments ticketId={ticket.id} projectId={projectId} />
             </TabsContent>
           </Tabs>
