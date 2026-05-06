@@ -619,7 +619,7 @@ export type Database = {
         | "QA"
         | "PMBA"
         | "Design"
-      status_category: "backlog" | "active" | "done"
+      status_category: "backlog" | "active" | "dev done" | "done"
       ticket_type: "Standard" | "Bug" | "CR" | "Proj"
     }
     CompositeTypes: {
@@ -760,7 +760,7 @@ export const Constants = {
         "PMBA",
         "Design",
       ],
-      status_category: ["backlog", "active", "done"],
+      status_category: ["backlog", "active", "dev done", "done"],
       ticket_type: ["Standard", "Bug", "CR", "Proj"],
     },
   },
