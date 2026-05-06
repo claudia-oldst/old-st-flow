@@ -98,6 +98,14 @@ export function TicketCard({
           {prefs.id && (
             <span className="font-mono text-[10px] text-dimmer">{ticket.formatted_id}</span>
           )}
+          {ticket.ticket_type === "CR" && ticket.cr_approval === "pending" && (
+            <span
+              className="px-1.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider bg-amber-500/15 text-amber-400 ring-1 ring-amber-400/30"
+              title="Change request awaiting approval"
+            >
+              Pending
+            </span>
+          )}
         </div>
       )}
       <Tooltip>
