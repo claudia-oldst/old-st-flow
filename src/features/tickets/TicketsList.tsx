@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronRight, ArrowUp, ArrowDown, ChevronsUpDown } from "lucide-react";
+import { ChevronDown, ChevronRight, ArrowUp, ArrowDown, ChevronsUpDown, Play } from "lucide-react";
 import { useStatuses } from "@/features/statuses/useStatuses";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { displayTitle, formatHours, cn } from "@/lib/utils";
 import { DisciplineStatusChip } from "@/features/tickets/DisciplineStatusChip";
-import { DISCIPLINE_STATUS_LABEL, type DisciplineStatus } from "@/lib/types";
+import { DISCIPLINE_STATUS_LABEL, type DisciplineStatus, type LogDiscipline } from "@/lib/types";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useTimerStore } from "@/store/timer";
+import { startTicketTimer } from "@/features/timelog/startTicketTimer";
+import { toast } from "sonner";
 
 export type GroupBy = "none" | "status" | "assignee" | "type" | "epic" | "version" | "fe_status" | "be_status";
 
