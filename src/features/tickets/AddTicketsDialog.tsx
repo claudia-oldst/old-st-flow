@@ -111,7 +111,7 @@ export function AddTicketsDialog({ open, onOpenChange, projectId, onCreated, def
   const remove = (key: string) =>
     setDrafts((prev) => (prev.length === 1 ? prev : prev.filter((d) => d.key !== key)));
 
-  const addAnother = () => setDrafts((prev) => [...prev, newDraft(defaultStatusId)]);
+  const addAnother = () => setDrafts((prev) => [...prev, newDraft(defaultStatusId, defaultType)]);
 
   const validDrafts = drafts.filter((d) => d.title.trim().length > 0);
 
