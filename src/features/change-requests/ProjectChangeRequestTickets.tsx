@@ -208,9 +208,10 @@ export function ProjectChangeRequestTickets({ projectId }: { projectId: string }
 
       <TicketDetailSheet
         ticket={openTicket}
+        projectId={projectId}
         open={!!openTicket}
         onOpenChange={(o) => !o && setOpenTicket(null)}
-        onChanged={reload}
+        onChange={reload}
       />
     </div>
   );
