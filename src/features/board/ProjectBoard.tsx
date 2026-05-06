@@ -31,12 +31,13 @@ interface DisciplineCard {
 const CATEGORY_TO_DISCIPLINE: Record<string, DisciplineStatus> = {
   backlog: "todo",
   active: "in_progress",
+  "dev done": "for_integration",
   done: "done",
 };
-const DISCIPLINE_TO_CATEGORY: Record<DisciplineStatus, "backlog" | "active" | "done"> = {
+const DISCIPLINE_TO_CATEGORY: Record<DisciplineStatus, "backlog" | "active" | "dev done" | "done"> = {
   todo: "backlog",
   in_progress: "active",
-  for_integration: "active",
+  for_integration: "dev done",
   done: "done",
 };
 
