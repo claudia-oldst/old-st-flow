@@ -101,7 +101,7 @@ export function applyFilters(tickets: TicketRow[], f: TicketFilters): TicketRow[
 }
 
 const DISC_OPTS: DisciplineStatus[] = ["todo", "in_progress", "for_integration", "done"];
-const TYPE_OPTS = ["Standard", "Bug", "CR"];
+const TYPE_OPTS = ["Standard", "Bug", "CR", "Proj"];
 const HEALTH_OPTS: { value: HealthColor; label: string; dot: string }[] = [
   { value: "good", label: "Green — under 80%", dot: "hsl(var(--health-good))" },
   { value: "warn", label: "Orange — 80–99%", dot: "hsl(var(--health-warn))" },
