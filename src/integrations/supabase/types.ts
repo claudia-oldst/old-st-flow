@@ -588,11 +588,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      client_approve_cr: {
+        Args: { _hash: string; _ticket_id: string }
+        Returns: boolean
+      }
       first_status_in_category: {
         Args: { _cat: Database["public"]["Enums"]["status_category"] }
         Returns: string
       }
       get_client_portal: { Args: { _hash: string }; Returns: Json }
+      get_client_portal_change_requests: {
+        Args: { _hash: string }
+        Returns: Json
+      }
       get_project_portal_preview: {
         Args: { _cutoff: string; _project_id: string }
         Returns: Json
