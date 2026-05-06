@@ -31,6 +31,12 @@ export function ProjectChangeRequests({ projectId }: { projectId: string }) {
   const [requesterFilter, setRequesterFilter] = useState<string[] | null>(null);
   const [range, setRange] = useState<DateRange>(() => defaultRange());
   const [rangeInitialized, setRangeInitialized] = useState(false);
+  const [openTicketId, setOpenTicketId] = useState<string | null>(null);
+  const { tickets: projectTickets, reload: reloadTickets } = useProjectTickets(projectId);
+  const openTicket = useMemo(
+    () => projectTickets.find((t) => t.id === openTicketId) ?? null,
+    [projectTickets, openTicketId],
+  );
 
   // Default the range to start at the project's start_date the first time we load it.
   useEffect(() => {
