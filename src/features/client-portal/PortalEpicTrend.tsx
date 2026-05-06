@@ -183,8 +183,15 @@ export function PortalEpicTrend({
       let deltas = 0;
       let actual = 0;
       relevant.forEach((tk) => {
-        if (new Date(tk.created_at).getTime() > c) return;
-        original += tk.original_fe_estimate + tk.original_be_estimate;
+        if (tk.is_cr) {
+          const eff = tk.cr_effective_at ? new Date(tk.cr_effective_at).getTime() : null;
+          if (eff != null && eff <= c) {
+            original += tk.cr_fe + tk.cr_be;
+          }
+        } else {
+          if (new Date(tk.created_at).getTime() > c) return;
+          original += tk.original_fe_estimate + tk.original_be_estimate;
+        }
       });
       changes.forEach((ch) => {
         if (!ticketFilter(ch.ticket_id)) return;
