@@ -107,11 +107,13 @@ export function TicketCard({
     const res = await startTicketTimer({ userId: currentUserId, ticketId: ticket.id, discipline });
     if (res.ok) {
       toast.success(`Timer started on ${ticket.formatted_id}`);
-    } else if (res.reason === "active") {
-      toast.error("Stop your running timer first.");
-    } else {
-      toast.error(res.message ?? "Failed to start timer");
+      return;
     }
+    if (res.reason === "active") {
+      toast.error("Stop your running timer first.");
+      return;
+    }
+    toast.error(res.message ?? "Failed to start timer");
   };
 
   return (
