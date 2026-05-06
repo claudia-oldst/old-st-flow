@@ -312,7 +312,7 @@ export function ClientPortalEditor() {
             <div className="text-xs uppercase tracking-wider text-dimmer">
               Epics with scope changes
             </div>
-            <div className={cn(!previewOpen && "grid lg:grid-cols-2 gap-3")}>
+            <div className="space-y-3">
               {payload.epics
                 .filter((e) => epicDeltas.has(e.id))
                 .map((e) => (
