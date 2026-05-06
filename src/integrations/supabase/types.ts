@@ -357,6 +357,47 @@ export type Database = {
           },
         ]
       }
+      ticket_comments: {
+        Row: {
+          attachments: Json
+          body: string
+          created_at: string
+          edited_at: string | null
+          id: string
+          parent_id: string | null
+          ticket_id: string
+          user_id: string
+        }
+        Insert: {
+          attachments?: Json
+          body?: string
+          created_at?: string
+          edited_at?: string | null
+          id?: string
+          parent_id?: string | null
+          ticket_id: string
+          user_id: string
+        }
+        Update: {
+          attachments?: Json
+          body?: string
+          created_at?: string
+          edited_at?: string | null
+          id?: string
+          parent_id?: string | null
+          ticket_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "ticket_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ticket_estimate_changes: {
         Row: {
           created_at: string
