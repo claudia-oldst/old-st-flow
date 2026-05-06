@@ -147,9 +147,14 @@ export function EstimateEvolution({ projectId }: { projectId: string }) {
     });
 
     // Apply approved changes up to asOf to derive current estimate
+    const ticketEff = new Map<string, number>();
+    tickets.forEach((t) => ticketEff.set(t.id, ticketEffectiveMs(t)));
     changes.forEach((c) => {
       if (c.status !== "approved") return;
-      if (new Date(c.created_at).getTime() > asOfMs) return;
+      const tkEff = ticketEff.get(c.ticket_id);
+      if (tkEff == null || !isFinite(tkEff)) return; // exclude unapproved CRs
+      const deltaEff = Math.max(new Date(c.created_at).getTime(), tkEff);
+      if (deltaEff > asOfMs) return;
       const epicId = ticketEpic.get(c.ticket_id);
       const key = epicId != null ? `e:${epicId}` : NO_EPIC_KEY;
       const g = groups.get(key);
