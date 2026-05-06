@@ -315,6 +315,8 @@ export function ProjectBoard({
                   onCreated={reload}
                   prefs={prefs}
                   forceBars={filterMine}
+                  showQuickStart={filterMine}
+                  currentUserId={user?.id}
                 />
               ))}
             </div>
@@ -328,6 +330,8 @@ export function ProjectBoard({
                   onCardClick={(c) => setOpenTicket(c.ticket)}
                   prefs={prefs}
                   forceBars={filterMine}
+                  showQuickStart={filterMine}
+                  currentUserId={user?.id}
                 />
               ))}
             </div>
