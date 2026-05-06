@@ -452,10 +452,9 @@ function EpicSummaryEditor({
     return true;
   }
 
-  async function save() {
-    setSaving(true);
-    await persist(text, included);
-    setSaving(false);
+  async function handleBlur() {
+    if (text === initialText) return;
+    await persist(text, included, { silent: true });
   }
 
   async function handleToggleIncluded(next: boolean) {
