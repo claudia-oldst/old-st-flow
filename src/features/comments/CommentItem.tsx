@@ -103,11 +103,13 @@ export function CommentItem({ comment, projectId, ticketId, onReply, onChanged, 
   if (editing) {
     return (
       <div className="flex gap-2.5">
-        <MemberAvatar
-          name={comment.author?.name ?? "?"}
-          color={comment.author?.avatar_color ?? "#6366f1"}
-          size={isReply ? "xs" : "sm"}
-        />
+        <div title={comment.author?.name ?? "Unknown"}>
+          <MemberAvatar
+            name={comment.author?.name ?? "?"}
+            color={comment.author?.avatar_color ?? "#6366f1"}
+            size="xs"
+          />
+        </div>
         <div className="flex-1 min-w-0">
           <CommentComposer
             ticketId={ticketId}
