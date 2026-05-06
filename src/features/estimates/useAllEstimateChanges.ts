@@ -121,11 +121,10 @@ export function useAllEstimateChanges() {
   useEffect(() => {
     const ch = supabase
       .channel(`all-tec-${Math.random().toString(36).slice(2)}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "ticket_estimate_changes" },
-        () => load()
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "ticket_estimate_changes" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "tickets" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "projects" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "project_epics" }, () => load())
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
