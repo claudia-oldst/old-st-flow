@@ -177,29 +177,24 @@ export function PortalEpicTrend({
     const totalDays = Math.max(1, Math.ceil((end - startMs) / dayMs));
     const stride = Math.max(1, Math.ceil(totalDays / 80));
     const buckets: Array<{ label: string; original: number; current: number; actual: number }> = [];
-    for (let t = startMs; t <= end; t += stride * dayMs) {
-      const c = t;
+    const ticketById = new Map(relevant.map((tk) => [tk.id, tk] as const));
+    const sampleAt = (c: number) => {
       let original = 0;
       let deltas = 0;
       let actual = 0;
       relevant.forEach((tk) => {
         if (tk.is_cr) {
           const eff = tk.cr_effective_at ? new Date(tk.cr_effective_at).getTime() : null;
-          if (eff != null && eff <= c) {
-            original += tk.cr_fe + tk.cr_be;
-          }
+          if (eff != null && eff <= c) original += tk.cr_fe + tk.cr_be;
         } else {
           if (new Date(tk.created_at).getTime() > c) return;
           original += tk.original_fe_estimate + tk.original_be_estimate;
         }
       });
-      const ticketById = new Map(relevant.map((tk) => [tk.id, tk] as const));
       changes.forEach((ch) => {
         if (!ticketFilter(ch.ticket_id)) return;
         const tk = ticketById.get(ch.ticket_id);
         if (!tk) return;
-        // For CR tickets, deltas only take effect on/after the CR's effective (approval) date,
-        // so the pre-approval trim (e.g. 220h → 80h) doesn't double-count.
         const chMs = new Date(ch.created_at).getTime();
         const effMs = tk.is_cr && tk.cr_effective_at ? new Date(tk.cr_effective_at).getTime() : 0;
         const deltaEff = Math.max(chMs, effMs);
@@ -211,12 +206,19 @@ export function PortalEpicTrend({
         if (new Date(l.logged_at).getTime() > c) return;
         actual += l.hours;
       });
-      buckets.push({
-        label: format(new Date(t), "d MMM"),
-        original,
-        current: original + deltas,
-        actual,
-      });
+      return { original, current: original + deltas, actual };
+    };
+
+    for (let t = startMs; t <= end; t += stride * dayMs) {
+      const s = sampleAt(t);
+      buckets.push({ label: format(new Date(t), "d MMM"), ...s, _t: t } as any);
+    }
+    // Pin a final sample at `end` so same-day events (e.g. CR approval later
+    // in the day) are reflected in the last bucket of the chart.
+    const lastT = (buckets[buckets.length - 1] as any)?._t ?? -Infinity;
+    if (lastT < end) {
+      const s = sampleAt(end);
+      buckets.push({ label: format(new Date(end), "d MMM"), ...s, _t: end } as any);
     }
     return buckets;
   };
