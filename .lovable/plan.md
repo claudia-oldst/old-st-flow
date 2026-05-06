@@ -1,41 +1,64 @@
-## Client tab updates
+## Goal
 
-Three changes to `src/features/client-portal/ClientPortalEditor.tsx` plus a small backend addition so the PMBA preview works even when the public link is disabled.
+Give clients (via `/h/:hash`) a second tab in their portal called **Change Requests**, mirroring the PMBA "Change Requests" tab (`ProjectChangeRequestTickets`). Clients can approve CRs and click into a ticket to read its Acceptance Criteria. The same view is rendered inside the PMBA `ClientPortalEditor` preview so PMBA sees exactly what the client sees.
 
-### 1. Remove per-epic Save CTA
+## UX
 
-In `EpicSummaryEditor`:
-- Remove the "Save" button.
-- Auto-save `pmba_text` on textarea blur (and keep silent auto-save on the "Show to client" toggle, which already exists).
-- Keep the "Generate / Regenerate" button as-is.
+- `/h/:hash` and `ClientPortalEditor` preview wrap their content in a `Tabs` with two triggers: **Summary** (current `PortalView`) and **Change Requests**.
+- Change Requests tab reuses `EpicCRCard` exactly as on the PMBA tab — same per-epic card, totals, chart, ticket table — with `canReview={true}` for clients and a hash-aware `onApprove`. **Reject is hidden** for clients (only Approve, per spec).
+- Clicking a ticket row opens a read-only side sheet that shows **only the Acceptance Criteria** (rendered as markdown via the same `react-markdown` + `remark-gfm` setup used in `TicketDetailSheet`). The sheet header shows `formatted_id` + title only — **no Ticket Detail tab**, no estimates, no status, no edit affordances. If acceptance criteria is empty, show "No acceptance criteria yet." Used on both the public route and the PMBA preview so behaviour matches.
+- Filters/date-range from `ProjectChangeRequestTickets` are not shown to the client — they always see all CRs within the project's published cutoff window. Default status filter mirrors PMBA: `["pending", "approved"]`.
 
-Result: epic cards have no manual save; edits persist automatically.
+## Backend (Supabase)
 
-### 2. Split the Snapshot card into "Update" + "Publish to client"
+Migration adds two RPCs (both `security definer`, gated on a valid `client_portal_hash`):
 
-Currently a single "Publish to client" button writes both `client_summary_draft` and `client_summary_published` and rotates the cutoff.
+1. `get_client_portal_change_requests(_hash text)` → returns:
+   ```
+   {
+     project: { id, acronym, name },
+     epics: [{ id, epic_name }],
+     baseline_tickets: [...non-CR tickets with original/current estimates + actuals...],
+     cr_tickets: [...CR tickets with acceptance_criteria, current_fe/be/project estimates, cr_approval, cr_decided_at, created_at, epic_id, formatted_id, title...]
+   }
+   ```
+   Returns `null` if hash missing/disabled. No auth required.
+2. `client_approve_cr(_hash text, _ticket_id uuid)` → atomically sets `cr_approval='approved'`, `cr_decided_at=now()`, `cr_decided_by=null` only when ticket's project matches the hash and `cr_approval='pending'`. Returns boolean.
 
-New behaviour:
-- **Update** (primary, in the Snapshot card): saves `client_visibility_cutoff = asOf` and `client_summary_draft = intro`. Refreshes the preview. Does NOT touch `client_summary_published`, so the public URL keeps showing the previously published version.
-- **Publish to client** (separate button, also in the Snapshot card): copies the current draft to `client_summary_published`, sets `client_summary_updated_at = now()`, and ensures a hash exists. This is what pushes the saved updates to the public `/h/:hash` URL.
-- The "Last published …" timestamp stays tied to `client_summary_updated_at` (i.e. only changes on Publish, not on Update).
+No schema changes — `tickets.cr_approval`, `cr_decided_at`, `cr_decided_by` already exist. RLS on `tickets` unchanged; clients only access via these RPCs.
 
-Per-epic summaries (`project_epic_summaries`) are already written directly and visible to both preview and public RPC, so no change needed there beyond #1.
+## Frontend changes
 
-### 3. PMBA preview works when the public URL is disabled
+- **New** `src/features/client-portal/PortalChangeRequests.tsx`
+  - Renders the per-epic `EpicCRCard` list like `ProjectChangeRequestTickets`, hiding date-range and "Add Ticket" controls. Default range spans all CRs.
+  - Hides Reject by passing a new optional `hideReject` prop on `EpicCRCard` (additive change; PMBA tab unchanged).
+  - `onOpenTicket` opens the read-only acceptance-criteria sheet.
 
-Today `usePortalPreview` early-returns when `hash` is null, and the existing `get_client_portal(_hash)` RPC requires a hash. So disabling the portal also blanks the PMBA editor — wrong.
+- **New** `src/features/client-portal/ClientTicketSheet.tsx`
+  - Minimal `Sheet` containing: header (`formatted_id` + title) and one section — Acceptance Criteria rendered as markdown (read-only). Nothing else.
 
-Fix:
-- Add a new SECURITY DEFINER RPC `get_project_portal_preview(_project_id uuid, _cutoff timestamptz)` that returns the same JSON shape as `get_client_portal`, but keyed off `project_id` directly and using the supplied cutoff (falling back to `now()` if null). It does NOT require `client_portal_hash` to be set. Intended for PMBA editor preview only.
-- Update `usePortalPreview` to:
-  - Always call the new RPC (passing `asOf`), regardless of whether `hash` is set.
-  - Stop writing `client_visibility_cutoff` to the projects table on every preview change (cutoff is now passed per-call). The cutoff is persisted only when the PMBA hits **Update** or **Publish to client**.
-- Update the editor's empty-state copy: when `hash` is null, the right-hand preview still renders normally; only the "Public link" block in the Snapshot card stays hidden, with copy like *"Public link disabled. The client cannot view the URL, but you can still plan what they'd see."*
-- "Disable" continues to clear `client_portal_hash`. "Publish to client" re-enables it (creates a new hash if missing).
+- **New** `src/features/client-portal/useClientPortalCRs.ts`
+  - `useClientPortalCRsByHash(hash)` → calls `get_client_portal_change_requests`; subscribes to realtime on `tickets` for that project.
+  - PMBA preview reuses existing `useProjectTickets` + `useProjectEpics` already loaded in `ClientPortalEditor`.
 
-### Technical notes
+- **Edit** `src/pages/ClientPortalPublic.tsx`
+  - Wrap content in `Tabs`: Summary (`PortalView`) | Change Requests (`PortalChangeRequests` fed by hash hook). Approve handler calls `client_approve_cr`, then refresh.
 
-- New migration: create `public.get_project_portal_preview(uuid, timestamptz)` as a SECURITY DEFINER function, body adapted from `get_client_portal` but selecting the project by `id` and using `COALESCE(_cutoff, now())` for the cutoff. RLS on `projects` is permissive so no policy changes are needed; the function is gated by being called from the PMBA editor (which already checks `isPMBA`).
-- The public `/h/:hash` flow (`usePublicPortal` + `get_client_portal`) is unchanged — it keeps requiring a valid hash and a non-null cutoff, so disabling still hides the public page.
-- `EpicSummaryEditor.persist` already exists; reuse it from an `onBlur` handler on the text area.
+- **Edit** `src/features/client-portal/ClientPortalEditor.tsx`
+  - In the right-hand "Client preview" pane, wrap `PortalView` in the same `Tabs`. Change Requests tab uses already-fetched `tickets`/`epics`. Approve handler uses the existing authenticated update PMBA already uses.
+
+- **Edit** `src/features/change-requests/EpicCRCard.tsx`
+  - Add optional `hideReject?: boolean`. When true, render only the Approve button in the actions cell.
+
+## Reuse summary
+
+- `EpicCRCard` — reused (one optional prop).
+- `MultiSelectFilter` — reused for status filter.
+- `Tabs`, `Sheet` — reused.
+- Markdown rendering pattern — copied from `TicketDetailSheet`'s `AcceptanceCriteria` (read-only branch).
+- `PortalView` — unchanged.
+
+## Out of scope
+
+- Client cannot reject CRs.
+- Client ticket sheet shows only Acceptance Criteria — no Ticket Detail tab, no estimates/status/comments.
