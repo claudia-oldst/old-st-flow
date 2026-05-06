@@ -188,8 +188,10 @@ export function EpicCRCard({
                       tick={{ fontSize: 9 }}
                       tickLine={false}
                       axisLine={false}
-                      tickFormatter={(v) => `${v}h`}
+                      tickFormatter={(v) => formatHours(Number(v))}
                       width={36}
+                      domain={[0, (dataMax: number) => Math.max(1, Math.ceil(dataMax * 1.1))]}
+                      allowDecimals={false}
                     />
                     <Tooltip
                       contentStyle={{
