@@ -132,7 +132,7 @@ export function EpicCRCard({
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
               <Stat label="Original" value={totals.original} />
-              <Stat label="Current (approved)" value={totals.current} accent="primary" />
+              <Stat label="Current (approved)" value={totals.current} accent="good" />
               <Stat label="If all approved" value={totals.projected} accent="warn" />
               <Stat label="Actual" value={totals.actual} accent="gold" />
             </div>
@@ -295,7 +295,7 @@ function Stat({
 }: {
   label: string;
   value: number;
-  accent?: "primary" | "warn" | "gold";
+  accent?: "primary" | "warn" | "gold" | "good";
 }) {
   const color =
     accent === "primary"
@@ -304,6 +304,8 @@ function Stat({
       ? "text-health-warn"
       : accent === "gold"
       ? "text-brand-gold"
+      : accent === "good"
+      ? "text-health-good"
       : "text-foreground";
   return (
     <div className="rounded-lg bg-white/[0.02] hairline px-2.5 py-1.5">
