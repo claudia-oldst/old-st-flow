@@ -396,7 +396,6 @@ function EpicSummaryEditor({
   const [text, setText] = useState(initialText);
   const [included, setIncluded] = useState(initialIncluded);
   const [generating, setGenerating] = useState(false);
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     setText(initialText);
