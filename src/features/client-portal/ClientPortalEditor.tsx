@@ -481,6 +481,7 @@ function EpicSummaryEditor({
       <Textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
+        onBlur={handleBlur}
         placeholder="Why has the estimate changed? (Visible to the client)"
         rows={3}
         className="text-sm"
@@ -490,25 +491,20 @@ function EpicSummaryEditor({
           <Switch checked={included} onCheckedChange={handleToggleIncluded} />
           Show to client
         </label>
-        <div className="flex items-center gap-1.5">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={generate}
-            disabled={generating}
-            className="text-xs gap-1.5"
-          >
-            {generating ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
-            ) : (
-              <Sparkles className="h-3 w-3" />
-            )}
-            {text ? "Regenerate" : "Generate"}
-          </Button>
-          <Button size="sm" onClick={save} disabled={saving} className="text-xs">
-            Save
-          </Button>
-        </div>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={generate}
+          disabled={generating}
+          className="text-xs gap-1.5"
+        >
+          {generating ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : (
+            <Sparkles className="h-3 w-3" />
+          )}
+          {text ? "Regenerate" : "Generate"}
+        </Button>
       </div>
     </div>
   );
