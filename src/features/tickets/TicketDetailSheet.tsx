@@ -905,7 +905,7 @@ function AcceptanceCriteria({
         </div>
         {hasContent ? (
           <div className="rounded-lg bg-white/[0.02] hairline p-4">
-            <MarkdownView source={value!} />
+            <MarkdownView source={localValue!} />
           </div>
         ) : (
           <div className="text-sm text-dim p-4 rounded-lg bg-white/[0.02] hairline">
