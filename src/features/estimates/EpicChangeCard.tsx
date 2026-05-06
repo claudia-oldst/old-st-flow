@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { ChevronDown, Check, X, Sparkles } from "lucide-react";
-import { Link } from "react-router-dom";
+
 import {
   LineChart,
   Line,
@@ -48,6 +48,7 @@ interface Props {
   approvedChanges: ChangeRow[];
   onApprove: (row: ChangeRow) => void;
   onReject: (row: ChangeRow) => void;
+  onOpenTicket?: (ticketId: string) => void;
   defaultOpen?: boolean;
   /** Optional time window for the chart (defaults to first event → now). */
   range?: { from: Date; to: Date };
@@ -62,6 +63,7 @@ export function EpicChangeCard({
   approvedChanges,
   onApprove,
   onReject,
+  onOpenTicket,
   defaultOpen,
   range,
 }: Props) {
@@ -256,12 +258,13 @@ export function EpicChangeCard({
                           <TooltipProvider>
                             <UiTooltip>
                               <TooltipTrigger asChild>
-                                <Link
-                                  to={`/projects/${projectId}`}
-                                  className="text-foreground hover:text-primary transition"
+                                <button
+                                  type="button"
+                                  onClick={() => c.ticket && onOpenTicket?.(c.ticket.id)}
+                                  className="text-foreground hover:text-primary transition cursor-pointer"
                                 >
                                   {c.ticket?.formatted_id ?? "?"}
-                                </Link>
+                                </button>
                               </TooltipTrigger>
                               {c.ticket?.title && (
                                 <TooltipContent side="top" align="start" className="max-w-xs">

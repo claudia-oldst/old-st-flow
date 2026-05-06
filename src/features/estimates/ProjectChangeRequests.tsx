@@ -11,6 +11,8 @@ import {
 import { MultiSelectFilter } from "@/features/estimates/MultiSelectFilter";
 import { EpicChangeCard } from "@/features/estimates/EpicChangeCard";
 import { DateRangeControl, defaultRange, type DateRange } from "@/features/health/DateRangeControl";
+import { useProjectTickets } from "@/features/tickets/useProjectTickets";
+import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
 
 const NO_EPIC_KEY = (projectId: string) => `noepic:${projectId}`;
 const STATUS_OPTIONS = [
@@ -29,6 +31,12 @@ export function ProjectChangeRequests({ projectId }: { projectId: string }) {
   const [requesterFilter, setRequesterFilter] = useState<string[] | null>(null);
   const [range, setRange] = useState<DateRange>(() => defaultRange());
   const [rangeInitialized, setRangeInitialized] = useState(false);
+  const [openTicketId, setOpenTicketId] = useState<string | null>(null);
+  const { tickets: projectTickets, reload: reloadTickets } = useProjectTickets(projectId);
+  const openTicket = useMemo(
+    () => projectTickets.find((t) => t.id === openTicketId) ?? null,
+    [projectTickets, openTicketId],
+  );
 
   // Default the range to start at the project's start_date the first time we load it.
   useEffect(() => {
@@ -254,12 +262,24 @@ export function ProjectChangeRequests({ projectId }: { projectId: string }) {
               approvedChanges={g.approvedChanges}
               onApprove={handleApprove}
               onReject={handleReject}
+              onOpenTicket={setOpenTicketId}
               defaultOpen={statusFilter.includes("pending") && g.changes.length <= 5}
               range={range}
             />
           ))}
         </div>
       )}
+
+      <TicketDetailSheet
+        open={!!openTicket}
+        onOpenChange={(o) => !o && setOpenTicketId(null)}
+        ticket={openTicket}
+        projectId={projectId}
+        onChange={() => {
+          reloadTickets();
+          reload();
+        }}
+      />
     </div>
   );
 }
