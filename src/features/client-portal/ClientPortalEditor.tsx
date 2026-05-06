@@ -17,8 +17,11 @@ import type { Project } from "@/lib/types";
 import { useProjectRole, isPMBA } from "@/features/team/useProjectRole";
 import { useProjectEstimateChanges } from "@/features/estimates/useEstimateChanges";
 import { useProjectTickets } from "@/features/tickets/useProjectTickets";
+import { useProjectEpics } from "@/features/epics/useProjectEpics";
 import { usePortalPreview } from "./usePortalData";
 import { PortalView } from "./PortalView";
+import { PortalChangeRequests } from "./PortalChangeRequests";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
 function makeHash() {
@@ -355,7 +358,18 @@ export function ClientPortalEditor() {
           </div>
           <div className="glass rounded-2xl p-6 lg:p-8">
             {payload ? (
-              <PortalView payload={payload} showRate />
+              <Tabs defaultValue="summary" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-6">
+                  <TabsTrigger value="summary">Summary</TabsTrigger>
+                  <TabsTrigger value="change-requests">Change Requests</TabsTrigger>
+                </TabsList>
+                <TabsContent value="summary">
+                  <PortalView payload={payload} showRate />
+                </TabsContent>
+                <TabsContent value="change-requests">
+                  <PreviewChangeRequests projectId={id} />
+                </TabsContent>
+              </Tabs>
             ) : (
               <div className="text-sm text-dim text-center py-12">
                 Loading preview…
@@ -508,5 +522,56 @@ function EpicSummaryEditor({
         </Button>
       </div>
     </div>
+  );
+}
+
+function PreviewChangeRequests({ projectId }: { projectId: string }) {
+  const { tickets, reload } = useProjectTickets(projectId);
+  const { epics } = useProjectEpics(projectId);
+  const [acronym, setAcronym] = useState("?");
+
+  useEffect(() => {
+    supabase
+      .from("projects")
+      .select("acronym")
+      .eq("id", projectId)
+      .maybeSingle()
+      .then(({ data }) => setAcronym((data as any)?.acronym ?? "?"));
+  }, [projectId]);
+
+  const baseline = useMemo(
+    () => tickets.filter((t) => t.ticket_type !== "CR"),
+    [tickets],
+  );
+  const crs = useMemo(
+    () => tickets.filter((t) => t.ticket_type === "CR"),
+    [tickets],
+  );
+
+  async function handleApprove(ticketId: string) {
+    const { error } = await supabase
+      .from("tickets")
+      .update({
+        cr_approval: "approved",
+        cr_decided_at: new Date().toISOString(),
+      })
+      .eq("id", ticketId)
+      .eq("cr_approval", "pending");
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Change request approved");
+    reload();
+  }
+
+  return (
+    <PortalChangeRequests
+      acronym={acronym}
+      epics={epics.map((e) => ({ id: e.id, epic_name: e.epic_name }))}
+      baselineTickets={baseline as any}
+      crTickets={crs as any}
+      onApprove={handleApprove}
+    />
   );
 }
