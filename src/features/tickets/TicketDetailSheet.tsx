@@ -817,11 +817,13 @@ function AcceptanceCriteria({
 }) {
   const [editing, setEditing] = useState(false);
   const [preview, setPreview] = useState(false);
+  const [localValue, setLocalValue] = useState<string | null>(value);
   const [draft, setDraft] = useState(value ?? "");
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
+    setLocalValue(value);
     setDraft(value ?? "");
     setEditing(false);
     setPreview(false);
@@ -858,19 +860,25 @@ function AcceptanceCriteria({
   const save = async () => {
     setSaving(true);
     const next = draft.trim() ? draft : null;
+    // optimistic: show immediately
+    setLocalValue(next);
+    setEditing(false);
+    setPreview(false);
     const { error } = await supabase
       .from("tickets")
       .update({ acceptance_criteria: next })
       .eq("id", ticketId);
     setSaving(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      // rollback
+      setLocalValue(value);
+      return toast.error(error.message);
+    }
     toast.success("Acceptance criteria saved");
-    setEditing(false);
-    setPreview(false);
     onSaved();
   };
 
-  const hasContent = !!(value && value.trim());
+  const hasContent = !!(localValue && localValue.trim());
 
   if (!editing) {
     return (
