@@ -193,9 +193,17 @@ export function PortalEpicTrend({
           original += tk.original_fe_estimate + tk.original_be_estimate;
         }
       });
+      const ticketById = new Map(relevant.map((tk) => [tk.id, tk] as const));
       changes.forEach((ch) => {
         if (!ticketFilter(ch.ticket_id)) return;
-        if (new Date(ch.created_at).getTime() > c) return;
+        const tk = ticketById.get(ch.ticket_id);
+        if (!tk) return;
+        // For CR tickets, deltas only take effect on/after the CR's effective (approval) date,
+        // so the pre-approval trim (e.g. 220h → 80h) doesn't double-count.
+        const chMs = new Date(ch.created_at).getTime();
+        const effMs = tk.is_cr && tk.cr_effective_at ? new Date(tk.cr_effective_at).getTime() : 0;
+        const deltaEff = Math.max(chMs, effMs);
+        if (deltaEff > c) return;
         deltas += ch.delta;
       });
       logs.forEach((l) => {
