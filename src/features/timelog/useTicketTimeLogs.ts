@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtimeReload } from "@/hooks/useRealtimeReload";
 
 export interface TicketLogEntry {
   id: string;
@@ -34,6 +35,12 @@ export function useTicketTimeLogs(ticketId: string | undefined) {
   useEffect(() => {
     reload();
   }, [reload]);
+
+  useRealtimeReload(
+    ticketId ? [{ table: "time_logs", filter: `ticket_id=eq.${ticketId}` }] : null,
+    reload,
+    !!ticketId,
+  );
 
   return { logs, reload };
 }

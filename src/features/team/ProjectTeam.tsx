@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtimeReload } from "@/hooks/useRealtimeReload";
 import { PROJECT_ROLES as ROLES, PROJECT_ROLE_COLORS as ROLE_COLORS, type ProjectMember, type ProjectRole, type TeamMember } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,7 +30,7 @@ export function ProjectTeam({ projectId }: { projectId: string }) {
   const [pickedUser, setPickedUser] = useState<string>("");
   const [pickedRole, setPickedRole] = useState<ProjectRole>("Frontend");
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const [{ data: pm }, { data: all }] = await Promise.all([
       supabase
         .from("project_members")
@@ -39,11 +40,19 @@ export function ProjectTeam({ projectId }: { projectId: string }) {
     ]);
     setMembers((pm as any) ?? []);
     setAllMembers(all ?? []);
-  };
+  }, [projectId]);
 
   useEffect(() => {
     load();
-  }, [projectId]);
+  }, [load]);
+
+  useRealtimeReload(
+    [
+      { table: "project_members", filter: `project_id=eq.${projectId}` },
+      { table: "team_members" },
+    ],
+    load,
+  );
 
   const available = allMembers.filter((m) => !members.some((pm) => pm.user_id === m.id));
 

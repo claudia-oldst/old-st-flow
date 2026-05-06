@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import {
   LineChart,
@@ -27,6 +27,7 @@ import { useProjectTickets } from "@/features/tickets/useProjectTickets";
 import { useProjectEpics } from "@/features/epics/useProjectEpics";
 import { useProjectEstimateChanges } from "@/features/estimates/useEstimateChanges";
 import { cn, formatHours } from "@/lib/utils";
+import { useRealtimeReload } from "@/hooks/useRealtimeReload";
 
 const NO_EPIC_KEY = "__no_epic__";
 const ALL_EPICS_KEY = "__all__";
@@ -48,7 +49,7 @@ export function EstimateEvolution({ projectId }: { projectId: string }) {
   const [projectStart, setProjectStart] = useState<Date | null>(null);
   const [epicsOpen, setEpicsOpen] = useState(false);
 
-  useEffect(() => {
+  const loadStart = useCallback(() => {
     supabase
       .from("projects")
       .select("start_date")
@@ -60,8 +61,17 @@ export function EstimateEvolution({ projectId }: { projectId: string }) {
       });
   }, [projectId]);
 
-  // Pull FE/BE time logs for the project's tickets (Project hours tracked separately).
   useEffect(() => {
+    loadStart();
+  }, [loadStart]);
+
+  useRealtimeReload(
+    [{ table: "projects", filter: `id=eq.${projectId}` }],
+    loadStart,
+  );
+
+  // Pull FE/BE time logs for the project's tickets (Project hours tracked separately).
+  const loadLogs = useCallback(() => {
     const ids = tickets.map((t) => t.id);
     if (ids.length === 0) {
       setLogs([]);
@@ -83,6 +93,12 @@ export function EstimateEvolution({ projectId }: { projectId: string }) {
         );
       });
   }, [tickets]);
+
+  useEffect(() => {
+    loadLogs();
+  }, [loadLogs]);
+
+  useRealtimeReload([{ table: "time_logs" }], loadLogs);
 
   // Build a ticket → epic_id map from tickets.
   const ticketEpic = useMemo(() => {

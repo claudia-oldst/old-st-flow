@@ -13,6 +13,7 @@ import {
 import { ChevronDown, TrendingUp } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtimeReload } from "@/hooks/useRealtimeReload";
 import { cn, formatHours } from "@/lib/utils";
 
 interface TicketLite {
@@ -47,8 +48,22 @@ export function PortalEpicTrend({
   const [logs, setLogs] = useState<LogLite[]>([]);
   const [projectStart, setProjectStart] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [tick, setTick] = useState(0);
 
   const includedIds = useMemo(() => new Set(includedEpics.map((e) => e.id)), [includedEpics]);
+
+  useRealtimeReload(
+    projectId
+      ? [
+          { table: "projects", filter: `id=eq.${projectId}` },
+          { table: "tickets", filter: `project_id=eq.${projectId}` },
+          { table: "ticket_estimate_changes" },
+          { table: "time_logs" },
+        ]
+      : null,
+    useMemo(() => () => setTick((t) => t + 1), []),
+    !!projectId,
+  );
 
   useEffect(() => {
     if (!projectId) return;
@@ -125,7 +140,7 @@ export function PortalEpicTrend({
     return () => {
       cancelled = true;
     };
-  }, [projectId, includedIds]);
+  }, [projectId, includedIds, tick]);
 
   const ticketEpic = useMemo(() => {
     const m = new Map<string, number>();

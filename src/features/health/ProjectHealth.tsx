@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useProjectTickets } from "@/features/tickets/useProjectTickets";
@@ -8,6 +8,7 @@ import { MemberAvatar } from "@/components/MemberAvatar";
 import { TrendingUp, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { EstimateEvolution } from "@/features/health/EstimateEvolution";
 import { DateRangeControl, defaultRange, type DateRange } from "@/features/health/DateRangeControl";
+import { useRealtimeReload } from "@/hooks/useRealtimeReload";
 
 export function ProjectHealth({ projectId }: { projectId: string }) {
   const { tickets } = useProjectTickets(projectId);
@@ -15,14 +16,27 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
   const [members, setMembers] = useState<{ user_id: string; role: string; member: { id: string; name: string; avatar_color: string } }[]>([]);
   const [weekHours, setWeekHours] = useState<Record<string, number>>({});
   const [range, setRange] = useState<DateRange>(() => defaultRange());
+  const [logsTick, setLogsTick] = useState(0);
 
-  useEffect(() => {
+  const loadMembers = useCallback(() => {
     supabase
       .from("project_members")
       .select("user_id,role,member:team_members(id,name,avatar_color)")
       .eq("project_id", projectId)
       .then(({ data }) => setMembers((data as any) ?? []));
   }, [projectId]);
+
+  useEffect(() => {
+    loadMembers();
+  }, [loadMembers]);
+
+  useRealtimeReload(
+    [
+      { table: "project_members", filter: `project_id=eq.${projectId}` },
+      { table: "team_members" },
+    ],
+    loadMembers,
+  );
 
   useEffect(() => {
     const ticketIds = tickets.map((t) => t.id);
@@ -59,7 +73,12 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [projectId, tickets, range.from, range.to]);
+  }, [projectId, tickets, range.from, range.to, logsTick]);
+
+  useRealtimeReload(
+    [{ table: "time_logs" }],
+    useCallback(() => setLogsTick((t) => t + 1), []),
+  );
 
   const openTickets = useMemo(() => {
     const doneIds = new Set(statuses.filter((s) => s.category === "done").map((s) => s.id));

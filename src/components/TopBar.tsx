@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtimeReload } from "@/hooks/useRealtimeReload";
 import { useCurrentUser } from "@/store/currentUser";
 import { useTimerStore } from "@/store/timer";
 import type { TeamMember } from "@/lib/types";
@@ -101,7 +102,7 @@ function UserPicker() {
   const [members, setMembers] = useState<TeamMember[]>([]);
   const { user, setUser } = useCurrentUser();
 
-  useEffect(() => {
+  const load = useCallback(() => {
     supabase
       .from("team_members")
       .select("*")
@@ -113,6 +114,12 @@ function UserPicker() {
         }
       });
   }, [user, setUser]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  useRealtimeReload([{ table: "team_members" }], load);
 
   return (
     <DropdownMenu>

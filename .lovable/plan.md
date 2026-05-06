@@ -1,53 +1,32 @@
-# Enable Realtime on all tables
+## Goal
+Eliminate the need to refresh by adding `postgres_changes` subscriptions everywhere data is loaded (the previous migration enabled the publication; many hooks/pages just don't subscribe).
 
-The app already subscribes to `postgres_changes` channels in many hooks (`useProjectTickets`, `useProjectEpics`, `useEstimateChanges`, `useAllEstimateChanges`, `useStatuses`, `TimerSync`, etc.), but those subscriptions only fire when the tables are part of the `supabase_realtime` publication and have a suitable `REPLICA IDENTITY`. Right now most tables aren't, so updates don't propagate live — users have to refresh.
+## Step 1 — Shared helper
+Add `src/hooks/useRealtimeReload.ts` exporting `useRealtimeReload(tables, onChange, enabled)`. Each entry: `{ table, filter?, event? }`. Auto-named channel + cleanup. Used by all callers below for consistency.
 
-## What I'll do
+## Step 2 — Add subscriptions
 
-Run a single migration that, for every app table:
+| File | Tables (filter) |
+|---|---|
+| `src/pages/Projects.tsx` | `projects`, `tickets`, `project_members` |
+| `src/pages/ProjectWorkspace.tsx` | `projects` filter `id=eq.{id}` |
+| `src/features/team/useProjectRole.ts` | `project_members` filter `project_id=eq.{id}`, `team_members` |
+| `src/features/team/ProjectTeam.tsx` | `project_members` filter `project_id=eq.{id}`, `team_members` |
+| `src/features/timelog/useTicketTimeLogs.ts` | `time_logs` filter `ticket_id=eq.{id}` |
+| `src/pages/MyWork.tsx` | `ticket_assignees`, `tickets`, `time_logs` |
+| `src/components/TopBar.tsx` (UserPicker) | `team_members` |
+| `src/features/health/ProjectHealth.tsx` | `project_members` filter project, `time_logs` |
+| `src/features/health/EstimateEvolution.tsx` | `time_logs`, `projects` filter `id=eq.{id}` |
+| `src/features/estimates/ProjectChangeRequests.tsx` | already uses `useAllEstimateChanges` (live) — also subscribe to `tickets` filtered by project so card data refreshes |
+| `src/features/client-portal/usePortalData.ts` (`usePortalPreview` & `usePublicPortal`) | `tickets` (project filter for preview), `time_logs`, `ticket_estimate_changes`, `project_epics` (project filter), `project_epic_summaries` (project filter), `projects` (id filter). For public route, subscribe after first payload arrives so we know the project_id. |
+| `src/features/client-portal/PortalEpicTrend.tsx` | `tickets` filter `project_id=eq.{id}`, `ticket_estimate_changes`, `time_logs`, `projects` filter `id=eq.{id}` |
 
-1. Sets `REPLICA IDENTITY FULL` (so UPDATE/DELETE payloads include full old-row data — needed for filters like `project_id=eq.…` to match).
-2. Adds the table to the `supabase_realtime` publication (idempotent — skip if already added).
+Each subscription calls the existing `load()` / `refresh()` / re-runs the effect body via a small reload counter where needed.
 
-### Tables included
-- `projects`
-- `project_members`
-- `project_epics`
-- `project_epic_summaries`
-- `tickets`
-- `ticket_assignees`
-- `ticket_estimate_changes`
-- `time_logs`
-- `statuses`
-- `status_derivation_rules`
-- `team_members`
-- `active_timers`
-- `active_timer_tickets`
-
-### Migration shape
-```sql
-ALTER TABLE public.tickets REPLICA IDENTITY FULL;
--- guarded add to publication
-DO $$ BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_publication_tables
-    WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='tickets'
-  ) THEN
-    EXECUTE 'ALTER PUBLICATION supabase_realtime ADD TABLE public.tickets';
-  END IF;
-END $$;
-```
-…repeated for each table above.
-
-## No code changes needed
-All relevant hooks already subscribe via `supabase.channel(...).on('postgres_changes', …)` and call their `load()` on events. Once the publication is in place, those subscriptions start firing and the UI will refresh live across:
-- Board / Tickets list / Ticket detail
-- Estimate change requests
-- Client portal editor
-- Project team & epics
-- Active timers (TopBar timer)
-- Admin status rules
+## Step 3 — Cleanup
+Wrap `TrendChart` (in `PortalEpicTrend.tsx`) and `EpicSummaryEditor` (in `ClientPortalEditor.tsx`) with `React.forwardRef` to silence the existing dev warnings ("Function components cannot be given refs").
 
 ## Out of scope
-- No new subscriptions added (existing coverage is already comprehensive).
-- No RLS changes.
+- No DB / RLS changes (publication already covers all tables).
+- No change to local UI state (filters, search) — those are already instant.
+- No new caching layer; we keep the simple "subscription → reload" pattern matching the rest of the codebase.

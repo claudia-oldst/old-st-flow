@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtimeReload } from "@/hooks/useRealtimeReload";
 import { useCurrentUser } from "@/store/currentUser";
 import { displayTitle, formatHours } from "@/lib/utils";
 import { ListChecks, ArrowRight } from "lucide-react";
@@ -30,7 +31,7 @@ export default function MyWork() {
   const user = useCurrentUser((s) => s.user);
   const [rows, setRows] = useState<Row[]>([]);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     if (!user) return;
     supabase
       .from("ticket_assignees")
@@ -50,10 +51,25 @@ export default function MyWork() {
             actual_frontend_hours: Number(d.ticket.actual_frontend_hours),
             actual_backend_hours: Number(d.ticket.actual_backend_hours),
           })) ?? [];
-        // Filter out done
         setRows(flat.filter((r) => r.status?.category !== "done"));
       });
   }, [user]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  useRealtimeReload(
+    user
+      ? [
+          { table: "ticket_assignees", filter: `user_id=eq.${user.id}` },
+          { table: "tickets" },
+          { table: "time_logs" },
+        ]
+      : null,
+    load,
+    !!user,
+  );
 
   return (
     <div className="mx-auto max-w-[1480px] px-4 sm:px-6 py-10">
