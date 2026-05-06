@@ -48,6 +48,7 @@ interface Props {
   approvedChanges: ChangeRow[];
   onApprove: (row: ChangeRow) => void;
   onReject: (row: ChangeRow) => void;
+  onOpenTicket?: (ticketId: string) => void;
   defaultOpen?: boolean;
   /** Optional time window for the chart (defaults to first event → now). */
   range?: { from: Date; to: Date };
