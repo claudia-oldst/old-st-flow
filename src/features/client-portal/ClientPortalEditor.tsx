@@ -273,7 +273,7 @@ export function ClientPortalEditor() {
               disabled={busy}
               className="flex-1"
             >
-              Update
+              Update Preview
             </Button>
             <Button
               size="sm"
