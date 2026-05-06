@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { ChevronDown, Check, X } from "lucide-react";
 import {
@@ -14,6 +14,7 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { cn, formatHours } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 
 interface Props {
