@@ -288,17 +288,24 @@ export function EpicCRCard({
                       </td>
                       <td className="px-2 py-2 text-dimmer whitespace-nowrap">
                         {t.cr_approval === "approved" && t.cr_decided_at ? (
-                          <span>
-                            {format(new Date(t.cr_decided_at), "d MMM")}
-                            {t.cr_decided_by === null && (
+                          <div className="flex flex-col leading-tight">
+                            <span>{format(new Date(t.cr_decided_at), "d MMM")}</span>
+                            {t.cr_decided_by === null ? (
                               <span
-                                className="ml-1 text-health-good font-mono"
+                                className="text-[10px] text-health-good font-mono"
                                 title="Approved by client"
                               >
-                                (C)
+                                Client
+                              </span>
+                            ) : (
+                              <span
+                                className="text-[10px] text-dim truncate max-w-[140px]"
+                                title={memberNames[t.cr_decided_by] ?? ""}
+                              >
+                                {memberNames[t.cr_decided_by] ?? "…"}
                               </span>
                             )}
-                          </span>
+                          </div>
                         ) : (
                           "—"
                         )}
