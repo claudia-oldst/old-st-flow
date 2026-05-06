@@ -116,6 +116,28 @@ export function ClientPortalEditor() {
     return data.client_portal_hash;
   }
 
+  async function handleUpdate() {
+    if (!project) return;
+    setBusy(true);
+    const { data, error } = await supabase
+      .from("projects")
+      .update({
+        client_visibility_cutoff: asOf.toISOString(),
+        client_summary_draft: intro,
+      })
+      .eq("id", project.id)
+      .select()
+      .maybeSingle();
+    setBusy(false);
+    if (error || !data) {
+      toast.error("Update failed");
+      return;
+    }
+    setProject(data);
+    refresh();
+    toast.success("Snapshot updated");
+  }
+
   async function handlePublish() {
     if (!project) return;
     setBusy(true);
@@ -142,7 +164,7 @@ export function ClientPortalEditor() {
     }
     setProject(data);
     refresh();
-    toast.success("Published to client portal");
+    toast.success("Published to client");
   }
 
   async function handleDisable() {
@@ -158,7 +180,7 @@ export function ClientPortalEditor() {
       return;
     }
     setProject(data);
-    toast.success("Client portal disabled");
+    toast.success("Public link disabled");
   }
 
   const portalUrl = hash ? `${window.location.origin}/h/${hash}` : null;
