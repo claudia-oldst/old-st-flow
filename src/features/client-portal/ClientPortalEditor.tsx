@@ -17,8 +17,11 @@ import type { Project } from "@/lib/types";
 import { useProjectRole, isPMBA } from "@/features/team/useProjectRole";
 import { useProjectEstimateChanges } from "@/features/estimates/useEstimateChanges";
 import { useProjectTickets } from "@/features/tickets/useProjectTickets";
+import { useProjectEpics } from "@/features/epics/useProjectEpics";
 import { usePortalPreview } from "./usePortalData";
 import { PortalView } from "./PortalView";
+import { PortalChangeRequests } from "./PortalChangeRequests";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
 function makeHash() {
@@ -355,7 +358,18 @@ export function ClientPortalEditor() {
           </div>
           <div className="glass rounded-2xl p-6 lg:p-8">
             {payload ? (
-              <PortalView payload={payload} showRate />
+              <Tabs defaultValue="summary" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-6">
+                  <TabsTrigger value="summary">Summary</TabsTrigger>
+                  <TabsTrigger value="change-requests">Change Requests</TabsTrigger>
+                </TabsList>
+                <TabsContent value="summary">
+                  <PortalView payload={payload} showRate />
+                </TabsContent>
+                <TabsContent value="change-requests">
+                  <PreviewChangeRequests projectId={id} />
+                </TabsContent>
+              </Tabs>
             ) : (
               <div className="text-sm text-dim text-center py-12">
                 Loading preview…
