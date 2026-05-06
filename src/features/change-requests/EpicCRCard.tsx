@@ -256,9 +256,21 @@ export function EpicCRCard({
                         <StatusBadge status={t.cr_approval} />
                       </td>
                       <td className="px-2 py-2 text-dimmer whitespace-nowrap">
-                        {t.cr_approval === "approved" && t.cr_decided_at
-                          ? format(new Date(t.cr_decided_at), "d MMM")
-                          : "—"}
+                        {t.cr_approval === "approved" && t.cr_decided_at ? (
+                          <span>
+                            {format(new Date(t.cr_decided_at), "d MMM")}
+                            {t.cr_decided_by === null && (
+                              <span
+                                className="ml-1 text-health-good font-mono"
+                                title="Approved by client"
+                              >
+                                (C)
+                              </span>
+                            )}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
                       </td>
                       <td className="px-3 py-2 text-right">
                         {canReview && t.cr_approval === "pending" ? (
