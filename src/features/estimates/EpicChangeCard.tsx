@@ -165,7 +165,7 @@ export function EpicChangeCard({
             {chartData.length > 1 && (
               <div className="h-24 -mx-1">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
+                  <LineChart data={chartData} margin={{ top: 4, right: 8, left: 4, bottom: 0 }}>
                     <CartesianGrid stroke="hsl(0 0% 100% / 0.04)" vertical={false} />
                     <XAxis
                       dataKey="label"
@@ -181,7 +181,7 @@ export function EpicChangeCard({
                       tickLine={false}
                       axisLine={false}
                       tickFormatter={(v) => formatHours(Number(v))}
-                      width={36}
+                      width={44}
                       domain={[0, (dataMax: number) => Math.max(1, Math.ceil(dataMax * 1.1))]}
                       allowDecimals={false}
                     />
