@@ -189,10 +189,16 @@ export function EstimateEvolution({ projectId }: { projectId: string }) {
       return `e:${epicId}` === selectedEpic;
     };
 
-    const relevantTickets = tickets.filter((t) => ticketFilter(t.id));
+    const relevantTickets = tickets.filter(
+      (t) => ticketFilter(t.id) && !(t.ticket_type === "CR" && t.cr_approval !== "approved"),
+    );
     if (relevantTickets.length === 0) return [];
 
-    const firstTicketMs = Math.min(...relevantTickets.map((t) => new Date(t.created_at).getTime()));
+    // Per-ticket effective time (ms) for the Original contribution.
+    const ticketEffMs = new Map<string, number>();
+    relevantTickets.forEach((t) => ticketEffMs.set(t.id, ticketEffectiveMs(t)));
+
+    const firstTicketMs = Math.min(...Array.from(ticketEffMs.values()).filter((v) => isFinite(v)));
     const startMs = projectStart
       ? startOfDay(projectStart).getTime()
       : startOfDay(new Date(firstTicketMs)).getTime();
@@ -214,14 +220,19 @@ export function EstimateEvolution({ projectId }: { projectId: string }) {
       let actual = 0;
 
       relevantTickets.forEach((tk) => {
-        if (new Date(tk.created_at).getTime() > cutoff) return;
+        const eff = ticketEffMs.get(tk.id) ?? Infinity;
+        if (eff > cutoff) return;
         original += tk.original_fe_estimate + tk.original_be_estimate;
       });
 
       changes.forEach((c) => {
         if (c.status !== "approved") return;
-        if (new Date(c.created_at).getTime() > cutoff) return;
         if (!ticketFilter(c.ticket_id)) return;
+        const tkEff = ticketEffMs.get(c.ticket_id);
+        if (tkEff == null) return; // ticket excluded (e.g. unapproved CR)
+        // For CR tickets, deltas only take effect once the CR itself is approved/effective.
+        const deltaEff = Math.max(new Date(c.created_at).getTime(), tkEff);
+        if (deltaEff > cutoff) return;
         deltas += c.delta;
       });
 
@@ -241,7 +252,7 @@ export function EstimateEvolution({ projectId }: { projectId: string }) {
     }
 
     return buckets;
-  }, [tickets, changes, logs, ticketEpic, selectedEpic, asOf, projectStart]);
+  }, [tickets, changes, logs, ticketEpic, selectedEpic, asOf, projectStart, ticketEffectiveMs]);
 
   return (
     <div className="glass rounded-2xl p-5 space-y-5">
