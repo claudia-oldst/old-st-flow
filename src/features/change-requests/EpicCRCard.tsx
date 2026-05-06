@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { ChevronDown, Check, X } from "lucide-react";
 import {
@@ -14,6 +14,7 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { cn, formatHours } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 
 interface Props {
@@ -53,6 +54,36 @@ export function EpicCRCard({
   hideReject,
 }: Props) {
   const [open, setOpen] = useState(!!defaultOpen);
+  const [memberNames, setMemberNames] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const ids = Array.from(
+      new Set(
+        allCRs
+          .filter((t) => t.cr_approval === "approved" && t.cr_decided_by)
+          .map((t) => t.cr_decided_by as string),
+      ),
+    ).filter((id) => !(id in memberNames));
+    if (ids.length === 0) return;
+    let cancelled = false;
+    supabase
+      .from("team_members")
+      .select("id,name")
+      .in("id", ids)
+      .then(({ data }) => {
+        if (cancelled || !data) return;
+        setMemberNames((prev) => {
+          const next = { ...prev };
+          data.forEach((m: any) => {
+            next[m.id] = m.name;
+          });
+          return next;
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [allCRs, memberNames]);
 
   const totals = useMemo(() => {
     const original = baselineTickets.reduce(
@@ -257,17 +288,24 @@ export function EpicCRCard({
                       </td>
                       <td className="px-2 py-2 text-dimmer whitespace-nowrap">
                         {t.cr_approval === "approved" && t.cr_decided_at ? (
-                          <span>
-                            {format(new Date(t.cr_decided_at), "d MMM")}
-                            {t.cr_decided_by === null && (
+                          <div className="flex flex-col leading-tight">
+                            <span>{format(new Date(t.cr_decided_at), "d MMM")}</span>
+                            {t.cr_decided_by === null ? (
                               <span
-                                className="ml-1 text-health-good font-mono"
+                                className="text-[10px] text-health-good font-mono"
                                 title="Approved by client"
                               >
-                                (C)
+                                Client
+                              </span>
+                            ) : (
+                              <span
+                                className="text-[10px] text-dim truncate max-w-[140px]"
+                                title={memberNames[t.cr_decided_by] ?? ""}
+                              >
+                                {memberNames[t.cr_decided_by] ?? "…"}
                               </span>
                             )}
-                          </span>
+                          </div>
                         ) : (
                           "—"
                         )}
