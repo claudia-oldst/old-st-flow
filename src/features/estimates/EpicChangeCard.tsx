@@ -63,6 +63,7 @@ export function EpicChangeCard({
   approvedChanges,
   onApprove,
   onReject,
+  onOpenTicket,
   defaultOpen,
   range,
 }: Props) {
