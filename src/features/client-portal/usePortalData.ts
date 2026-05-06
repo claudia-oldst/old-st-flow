@@ -14,24 +14,16 @@ export function usePortalPreview(projectId: string, hash: string | null, asOf: D
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    if (!hash) {
+    if (!projectId) {
       setData(null);
       return;
     }
     setLoading(true);
     setError(null);
-    const { error: upErr } = await supabase
-      .from("projects")
-      .update({ client_visibility_cutoff: asOf.toISOString() })
-      .eq("id", projectId);
-    if (upErr) {
-      setError(upErr.message);
-      setLoading(false);
-      return;
-    }
-    const { data: payload, error: rpcErr } = await supabase.rpc("get_client_portal", {
-      _hash: hash,
-    });
+    const { data: payload, error: rpcErr } = await supabase.rpc(
+      "get_project_portal_preview",
+      { _project_id: projectId, _cutoff: asOf.toISOString() },
+    );
     if (rpcErr) {
       setError(rpcErr.message);
       setData(null);
@@ -39,7 +31,7 @@ export function usePortalPreview(projectId: string, hash: string | null, asOf: D
       setData(payload as unknown as PortalPayload);
     }
     setLoading(false);
-  }, [projectId, hash, asOf]);
+  }, [projectId, asOf]);
 
   useEffect(() => {
     refresh();
@@ -47,7 +39,7 @@ export function usePortalPreview(projectId: string, hash: string | null, asOf: D
 
   // Live updates whenever underlying portal data changes.
   useRealtimeReload(
-    hash
+    projectId
       ? [
           { table: "projects", filter: `id=eq.${projectId}` },
           { table: "tickets", filter: `project_id=eq.${projectId}` },
@@ -58,7 +50,7 @@ export function usePortalPreview(projectId: string, hash: string | null, asOf: D
         ]
       : null,
     refresh,
-    !!hash,
+    !!projectId,
   );
 
   return { data, loading, error, refresh };

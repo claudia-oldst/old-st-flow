@@ -593,6 +593,10 @@ export type Database = {
         Returns: string
       }
       get_client_portal: { Args: { _hash: string }; Returns: Json }
+      get_project_portal_preview: {
+        Args: { _cutoff: string; _project_id: string }
+        Returns: Json
+      }
       reapply_status_rules: { Args: never; Returns: undefined }
     }
     Enums: {

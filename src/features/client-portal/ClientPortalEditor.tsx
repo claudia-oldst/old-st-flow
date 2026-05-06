@@ -116,6 +116,28 @@ export function ClientPortalEditor() {
     return data.client_portal_hash;
   }
 
+  async function handleUpdate() {
+    if (!project) return;
+    setBusy(true);
+    const { data, error } = await supabase
+      .from("projects")
+      .update({
+        client_visibility_cutoff: asOf.toISOString(),
+        client_summary_draft: intro,
+      })
+      .eq("id", project.id)
+      .select()
+      .maybeSingle();
+    setBusy(false);
+    if (error || !data) {
+      toast.error("Update failed");
+      return;
+    }
+    setProject(data);
+    refresh();
+    toast.success("Snapshot updated");
+  }
+
   async function handlePublish() {
     if (!project) return;
     setBusy(true);
@@ -142,7 +164,7 @@ export function ClientPortalEditor() {
     }
     setProject(data);
     refresh();
-    toast.success("Published to client portal");
+    toast.success("Published to client");
   }
 
   async function handleDisable() {
@@ -158,7 +180,7 @@ export function ClientPortalEditor() {
       return;
     }
     setProject(data);
-    toast.success("Client portal disabled");
+    toast.success("Public link disabled");
   }
 
   const portalUrl = hash ? `${window.location.origin}/h/${hash}` : null;
@@ -239,11 +261,20 @@ export function ClientPortalEditor() {
             </div>
           ) : (
             <div className="text-xs text-dim">
-              Portal not enabled yet. Publishing will generate a public link.
+              Public link disabled. The client cannot view the URL, but you can still plan what they'd see below. Click "Publish to client" to enable a new link.
             </div>
           )}
 
           <div className="flex items-center gap-2 pt-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleUpdate}
+              disabled={busy}
+              className="flex-1"
+            >
+              Update
+            </Button>
             <Button
               size="sm"
               onClick={handlePublish}
@@ -327,9 +358,7 @@ export function ClientPortalEditor() {
               <PortalView payload={payload} showRate />
             ) : (
               <div className="text-sm text-dim text-center py-12">
-                {hash
-                  ? "Loading preview…"
-                  : "Click Publish to enable the portal and generate a preview."}
+                Loading preview…
               </div>
             )}
           </div>
@@ -367,7 +396,6 @@ function EpicSummaryEditor({
   const [text, setText] = useState(initialText);
   const [included, setIncluded] = useState(initialIncluded);
   const [generating, setGenerating] = useState(false);
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     setText(initialText);
@@ -391,7 +419,8 @@ function EpicSummaryEditor({
       const draft: string = (data as any)?.draft ?? "";
       if (draft) {
         setText(draft);
-        toast.success("Draft generated — review and save");
+        await persist(draft, included, { silent: true });
+        toast.success("Draft generated");
       } else {
         toast.error("No draft returned");
       }
@@ -424,10 +453,9 @@ function EpicSummaryEditor({
     return true;
   }
 
-  async function save() {
-    setSaving(true);
-    await persist(text, included);
-    setSaving(false);
+  async function handleBlur() {
+    if (text === initialText) return;
+    await persist(text, included, { silent: true });
   }
 
   async function handleToggleIncluded(next: boolean) {
@@ -454,6 +482,7 @@ function EpicSummaryEditor({
       <Textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
+        onBlur={handleBlur}
         placeholder="Why has the estimate changed? (Visible to the client)"
         rows={3}
         className="text-sm"
@@ -463,25 +492,20 @@ function EpicSummaryEditor({
           <Switch checked={included} onCheckedChange={handleToggleIncluded} />
           Show to client
         </label>
-        <div className="flex items-center gap-1.5">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={generate}
-            disabled={generating}
-            className="text-xs gap-1.5"
-          >
-            {generating ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
-            ) : (
-              <Sparkles className="h-3 w-3" />
-            )}
-            {text ? "Regenerate" : "Generate"}
-          </Button>
-          <Button size="sm" onClick={save} disabled={saving} className="text-xs">
-            Save
-          </Button>
-        </div>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={generate}
+          disabled={generating}
+          className="text-xs gap-1.5"
+        >
+          {generating ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : (
+            <Sparkles className="h-3 w-3" />
+          )}
+          {text ? "Regenerate" : "Generate"}
+        </Button>
       </div>
     </div>
   );
