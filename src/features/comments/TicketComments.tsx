@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/store/currentUser";
 import { MessageSquare } from "lucide-react";
@@ -13,6 +14,22 @@ interface Props {
 export function TicketComments({ ticketId, projectId }: Props) {
   const user = useCurrentUser((s) => s.user);
   const { threads, count, loading, reload } = useTicketComments(ticketId);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const lastSigRef = useRef<string>("");
+
+  useEffect(() => {
+    const sig = threads
+      .flatMap((t) => [t.id, ...t.replies.map((r) => r.id)])
+      .join(",");
+    if (sig !== lastSigRef.current) {
+      lastSigRef.current = sig;
+      // jump to latest on new message (own or received)
+      requestAnimationFrame(() => {
+        bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+      });
+    }
+  }, [threads]);
 
   return (
     <div className="flex flex-col h-[60vh] min-h-[360px]">
@@ -22,7 +39,7 @@ export function TicketComments({ ticketId, projectId }: Props) {
         <span className="text-xs text-dimmer">{count}</span>
       </div>
 
-      <div className="flex-1 overflow-y-auto py-3 flex flex-col">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto py-3 flex flex-col">
         {loading ? (
           <div className="text-xs text-dimmer py-4 text-center m-auto">Loading…</div>
         ) : threads.length === 0 ? (
@@ -32,6 +49,7 @@ export function TicketComments({ ticketId, projectId }: Props) {
             {threads.map((t) => (
               <CommentThread key={t.id} thread={t} projectId={projectId} ticketId={ticketId} onChanged={reload} />
             ))}
+            <div ref={bottomRef} />
           </div>
         )}
       </div>
