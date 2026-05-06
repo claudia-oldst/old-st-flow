@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, NavLink, Route, Routes, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Project } from "@/lib/types";
+import { useRealtimeReload } from "@/hooks/useRealtimeReload";
 
 import { ProjectTickets } from "@/features/tickets/ProjectTickets";
 import { ProjectHealth } from "@/features/health/ProjectHealth";
@@ -21,10 +22,20 @@ export default function ProjectWorkspace() {
   const canEdit = isPMBA(role);
   const [exportOpen, setExportOpen] = useState(false);
 
-  useEffect(() => {
+  const loadProject = useCallback(() => {
     if (!id) return;
     supabase.from("projects").select("*").eq("id", id).maybeSingle().then(({ data }) => setProject(data));
   }, [id]);
+
+  useEffect(() => {
+    loadProject();
+  }, [loadProject]);
+
+  useRealtimeReload(
+    id ? [{ table: "projects", filter: `id=eq.${id}` }] : null,
+    loadProject,
+    !!id,
+  );
 
   const tabs = useMemo(
     () =>
