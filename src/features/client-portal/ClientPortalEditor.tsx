@@ -261,11 +261,20 @@ export function ClientPortalEditor() {
             </div>
           ) : (
             <div className="text-xs text-dim">
-              Portal not enabled yet. Publishing will generate a public link.
+              Public link disabled. The client cannot view the URL, but you can still plan what they'd see below. Click "Publish to client" to enable a new link.
             </div>
           )}
 
           <div className="flex items-center gap-2 pt-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleUpdate}
+              disabled={busy}
+              className="flex-1"
+            >
+              Update
+            </Button>
             <Button
               size="sm"
               onClick={handlePublish}
