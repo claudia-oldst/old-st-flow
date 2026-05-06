@@ -32,6 +32,7 @@ interface Props {
   onOpenTicket?: (t: TicketRow) => void;
   defaultOpen?: boolean;
   range: { from: Date; to: Date };
+  hideReject?: boolean;
 }
 
 const crEstimate = (t: TicketRow) =>
@@ -49,6 +50,7 @@ export function EpicCRCard({
   onOpenTicket,
   defaultOpen,
   range,
+  hideReject,
 }: Props) {
   const [open, setOpen] = useState(!!defaultOpen);
 
@@ -269,14 +271,16 @@ export function EpicCRCard({
                             >
                               <Check className="h-3.5 w-3.5 mr-1" /> Approve
                             </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-7 px-2 text-health-bad hover:text-health-bad hover:bg-health-bad/10"
-                              onClick={() => onReject(t)}
-                            >
-                              <X className="h-3.5 w-3.5 mr-1" /> Reject
-                            </Button>
+                            {!hideReject && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2 text-health-bad hover:text-health-bad hover:bg-health-bad/10"
+                                onClick={() => onReject(t)}
+                              >
+                                <X className="h-3.5 w-3.5 mr-1" /> Reject
+                              </Button>
+                            )}
                           </div>
                         ) : (
                           <span className="text-dimmer text-[10px]">—</span>
