@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Constants } from "@/integrations/supabase/types";
 import { PROJECT_ROLES as ROLES, type ProjectRole, type Status, type StatusCategory, type TeamMember } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
