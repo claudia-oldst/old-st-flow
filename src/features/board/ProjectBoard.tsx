@@ -500,11 +500,15 @@ function DraggableDisciplineCard({
   onClick,
   prefs,
   forceBars,
+  showQuickStart,
+  currentUserId,
 }: {
   card: DisciplineCard;
   onClick: () => void;
   prefs: CardDisplayPrefs;
   forceBars: boolean;
+  showQuickStart?: boolean;
+  currentUserId?: string;
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `${card.ticket.id}::${card.slot}`,
@@ -517,7 +521,16 @@ function DraggableDisciplineCard({
       >
         {card.slot === "Project" ? "P" : card.slot}
       </span>
-      <TicketCard ticket={card.ticket} onClick={onClick} isDragging={isDragging} prefs={prefs} forceBars={forceBars} />
+      <TicketCard
+        ticket={card.ticket}
+        onClick={onClick}
+        isDragging={isDragging}
+        prefs={prefs}
+        forceBars={forceBars}
+        showQuickStart={showQuickStart}
+        currentUserId={currentUserId}
+        forcedDiscipline={card.slot}
+      />
     </div>
   );
 }
