@@ -247,14 +247,14 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
             </SheetTitle>
           </SheetHeader>
 
-          <Tabs defaultValue="detail" className="mt-6">
-            <TabsList className="grid w-full grid-cols-3">
+          <Tabs defaultValue="detail" className="mt-6 flex-1 flex flex-col min-h-0">
+            <TabsList className="grid w-full grid-cols-3 shrink-0">
               <TabsTrigger value="acceptance">Acceptance</TabsTrigger>
               <TabsTrigger value="discussion">Discussion</TabsTrigger>
               <TabsTrigger value="detail">Detail</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="acceptance" className="mt-4 space-y-6">
+            <TabsContent value="acceptance" className="mt-4 space-y-6 flex-1 overflow-y-auto">
               <AcceptanceCriteria
                 ticketId={ticket.id}
                 value={ticket.acceptance_criteria}
