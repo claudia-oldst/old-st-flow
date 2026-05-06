@@ -626,13 +626,16 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
             )}
             </TabsContent>
 
-            <TabsContent value="discussion" className="mt-4">
+            <TabsContent value="discussion" className="mt-4 space-y-6">
               <AcceptanceCriteria
                 ticketId={ticket.id}
                 value={ticket.acceptance_criteria}
                 canEdit={isPMBA(role)}
                 onSaved={onChange}
               />
+              <div className="hairline-t pt-6">
+                <TicketComments ticketId={ticket.id} projectId={projectId} />
+              </div>
             </TabsContent>
           </Tabs>
         </SheetContent>
