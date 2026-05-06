@@ -263,7 +263,7 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
               />
             </TabsContent>
 
-            <TabsContent value="detail" className="mt-4 space-y-6">
+            <TabsContent value="detail" className="mt-4 space-y-6 flex-1 overflow-y-auto">
               {/* Epic */}
             {isPMBA(role) && (
               <div>
