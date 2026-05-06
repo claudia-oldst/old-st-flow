@@ -22,6 +22,24 @@ export function TicketComments({ ticketId, projectId }: Props) {
         <span className="text-xs text-dimmer">{count}</span>
       </div>
 
+      {loading ? (
+        <div className="text-xs text-dimmer py-4 text-center">Loading…</div>
+      ) : threads.length === 0 ? (
+        <div className="text-xs text-dimmer py-6 text-center">Start the conversation</div>
+      ) : (
+        <div className="space-y-3">
+          {threads.map((t) => (
+            <CommentThread
+              key={t.id}
+              thread={t}
+              projectId={projectId}
+              ticketId={ticketId}
+              onChanged={reload}
+            />
+          ))}
+        </div>
+      )}
+
       <CommentComposer
         ticketId={ticketId}
         placeholder={user ? "Write a comment…" : "Select a user in the top bar to comment"}
@@ -40,24 +58,6 @@ export function TicketComments({ ticketId, projectId }: Props) {
           reload();
         }}
       />
-
-      {loading ? (
-        <div className="text-xs text-dimmer py-4 text-center">Loading…</div>
-      ) : threads.length === 0 ? (
-        <div className="text-xs text-dimmer py-6 text-center">Start the conversation</div>
-      ) : (
-        <div className="space-y-3">
-          {threads.map((t) => (
-            <CommentThread
-              key={t.id}
-              thread={t}
-              projectId={projectId}
-              ticketId={ticketId}
-              onChanged={reload}
-            />
-          ))}
-        </div>
-      )}
     </div>
   );
 }
