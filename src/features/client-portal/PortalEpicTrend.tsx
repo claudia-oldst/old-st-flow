@@ -22,6 +22,11 @@ interface TicketLite {
   epic_id: number | null;
   original_fe_estimate: number;
   original_be_estimate: number;
+  ticket_type: string;
+  is_cr: boolean;
+  cr_effective_at: string | null; // when CR contributes (approval time)
+  cr_fe: number;
+  cr_be: number;
 }
 interface ChangeLite {
   ticket_id: string;
