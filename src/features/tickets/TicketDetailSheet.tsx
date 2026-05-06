@@ -248,10 +248,20 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
           </SheetHeader>
 
           <Tabs defaultValue="detail" className="mt-6">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="detail">Ticket Detail</TabsTrigger>
-              <TabsTrigger value="discussion">Ticket Discussion</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="acceptance">Acceptance</TabsTrigger>
+              <TabsTrigger value="discussion">Discussion</TabsTrigger>
+              <TabsTrigger value="detail">Detail</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="acceptance" className="mt-4 space-y-6">
+              <AcceptanceCriteria
+                ticketId={ticket.id}
+                value={ticket.acceptance_criteria}
+                canEdit={isPMBA(role)}
+                onSaved={onChange}
+              />
+            </TabsContent>
 
             <TabsContent value="detail" className="mt-4 space-y-6">
               {/* Epic */}
