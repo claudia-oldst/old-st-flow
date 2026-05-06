@@ -7,6 +7,7 @@ import { useRealtimeReload } from "@/hooks/useRealtimeReload";
 import { ProjectTickets } from "@/features/tickets/ProjectTickets";
 import { ProjectHealth } from "@/features/health/ProjectHealth";
 import { ProjectChangeRequests } from "@/features/estimates/ProjectChangeRequests";
+import { ProjectChangeRequestTickets } from "@/features/change-requests/ProjectChangeRequestTickets";
 import { ProjectSettingsDialog } from "@/features/project/ProjectSettingsDialog";
 import { ExportProjectDialog } from "@/features/project/ExportProjectDialog";
 import { ClientPortalEditor } from "@/features/client-portal/ClientPortalEditor";
@@ -41,6 +42,7 @@ export default function ProjectWorkspace() {
     () =>
       [
         { to: "", label: "Tickets", end: true },
+        { to: "change-requests-cr", label: "Change Requests" },
         canEdit ? { to: "change-requests", label: "Estimate Revisions" } : null,
         { to: "health", label: "Health" },
         canEdit ? { to: "client", label: "Client" } : null,
@@ -117,6 +119,7 @@ export default function ProjectWorkspace() {
 
       <Routes>
         <Route index element={<ProjectTickets projectId={id} />} />
+        <Route path="change-requests-cr" element={<ProjectChangeRequestTickets projectId={id} />} />
         <Route path="change-requests" element={<ProjectChangeRequests projectId={id} />} />
         <Route path="health" element={<ProjectHealth projectId={id} />} />
         <Route path="client" element={<ClientPortalEditor />} />

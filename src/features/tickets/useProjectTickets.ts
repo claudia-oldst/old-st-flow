@@ -28,6 +28,9 @@ export interface TicketRow {
   acceptance_criteria: string | null;
   position: number;
   created_at: string;
+  cr_approval: "pending" | "approved" | "rejected";
+  cr_decided_by: string | null;
+  cr_decided_at: string | null;
   assignees: Array<{ user_id: string; slot: "FE" | "BE" | "Project"; member: TeamMember; created_at: string }>;
 }
 
@@ -93,6 +96,9 @@ export function useProjectTickets(projectId: string | undefined) {
         acceptance_criteria: t.acceptance_criteria ?? null,
         position: t.position,
         created_at: t.created_at,
+        cr_approval: (t.cr_approval ?? "pending") as TicketRow["cr_approval"],
+        cr_decided_by: t.cr_decided_by ?? null,
+        cr_decided_at: t.cr_decided_at ?? null,
         assignees: grouped[t.id] ?? [],
       }))
     );

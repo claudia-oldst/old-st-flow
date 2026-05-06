@@ -49,10 +49,10 @@ interface Draft {
   assignees: DraftAssignees;
 }
 
-const newDraft = (statusId: string | null = null): Draft => ({
+const newDraft = (statusId: string | null = null, type: TicketType = "Standard"): Draft => ({
   key: Math.random().toString(36).slice(2),
   title: "",
-  type: "Standard",
+  type,
   epicId: null,
   statusId,
   fe: "",
@@ -66,25 +66,26 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   projectId: string;
   onCreated: () => void | Promise<void>;
+  defaultType?: TicketType;
 }
 
-export function AddTicketsDialog({ open, onOpenChange, projectId, onCreated }: Props) {
+export function AddTicketsDialog({ open, onOpenChange, projectId, onCreated, defaultType = "Standard" }: Props) {
   const { statuses } = useStatuses();
   const defaultStatusId = useMemo(
     () => statuses.find((s) => s.category === "backlog")?.id ?? statuses[0]?.id ?? null,
     [statuses]
   );
 
-  const [drafts, setDrafts] = useState<Draft[]>([newDraft()]);
+  const [drafts, setDrafts] = useState<Draft[]>([newDraft(null, defaultType)]);
   const [members, setMembers] = useState<(ProjectMember & { member: TeamMember })[]>([]);
   const [busy, setBusy] = useState(false);
 
   // Reset on open & seed first draft with default status
   useEffect(() => {
     if (open) {
-      setDrafts([newDraft(defaultStatusId)]);
+      setDrafts([newDraft(defaultStatusId, defaultType)]);
     }
-  }, [open, defaultStatusId]);
+  }, [open, defaultStatusId, defaultType]);
 
   // Backfill statusId on drafts that don't have one once statuses load
   useEffect(() => {
@@ -110,7 +111,7 @@ export function AddTicketsDialog({ open, onOpenChange, projectId, onCreated }: P
   const remove = (key: string) =>
     setDrafts((prev) => (prev.length === 1 ? prev : prev.filter((d) => d.key !== key)));
 
-  const addAnother = () => setDrafts((prev) => [...prev, newDraft(defaultStatusId)]);
+  const addAnother = () => setDrafts((prev) => [...prev, newDraft(defaultStatusId, defaultType)]);
 
   const validDrafts = drafts.filter((d) => d.title.trim().length > 0);
 
