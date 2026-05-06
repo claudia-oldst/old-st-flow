@@ -353,7 +353,14 @@ export function TicketsList({
     switch (key) {
       case "id":
         return (
-          <span className="font-mono text-xs text-dimmer">{t.formatted_id}</span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="font-mono text-xs text-dimmer">{t.formatted_id}</span>
+            {t.ticket_type === "CR" && t.cr_approval === "pending" && (
+              <span className="px-1.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider bg-amber-500/15 text-amber-400 ring-1 ring-amber-400/30">
+                Pending
+              </span>
+            )}
+          </span>
         );
       case "title":
         return (

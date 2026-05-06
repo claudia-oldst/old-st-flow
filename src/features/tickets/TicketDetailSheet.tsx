@@ -221,6 +221,11 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
               {ticket.ticket_type !== "Standard" && (
                 <span className="px-2 py-0.5 rounded-full text-[10px] bg-white/5 hairline">{ticket.ticket_type}</span>
               )}
+              {ticket.ticket_type === "CR" && ticket.cr_approval === "pending" && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-amber-500/15 text-amber-400 ring-1 ring-amber-400/30">
+                  Pending
+                </span>
+              )}
               {ticket.epic_name && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-white/5 hairline">
                   <Bookmark className="h-2.5 w-2.5" /> {ticket.epic_name}

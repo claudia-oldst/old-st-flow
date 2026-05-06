@@ -1,19 +1,19 @@
-The CR approval (6 May 14:37) doesn't show on the chart because both trend builders sample daily starting from `startOfDay`. With `asOf = today`, the loop's last sample is 6 May 00:00 — before the CR's approval timestamp — so the +220h Original jump never appears. The per-epic snapshot bars use `endOfDay(asOf)` so they are correct; only the line chart is missing the final point.
+## Add Pending flag to unapproved CR tickets
 
-## Fix
+Add a small amber "Pending" badge next to the formatted ID on any ticket where `ticket_type === "CR"` and `cr_approval === "pending"`, so devs can see at a glance that the change request hasn't been approved yet.
 
-Append a final bucket pinned to `end` (= `endOfDay(asOf)`) in both trend builders so any same-day event (CR approval, estimate change, time log) is reflected in the last sample on the chart.
+### Where it appears
 
-### `src/features/health/EstimateEvolution.tsx` (trendData)
-- Extract bucket sampling into a `sampleAt(cutoff)` helper.
-- After the daily loop, if the last bucket's timestamp is `< end`, push one more bucket sampled at `end` with label `format(end, "d MMM")`.
+1. **`src/features/tickets/TicketCard.tsx`** — header row, alongside the type icon and formatted ID. Visible on the board, ticket list, and anywhere the card is rendered.
+2. **`src/features/tickets/TicketDetailSheet.tsx`** — header area near the ticket title/ID, so it's also visible in the detail view (pending verification of the file structure).
+3. **`src/features/tickets/TicketsList.tsx`** — list-row variant if the row renders the formatted ID separately from the card.
 
-### `src/features/client-portal/PortalEpicTrend.tsx` (buildSeries)
-- Same change: extract sampling, then ensure a final bucket at `end` (= `endOfDay(cutoff)`).
+### Visual
 
-No other logic changes; CR effective-date handling stays as already implemented.
+Small pill: `bg-amber-500/15 text-amber-400 ring-1 ring-amber-400/30`, uppercase 9–10px, "Pending". Same amber as the CR `GitPullRequest` icon already used in `TypeIcon`, keeping consistency.
 
-## Verification
-- Health chart shows +220h Original step and Current settling at +80h on 6 May for COU-441.
-- Client portal `Estimate trend over time` chart shows the same step on the approval date.
-- Pending/rejected CRs still excluded; standard tickets unaffected.
+### Not in scope
+
+- Client portal CR views (separate component already shows pending state).
+- Approved/rejected CRs — no badge.
+- No DB changes; `cr_approval` already exists and is loaded by `useProjectTickets`.
