@@ -134,19 +134,20 @@ export function CommentItem({ comment, projectId, ticketId, onReply, onChanged, 
 
   return (
     <div className="flex gap-2.5 group">
-      <MemberAvatar
-        name={comment.author?.name ?? "?"}
-        color={comment.author?.avatar_color ?? "#6366f1"}
-        size={isReply ? "xs" : "sm"}
-      />
+      <div title={comment.author?.name ?? "Unknown"}>
+        <MemberAvatar
+          name={comment.author?.name ?? "?"}
+          color={comment.author?.avatar_color ?? "#6366f1"}
+          size="xs"
+        />
+      </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2 flex-wrap">
-          <span className="text-sm font-medium">{comment.author?.name ?? "Unknown"}</span>
           <span className="text-[11px] text-dimmer">{relTime(comment.created_at)}</span>
           {comment.edited_at && <span className="text-[11px] text-dimmer">(edited)</span>}
         </div>
         {comment.body && (
-          <div className="prose prose-invert prose-sm max-w-none mt-0.5 break-words [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+          <div className="prose prose-invert prose-xs max-w-none mt-0.5 break-words text-xs leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:text-xs [&_li]:text-xs [&_code]:text-xs">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{comment.body}</ReactMarkdown>
           </div>
         )}
