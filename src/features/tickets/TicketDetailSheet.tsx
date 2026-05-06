@@ -35,6 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Clock, Users, Trash2, Edit3, Bookmark, Sparkles, Pin, TrendingUp, History, ChevronLeft, ChevronRight } from "lucide-react";
+import { TicketComments } from "@/features/comments/TicketComments";
 import { toast } from "sonner";
 
 interface Props {
