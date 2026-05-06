@@ -39,7 +39,7 @@ export function TicketComments({ ticketId, projectId }: Props) {
         <span className="text-xs text-dimmer">{count}</span>
       </div>
 
-      <div className="flex-1 overflow-y-auto py-3 flex flex-col">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto py-3 flex flex-col">
         {loading ? (
           <div className="text-xs text-dimmer py-4 text-center m-auto">Loading…</div>
         ) : threads.length === 0 ? (
@@ -49,6 +49,7 @@ export function TicketComments({ ticketId, projectId }: Props) {
             {threads.map((t) => (
               <CommentThread key={t.id} thread={t} projectId={projectId} ticketId={ticketId} onChanged={reload} />
             ))}
+            <div ref={bottomRef} />
           </div>
         )}
       </div>
