@@ -50,7 +50,7 @@ export function usePortalPreview(projectId: string, hash: string | null, asOf: D
         ]
       : null,
     refresh,
-    !!hash,
+    !!projectId,
   );
 
   return { data, loading, error, refresh };
