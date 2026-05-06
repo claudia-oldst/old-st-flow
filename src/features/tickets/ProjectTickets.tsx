@@ -532,6 +532,8 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
           selectedIds={selectedIds}
           onToggleSelect={toggleSelect}
           onToggleSelectAll={toggleSelectAll}
+          showQuickStart={filterMine}
+          currentUserId={user?.id}
         />
       )}
 

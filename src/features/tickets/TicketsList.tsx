@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronRight, ArrowUp, ArrowDown, ChevronsUpDown } from "lucide-react";
+import { ChevronDown, ChevronRight, ArrowUp, ArrowDown, ChevronsUpDown, Play } from "lucide-react";
 import { useStatuses } from "@/features/statuses/useStatuses";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { displayTitle, formatHours, cn } from "@/lib/utils";
 import { DisciplineStatusChip } from "@/features/tickets/DisciplineStatusChip";
-import { DISCIPLINE_STATUS_LABEL, type DisciplineStatus } from "@/lib/types";
+import { DISCIPLINE_STATUS_LABEL, type DisciplineStatus, type LogDiscipline } from "@/lib/types";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useTimerStore } from "@/store/timer";
+import { startTicketTimer } from "@/features/timelog/startTicketTimer";
+import { toast } from "sonner";
 
 export type GroupBy = "none" | "status" | "assignee" | "type" | "epic" | "version" | "fe_status" | "be_status";
 
@@ -103,6 +106,8 @@ export function TicketsList({
   selectedIds,
   onToggleSelect,
   onToggleSelectAll,
+  showQuickStart = false,
+  currentUserId,
 }: {
   tickets: TicketRow[];
   groupBy: GroupBy;
@@ -110,9 +115,12 @@ export function TicketsList({
   selectedIds?: Set<string>;
   onToggleSelect?: (id: string, shiftKey: boolean) => void;
   onToggleSelectAll?: (ids: string[], select: boolean) => void;
+  showQuickStart?: boolean;
+  currentUserId?: string;
 }) {
   const selectionEnabled = !!selectedIds && !!onToggleSelect;
   const { statuses } = useStatuses();
+  const activeTimer = useTimerStore((s) => s.active);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [widths, setWidths] = useState<Partial<Record<ColKey, number>>>(() => loadWidths());
   const [sort, setSort] = useState<SortState | null>(() => loadSort());
@@ -362,17 +370,63 @@ export function TicketsList({
             )}
           </span>
         );
-      case "title":
+      case "title": {
+        const mySlots: ("FE" | "BE" | "Project")[] = currentUserId
+          ? Array.from(
+              new Set(
+                t.assignees
+                  .filter((a) => a.user_id === currentUserId)
+                  .map((a) => a.slot as "FE" | "BE" | "Project")
+              )
+            )
+          : [];
+        const canQuickStart =
+          showQuickStart && !!currentUserId && !activeTimer && mySlots.length > 0;
+        const handleQuickStart = async (e: React.MouseEvent) => {
+          e.stopPropagation();
+          if (!currentUserId) return;
+          let discipline: LogDiscipline | undefined;
+          if (mySlots.includes("FE")) discipline = "FE";
+          else if (mySlots.includes("BE")) discipline = "BE";
+          else if (mySlots.includes("Project")) discipline = "Project";
+          if (!discipline) return;
+          const res = await startTicketTimer({ userId: currentUserId, ticketId: t.id, discipline });
+          if (res.ok === true) {
+            toast.success(`Timer started on ${t.formatted_id}`);
+            return;
+          }
+          if (res.reason === "active") {
+            toast.error("Stop your running timer first.");
+            return;
+          }
+          toast.error(res.message ?? "Failed to start timer");
+        };
         return (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="truncate block">{displayTitle(t.title, t.ticket_type)}</span>
-            </TooltipTrigger>
-            <TooltipContent side="top" align="start" className="max-w-md">
-              <p className="text-sm">{t.title}</p>
-            </TooltipContent>
-          </Tooltip>
+          <span className="group/title flex items-center gap-2 min-w-0">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="truncate block flex-1 min-w-0">
+                  {displayTitle(t.title, t.ticket_type)}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top" align="start" className="max-w-md">
+                <p className="text-sm">{t.title}</p>
+              </TooltipContent>
+            </Tooltip>
+            {canQuickStart && (
+              <button
+                type="button"
+                onClick={handleQuickStart}
+                aria-label="Start timer on this ticket"
+                title="Start timer"
+                className="shrink-0 h-5 w-5 rounded-full flex items-center justify-center bg-primary text-primary-foreground shadow ring-1 ring-white/10 opacity-0 group-hover/title:opacity-100 focus:opacity-100 transition"
+              >
+                <Play className="h-2.5 w-2.5 fill-current" />
+              </button>
+            )}
+          </span>
         );
+      }
       case "epic":
         return (
           <span className="text-xs text-dim truncate block">
