@@ -637,7 +637,7 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
             )}
             </TabsContent>
 
-            <TabsContent value="discussion" className="mt-4 space-y-6">
+            <TabsContent value="discussion" className="mt-4 flex-1 min-h-0 data-[state=active]:flex flex-col">
               <TicketComments ticketId={ticket.id} projectId={projectId} />
             </TabsContent>
           </Tabs>
