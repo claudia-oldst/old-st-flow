@@ -105,7 +105,7 @@ export function TicketCard({
     }
     if (!discipline) return;
     const res = await startTicketTimer({ userId: currentUserId, ticketId: ticket.id, discipline });
-    if (res.ok) {
+    if (res.ok === true) {
       toast.success(`Timer started on ${ticket.formatted_id}`);
       return;
     }
