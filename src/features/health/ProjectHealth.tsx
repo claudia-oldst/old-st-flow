@@ -73,7 +73,12 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [projectId, tickets, range.from, range.to]);
+  }, [projectId, tickets, range.from, range.to, logsTick]);
+
+  useRealtimeReload(
+    [{ table: "time_logs" }],
+    useCallback(() => setLogsTick((t) => t + 1), []),
+  );
 
   const openTickets = useMemo(() => {
     const doneIds = new Set(statuses.filter((s) => s.category === "done").map((s) => s.id));
