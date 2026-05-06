@@ -16,6 +16,7 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
   const [members, setMembers] = useState<{ user_id: string; role: string; member: { id: string; name: string; avatar_color: string } }[]>([]);
   const [weekHours, setWeekHours] = useState<Record<string, number>>({});
   const [range, setRange] = useState<DateRange>(() => defaultRange());
+  const [logsTick, setLogsTick] = useState(0);
 
   const loadMembers = useCallback(() => {
     supabase
