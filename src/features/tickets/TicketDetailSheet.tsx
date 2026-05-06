@@ -915,6 +915,16 @@ function AcceptanceCriteria({
           <Button
             variant="ghost"
             size="sm"
+            onClick={generate}
+            disabled={generating}
+            className="gap-1 text-xs"
+            title="Generate with AI based on project context"
+          >
+            <Sparkles className="h-3 w-3" /> {generating ? "Generating…" : "Generate"}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => setPreview((v) => !v)}
             className="text-xs"
           >
