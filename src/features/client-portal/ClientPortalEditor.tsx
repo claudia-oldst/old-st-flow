@@ -476,7 +476,7 @@ function EpicSummaryEditor({
           )}
         >
           {delta > 0 ? "+" : ""}
-          {delta}h
+          {delta.toFixed(1)}h
         </div>
       </div>
       <Textarea
