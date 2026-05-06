@@ -1,47 +1,68 @@
-# Quick-start timer from My Tickets
+## Ticket Discussion — Chat Feature
 
-Add a small Play icon that appears on hover for tickets in **My Tickets** mode (Kanban cards and List view title cell). Clicking starts a single-ticket timer for the current user — no modal, no extra clicks. The button is hidden whenever the user already has a running timer, so existing logs can never be lost.
+Add a full chat/comment thread to the **Discussion** tab in `TicketDetailSheet`, sitting below the existing Acceptance Criteria block. ClickUp-style: top-level comments, one level of replies, attachments (images/videos/files), edit/delete own comments, realtime updates.
 
-## Behavior
+### 1. Database (migration)
 
-- **Visibility**: Play button renders only when ALL of:
-  - Parent is in "My tickets" mode (`filterMine === true`)
-  - Current user is assigned to the ticket (FE, BE, or Project slot)
-  - `useTimerStore().active` is `null` — i.e. no timer currently running for this user
-- **Hover only**: Tailwind `opacity-0 group-hover:opacity-100` (also visible on `group-focus-within` for keyboard).
-- **Click**:
-  1. Pick discipline from the user's slot on this ticket. Priority FE → BE → Project. In discipline-mode kanban the slot is already known on the card and is passed through as `forcedDiscipline`.
-  2. Insert one row into `active_timers` (no replace — guaranteed empty by the visibility check) and one row into `active_timer_tickets` at position 0.
-  3. `e.stopPropagation()` so the card-click (open detail sheet) does not fire.
-  4. Toast: "Timer started on {formatted_id}".
-- **If a timer somehow exists at click time** (race with realtime): the helper re-checks `active_timers` for the user; if a row exists, it aborts and toasts "Stop your running timer first." No data is overwritten.
+New table `ticket_comments`:
+- `id uuid pk default gen_random_uuid()`
+- `ticket_id uuid not null` (indexed)
+- `user_id uuid not null` — references `team_members.id` (consistent with rest of app, which uses the in-app `currentUser` store, not `auth.users`)
+- `parent_id uuid null` — references `ticket_comments.id` on delete cascade. **Constraint: a row whose `parent_id` is not null must point to a row whose `parent_id` is null** (enforces single reply level) — implemented via `BEFORE INSERT/UPDATE` trigger.
+- `body text not null default ''`
+- `attachments jsonb not null default '[]'` — array of `{ url, path, name, mime, size, kind: 'image'|'video'|'file' }`
+- `edited_at timestamptz null`
+- `created_at timestamptz not null default now()`
+- Indexes on `(ticket_id, created_at)` and `(parent_id)`.
+- RLS: enabled, public read/insert/update/delete (matches existing app-wide policies).
 
-## Files to change
+New storage bucket `ticket-attachments` (public read) with permissive insert/update/delete policies (matches the rest of the project's open-access posture).
 
-**New** — `src/features/timelog/startTicketTimer.ts`
-- `startTicketTimer({ userId, ticketId, discipline })` — selects `active_timers` for `userId`; if a row exists, returns `{ ok: false, reason: "active" }`. Otherwise inserts both rows. Returns `{ ok, error? }`.
+### 2. Frontend
 
-**`src/features/tickets/TicketCard.tsx`**
-- Add optional props: `showQuickStart?: boolean`, `currentUserId?: string`, `forcedDiscipline?: "FE" | "BE" | "Project"`.
-- Subscribe to `useTimerStore((s) => s.active)` inside the card; only render the button when `showQuickStart && currentUserId && !active && user has a slot on the ticket`.
-- Render a Play `<button>` absolutely positioned top-right (offset to `right-7` when the Proj "P" badge is shown), styled `h-6 w-6 rounded-full bg-primary text-primary-foreground shadow ring-1 ring-white/10 opacity-0 group-hover:opacity-100 transition`.
-- onClick: stop propagation, derive discipline (use `forcedDiscipline` if provided, else FE→BE→Project priority from assignees), call helper, toast result.
+New folder `src/features/comments/`:
 
-**`src/features/board/ProjectBoard.tsx`**
-- Thread `showQuickStart={filterMine}` and `currentUserId={user?.id}` through `Column` → `DraggableCard` → `TicketCard`, and `DisciplineColumn` → `DraggableDisciplineCard` → `TicketCard` (passing `forcedDiscipline={card.slot}` for discipline cards).
+- **`useTicketComments.ts`** — fetches comments + author `team_members` join for a ticket, groups replies under parents, exposes `reload`, subscribes to realtime via `useRealtimeReload` on `ticket_comments` filtered by `ticket_id`.
+- **`uploadCommentAttachment.ts`** — uploads a `File` to `ticket-attachments/{ticketId}/{uuid}-{name}`, returns the metadata object stored in `attachments`. Detects `kind` from MIME (`image/*`, `video/*`, else `file`).
+- **`CommentComposer.tsx`** — textarea + paperclip button (multi-file), drag-and-drop zone, attachment chips with remove + upload progress, Cmd/Ctrl+Enter to send. Used for both new top-level comments and replies (compact variant for replies). Disabled when no current user.
+- **`CommentItem.tsx`** — renders avatar (`MemberAvatar`), author name, relative time, edited badge, body (markdown via existing `ReactMarkdown` + `remarkGfm`), attachment grid (inline `<img>`/`<video controls>` previews; generic file chip with download link for others), and action row: **Reply**, **Edit** (own only), **Delete** (own + PMBA). Inline edit mode reuses `CommentComposer`.
+- **`CommentThread.tsx`** — renders a parent `CommentItem`, its replies indented with a left border, and an inline reply composer toggled by the Reply button.
+- **`TicketComments.tsx`** — top-level container: header "Discussion (N)", new-comment composer, then list of threads sorted oldest-first. Empty state "Start the conversation".
 
-**`src/features/tickets/TicketsList.tsx`**
-- Add props `showQuickStart?: boolean`, `currentUserId?: string`.
-- In `renderCell` `"title"` case, wrap the title `<span>` in a `flex items-center gap-2 group/title` container; render the Play button to the right with `opacity-0 group-hover/title:opacity-100`.
-- Same gate: requires `showQuickStart`, user assigned, and `useTimerStore.active === null`.
+### 3. Wiring into the sheet
 
-**`src/features/tickets/ProjectTickets.tsx`**
-- Pass `showQuickStart={filterMine}` and `currentUserId={user?.id}` to `<TicketsList>`. Board already has access via its own `useCurrentUser` and `filterMine` state — no prop needed there.
+In `src/features/tickets/TicketDetailSheet.tsx`, the Discussion `TabsContent` becomes:
+```
+<AcceptanceCriteria … />
+<div className="hairline-t pt-6 mt-6">
+  <TicketComments ticketId={ticket.id} />
+</div>
+```
 
-## Technical notes
+### Technical details
 
-- Reuses `active_timers` + `active_timer_tickets` schema; no DB migration.
-- `TimerSync` realtime subscription will hide the Play button across all visible cards the moment a timer starts (via the shared zustand store), and reveal it again the moment it stops.
-- Helper double-checks for an existing timer before insert as a defensive guard against UI race conditions — never deletes or overwrites.
-- Portal/read-only views never set `showQuickStart`, so the button is invisible there.
-- `StartGroupTimerDialog` is unchanged and remains the multi-select entry point.
+- Auth model: uses the existing `useCurrentUser` zustand store (same as `LogTimeModal`, timers, etc.). A user must be selected in the TopBar switcher to post — composer shows a hint otherwise. No Supabase Auth changes.
+- Permissions:
+  - View: anyone.
+  - Post / reply / upload: any selected user.
+  - Edit: only the author.
+  - Delete: author or PMBA (`isPMBA(useProjectRole(projectId))`).
+- Reply depth enforced both in UI (no Reply button on replies) and in DB trigger.
+- Attachments: max 25 MB per file, max 10 per comment, validated client-side. Image/video render inline; others show as a download chip with filename + size.
+- Realtime: `useRealtimeReload([{ table: 'ticket_comments', filter: 'ticket_id=eq.<id>' }], reload)`.
+- Styling: matches existing surface tokens (`bg-white/[0.02] hairline rounded-lg p-3`), Inter body, coral primary for Send.
+- Delete is hard-delete with cascade on replies; confirm via `window.confirm`.
+
+### Files
+
+Created:
+- `supabase/migrations/<ts>_ticket_comments.sql`
+- `src/features/comments/useTicketComments.ts`
+- `src/features/comments/uploadCommentAttachment.ts`
+- `src/features/comments/CommentComposer.tsx`
+- `src/features/comments/CommentItem.tsx`
+- `src/features/comments/CommentThread.tsx`
+- `src/features/comments/TicketComments.tsx`
+
+Edited:
+- `src/features/tickets/TicketDetailSheet.tsx` — mount `TicketComments` under acceptance criteria in the Discussion tab.
