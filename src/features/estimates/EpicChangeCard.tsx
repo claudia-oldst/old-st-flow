@@ -206,7 +206,7 @@ export function EpicChangeCard({
                       type="monotone"
                       dataKey="current"
                       name="Current"
-                      stroke="hsl(var(--primary))"
+                      stroke="hsl(var(--health-good))"
                       dot={false}
                       strokeWidth={1.8}
                     />
