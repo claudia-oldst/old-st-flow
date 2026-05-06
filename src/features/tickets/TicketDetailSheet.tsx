@@ -817,12 +817,41 @@ function AcceptanceCriteria({
   const [preview, setPreview] = useState(false);
   const [draft, setDraft] = useState(value ?? "");
   const [saving, setSaving] = useState(false);
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     setDraft(value ?? "");
     setEditing(false);
     setPreview(false);
   }, [value, ticketId]);
+
+  const generate = async () => {
+    setGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-acceptance-criteria", {
+        body: { ticket_id: ticketId },
+      });
+      if (error) throw error;
+      const next = (data as any)?.draft?.trim();
+      if (!next) {
+        toast.error("AI returned no content. Try again.");
+        return;
+      }
+      setDraft(next);
+      setPreview(false);
+      toast.success("Draft generated — review and Save");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to generate");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const startGenerate = async () => {
+    if (draft.trim() && !window.confirm("Replace current acceptance criteria with an AI-generated draft?")) return;
+    setEditing(true);
+    await generate();
+  };
 
   const save = async () => {
     setSaving(true);
