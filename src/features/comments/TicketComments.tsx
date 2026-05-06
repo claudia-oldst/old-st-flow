@@ -32,7 +32,7 @@ export function TicketComments({ ticketId, projectId }: Props) {
   }, [threads]);
 
   return (
-    <div className="flex flex-col h-[60vh] min-h-[360px]">
+    <div className="flex flex-col flex-1 min-h-0 h-full">
       <div className="sticky top-0 z-10 flex items-center gap-2 pb-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/70 border-b border-white/10">
         <MessageSquare className="h-4 w-4 text-dimmer" />
         <h3 className="text-sm font-semibold font-display">Discussion</h3>
