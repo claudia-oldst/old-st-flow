@@ -78,7 +78,7 @@ export function PortalEpicTrend({
         supabase.from("projects").select("start_date").eq("id", projectId).maybeSingle(),
         supabase
           .from("tickets")
-          .select("id,created_at,epic_id,original_fe_estimate,original_be_estimate,current_fe_estimate,current_be_estimate,ticket_type,cr_approval,cr_decided_at")
+          .select("id,created_at,epic_id,original_fe_estimate,original_be_estimate,ticket_type,cr_approval,cr_decided_at")
           .eq("project_id", projectId),
       ]);
       if (cancelled) return;
@@ -96,8 +96,8 @@ export function PortalEpicTrend({
             ticket_type: t.ticket_type,
             is_cr: isCR,
             cr_effective_at: isCR ? (t.cr_decided_at ?? t.created_at) : null,
-            cr_fe: isCR ? Number(t.current_fe_estimate) || 0 : 0,
-            cr_be: isCR ? Number(t.current_be_estimate) || 0 : 0,
+            cr_fe: isCR ? Number(t.original_fe_estimate) || 0 : 0,
+            cr_be: isCR ? Number(t.original_be_estimate) || 0 : 0,
             original_fe_estimate: isCR ? 0 : Number(t.original_fe_estimate) || 0,
             original_be_estimate: isCR ? 0 : Number(t.original_be_estimate) || 0,
           };
