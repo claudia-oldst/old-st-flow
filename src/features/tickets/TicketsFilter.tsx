@@ -185,7 +185,7 @@ export function TicketsFilter({
               {TYPE_OPTS.map((tp) => (
                 <FilterRow
                   key={tp}
-                  label={tp}
+                  label={tp === "Proj" ? "Project" : tp}
                   selected={filters.types.includes(tp)}
                   onClick={() => toggle("types", tp)}
                 />
