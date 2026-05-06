@@ -262,12 +262,24 @@ export function ProjectChangeRequests({ projectId }: { projectId: string }) {
               approvedChanges={g.approvedChanges}
               onApprove={handleApprove}
               onReject={handleReject}
+              onOpenTicket={setOpenTicketId}
               defaultOpen={statusFilter.includes("pending") && g.changes.length <= 5}
               range={range}
             />
           ))}
         </div>
       )}
+
+      <TicketDetailSheet
+        open={!!openTicket}
+        onOpenChange={(o) => !o && setOpenTicketId(null)}
+        ticket={openTicket}
+        projectId={projectId}
+        onChange={() => {
+          reloadTickets();
+          reload();
+        }}
+      />
     </div>
   );
 }
