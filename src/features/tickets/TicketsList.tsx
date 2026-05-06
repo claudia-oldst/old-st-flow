@@ -106,6 +106,8 @@ export function TicketsList({
   selectedIds,
   onToggleSelect,
   onToggleSelectAll,
+  showQuickStart = false,
+  currentUserId,
 }: {
   tickets: TicketRow[];
   groupBy: GroupBy;
@@ -113,9 +115,12 @@ export function TicketsList({
   selectedIds?: Set<string>;
   onToggleSelect?: (id: string, shiftKey: boolean) => void;
   onToggleSelectAll?: (ids: string[], select: boolean) => void;
+  showQuickStart?: boolean;
+  currentUserId?: string;
 }) {
   const selectionEnabled = !!selectedIds && !!onToggleSelect;
   const { statuses } = useStatuses();
+  const activeTimer = useTimerStore((s) => s.active);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [widths, setWidths] = useState<Partial<Record<ColKey, number>>>(() => loadWidths());
   const [sort, setSort] = useState<SortState | null>(() => loadSort());
