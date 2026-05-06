@@ -358,9 +358,7 @@ export function ClientPortalEditor() {
               <PortalView payload={payload} showRate />
             ) : (
               <div className="text-sm text-dim text-center py-12">
-                {hash
-                  ? "Loading preview…"
-                  : "Click Publish to enable the portal and generate a preview."}
+                Loading preview…
               </div>
             )}
           </div>
