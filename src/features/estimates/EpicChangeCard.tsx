@@ -258,12 +258,13 @@ export function EpicChangeCard({
                           <TooltipProvider>
                             <UiTooltip>
                               <TooltipTrigger asChild>
-                                <Link
-                                  to={`/projects/${projectId}`}
-                                  className="text-foreground hover:text-primary transition"
+                                <button
+                                  type="button"
+                                  onClick={() => c.ticket && onOpenTicket?.(c.ticket.id)}
+                                  className="text-foreground hover:text-primary transition cursor-pointer"
                                 >
                                   {c.ticket?.formatted_id ?? "?"}
-                                </Link>
+                                </button>
                               </TooltipTrigger>
                               {c.ticket?.title && (
                                 <TooltipContent side="top" align="start" className="max-w-xs">
