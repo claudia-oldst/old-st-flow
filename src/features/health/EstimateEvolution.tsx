@@ -107,6 +107,18 @@ export function EstimateEvolution({ projectId }: { projectId: string }) {
     return m;
   }, [tickets]);
 
+  // Helper: when (ms) does a ticket's original estimate start contributing?
+  // Standard tickets: created_at. Approved CR tickets: cr_decided_at (fallback created_at).
+  // Pending/rejected CRs: never (return Infinity).
+  const ticketEffectiveMs = useCallback((t: typeof tickets[number]) => {
+    if (t.ticket_type === "CR") {
+      if (t.cr_approval !== "approved") return Infinity;
+      const d = t.cr_decided_at ?? t.created_at;
+      return new Date(d).getTime();
+    }
+    return new Date(t.created_at).getTime();
+  }, []);
+
   // Per-epic snapshot at the selected "as of" date.
   const epicSnapshots = useMemo(() => {
     const asOfMs = endOfDay(asOf).getTime();
@@ -118,7 +130,8 @@ export function EstimateEvolution({ projectId }: { projectId: string }) {
     >();
 
     tickets.forEach((t) => {
-      if (new Date(t.created_at).getTime() > asOfMs) return; // not yet created
+      if (t.ticket_type === "CR" && t.cr_approval !== "approved") return;
+      const effMs = ticketEffectiveMs(t);
       const key = t.epic_id != null ? `e:${t.epic_id}` : NO_EPIC_KEY;
       const name =
         t.epic_id != null
@@ -128,14 +141,20 @@ export function EstimateEvolution({ projectId }: { projectId: string }) {
         groups.set(key, { name, original: 0, current: 0, actual: 0, ticketIds: new Set() });
       }
       const g = groups.get(key)!;
-      g.original += t.original_fe_estimate + t.original_be_estimate;
       g.ticketIds.add(t.id);
+      if (effMs > asOfMs) return; // not yet effective on this date
+      g.original += t.original_fe_estimate + t.original_be_estimate;
     });
 
     // Apply approved changes up to asOf to derive current estimate
+    const ticketEff = new Map<string, number>();
+    tickets.forEach((t) => ticketEff.set(t.id, ticketEffectiveMs(t)));
     changes.forEach((c) => {
       if (c.status !== "approved") return;
-      if (new Date(c.created_at).getTime() > asOfMs) return;
+      const tkEff = ticketEff.get(c.ticket_id);
+      if (tkEff == null || !isFinite(tkEff)) return; // exclude unapproved CRs
+      const deltaEff = Math.max(new Date(c.created_at).getTime(), tkEff);
+      if (deltaEff > asOfMs) return;
       const epicId = ticketEpic.get(c.ticket_id);
       const key = epicId != null ? `e:${epicId}` : NO_EPIC_KEY;
       const g = groups.get(key);
@@ -162,7 +181,7 @@ export function EstimateEvolution({ projectId }: { projectId: string }) {
       .map(([key, v]) => ({ key, ...v }))
       .filter((g) => g.original > 0 || g.current > 0 || g.actual > 0)
       .sort((a, b) => b.current - a.current);
-  }, [tickets, epics, changes, logs, ticketEpic, asOf]);
+  }, [tickets, epics, changes, logs, ticketEpic, asOf, ticketEffectiveMs]);
 
   // Trend chart data — daily samples for the selected epic from earliest ticket to asOf.
   const trendData = useMemo(() => {
@@ -175,10 +194,16 @@ export function EstimateEvolution({ projectId }: { projectId: string }) {
       return `e:${epicId}` === selectedEpic;
     };
 
-    const relevantTickets = tickets.filter((t) => ticketFilter(t.id));
+    const relevantTickets = tickets.filter(
+      (t) => ticketFilter(t.id) && !(t.ticket_type === "CR" && t.cr_approval !== "approved"),
+    );
     if (relevantTickets.length === 0) return [];
 
-    const firstTicketMs = Math.min(...relevantTickets.map((t) => new Date(t.created_at).getTime()));
+    // Per-ticket effective time (ms) for the Original contribution.
+    const ticketEffMs = new Map<string, number>();
+    relevantTickets.forEach((t) => ticketEffMs.set(t.id, ticketEffectiveMs(t)));
+
+    const firstTicketMs = Math.min(...Array.from(ticketEffMs.values()).filter((v) => isFinite(v)));
     const startMs = projectStart
       ? startOfDay(projectStart).getTime()
       : startOfDay(new Date(firstTicketMs)).getTime();
@@ -200,14 +225,19 @@ export function EstimateEvolution({ projectId }: { projectId: string }) {
       let actual = 0;
 
       relevantTickets.forEach((tk) => {
-        if (new Date(tk.created_at).getTime() > cutoff) return;
+        const eff = ticketEffMs.get(tk.id) ?? Infinity;
+        if (eff > cutoff) return;
         original += tk.original_fe_estimate + tk.original_be_estimate;
       });
 
       changes.forEach((c) => {
         if (c.status !== "approved") return;
-        if (new Date(c.created_at).getTime() > cutoff) return;
         if (!ticketFilter(c.ticket_id)) return;
+        const tkEff = ticketEffMs.get(c.ticket_id);
+        if (tkEff == null) return; // ticket excluded (e.g. unapproved CR)
+        // For CR tickets, deltas only take effect once the CR itself is approved/effective.
+        const deltaEff = Math.max(new Date(c.created_at).getTime(), tkEff);
+        if (deltaEff > cutoff) return;
         deltas += c.delta;
       });
 
@@ -227,7 +257,7 @@ export function EstimateEvolution({ projectId }: { projectId: string }) {
     }
 
     return buckets;
-  }, [tickets, changes, logs, ticketEpic, selectedEpic, asOf, projectStart]);
+  }, [tickets, changes, logs, ticketEpic, selectedEpic, asOf, projectStart, ticketEffectiveMs]);
 
   return (
     <div className="glass rounded-2xl p-5 space-y-5">
