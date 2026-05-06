@@ -25,11 +25,18 @@ import { toast } from "sonner";
 import { useCurrentUser } from "@/store/currentUser";
 import StatusRulesAdmin from "@/features/admin/StatusRulesAdmin";
 
-const CATEGORIES: { value: StatusCategory; label: string; description: string }[] = [
-  { value: "backlog", label: "Backlog", description: "Not started; logging time prompts move to active" },
-  { value: "active", label: "Active", description: "In progress" },
-  { value: "done", label: "Done", description: "Excluded from open work counts" },
-];
+const CATEGORY_DESCRIPTIONS: Record<StatusCategory, string> = {
+  backlog: "Not started; logging time prompts move to active",
+  active: "In progress",
+  "dev done": "Estimates auto-snap to actuals; still counts as open",
+  done: "Excluded from open work counts",
+};
+const CATEGORIES: { value: StatusCategory; label: string; description: string }[] =
+  (Constants.public.Enums.status_category as readonly StatusCategory[]).map((value) => ({
+    value,
+    label: value.replace(/\b\w/g, (c) => c.toUpperCase()),
+    description: CATEGORY_DESCRIPTIONS[value] ?? "",
+  }));
 
 const PRESET_COLORS = ["#94a3b8", "#3b82f6", "#a855f7", "#22c55e", "#f59e0b", "#ec4899", "#06b6d4", "#ef4444"];
 
