@@ -33,32 +33,46 @@ function read(): CardDisplayPrefs {
 }
 
 export function isAllOn(p: CardDisplayPrefs): boolean {
-  return (
-    p.id && p.type && p.chips && p.bars && p.assignees && p.projBadge
-  );
+  return p.id && p.type && p.chips && p.bars && p.assignees && p.projBadge;
+}
+
+// Module-level shared state so every `useCardDisplayPrefs()` consumer in the
+// same tab stays in sync instantly (the `storage` event only fires across tabs).
+let current: CardDisplayPrefs =
+  typeof window === "undefined" ? DEFAULT_CARD_PREFS : read();
+const listeners = new Set<(p: CardDisplayPrefs) => void>();
+
+function setShared(next: CardDisplayPrefs) {
+  current = next;
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    /* ignore */
+  }
+  listeners.forEach((l) => l(current));
 }
 
 export function useCardDisplayPrefs() {
-  const [prefs, setPrefsState] = useState<CardDisplayPrefs>(() => read());
+  const [prefs, setPrefsState] = useState<CardDisplayPrefs>(current);
 
   useEffect(() => {
+    const onLocal = (p: CardDisplayPrefs) => setPrefsState(p);
+    listeners.add(onLocal);
     const onStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY) setPrefsState(read());
+      if (e.key === STORAGE_KEY) {
+        current = read();
+        listeners.forEach((l) => l(current));
+      }
     };
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    return () => {
+      listeners.delete(onLocal);
+      window.removeEventListener("storage", onStorage);
+    };
   }, []);
 
-  const setPrefs = useCallback((next: CardDisplayPrefs) => {
-    setPrefsState(next);
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
-  const reset = useCallback(() => setPrefs(DEFAULT_CARD_PREFS), [setPrefs]);
+  const setPrefs = useCallback((next: CardDisplayPrefs) => setShared(next), []);
+  const reset = useCallback(() => setShared(DEFAULT_CARD_PREFS), []);
 
   return { prefs, setPrefs, reset };
 }
