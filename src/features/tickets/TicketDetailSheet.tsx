@@ -963,7 +963,7 @@ function AcceptanceCriteria({
           variant="ghost"
           size="sm"
           onClick={() => {
-            setDraft(value ?? "");
+            setDraft(localValue ?? "");
             setEditing(false);
             setPreview(false);
           }}
