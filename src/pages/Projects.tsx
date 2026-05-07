@@ -16,9 +16,11 @@ import {
 import { Label } from "@/components/ui/label";
 import { Plus, ArrowRight, FolderKanban } from "lucide-react";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Projects() {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [acronym, setAcronym] = useState("");
@@ -28,6 +30,7 @@ export default function Projects() {
   const load = useCallback(async () => {
     const { data } = await supabase.from("projects").select("*").order("created_at", { ascending: false });
     setProjects(data ?? []);
+    setLoading(false);
 
     if (data && data.length) {
       const ids = data.map((p) => p.id);
