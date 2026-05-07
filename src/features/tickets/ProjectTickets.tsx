@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCurrentUser } from "@/store/currentUser";
 import { useTimerStore } from "@/store/timer";
-import Papa from "papaparse";
 import { Button } from "@/components/ui/button";
 import { Upload, FileText, AlertCircle, LayoutGrid, List, Download, X, FileUp, Search, Clock, Plus, ChevronDown } from "lucide-react";
 import { StartGroupTimerDialog } from "@/features/timelog/StartGroupTimerDialog";
@@ -13,7 +12,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
@@ -28,7 +26,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { toast } from "sonner";
 import { useProjectTickets, type TicketRow } from "@/features/tickets/useProjectTickets";
 import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
 import { TicketsList, type GroupBy } from "@/features/tickets/TicketsList";
@@ -44,34 +41,10 @@ import { CardDisplayMenu } from "@/features/tickets/CardDisplayMenu";
 import { useCardDisplayPrefs } from "@/features/tickets/useCardDisplayPrefs";
 import { useProjectRole, isPMBA } from "@/features/team/useProjectRole";
 import { cn } from "@/lib/utils";
-import type { TicketType } from "@/lib/types";
-
-interface ParsedRow {
-  title: string;
-  type: TicketType;
-  ticket_number: number | null;
-  fe: number;
-  be: number;
-  epic: string;
-  version: string;
-  fe_status: "todo" | "in_progress" | "done";
-  be_status: "todo" | "in_progress" | "done";
-  acceptance_criteria: string;
-  error?: string;
-}
-
-function parseDiscipline(raw: string | undefined): "todo" | "in_progress" | "done" {
-  const v = (raw ?? "").trim().toLowerCase().replace(/[\s_-]+/g, "");
-  if (v === "done" || v === "complete" || v === "completed") return "done";
-  if (
-    v === "inprogress" ||
-    v === "doing" ||
-    v === "active" ||
-    v === "wip"
-  )
-    return "in_progress";
-  return "todo";
-}
+import {
+  downloadTicketsTemplate,
+  useTicketsCsvImport,
+} from "./project-tickets/useTicketsCsvImport";
 
 type ViewMode = "board" | "list";
 
@@ -83,10 +56,8 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
-  const [rows, setRows] = useState<ParsedRow[]>([]);
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [dragOver, setDragOver] = useState(false);
-  const [importing, setImporting] = useState(false);
+  const csv = useTicketsCsvImport(projectId, tickets, reload);
+  const { rows, fileName, dragOver, setDragOver, importing, handleFile, handleImport, reset: resetImport } = csv;
   const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
   const [view, setView] = useState<ViewMode>("board");
   const [groupBy, setGroupBy] = useState<GroupBy>("status");
