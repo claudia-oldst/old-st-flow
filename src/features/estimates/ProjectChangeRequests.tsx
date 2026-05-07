@@ -25,7 +25,7 @@ export function ProjectChangeRequests({ projectId }: { projectId: string }) {
   const user = useCurrentUser((s) => s.user);
   const role = useProjectRole(projectId);
   const canReview = isPMBA(role);
-  const { changes, projects, epics, loading, reload } = useAllEstimateChanges();
+  const { changes, projects, epics, loading, reload } = useAllEstimateChanges(projectId);
 
   const [statusFilter, setStatusFilter] = useState<string[]>(["pending"]);
   const [requesterFilter, setRequesterFilter] = useState<string[] | null>(null);
@@ -64,11 +64,8 @@ export function ProjectChangeRequests({ projectId }: { projectId: string }) {
     };
   }, [projectId, rangeInitialized]);
 
-  // Scope everything to this project up-front.
-  const projectChanges = useMemo(
-    () => changes.filter((c) => c.ticket?.project_id === projectId),
-    [changes, projectId]
-  );
+  // Hook is now project-scoped server-side; alias for clarity downstream.
+  const projectChanges = changes;
 
   const requesterOptions = useMemo(() => {
     const seen = new Map<string, { id: string; name: string }>();
