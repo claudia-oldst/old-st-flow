@@ -1,84 +1,83 @@
-# Refactor: split oversized feature files (zero functionality loss)
 
-Pure structural decomposition of six monolithic files. **No behaviour, styling, data flow, or public API changes.** Code is moved verbatim; only module boundaries change.
+# Phase 2 — further reduce file sizes (zero functionality loss)
+
+The previous refactor split off the obvious leaf components. Six files still hold tightly-coupled JSX + memos + handlers in a single body. This pass extracts the next layer — hooks for state/derivation, and presentational subcomponents for visually-distinct sections — while keeping every existing import path, hook order, dependency array, Tailwind class, Supabase call, realtime subscription, and toast string identical.
 
 ## Non-negotiable guardrails
 
-- All existing import paths keep working via re-export shims at the original file locations.
-- Every `useState`, `useEffect`, `useMemo`, Supabase call, realtime subscription, toast, keyboard handler, and Tailwind class is preserved exactly.
-- No new dependencies. No renamed props. No reordered hook calls (preserves React identity & effect order).
-- After each file split, the harness `tsc` pass must succeed with zero new errors.
-- I will diff each extracted block against the original before moving to the next file.
+- Original file paths stay as composition shells; no import-site changes anywhere in the app.
+- Every `useState`, `useEffect`, `useMemo`, `useCallback` keeps the same dependencies and call order (preserves React hook identity & effect timing).
+- No new dependencies. No prop renames. No new abstractions beyond moving code.
+- After each split: read the resulting entry file, diff hook order against the original, verify the preview route renders with no console/runtime errors.
+- `tsc` must pass with zero new errors.
 
 ## Targets
 
-| File | Lines | Split into |
-|---|---|---|
-| `src/features/tickets/TicketDetailSheet.tsx` | 988 | 9 files under `tickets/detail/` |
-| `src/features/tickets/ProjectTickets.tsx` | 736 | 4 files under `tickets/project-tickets/` |
-| `src/features/tickets/TicketsList.tsx` | 667 | 5 files under `tickets/list/` |
-| `src/features/tickets/AddTicketsDialog.tsx` | 566 | 5 files under `tickets/add-dialog/` |
-| `src/features/board/ProjectBoard.tsx` | 536 | 5 files under `board/board/` |
-| `src/features/health/EstimateEvolution.tsx` | 487 | 4 files under `health/estimate-evolution/` |
+| File | Now | After (entry) | New siblings |
+|---|---|---|---|
+| `tickets/TicketDetailSheet.tsx` | 537 | ~180 | 4 |
+| `tickets/TicketsList.tsx` | 595 | ~160 | 5 |
+| `tickets/ProjectTickets.tsx` | 521 | ~170 | 3 |
+| `board/ProjectBoard.tsx` | 334 | ~150 | 3 |
+| `health/EstimateEvolution.tsx` | 403 | ~140 | 2 |
+| `tickets/AddTicketsDialog.tsx` | 205 | ~110 | 1 |
 
-## 1. TicketDetailSheet → `tickets/detail/`
+## 1. TicketDetailSheet → existing `tickets/detail/`
 
-- `TicketDetailSheet.tsx` — sheet shell, tab wiring, top-level state
-- `useTicketEditor.ts` — title/feEst/beEst/projEst editing state, save/cancel, reset effect
-- `AcceptanceCriteria.tsx` — incl. AI-generation flow (default-tab logic preserved)
-- `DisciplineRow.tsx` (+ `DISCIPLINE_OPTIONS`)
-- `AssigneeBlock.tsx`
-- `Stat.tsx`
-- `MarkdownView.tsx`
-- `TimeLogsPanel.tsx` — paginated logs
-- `EstimateChangesPanel.tsx` — change history + "show all" toggle
+- `useTicketEditor.ts` — title/feEst/beEst/projEst state, reset effect on `ticket` change, `handleSaveEdit` (incl. audit insert), `handleDelete`. Returns `{ editing, setEditing, title, setTitle, feEst, setFeEst, beEst, setBeEst, projEst, setProjEst, handleSaveEdit, handleDelete }`.
+- `TicketDetailHeader.tsx` — the `<SheetHeader>` block (formatted_id chip, status pill, type/CR/epic/version chips, editable title input). Pure props.
+- `StatusBlock.tsx` — the discipline + project-status card pair (lines 276–352), incl. `updateDiscipline` and `setProjectStatus` / `resetProjectStatusToAuto` (Supabase calls move with the JSX they belong to).
+- `EstimatesPanel.tsx` — the "Estimates & actuals" section (lines 354–444): edit/view modes for Proj vs FE/BE, Stat tiles, project-contributors note, embedded `EstimateChangesPanel`.
 
-Original file becomes: `export { TicketDetailSheet } from "./detail/TicketDetailSheet";`
+Entry file becomes the Sheet shell + Tabs + dialogs (Assign / LogTime / RequestMoreTime) only.
 
-## 2. ProjectTickets → `tickets/project-tickets/`
+## 2. TicketsList → existing `tickets/list/`
 
-- `ProjectTickets.tsx` — page composition + dialogs
-- `useProjectTicketsView.ts` — filters, group-by, search, selection, derived rows
-- `useTicketsCsvImport.ts` — CSV parsing + bulk insert
-- `parseDiscipline.ts`
+- `useTicketsSort.ts` — `sort` state + `loadSort` persistence effect + `toggleSort` + `sortTickets` comparator (depends on `statusOrder`).
+- `useColumnResize.ts` — `widths` state, `loadWidths`/persistence effect, `dragRef`, `onResizeStart`, `widthFor`, `totalWidth`.
+- `useTicketsGrouping.ts` — the giant `groups` memo (lines 183–284) covering none/status/type/epic/version/fe_status/be_status/assignee branches.
+- `TicketsListRow.tsx` — `<tr>` body row + the `renderCell` switch (lines 288–416 + 542–584). Receives `t`, `visibleCols`, `selectionEnabled`, callbacks.
+- `TicketsListHeader.tsx` — `<thead>` block including select-all checkbox + sortable column buttons + resize handles (lines 457–539).
 
-## 3. TicketsList → `tickets/list/`
+Entry file becomes the outer `<TooltipProvider>` + `groups.map` shell. Re-exports `GroupBy` unchanged.
 
-- `TicketsList.tsx` — render
-- `columns.ts` — `COLS`, `ColKey`, `ColDef`, `SORTABLE`, `DISC_ORDER`, `DISC_OPTS`, `STORAGE_KEY`, `SORT_STORAGE_KEY`
-- `useColumnWidths.ts` — `loadWidths` + resize state + persistence
-- `useTicketsSort.ts` — `loadSort` + sort state + persistence + comparator
-- `useTicketsGrouping.ts`
+## 3. ProjectTickets → existing `tickets/project-tickets/`
 
-`GroupBy` re-exported from shim.
+- `useProjectTicketsView.ts` — `filteredTickets`, `visibleTickets`, selection state (`selectedIds`, `lastSelectedId`), the two cleanup effects, `toggleSelect`, `toggleSelectAll`, view/groupBy/filterMine/touched/search state, role-default effect.
+- `ProjectTicketsToolbar.tsx` — the entire sticky top toolbar (lines 159–290): view toggle, My/All toggle (list view), group-by select, filters, card-display menu, search box, group-timer button, Add-ticket split button.
+- `ImportCsvDialog.tsx` — the import `<Dialog>` with template button, drop-zone, preview table, footer (lines 343–503). Receives the `useTicketsCsvImport` returns + `open`/`onOpenChange`.
 
-## 4. AddTicketsDialog → `tickets/add-dialog/`
+Entry file becomes: hook calls + toolbar + (board | empty | list) + `BulkActionsBar` + child dialogs.
 
-- `AddTicketsDialog.tsx` — dialog shell + submit
-- `useDraftRows.ts` — draft list state, add/remove/update, validation
-- `DraftRow.tsx`
-- `AssignPopover.tsx`
-- `SlotChips.tsx`
+## 4. ProjectBoard → existing `board/board/`
 
-## 5. ProjectBoard → `board/board/`
+- `useDisciplineCards.ts` — `statusCategoryById`, `disciplineCards` memo, `byDisciplineStatus` memo. Returns both maps + `disciplineCards`.
+- `useBoardDnd.ts` — `sensors`, `activeId`, `handleDragStart`, `handleDragEnd` (both project- and discipline-mode branches with their Supabase updates and `reload()`).
+- `BoardToolbar.tsx` — mode toggle + filter-mine toggle + count line (lines 241–282).
 
-- `ProjectBoard.tsx` — layout + DnD context
-- `constants.ts` — `DISCIPLINE_STATUSES`, `CATEGORY_TO_DISCIPLINE`, `DISCIPLINE_TO_CATEGORY`
-- `Column.tsx` (+ `DisciplineColumn`)
-- `DraggableCard.tsx` (+ `DraggableDisciplineCard`)
-- `useBoardDnd.ts` — drag handlers + status mutations
+Entry file becomes: data wiring + `byStatus` memo (project mode) + Toolbar + DndContext + columns + DragOverlay + `TicketDetailSheet`.
 
-## 6. EstimateEvolution → `health/estimate-evolution/`
+## 5. EstimateEvolution → existing `health/estimate-evolution/`
 
-- `EstimateEvolution.tsx` — layout, controls, chart
-- `useEstimateEvolution.ts` — `loadStart`, `loadLogs`, `epicSnapshots`, `trendData`, `ticketEffectiveMs` (preserves all `useRealtimeReload` subscriptions)
-- `EpicRow.tsx` (+ `BarRow`)
-- `dateUtils.ts` — `startOfDay`, `endOfDay`, `NO_EPIC_KEY`, `ALL_EPICS_KEY`
+- `useEstimateEvolution.ts` — `projectStart`, `logs`, `loadStart`, `loadLogs`, both `useRealtimeReload` calls, `ticketEpic`, `ticketEffectiveMs`, `epicSnapshots`, `trendData`. Takes `{ projectId, asOf, selectedEpic }`. Returns `{ epicSnapshots, trendData }`.
+- `EstimateTrendChart.tsx` — the recharts block (lines 336–398) plus the epic `<Select>` and the empty state. Pure props.
+
+Entry file becomes: state (`asOf`, `selectedEpic`, `epicsOpen`) + header Popover + collapsible epics list + chart wrapper.
+
+## 6. AddTicketsDialog → existing `tickets/add-dialog/`
+
+- `useDraftRows.ts` — `drafts`, both reset effects, `members` load, `update`, `remove`, `addAnother`, `validDrafts`, `submit` (incl. payload build + Supabase insert + assignee insert + toasts).
+
+Entry file becomes: dialog shell + drafts.map(DraftRow) + footer.
 
 ## Verification per file
 
-After each split: read the new entry file, confirm the JSX tree, hook order, and effect dependencies match the original line-for-line. Open the preview route that exercises the component and confirm no console/runtime errors.
+After each split:
+
+1. Open the resulting entry file and confirm the JSX tree, hook order, and effect dependencies match the original line-for-line.
+2. Open the preview route exercising the component (Project workspace tickets/board/health, ticket detail sheet, add dialog) and confirm no console or runtime errors.
+3. Spot-check one realtime path (e.g. log time → estimate evolution updates) to confirm subscriptions still fire.
 
 ## Out of scope
 
-Performance, caching, pagination, error-handling, and tests from prior audits — separate task.
+Performance, caching, pagination, error-handling, accessibility passes, and tests — separate work.

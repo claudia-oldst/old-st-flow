@@ -1,262 +1,29 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { format } from "date-fns";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-  CartesianGrid,
-} from "recharts";
 import { CalendarIcon, ChevronDown, TrendingUp } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
-import { useProjectTickets } from "@/features/tickets/useProjectTickets";
 import { useProjectEpics } from "@/features/epics/useProjectEpics";
-import { useProjectEstimateChanges } from "@/features/estimates/useEstimateChanges";
-import { cn, formatHours } from "@/lib/utils";
-import { useRealtimeReload } from "@/hooks/useRealtimeReload";
-
-import { NO_EPIC_KEY, ALL_EPICS_KEY, startOfDay, endOfDay } from "./estimate-evolution/dateUtils";
+import { cn } from "@/lib/utils";
+import { ALL_EPICS_KEY } from "./estimate-evolution/dateUtils";
 import { EpicRow } from "./estimate-evolution/EpicRow";
-
-interface TimeLogLite {
-  ticket_id: string;
-  hours: number;
-  discipline: "FE" | "BE";
-  logged_at: string;
-}
+import { useEstimateEvolution } from "./estimate-evolution/useEstimateEvolution";
+import { EstimateTrendChart } from "./estimate-evolution/EstimateTrendChart";
 
 export function EstimateEvolution({ projectId }: { projectId: string }) {
-  const { tickets } = useProjectTickets(projectId);
   const { epics } = useProjectEpics(projectId);
-  const { changes } = useProjectEstimateChanges(projectId);
   const [asOf, setAsOf] = useState<Date>(new Date());
   const [selectedEpic, setSelectedEpic] = useState<string>(ALL_EPICS_KEY);
-  const [logs, setLogs] = useState<TimeLogLite[]>([]);
-  const [projectStart, setProjectStart] = useState<Date | null>(null);
   const [epicsOpen, setEpicsOpen] = useState(false);
 
-  const loadStart = useCallback(() => {
-    supabase
-      .from("projects")
-      .select("start_date")
-      .eq("id", projectId)
-      .maybeSingle()
-      .then(({ data }) => {
-        const sd = (data as any)?.start_date as string | null | undefined;
-        setProjectStart(sd ? startOfDay(new Date(sd)) : null);
-      });
-  }, [projectId]);
-
-  useEffect(() => {
-    loadStart();
-  }, [loadStart]);
-
-  useRealtimeReload(
-    [{ table: "projects", filter: `id=eq.${projectId}` }],
-    loadStart,
-  );
-
-  // Pull FE/BE time logs for the project's tickets (Project hours tracked separately).
-  const loadLogs = useCallback(() => {
-    const ids = tickets.map((t) => t.id);
-    if (ids.length === 0) {
-      setLogs([]);
-      return;
-    }
-    supabase
-      .from("time_logs")
-      .select("ticket_id,hours,discipline,logged_at")
-      .in("ticket_id", ids)
-      .in("discipline", ["FE", "BE"])
-      .then(({ data }) => {
-        setLogs(
-          (data ?? []).map((l: any) => ({
-            ticket_id: l.ticket_id,
-            hours: Number(l.hours),
-            discipline: l.discipline,
-            logged_at: l.logged_at,
-          }))
-        );
-      });
-  }, [tickets]);
-
-  useEffect(() => {
-    loadLogs();
-  }, [loadLogs]);
-
-  useRealtimeReload([{ table: "time_logs" }], loadLogs);
-
-  // Build a ticket → epic_id map from tickets.
-  const ticketEpic = useMemo(() => {
-    const m = new Map<string, number | null>();
-    tickets.forEach((t) => m.set(t.id, t.epic_id));
-    return m;
-  }, [tickets]);
-
-  // Helper: when (ms) does a ticket's original estimate start contributing?
-  // Standard tickets: created_at. Approved CR tickets: cr_decided_at (fallback created_at).
-  // Pending/rejected CRs: never (return Infinity).
-  const ticketEffectiveMs = useCallback((t: typeof tickets[number]) => {
-    if (t.ticket_type === "CR") {
-      if (t.cr_approval !== "approved") return Infinity;
-      const d = t.cr_decided_at ?? t.created_at;
-      return new Date(d).getTime();
-    }
-    return new Date(t.created_at).getTime();
-  }, []);
-
-  // Per-epic snapshot at the selected "as of" date.
-  const epicSnapshots = useMemo(() => {
-    const asOfMs = endOfDay(asOf).getTime();
-
-    // Group tickets by epic key
-    const groups = new Map<
-      string,
-      { name: string; original: number; current: number; actual: number; ticketIds: Set<string> }
-    >();
-
-    tickets.forEach((t) => {
-      if (t.ticket_type === "CR" && t.cr_approval !== "approved") return;
-      const effMs = ticketEffectiveMs(t);
-      const key = t.epic_id != null ? `e:${t.epic_id}` : NO_EPIC_KEY;
-      const name =
-        t.epic_id != null
-          ? epics.find((e) => e.id === t.epic_id)?.epic_name ?? `Epic ${t.epic_id}`
-          : "No epic";
-      if (!groups.has(key)) {
-        groups.set(key, { name, original: 0, current: 0, actual: 0, ticketIds: new Set() });
-      }
-      const g = groups.get(key)!;
-      g.ticketIds.add(t.id);
-      if (effMs > asOfMs) return; // not yet effective on this date
-      g.original += t.original_fe_estimate + t.original_be_estimate;
-    });
-
-    // Apply approved changes up to asOf to derive current estimate
-    const ticketEff = new Map<string, number>();
-    tickets.forEach((t) => ticketEff.set(t.id, ticketEffectiveMs(t)));
-    changes.forEach((c) => {
-      if (c.status !== "approved") return;
-      const tkEff = ticketEff.get(c.ticket_id);
-      if (tkEff == null || !isFinite(tkEff)) return; // exclude unapproved CRs
-      const deltaEff = Math.max(new Date(c.created_at).getTime(), tkEff);
-      if (deltaEff > asOfMs) return;
-      const epicId = ticketEpic.get(c.ticket_id);
-      const key = epicId != null ? `e:${epicId}` : NO_EPIC_KEY;
-      const g = groups.get(key);
-      if (!g) return;
-      g.current += c.delta;
-    });
-
-    // current = original + sum of deltas
-    groups.forEach((g) => {
-      g.current = g.original + g.current;
-    });
-
-    // Actuals to date
-    logs.forEach((l) => {
-      if (new Date(l.logged_at).getTime() > asOfMs) return;
-      const epicId = ticketEpic.get(l.ticket_id);
-      const key = epicId != null ? `e:${epicId}` : NO_EPIC_KEY;
-      const g = groups.get(key);
-      if (!g) return;
-      g.actual += l.hours;
-    });
-
-    return Array.from(groups.entries())
-      .map(([key, v]) => ({ key, ...v }))
-      .filter((g) => g.original > 0 || g.current > 0 || g.actual > 0)
-      .sort((a, b) => b.current - a.current);
-  }, [tickets, epics, changes, logs, ticketEpic, asOf, ticketEffectiveMs]);
-
-  // Trend chart data — daily samples for the selected epic from earliest ticket to asOf.
-  const trendData = useMemo(() => {
-    if (tickets.length === 0) return [];
-
-    const ticketFilter = (ticketId: string) => {
-      if (selectedEpic === ALL_EPICS_KEY) return true;
-      const epicId = ticketEpic.get(ticketId);
-      if (selectedEpic === NO_EPIC_KEY) return epicId == null;
-      return `e:${epicId}` === selectedEpic;
-    };
-
-    const relevantTickets = tickets.filter(
-      (t) => ticketFilter(t.id) && !(t.ticket_type === "CR" && t.cr_approval !== "approved"),
-    );
-    if (relevantTickets.length === 0) return [];
-
-    // Per-ticket effective time (ms) for the Original contribution.
-    const ticketEffMs = new Map<string, number>();
-    relevantTickets.forEach((t) => ticketEffMs.set(t.id, ticketEffectiveMs(t)));
-
-    const firstTicketMs = Math.min(...Array.from(ticketEffMs.values()).filter((v) => isFinite(v)));
-    const startMs = projectStart
-      ? startOfDay(projectStart).getTime()
-      : startOfDay(new Date(firstTicketMs)).getTime();
-    const start = startMs;
-    const end = endOfDay(asOf).getTime();
-    if (end < start) return [];
-
-    // Cap samples at ~120 buckets for performance
-    const dayMs = 86_400_000;
-    const totalDays = Math.max(1, Math.ceil((end - start) / dayMs));
-    const stride = Math.max(1, Math.ceil(totalDays / 120));
-
-    const buckets: Array<{ date: number; label: string; original: number; current: number; actual: number }> = [];
-
-    const sampleAt = (cutoff: number) => {
-      let original = 0;
-      let deltas = 0;
-      let actual = 0;
-      relevantTickets.forEach((tk) => {
-        const eff = ticketEffMs.get(tk.id) ?? Infinity;
-        if (eff > cutoff) return;
-        original += tk.original_fe_estimate + tk.original_be_estimate;
-      });
-      changes.forEach((c) => {
-        if (c.status !== "approved") return;
-        if (!ticketFilter(c.ticket_id)) return;
-        const tkEff = ticketEffMs.get(c.ticket_id);
-        if (tkEff == null) return;
-        const deltaEff = Math.max(new Date(c.created_at).getTime(), tkEff);
-        if (deltaEff > cutoff) return;
-        deltas += c.delta;
-      });
-      logs.forEach((l) => {
-        if (new Date(l.logged_at).getTime() > cutoff) return;
-        if (!ticketFilter(l.ticket_id)) return;
-        actual += l.hours;
-      });
-      return { original, current: original + deltas, actual };
-    };
-
-    for (let t = start; t <= end; t += stride * dayMs) {
-      const s = sampleAt(t);
-      buckets.push({ date: t, label: format(new Date(t), "d MMM"), ...s });
-    }
-    // Ensure the final sample is exactly at `end` so same-day events
-    // (e.g. a CR approved later in the day) appear in the last bucket.
-    if (buckets.length === 0 || buckets[buckets.length - 1].date < end) {
-      const s = sampleAt(end);
-      buckets.push({ date: end, label: format(new Date(end), "d MMM"), ...s });
-    }
-
-    return buckets;
-  }, [tickets, changes, logs, ticketEpic, selectedEpic, asOf, projectStart, ticketEffectiveMs]);
+  const { epicSnapshots, trendData } = useEstimateEvolution({
+    projectId,
+    asOf,
+    selectedEpic,
+    epics,
+  });
 
   return (
     <div className="glass rounded-2xl p-5 space-y-5">
@@ -313,91 +80,12 @@ export function EstimateEvolution({ projectId }: { projectId: string }) {
         </Collapsible>
       )}
 
-      <div className="hairline-t pt-4">
-        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-          <div className="text-[11px] uppercase tracking-wider text-dimmer">
-            Trend over time
-          </div>
-          <Select value={selectedEpic} onValueChange={setSelectedEpic}>
-            <SelectTrigger className="h-8 text-xs w-[200px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL_EPICS_KEY}>All epics aggregated</SelectItem>
-              <SelectItem value={NO_EPIC_KEY}>No epic</SelectItem>
-              {epics.map((e) => (
-                <SelectItem key={e.id} value={`e:${e.id}`}>
-                  {e.epic_name ?? `Epic ${e.id}`}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="h-64">
-          {trendData.length === 0 ? (
-            <div className="h-full flex items-center justify-center text-sm text-dim">
-              No data for this selection.
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={trendData} margin={{ top: 8, right: 16, left: -8, bottom: 0 }}>
-                <CartesianGrid stroke="hsl(0 0% 100% / 0.05)" vertical={false} />
-                <XAxis
-                  dataKey="label"
-                  stroke="hsl(0 0% 100% / 0.4)"
-                  tick={{ fontSize: 10 }}
-                  tickLine={false}
-                  axisLine={false}
-                  minTickGap={24}
-                />
-                <YAxis
-                  stroke="hsl(0 0% 100% / 0.4)"
-                  tick={{ fontSize: 10 }}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(v) => `${v}h`}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: "hsl(0 0% 8%)",
-                    border: "1px solid hsl(0 0% 100% / 0.1)",
-                    borderRadius: 8,
-                    fontSize: 12,
-                  }}
-                  formatter={(v: any) => `${formatHours(Number(v))}`}
-                />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Line
-                  type="monotone"
-                  dataKey="original"
-                  name="Original"
-                  stroke="hsl(0 0% 60%)"
-                  strokeDasharray="4 4"
-                  dot={false}
-                  strokeWidth={1.5}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="current"
-                  name="Current estimate"
-                  stroke="hsl(217 91% 60%)"
-                  dot={false}
-                  strokeWidth={2}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="actual"
-                  name="Actual"
-                  stroke="hsl(38 92% 50%)"
-                  dot={false}
-                  strokeWidth={2}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-      </div>
+      <EstimateTrendChart
+        trendData={trendData}
+        selectedEpic={selectedEpic}
+        setSelectedEpic={setSelectedEpic}
+        epics={epics}
+      />
     </div>
   );
 }
-
