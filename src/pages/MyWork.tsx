@@ -7,6 +7,7 @@ import { displayTitle, formatHours } from "@/lib/utils";
 import { ListChecks, ArrowRight } from "lucide-react";
 import { DisciplineStatusChip } from "@/features/tickets/DisciplineStatusChip";
 import type { DisciplineStatus } from "@/lib/types";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Row {
   id: string;
