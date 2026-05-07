@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Plus } from "lucide-react";
 import {
   Dialog,
@@ -9,11 +9,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useStatuses } from "@/features/statuses/useStatuses";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import type { ProjectMember, TeamMember, TicketType } from "@/lib/types";
-import { Draft, Slot, newDraft } from "./add-dialog/types";
+import type { TicketType } from "@/lib/types";
 import { DraftRow } from "./add-dialog/DraftRow";
+import { useDraftRows } from "./add-dialog/useDraftRows";
 
 interface Props {
   open: boolean;
@@ -30,120 +28,14 @@ export function AddTicketsDialog({ open, onOpenChange, projectId, onCreated, def
     [statuses]
   );
 
-  const [drafts, setDrafts] = useState<Draft[]>([newDraft(null, defaultType)]);
-  const [members, setMembers] = useState<(ProjectMember & { member: TeamMember })[]>([]);
-  const [busy, setBusy] = useState(false);
-
-  // Reset on open & seed first draft with default status
-  useEffect(() => {
-    if (open) {
-      setDrafts([newDraft(defaultStatusId, defaultType)]);
-    }
-  }, [open, defaultStatusId, defaultType]);
-
-  // Backfill statusId on drafts that don't have one once statuses load
-  useEffect(() => {
-    if (!defaultStatusId) return;
-    setDrafts((prev) =>
-      prev.map((d) => (d.statusId ? d : { ...d, statusId: defaultStatusId }))
-    );
-  }, [defaultStatusId]);
-
-  // Load project members for assign popover
-  useEffect(() => {
-    if (!open) return;
-    supabase
-      .from("project_members")
-      .select("*, member:team_members(*)")
-      .eq("project_id", projectId)
-      .then(({ data }) => setMembers((data as any) ?? []));
-  }, [open, projectId]);
-
-  const update = (key: string, patch: Partial<Draft>) =>
-    setDrafts((prev) => prev.map((d) => (d.key === key ? { ...d, ...patch } : d)));
-
-  const remove = (key: string) =>
-    setDrafts((prev) => (prev.length === 1 ? prev : prev.filter((d) => d.key !== key)));
-
-  const addAnother = () => setDrafts((prev) => [...prev, newDraft(defaultStatusId, defaultType)]);
-
-  const validDrafts = drafts.filter((d) => d.title.trim().length > 0);
-
-  const submit = async () => {
-    if (validDrafts.length === 0) return;
-    setBusy(true);
-    const payload = validDrafts.map((d) => {
-      const isProj = d.type === "Proj";
-      const fe = parseFloat(d.fe) || 0;
-      const be = parseFloat(d.be) || 0;
-      const proj = parseFloat(d.proj) || 0;
-      return {
-        project_id: projectId,
-        title: d.title.trim(),
-        ticket_type: d.type,
-        status_id: d.statusId,
-        epic_id: d.epicId,
-        original_fe_estimate: isProj ? 0 : fe,
-        original_be_estimate: isProj ? 0 : be,
-        current_fe_estimate: isProj ? 0 : fe,
-        current_be_estimate: isProj ? 0 : be,
-        original_project_estimate: isProj ? proj : 0,
-        current_project_estimate: isProj ? proj : 0,
-        ticket_number: 0,
-        formatted_id: "",
-      };
-    });
-
-    const { data: created, error } = await supabase
-      .from("tickets")
-      .insert(payload as any)
-      .select("id");
-
-    if (error || !created) {
-      setBusy(false);
-      return toast.error(error?.message ?? "Failed to create tickets");
-    }
-
-    const assigneeRows: { ticket_id: string; user_id: string; slot: Slot }[] = [];
-    created.forEach((row: any, idx: number) => {
-      const d = validDrafts[idx];
-      if (!d) return;
-      const isProj = d.type === "Proj";
-      if (isProj) {
-        d.assignees.project.forEach((uid) =>
-          assigneeRows.push({ ticket_id: row.id, user_id: uid, slot: "Project" })
-        );
-      } else {
-        d.assignees.fe.forEach((uid) =>
-          assigneeRows.push({ ticket_id: row.id, user_id: uid, slot: "FE" })
-        );
-        d.assignees.be.forEach((uid) =>
-          assigneeRows.push({ ticket_id: row.id, user_id: uid, slot: "BE" })
-        );
-        d.assignees.project.forEach((uid) =>
-          assigneeRows.push({ ticket_id: row.id, user_id: uid, slot: "Project" })
-        );
-      }
-    });
-
-    if (assigneeRows.length > 0) {
-      const { error: aErr } = await supabase.from("ticket_assignees").insert(assigneeRows);
-      if (aErr) {
-        toast.error("Tickets created, but assignment failed: " + aErr.message);
-      }
-    }
-
-    try {
-      await onCreated();
-    } catch {
-      /* parent handles its own errors */
-    }
-    setBusy(false);
-    toast.success(
-      `Created ${created.length} ticket${created.length === 1 ? "" : "s"}`
-    );
-    onOpenChange(false);
-  };
+  const { drafts, members, busy, validDrafts, update, remove, addAnother, submit } = useDraftRows({
+    open,
+    projectId,
+    defaultType,
+    defaultStatusId,
+    onCreated,
+    onClose: () => onOpenChange(false),
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
