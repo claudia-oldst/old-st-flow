@@ -15,11 +15,12 @@ import { useTicketsCsvImport } from "./project-tickets/useTicketsCsvImport";
 import { useProjectTicketsView } from "./project-tickets/useProjectTicketsView";
 import { ProjectTicketsToolbar } from "./project-tickets/ProjectTicketsToolbar";
 import { ImportCsvDialog } from "./project-tickets/ImportCsvDialog";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function ProjectTickets({ projectId }: { projectId: string }) {
   const role = useProjectRole(projectId);
   const user = useCurrentUser((s) => s.user);
-  const { tickets, reload } = useProjectTickets(projectId);
+  const { tickets, loading, reload } = useProjectTickets(projectId);
   const [importOpen, setImportOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
