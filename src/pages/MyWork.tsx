@@ -88,7 +88,13 @@ export default function MyWork() {
         <p className="text-dim mt-1">Open tickets assigned to you across all projects.</p>
       </div>
 
-      {rows.length === 0 ? (
+      {loading ? (
+        <div className="glass rounded-2xl overflow-hidden divide-y divide-white/5">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-14 rounded-none bg-white/[0.03]" />
+          ))}
+        </div>
+      ) : rows.length === 0 ? (
         <div className="glass rounded-2xl p-16 text-center">
           <ListChecks className="h-10 w-10 mx-auto text-dimmer mb-4" />
           <div className="text-lg font-medium">Nothing on your plate</div>
