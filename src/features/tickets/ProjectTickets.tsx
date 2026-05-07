@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useCurrentUser } from "@/store/currentUser";
 import { useTimerStore } from "@/store/timer";
 import { FileText } from "lucide-react";
