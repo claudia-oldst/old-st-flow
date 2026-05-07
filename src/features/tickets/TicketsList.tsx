@@ -4,7 +4,7 @@ import { useStatuses } from "@/features/statuses/useStatuses";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { displayTitle, formatHours, cn } from "@/lib/utils";
 import { DisciplineStatusChip } from "@/features/tickets/DisciplineStatusChip";
-import { type DisciplineStatus, type LogDiscipline } from "@/lib/types";
+import { DISCIPLINE_STATUS_LABEL, type DisciplineStatus, type LogDiscipline } from "@/lib/types";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useTimerStore } from "@/store/timer";
 import { startTicketTimer } from "@/features/timelog/startTicketTimer";
