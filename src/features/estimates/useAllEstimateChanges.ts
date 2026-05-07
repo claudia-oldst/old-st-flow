@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtimeReload } from "@/hooks/useRealtimeReload";
 
 export interface ChangeRow {
   id: string;
@@ -44,13 +45,25 @@ export interface EpicLite {
   epic_name: string | null;
 }
 
-export function useAllEstimateChanges() {
+/**
+ * Project-scoped estimate-change feed. Server-side filter on
+ * `tickets.project_id` via `tickets!inner` removes the cross-project
+ * payload + 1000-row truncation risk.
+ */
+export function useAllEstimateChanges(projectId: string | undefined) {
   const [changes, setChanges] = useState<ChangeRow[]>([]);
   const [projects, setProjects] = useState<ProjectLite[]>([]);
   const [epics, setEpics] = useState<EpicLite[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!!projectId);
 
   const load = useCallback(async () => {
+    if (!projectId) {
+      setChanges([]);
+      setProjects([]);
+      setEpics([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const [changesRes, projectsRes, epicsRes] = await Promise.all([
       supabase
@@ -63,13 +76,12 @@ export function useAllEstimateChanges() {
              current_fe_estimate,current_be_estimate,current_project_estimate,
              actual_frontend_hours,actual_backend_hours,actual_project_hours)`
         )
-        .order("created_at", { ascending: false })
-        .limit(2000),
-      supabase.from("projects").select("id,name,acronym"),
-      supabase.from("project_epics").select("id,project_id,epic_name"),
+        .eq("ticket.project_id", projectId)
+        .order("created_at", { ascending: false }),
+      supabase.from("projects").select("id,name,acronym").eq("id", projectId),
+      supabase.from("project_epics").select("id,project_id,epic_name").eq("project_id", projectId),
     ]);
 
-    // Fallback if FK alias above doesn't exist — try plain join
     let rows: any[] = changesRes.data ?? [];
     if (changesRes.error) {
       const retry = await supabase
@@ -82,8 +94,8 @@ export function useAllEstimateChanges() {
              current_fe_estimate,current_be_estimate,current_project_estimate,
              actual_frontend_hours,actual_backend_hours,actual_project_hours)`
         )
-        .order("created_at", { ascending: false })
-        .limit(2000);
+        .eq("ticket.project_id", projectId)
+        .order("created_at", { ascending: false });
       rows = retry.data ?? [];
     }
 
@@ -112,24 +124,23 @@ export function useAllEstimateChanges() {
     setProjects((projectsRes.data as any) ?? []);
     setEpics((epicsRes.data as any) ?? []);
     setLoading(false);
-  }, []);
+  }, [projectId]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  useEffect(() => {
-    const ch = supabase
-      .channel(`all-tec-${Math.random().toString(36).slice(2)}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "ticket_estimate_changes" }, () => load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "tickets" }, () => load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "projects" }, () => load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "project_epics" }, () => load())
-      .subscribe();
-    return () => {
-      supabase.removeChannel(ch);
-    };
-  }, [load]);
+  useRealtimeReload(
+    projectId
+      ? [
+          { table: "ticket_estimate_changes" },
+          { table: "tickets", filter: `project_id=eq.${projectId}` },
+          { table: "project_epics", filter: `project_id=eq.${projectId}` },
+        ]
+      : null,
+    load,
+    !!projectId,
+  );
 
   return { changes, projects, epics, loading, reload: load };
 }
