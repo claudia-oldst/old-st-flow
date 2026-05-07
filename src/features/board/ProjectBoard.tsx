@@ -114,6 +114,18 @@ export function ProjectBoard({
           cardCount={disciplineCards.length}
         />
 
+        {initialLoading ? (
+          <div className="flex gap-3 overflow-x-auto pb-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex-1 min-w-[260px] space-y-2">
+                <Skeleton className="h-8 rounded-xl" />
+                <Skeleton className="h-24 rounded-xl" />
+                <Skeleton className="h-24 rounded-xl" />
+                <Skeleton className="h-24 rounded-xl" />
+              </div>
+            ))}
+          </div>
+        ) : (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           {mode === "project" ? (
             <div className="flex gap-3 overflow-x-auto pb-4">
