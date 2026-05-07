@@ -660,6 +660,18 @@ export type Database = {
         Args: { _cutoff: string; _project_id: string }
         Returns: Json
       }
+      list_project_tickets: {
+        Args: {
+          _filters?: Json
+          _page?: number
+          _page_size?: number
+          _project_id: string
+          _search?: string
+          _sort_col?: string
+          _sort_dir?: string
+        }
+        Returns: Json
+      }
       reapply_status_rules: { Args: never; Returns: undefined }
     }
     Enums: {
