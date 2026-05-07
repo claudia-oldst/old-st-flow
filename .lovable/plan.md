@@ -1,74 +1,91 @@
 ## Goal
+Add pagination across list-heavy views with explicit per-surface page sizes, scope `useAllEstimateChanges` to the current project, and remove the `limit(2000)` truncation. **List view** runs filters/sort/search **server-side** so pagination is over the filtered result set.
 
-One realtime subscription pattern across the app. No loss of immediacy — updates still feel instant.
+## Page sizes (`src/lib/pagination.ts`)
+```ts
+export const PAGE_SIZES = {
+  projects: 10,
+  ticketsKanban: 400,    // hard cap
+  ticketsList: 400,      // page size (server-paged)
+  epicChangesPage: 15,   // CR page (epic cards)
+  epicEstimatesPage: 15, // Estimate Revisions page (epic rows)
+  inlineRecent: 6,       // inline lists next to graphs
+} as const;
+```
 
-## Scope of duplication today
+## 1. List view — server-side filters/sort/search
 
-- `src/hooks/useRealtimeReload.ts` — the canonical hook. Already used by `useTicketComments`, `useTicketTimeLogs`, `useClientPortalCRsByHash`.
-- `src/features/tickets/useProjectTickets.ts` (lines ~110–125) — builds its own `supabase.channel(...)` inline for `tickets`, `ticket_assignees`, `project_epics`.
-- `src/components/TimerSync.tsx` (lines ~107–123) — builds its own channel for `active_timers` + `active_timer_tickets`.
-- `src/features/statuses/useStatuses.ts` — also rolls its own channel for `statuses`.
+### New RPC: `public.list_project_tickets(_filters jsonb, _page int, _page_size int, _sort_col text, _sort_dir text)`
+- `SECURITY INVOKER` (RLS-respecting), one migration.
+- Returns `{ rows: jsonb, total: int }`. `rows` matches today's `TicketRow` shape (epic name + assignees aggregated via `jsonb_agg` on `project_epics` and `ticket_assignees`).
+- Sort whitelist: `position`, `ticket_number`, `created_at`, `updated_at`, `current_fe_estimate`, `current_be_estimate`, `current_project_estimate`, `actual_frontend_hours`, `actual_backend_hours`. Direction: `asc | desc`.
+- Filter mapping:
+  - Search → `title ILIKE %q%` OR `formatted_id ILIKE %q%`
+  - `types` → `ticket_type = ANY`
+  - `statusIds` (`_none` → null) → `status_id = ANY` OR `IS NULL`
+  - `epicIds` (`_none` → null) → `epic_id = ANY` OR `IS NULL`
+  - `versions` (`_none` → null) → `version = ANY` OR `IS NULL`
+  - `feStatuses` → `fe_status = ANY` AND `EXISTS (… ticket_assignees slot='FE')`
+  - `beStatuses` → `be_status = ANY` AND `EXISTS (… ticket_assignees slot='BE')`
+  - `assigneeIds` → `EXISTS (… user_id = ANY)`; `_unassigned` → `NOT EXISTS`
+  - `health` (good/warn/bad) → expression on `actual / NULLIF(estimate, 0)` per discipline (slot must be assigned), bucket matches any of selected
+  - `filterMine` (user_id) → same `EXISTS` for given user
 
-All three inline versions do the same thing as `useRealtimeReload` but with drift: different channel-name schemes, no `enabled` flag, no JSON-keyed dep, ad-hoc cleanup.
+### Hook split
+- **Keep** `useProjectTickets(projectId)` for callers needing the unfiltered list (Kanban, dialogs, change-requests ticket cache). Capped at 400 with `truncated`/`totalCount` flags.
+- **New** `useProjectTicketsPaged(projectId, { filters, search, sort, page, pageSize })` calls the RPC. Returns `{ rows, total, loading }`.
+- `useRealtimeReload` keyed on `projectId` (`tickets`, `ticket_assignees`) refetches the current page on event. Same instant-feel.
 
-## Plan
+### `ProjectTickets.tsx` wiring
+- Board branch keeps using `useProjectTickets` (unchanged).
+- List branch swaps to `useProjectTicketsPaged` + `<ListPagination>`.
+- `useProjectTicketsView` keeps grouping/selection helpers; filter application moves out (RPC does it).
+- BulkActionsBar continues to act on current-page selection (today's behavior).
 
-### 1. Migrate the three inline subscriptions to `useRealtimeReload`
+## 2. Projects page (`src/pages/Projects.tsx`)
+- Page size **10**.
+- Paged `select` + `count: "exact"`.
+- Replace counts (today fetches every ticket + member row across all projects) with per-card `count: "exact", head: true` — only for the 10 visible projects.
 
-**`src/features/tickets/useProjectTickets.ts`**
-- Delete the inline `useEffect` that creates `tickets-${projectId}-...` channel.
-- Replace with:
-  ```ts
-  useRealtimeReload(
-    projectId
-      ? [
-          { table: "tickets", filter: `project_id=eq.${projectId}` },
-          { table: "ticket_assignees" },
-          { table: "project_epics", filter: `project_id=eq.${projectId}` },
-        ]
-      : null,
-    load,
-    !!projectId,
-  );
-  ```
-- `load` is already `useCallback`-stable.
+## 3. Kanban (`ProjectBoard` via `useProjectTickets`)
+- Hard cap **400**. Hook fetches first 400 + `count`. If `count > 400`, expose `truncated`.
+- Banner above columns when truncated: "Showing first 400 of N — switch to List view to page through the rest." DnD/behavior unchanged.
 
-**`src/components/TimerSync.tsx`**
-- Replace the inline channel block (lines ~107–123) with two `useRealtimeReload` calls (or one with both tables) keyed on `user.id`.
-- Move `load` out of the `useEffect` and wrap in `useCallback` so it can be passed to the hook.
+## 4. Inline 6-latest lists (next to graphs)
+- `EpicChangeCard`: cap inline change rows to **6 latest** + "Show all (N)" toggle.
+- `EpicRow` (Estimate Revisions): add a **6 latest** mini-list of revisions for that epic + "Show all (N)" toggle. Revisions sourced from already-loaded `ticket_estimate_changes`.
 
-**`src/features/statuses/useStatuses.ts`**
-- Replace its inline channel with `useRealtimeReload([{ table: "statuses" }], load)`.
-- Wrap `load` in `useCallback`.
+## 5. Change Requests page (`ProjectChangeRequests.tsx`)
+- Page size **15 epic cards**.
+- Sort epic groups by latest change `created_at desc` before paginating.
+- `<ListPagination>` under the list. Filters/date range still apply pre-pagination.
 
-After these edits, `supabase.channel(...)` for postgres-changes lives in exactly one file.
+## 6. Estimate Revisions page (`EstimateEvolution.tsx`)
+- Page size **15 epic rows**.
+- Sort epics by most recent revision activity `desc` before paginating.
+- `<ListPagination>` inside the existing collapsible.
 
-### 2. Make `useRealtimeReload` slightly smarter (no API change)
+## 7. `useAllEstimateChanges(projectId)`
+- Now requires `projectId`; empty until provided.
+- Drop `.limit(2000)`.
+- Server-scope via `tickets!inner` + `.eq("ticket.project_id", projectId)`.
+- `projects` → `.eq("id", projectId)`. `epics` → `.eq("project_id", projectId)`.
+- Realtime channels: `tickets` and `project_epics` get `filter: project_id=eq.${projectId}`. `ticket_estimate_changes` stays unfiltered (no project_id column; reload is project-scoped).
 
-Keep the "subscribe → reload" contract — it's simple, used everywhere, and matches what the user wants ("immediate, quick"). But add one small maintainability win in the single shared file:
+## Shared bits
+- `src/components/ListPagination.tsx`: thin wrapper around existing shadcn pagination — `page / total / pageSize / onChange`.
+- `src/lib/pagination.ts`: page-size constants.
 
-- **Coalesce burst events**: if multiple `postgres_changes` arrive within ~50 ms (e.g. a multi-row update or two filters firing for the same write), call `onChange` once via a microtask/`setTimeout(…, 50)` debounce. This actually makes realtime feel *faster* under load (fewer redundant fetches racing each other) while still being effectively instant to the user.
-- The hook's signature, callers, and behavior on a single event are unchanged.
-
-**Explicitly NOT doing** delta/patching from `payload.new`/`payload.old`. That would require per-caller reducers and is the opposite of "maintainability". It's noted as a future optimisation but is out of scope here — the user's stated priority is maintainability + immediacy, not bandwidth.
-
-### 3. Verify no behaviour regressions
-
-- `tsc` clean.
-- ProjectTickets list/board still updates on ticket edits, assignee changes, epic renames.
-- TimerSync still flips active timer state across tabs/devices.
-- Statuses admin still reflects new/edited statuses live.
-- Comments, time logs, client-portal CRs unaffected (already on the hook).
+## Migration
+Single migration creates `list_project_tickets` RPC. No table or RLS changes.
 
 ## Out of scope
+- Virtualization (not needed at 400/page).
+- React Query migration.
+- Server-side pagination for `useAllEstimateChanges` body rows (project-scoped query is small enough; pagination only at the epic-card level).
 
-- Switching to delta updates from realtime payloads (separate perf task).
-- Adding `supabase_realtime` publication SQL — these tables are already publishing (current inline subscriptions work today).
-- Any DB / RLS / migration changes.
-
-## Files touched
-
-- `src/hooks/useRealtimeReload.ts` — add ~50 ms coalescing.
-- `src/features/tickets/useProjectTickets.ts` — drop inline channel, use hook.
-- `src/components/TimerSync.tsx` — drop inline channel, use hook (extract `load` to `useCallback`).
-- `src/features/statuses/useStatuses.ts` — drop inline channel, use hook.
+## Why this is safe
+- All existing hook signatures stay backward-compatible (additive `opts` only); new paged hook is opt-in.
+- Realtime preserved everywhere.
+- Skeletons (added previously) keep perceived perf solid.
+- Approve/reject/edit/DnD flows untouched.
