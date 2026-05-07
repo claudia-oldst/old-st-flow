@@ -165,6 +165,7 @@ export function ProjectBoard({
             {activeTicket && <TicketCard ticket={activeTicket} prefs={prefs} forceBars={filterMine} />}
           </DragOverlay>
         </DndContext>
+        )}
 
         <TicketDetailSheet
           open={!!openTicket}
