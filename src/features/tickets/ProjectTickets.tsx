@@ -1,153 +1,35 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useState } from "react";
 import { useCurrentUser } from "@/store/currentUser";
 import { useTimerStore } from "@/store/timer";
-import { Button } from "@/components/ui/button";
-import { Upload, FileText, AlertCircle, LayoutGrid, List, Download, X, FileUp, Search, Clock, Plus, ChevronDown } from "lucide-react";
+import { FileText } from "lucide-react";
 import { StartGroupTimerDialog } from "@/features/timelog/StartGroupTimerDialog";
 import { AddTicketsDialog } from "@/features/tickets/AddTicketsDialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useProjectTickets, type TicketRow } from "@/features/tickets/useProjectTickets";
 import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
-import { TicketsList, type GroupBy } from "@/features/tickets/TicketsList";
+import { TicketsList } from "@/features/tickets/TicketsList";
 import { BulkActionsBar } from "@/features/tickets/BulkActionsBar";
-import {
-  TicketsFilter,
-  EMPTY_FILTERS,
-  applyFilters,
-  type TicketFilters,
-} from "@/features/tickets/TicketsFilter";
 import { ProjectBoard } from "@/features/board/ProjectBoard";
-import { CardDisplayMenu } from "@/features/tickets/CardDisplayMenu";
 import { useCardDisplayPrefs } from "@/features/tickets/useCardDisplayPrefs";
-import { useProjectRole, isPMBA } from "@/features/team/useProjectRole";
-import { cn } from "@/lib/utils";
-import {
-  downloadTicketsTemplate,
-  useTicketsCsvImport,
-} from "./project-tickets/useTicketsCsvImport";
-
-type ViewMode = "board" | "list";
+import { useProjectRole } from "@/features/team/useProjectRole";
+import { useTicketsCsvImport } from "./project-tickets/useTicketsCsvImport";
+import { useProjectTicketsView } from "./project-tickets/useProjectTicketsView";
+import { ProjectTicketsToolbar } from "./project-tickets/ProjectTicketsToolbar";
+import { ImportCsvDialog } from "./project-tickets/ImportCsvDialog";
 
 export function ProjectTickets({ projectId }: { projectId: string }) {
   const role = useProjectRole(projectId);
   const user = useCurrentUser((s) => s.user);
-  const pmba = isPMBA(role);
   const { tickets, reload } = useProjectTickets(projectId);
-  const fileRef = useRef<HTMLInputElement>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
-  const csv = useTicketsCsvImport(projectId, tickets, reload);
-  const { rows, fileName, dragOver, setDragOver, importing, handleFile, handleImport, reset: resetImport } = csv;
   const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
-  const [view, setView] = useState<ViewMode>("board");
-  const [groupBy, setGroupBy] = useState<GroupBy>("status");
-  const [filterMine, setFilterMine] = useState<boolean>(true);
-  const [touched, setTouched] = useState(false);
-  const [filters, setFilters] = useState<TicketFilters>(EMPTY_FILTERS);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
   const [groupTimerOpen, setGroupTimerOpen] = useState(false);
   const activeTimer = useTimerStore((s) => s.active);
   const { prefs: cardPrefs, setPrefs: setCardPrefs, reset: resetCardPrefs } = useCardDisplayPrefs();
-  useEffect(() => {
-    if (touched || role === null) return;
-    setFilterMine(!pmba);
-  }, [role, pmba, touched]);
+  const csv = useTicketsCsvImport(projectId, tickets, reload);
+  const { rows, fileName, dragOver, setDragOver, importing, handleFile, handleImport, reset: resetImport } = csv;
 
-  // Tickets after explicit filters (shared by board + list).
-  // Note: filterMine and search are applied inside ProjectBoard / TicketsList
-  // (board does it itself; list receives the fully-filtered set below).
-  const filteredTickets = useMemo(() => applyFilters(tickets, filters), [tickets, filters]);
-
-  const visibleTickets = useMemo(() => {
-    let out = filteredTickets;
-    if (filterMine && user) {
-      out = out.filter((t) => t.assignees.some((a) => a.user_id === user.id));
-    }
-    const q = search.trim().toLowerCase();
-    if (q) {
-      out = out.filter(
-        (t) =>
-          t.title.toLowerCase().includes(q) ||
-          (t.formatted_id ?? "").toLowerCase().includes(q)
-      );
-    }
-    return out;
-  }, [filteredTickets, filterMine, user, search]);
-
-  // Drop selections that are no longer visible (filter change, deletion, view switch)
-  useEffect(() => {
-    setSelectedIds((prev) => {
-      if (prev.size === 0) return prev;
-      const visibleSet = new Set(visibleTickets.map((t) => t.id));
-      const next = new Set<string>();
-      prev.forEach((id) => visibleSet.has(id) && next.add(id));
-      return next.size === prev.size ? prev : next;
-    });
-  }, [visibleTickets]);
-
-  // Clear selection when leaving list view
-  useEffect(() => {
-    if (view !== "list") {
-      setSelectedIds(new Set());
-      setLastSelectedId(null);
-    }
-  }, [view]);
-
-  const toggleSelect = (id: string, shiftKey: boolean) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (shiftKey && lastSelectedId && lastSelectedId !== id) {
-        const ids = visibleTickets.map((t) => t.id);
-        const a = ids.indexOf(lastSelectedId);
-        const b = ids.indexOf(id);
-        if (a !== -1 && b !== -1) {
-          const [from, to] = a < b ? [a, b] : [b, a];
-          const shouldSelect = !prev.has(id);
-          for (let i = from; i <= to; i++) {
-            if (shouldSelect) next.add(ids[i]);
-            else next.delete(ids[i]);
-          }
-          return next;
-        }
-      }
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-    setLastSelectedId(id);
-  };
-
-  const toggleSelectAll = (ids: string[], select: boolean) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      ids.forEach((id) => (select ? next.add(id) : next.delete(id)));
-      return next;
-    });
-  };
-
-  const downloadTemplate = downloadTicketsTemplate;
+  const v = useProjectTicketsView({ tickets, user, role });
 
   const onImportClick = async () => {
     const ok = await handleImport();
@@ -156,182 +38,72 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
 
   return (
     <div>
-      <div className="sticky top-14 z-30 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 mb-4 flex items-center gap-3 flex-wrap bg-background/85 backdrop-blur-md hairline-b">
-        <div className="flex gap-1 p-1 rounded-lg bg-white/5 hairline">
-          <button
-            onClick={() => setView("board")}
-            className={cn(
-              "px-3 py-1 text-xs rounded-md transition inline-flex items-center gap-1.5",
-              view === "board" ? "bg-foreground text-background" : "text-dim hover:text-foreground"
-            )}
-          >
-            <LayoutGrid className="h-3 w-3" /> Board
-          </button>
-          <button
-            onClick={() => setView("list")}
-            className={cn(
-              "px-3 py-1 text-xs rounded-md transition inline-flex items-center gap-1.5",
-              view === "list" ? "bg-foreground text-background" : "text-dim hover:text-foreground"
-            )}
-          >
-            <List className="h-3 w-3" /> List
-          </button>
-        </div>
+      <ProjectTicketsToolbar
+        projectId={projectId}
+        tickets={tickets}
+        filters={v.filters}
+        setFilters={v.setFilters}
+        view={v.view}
+        setView={v.setView}
+        filterMine={v.filterMine}
+        setFilterMine={v.setFilterMine}
+        setTouched={v.setTouched}
+        groupBy={v.groupBy}
+        setGroupBy={v.setGroupBy}
+        cardPrefs={cardPrefs}
+        setCardPrefs={setCardPrefs}
+        resetCardPrefs={resetCardPrefs}
+        search={v.search}
+        setSearch={v.setSearch}
+        role={role}
+        user={user}
+        activeTimer={activeTimer}
+        onStartGroupTimer={() => setGroupTimerOpen(true)}
+        onAdd={() => setAddOpen(true)}
+        onImport={() => setImportOpen(true)}
+      />
 
-        {view === "list" && (
-          <>
-            <div className="flex gap-1 p-1 rounded-lg bg-white/5 hairline">
-              <button
-                onClick={() => { setTouched(true); setFilterMine(false); }}
-                className={cn("px-3 py-1 text-xs rounded-md transition", !filterMine ? "bg-foreground text-background" : "text-dim hover:text-foreground")}
-              >
-                All
-              </button>
-              <button
-                onClick={() => { setTouched(true); setFilterMine(true); }}
-                className={cn("px-3 py-1 text-xs rounded-md transition", filterMine ? "bg-foreground text-background" : "text-dim hover:text-foreground")}
-              >
-                My tickets
-              </button>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-dim">Group by</span>
-              <Select value={groupBy} onValueChange={(v) => setGroupBy(v as GroupBy)}>
-                <SelectTrigger className="h-8 w-[140px] text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  <SelectItem value="status">Status</SelectItem>
-                  <SelectItem value="assignee">Assignee</SelectItem>
-                  <SelectItem value="type">Type</SelectItem>
-                  <SelectItem value="epic">Epic</SelectItem>
-                  <SelectItem value="version">Version</SelectItem>
-                  <SelectItem value="fe_status">FE status</SelectItem>
-                  <SelectItem value="be_status">BE status</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </>
-        )}
-
-        <TicketsFilter
-          projectId={projectId}
-          tickets={tickets}
-          filters={filters}
-          onChange={setFilters}
-        />
-
-        {view === "board" && (
-          <CardDisplayMenu
-            prefs={cardPrefs}
-            onChange={setCardPrefs}
-            onReset={resetCardPrefs}
-          />
-        )}
-        <div className="ml-auto flex items-center gap-2">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-dimmer pointer-events-none" />
-            <Input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search ID or title…"
-              className="h-8 w-[220px] pl-8 pr-7 text-xs"
-            />
-            {search && (
-              <button
-                type="button"
-                onClick={() => setSearch("")}
-                aria-label="Clear search"
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-dimmer hover:text-foreground"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
-          {filterMine && user && role && !activeTimer && (
-            <Button
-              size="sm"
-              onClick={() => setGroupTimerOpen(true)}
-              className="gap-2"
-            >
-              <Clock className="h-4 w-4" /> Start group timer
-            </Button>
-          )}
-          {isPMBA(role) && (
-            <div className="inline-flex rounded-md overflow-hidden">
-              <Button
-                size="sm"
-                onClick={() => setAddOpen(true)}
-                className="gap-2 rounded-r-none"
-              >
-                <Plus className="h-4 w-4" /> Add ticket
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    size="sm"
-                    aria-label="More add options"
-                    className="rounded-l-none px-2 border-l border-primary-foreground/20"
-                  >
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setImportOpen(true)} className="gap-2">
-                    <Upload className="h-4 w-4" /> Import from CSV…
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {view === "board" ? (
+      {v.view === "board" ? (
         <ProjectBoard
           projectId={projectId}
-          search={search}
-          filterMine={filterMine}
-          onFilterMineChange={(v) => {
-            setTouched(true);
-            setFilterMine(v);
+          search={v.search}
+          filterMine={v.filterMine}
+          onFilterMineChange={(val) => {
+            v.setTouched(true);
+            v.setFilterMine(val);
           }}
-          tickets={filteredTickets}
+          tickets={v.filteredTickets}
           reload={reload}
         />
-      ) : visibleTickets.length === 0 ? (
+      ) : v.visibleTickets.length === 0 ? (
         <div className="glass rounded-2xl p-12 text-center">
           <FileText className="h-8 w-8 mx-auto text-dimmer mb-3" />
-          <div className="font-medium">{filterMine ? "No tickets assigned to you" : "No tickets yet"}</div>
+          <div className="font-medium">{v.filterMine ? "No tickets assigned to you" : "No tickets yet"}</div>
           <div className="text-dim text-sm mt-1">
-            {filterMine ? "Switch to All to see every ticket on this project." : "Add tickets from the Board, or import a CSV."}
+            {v.filterMine ? "Switch to All to see every ticket on this project." : "Add tickets from the Board, or import a CSV."}
           </div>
         </div>
       ) : (
         <TicketsList
-          tickets={visibleTickets}
-          groupBy={groupBy}
+          tickets={v.visibleTickets}
+          groupBy={v.groupBy}
           onOpen={setOpenTicket}
-          selectedIds={selectedIds}
-          onToggleSelect={toggleSelect}
-          onToggleSelectAll={toggleSelectAll}
-          showQuickStart={filterMine}
+          selectedIds={v.selectedIds}
+          onToggleSelect={v.toggleSelect}
+          onToggleSelectAll={v.toggleSelectAll}
+          showQuickStart={v.filterMine}
           currentUserId={user?.id}
         />
       )}
 
-      {view === "list" && (
+      {v.view === "list" && (
         <BulkActionsBar
           projectId={projectId}
-          selectedIds={Array.from(selectedIds)}
-          onClear={() => {
-            setSelectedIds(new Set());
-            setLastSelectedId(null);
-          }}
-          canEdit={pmba}
-        />)}
+          selectedIds={Array.from(v.selectedIds)}
+          onClear={v.clearSelection}
+          canEdit={v.pmba}
+        />
+      )}
 
       <StartGroupTimerDialog
         open={groupTimerOpen}
@@ -340,167 +112,18 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
         role={role}
       />
 
-      <Dialog
+      <ImportCsvDialog
         open={importOpen}
-        onOpenChange={(o) => {
-          setImportOpen(o);
-          if (!o) resetImport();
-        }}
-      >
-        <DialogContent className="glass-strong max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Import tickets from CSV</DialogTitle>
-            <div className="text-xs text-dim mt-1">
-              Expected columns:{" "}
-              <span className="font-mono text-foreground">Ticket #, Title, Type, FE Estimate, BE Estimate, Epic, Version, FE Status, BE Status</span>
-              <div className="mt-1 text-dimmer">Leave Ticket # blank to auto-assign the next available number.</div>
-            </div>
-          </DialogHeader>
-
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".csv,text/csv"
-            hidden
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) handleFile(f);
-              e.target.value = "";
-            }}
-          />
-
-          {rows.length === 0 ? (
-            <div className="space-y-3 py-2">
-              <button
-                type="button"
-                onClick={downloadTemplate}
-                className="w-full flex items-center justify-between px-4 py-3 rounded-xl hairline bg-white/[0.02] hover:bg-white/[0.05] transition text-left"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-white/5 flex items-center justify-center">
-                    <FileText className="h-4 w-4 text-dim" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium">Download CSV template</div>
-                    <div className="text-xs text-dim">Pre-formatted with the required columns</div>
-                  </div>
-                </div>
-                <Download className="h-4 w-4 text-dim" />
-              </button>
-
-              <div
-                onClick={() => fileRef.current?.click()}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setDragOver(true);
-                }}
-                onDragLeave={() => setDragOver(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setDragOver(false);
-                  const f = e.dataTransfer.files?.[0];
-                  if (f) handleFile(f);
-                }}
-                className={cn(
-                  "cursor-pointer rounded-xl border-2 border-dashed p-10 text-center transition",
-                  dragOver
-                    ? "border-accent bg-accent/5"
-                    : "border-white/10 hover:border-white/20 hover:bg-white/[0.02]"
-                )}
-              >
-                <div className="mx-auto h-12 w-12 rounded-full bg-white/5 flex items-center justify-center mb-3">
-                  <FileUp className="h-5 w-5 text-dim" />
-                </div>
-                <div className="text-sm font-medium">
-                  {dragOver ? "Drop your CSV here" : "Drag & drop your CSV"}
-                </div>
-                <div className="text-xs text-dim mt-1">
-                  or <span className="text-foreground underline">browse files</span>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between px-3 py-2 rounded-lg hairline bg-white/[0.02]">
-                <div className="flex items-center gap-2 min-w-0">
-                  <FileText className="h-4 w-4 text-dim shrink-0" />
-                  <span className="text-sm truncate">{fileName}</span>
-                  <span className="text-xs text-dimmer font-mono">
-                    {rows.length} row{rows.length === 1 ? "" : "s"}
-                  </span>
-                </div>
-                <button
-                  onClick={resetImport}
-                  className="text-dimmer hover:text-foreground transition"
-                  aria-label="Remove file"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-              <div className="max-h-[40vh] overflow-y-auto rounded-lg hairline">
-                <table className="w-full text-sm">
-                  <thead className="text-left text-xs text-dimmer uppercase tracking-wider sticky top-0 bg-surface-2">
-                    <tr>
-                      <th className="px-3 py-2 font-normal">#</th>
-                      <th className="px-3 py-2 font-normal">Title</th>
-                      <th className="px-3 py-2 font-normal">Type</th>
-                      <th className="px-3 py-2 font-normal text-right">FE</th>
-                      <th className="px-3 py-2 font-normal text-right">BE</th>
-                      <th className="px-3 py-2 font-normal">Epic</th>
-                      <th className="px-3 py-2 font-normal">Version</th>
-                      <th className="px-3 py-2 font-normal">FE st.</th>
-                      <th className="px-3 py-2 font-normal">BE st.</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((r, i) => (
-                      <tr key={i} className="hairline-b last:border-b-0">
-                        <td className="px-3 py-2 font-mono text-xs text-dim">
-                          {r.ticket_number ?? <span className="text-dimmer">auto</span>}
-                        </td>
-                        <td className="px-3 py-2">
-                          {r.error ? (
-                            <span className="inline-flex items-center gap-1 text-destructive">
-                              <AlertCircle className="h-3 w-3" /> {r.error}
-                            </span>
-                          ) : (
-                            r.title
-                          )}
-                        </td>
-                        <td className="px-3 py-2">
-                          <span className="text-xs text-dim">{r.type}</span>
-                        </td>
-                        <td className="px-3 py-2 text-right font-mono text-xs">{r.fe}h</td>
-                        <td className="px-3 py-2 text-right font-mono text-xs">{r.be}h</td>
-                        <td className="px-3 py-2 text-xs text-dim">
-                          {r.epic || <span className="text-dimmer">—</span>}
-                        </td>
-                        <td className="px-3 py-2 text-xs text-dim font-mono">
-                          {r.version || <span className="text-dimmer font-sans">—</span>}
-                        </td>
-                        <td className="px-3 py-2 text-[10px] text-dim">{r.fe_status}</td>
-                        <td className="px-3 py-2 text-[10px] text-dim">{r.be_status}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setImportOpen(false)}>
-              Cancel
-            </Button>
-            {rows.length > 0 && (
-              <Button onClick={onImportClick} disabled={importing}>
-                Import {rows.filter((r) => !r.error).length} ticket
-                {rows.filter((r) => !r.error).length === 1 ? "" : "s"}
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        onOpenChange={setImportOpen}
+        rows={rows}
+        fileName={fileName}
+        dragOver={dragOver}
+        setDragOver={setDragOver}
+        importing={importing}
+        handleFile={handleFile}
+        reset={resetImport}
+        onImport={onImportClick}
+      />
 
       <AddTicketsDialog
         open={addOpen}
