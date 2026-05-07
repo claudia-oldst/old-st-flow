@@ -94,7 +94,7 @@ function TimerChip() {
                   <span className="ml-1 text-foreground">+{extraCount}</span>
                 )}
               </span>
-              <span className="font-mono ticker">{formatDuration(elapsed)}</span>
+              <Ticker startedAt={active.started_at} />
               <Square className="h-3 w-3 opacity-60 group-hover:opacity-100" />
             </button>
           </TooltipTrigger>
@@ -115,12 +115,11 @@ function TimerChip() {
       </TooltipProvider>
 
       {stopOpen && tickets.length > 0 && (
-        <StopGroupTimerDialog
+        <StopDialogWrapper
           open={stopOpen}
           onOpenChange={setStopOpen}
           active={active}
-          groupTickets={tickets}
-          elapsedMs={elapsed}
+          tickets={tickets}
         />
       )}
     </>
