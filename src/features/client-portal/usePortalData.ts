@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useRealtimeReload } from "@/hooks/useRealtimeReload";
+import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
 import type { PortalPayload } from "./types";
 
 /**
@@ -8,37 +8,24 @@ import type { PortalPayload } from "./types";
  * Used inside the PMBA editor to preview the dashboard for any "as of" date,
  * without requiring data to be published.
  */
-export function usePortalPreview(projectId: string, hash: string | null, asOf: Date) {
-  const [data, setData] = useState<PortalPayload | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+export function usePortalPreview(projectId: string, _hash: string | null, asOf: Date) {
+  const asOfIso = asOf.toISOString();
+  const queryKey = ["portalPreview", projectId, asOfIso] as const;
 
-  const refresh = useCallback(async () => {
-    if (!projectId) {
-      setData(null);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    const { data: payload, error: rpcErr } = await supabase.rpc(
-      "get_project_portal_preview",
-      { _project_id: projectId, _cutoff: asOf.toISOString() },
-    );
-    if (rpcErr) {
-      setError(rpcErr.message);
-      setData(null);
-    } else {
-      setData(payload as unknown as PortalPayload);
-    }
-    setLoading(false);
-  }, [projectId, asOf]);
+  const query = useQuery({
+    queryKey,
+    enabled: !!projectId,
+    queryFn: async (): Promise<PortalPayload> => {
+      const { data, error } = await supabase.rpc("get_project_portal_preview", {
+        _project_id: projectId,
+        _cutoff: asOfIso,
+      });
+      if (error) throw error;
+      return data as unknown as PortalPayload;
+    },
+  });
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
-
-  // Live updates whenever underlying portal data changes.
-  useRealtimeReload(
+  useRealtimeInvalidate(
     projectId
       ? [
           { table: "projects", filter: `id=eq.${projectId}` },
@@ -49,47 +36,36 @@ export function usePortalPreview(projectId: string, hash: string | null, asOf: D
           { table: "ticket_estimate_changes" },
         ]
       : null,
-    refresh,
+    ["portalPreview", projectId],
     !!projectId,
   );
 
-  return { data, loading, error, refresh };
+  return {
+    data: query.data ?? null,
+    loading: query.isPending && !!projectId,
+    error: query.error ? (query.error as Error).message : null,
+    refresh: () => query.refetch(),
+  };
 }
 
 /** Read-only fetch for the public /h/:hash page. */
 export function usePublicPortal(hash: string | undefined) {
-  const [data, setData] = useState<PortalPayload | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryKey = ["publicPortal", hash] as const;
 
-  const projectId = data?.project?.id;
+  const query = useQuery({
+    queryKey,
+    enabled: !!hash,
+    queryFn: async (): Promise<PortalPayload> => {
+      const { data, error } = await supabase.rpc("get_client_portal", { _hash: hash! });
+      if (error) throw error;
+      if (!data) throw new Error("Portal not found or not enabled.");
+      return data as unknown as PortalPayload;
+    },
+  });
 
-  const refresh = useCallback(async () => {
-    if (!hash) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    const { data: payload, error: err } = await supabase.rpc("get_client_portal", {
-      _hash: hash,
-    });
-    if (err) {
-      setError(err.message);
-      setData(null);
-    } else if (!payload) {
-      setError("Portal not found or not enabled.");
-    } else {
-      setData(payload as unknown as PortalPayload);
-      setError(null);
-    }
-    setLoading(false);
-  }, [hash]);
+  const projectId = query.data?.project?.id;
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
-
-  useRealtimeReload(
+  useRealtimeInvalidate(
     projectId
       ? [
           { table: "projects", filter: `id=eq.${projectId}` },
@@ -100,9 +76,13 @@ export function usePublicPortal(hash: string | undefined) {
           { table: "ticket_estimate_changes" },
         ]
       : null,
-    refresh,
+    queryKey,
     !!projectId,
   );
 
-  return { data, loading, error };
+  return {
+    data: query.data ?? null,
+    loading: query.isPending && !!hash,
+    error: query.error ? (query.error as Error).message : null,
+  };
 }
