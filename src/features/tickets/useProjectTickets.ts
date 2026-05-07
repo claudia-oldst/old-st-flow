@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeReload } from "@/hooks/useRealtimeReload";
+import { PAGE_SIZES } from "@/lib/pagination";
 import type { DisciplineStatus, TeamMember, TicketAssignee } from "@/lib/types";
 
 export interface TicketRow {
@@ -37,21 +38,25 @@ export interface TicketRow {
 
 export function useProjectTickets(projectId: string | undefined) {
   const [tickets, setTickets] = useState<TicketRow[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(!!projectId);
 
   const load = useCallback(async () => {
     if (!projectId) {
       setTickets([]);
+      setTotalCount(0);
       setLoading(false);
       return;
     }
     setLoading(true);
-    const { data: tix } = await supabase
+    const cap = PAGE_SIZES.ticketsKanban;
+    const { data: tix, count } = await supabase
       .from("tickets")
-      .select("*, epic:project_epics(epic_name)")
+      .select("*, epic:project_epics(epic_name)", { count: "exact" })
       .eq("project_id", projectId)
       .order("position", { ascending: true })
-      .order("ticket_number", { ascending: true });
+      .order("ticket_number", { ascending: true })
+      .range(0, cap - 1);
 
     const ids = (tix ?? []).map((t) => t.id);
     let assignees: Array<TicketAssignee & { member: TeamMember }> = [];
@@ -92,7 +97,7 @@ export function useProjectTickets(projectId: string | undefined) {
         current_project_estimate: Number(t.current_project_estimate ?? 0),
         actual_frontend_hours: Number(t.actual_frontend_hours),
         actual_backend_hours: Number(t.actual_backend_hours),
-        
+
         actual_project_hours: Number(t.actual_project_hours ?? 0),
         acceptance_criteria: t.acceptance_criteria ?? null,
         position: t.position,
@@ -103,6 +108,7 @@ export function useProjectTickets(projectId: string | undefined) {
         assignees: grouped[t.id] ?? [],
       }))
     );
+    setTotalCount(count ?? (tix?.length ?? 0));
     setLoading(false);
   }, [projectId]);
 
@@ -122,5 +128,6 @@ export function useProjectTickets(projectId: string | undefined) {
     !!projectId,
   );
 
-  return { tickets, loading, reload: load };
+  const truncated = totalCount > tickets.length;
+  return { tickets, loading, reload: load, totalCount, truncated };
 }
