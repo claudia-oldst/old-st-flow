@@ -1,5 +1,6 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtimeReload } from "@/hooks/useRealtimeReload";
 import type { DisciplineStatus, TeamMember, TicketAssignee } from "@/lib/types";
 
 export interface TicketRow {
