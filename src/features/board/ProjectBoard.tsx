@@ -1,45 +1,25 @@
 import { useEffect, useMemo, useState } from "react";
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
-import { useDroppable, useDraggable } from "@dnd-kit/core";
 import { useStatuses } from "@/features/statuses/useStatuses";
 import { useProjectTickets, type TicketRow } from "@/features/tickets/useProjectTickets";
 import { TicketCard } from "@/features/tickets/TicketCard";
 import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
-import { QuickAddRow } from "@/features/tickets/QuickAddRow";
 import { useProjectRole, isPMBA } from "@/features/team/useProjectRole";
 import { useCurrentUser } from "@/store/currentUser";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import {
-  DISCIPLINE_STATUS_COLOR,
-  DISCIPLINE_STATUS_LABEL,
-  type DisciplineStatus,
-} from "@/lib/types";
+import { type DisciplineStatus } from "@/lib/types";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useCardDisplayPrefs, type CardDisplayPrefs } from "@/features/tickets/useCardDisplayPrefs";
-
-type BoardMode = "project" | "discipline";
-const DISCIPLINE_STATUSES: DisciplineStatus[] = ["todo", "in_progress", "for_integration", "done"];
-
-interface DisciplineCard {
-  ticket: TicketRow;
-  slot: "FE" | "BE" | "Project";
-  status: DisciplineStatus;
-}
-
-const CATEGORY_TO_DISCIPLINE: Record<string, DisciplineStatus> = {
-  backlog: "todo",
-  active: "in_progress",
-  "dev done": "for_integration",
-  done: "done",
-};
-const DISCIPLINE_TO_CATEGORY: Record<DisciplineStatus, "backlog" | "active" | "dev done" | "done"> = {
-  todo: "backlog",
-  in_progress: "active",
-  for_integration: "dev done",
-  done: "done",
-};
+import { useCardDisplayPrefs } from "@/features/tickets/useCardDisplayPrefs";
+import {
+  BoardMode,
+  CATEGORY_TO_DISCIPLINE,
+  DISCIPLINE_STATUSES,
+  DISCIPLINE_TO_CATEGORY,
+  DisciplineCard,
+} from "./board/constants";
+import { Column, DisciplineColumn } from "./board/Columns";
 
 export function ProjectBoard({
   projectId,
@@ -350,187 +330,5 @@ export function ProjectBoard({
         />
       </div>
     </TooltipProvider>
-  );
-}
-
-function Column({
-  status,
-  tickets,
-  projectId,
-  canQuickAdd,
-  onCardClick,
-  onCreated,
-  prefs,
-  forceBars,
-  showQuickStart,
-  currentUserId,
-}: {
-  status: { id: string; name: string; color: string; category: string };
-  tickets: TicketRow[];
-  projectId: string;
-  canQuickAdd: boolean;
-  onCardClick: (t: TicketRow) => void;
-  onCreated: () => void;
-  prefs: CardDisplayPrefs;
-  forceBars: boolean;
-  showQuickStart?: boolean;
-  currentUserId?: string;
-}) {
-  const { setNodeRef, isOver } = useDroppable({ id: status.id });
-  return (
-    <div
-      ref={setNodeRef}
-      className={cn(
-        "min-w-[280px] w-[280px] flex flex-col rounded-2xl glass p-2.5 transition",
-        isOver && "bg-white/[0.06] ring-1 ring-accent/40"
-      )}
-    >
-      <div className="flex items-center justify-between px-1.5 pb-2 mb-2 hairline-b">
-        <div className="flex items-center gap-2">
-          <div className="h-2 w-2 rounded-full" style={{ background: status.color }} />
-          <div className="text-sm font-medium">{status.name}</div>
-        </div>
-        <div className="text-xs text-dimmer font-mono">{tickets.length}</div>
-      </div>
-      <div className="flex flex-col gap-2 flex-1 min-h-[20px]">
-        {tickets.map((t) => (
-          <DraggableCard
-            key={t.id}
-            ticket={t}
-            onClick={() => onCardClick(t)}
-            prefs={prefs}
-            forceBars={forceBars}
-            showQuickStart={showQuickStart}
-            currentUserId={currentUserId}
-          />
-        ))}
-      </div>
-      {canQuickAdd && (
-        <QuickAddRow projectId={projectId} statusId={status.id} onCreated={onCreated} />
-      )}
-    </div>
-  );
-}
-
-function DisciplineColumn({
-  column,
-  cards,
-  onCardClick,
-  prefs,
-  forceBars,
-  showQuickStart,
-  currentUserId,
-}: {
-  column: DisciplineStatus;
-  cards: DisciplineCard[];
-  onCardClick: (c: DisciplineCard) => void;
-  prefs: CardDisplayPrefs;
-  forceBars: boolean;
-  showQuickStart?: boolean;
-  currentUserId?: string;
-}) {
-  const { setNodeRef, isOver } = useDroppable({ id: column });
-  const color = DISCIPLINE_STATUS_COLOR[column];
-  const label = DISCIPLINE_STATUS_LABEL[column];
-  return (
-    <div
-      ref={setNodeRef}
-      className={cn(
-        "min-w-[280px] w-[280px] flex flex-col rounded-2xl glass p-2.5 transition",
-        isOver && "bg-white/[0.06] ring-1 ring-accent/40"
-      )}
-    >
-      <div className="flex items-center justify-between px-1.5 pb-2 mb-2 hairline-b">
-        <div className="flex items-center gap-2">
-          <div className="h-2 w-2 rounded-full" style={{ background: color }} />
-          <div className="text-sm font-medium">{label}</div>
-        </div>
-        <div className="text-xs text-dimmer font-mono">{cards.length}</div>
-      </div>
-      <div className="flex flex-col gap-2 flex-1 min-h-[20px]">
-        {cards.map((c) => (
-          <DraggableDisciplineCard
-            key={`${c.ticket.id}::${c.slot}`}
-            card={c}
-            onClick={() => onCardClick(c)}
-            prefs={prefs}
-            forceBars={forceBars}
-            showQuickStart={showQuickStart}
-            currentUserId={currentUserId}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function DraggableCard({
-  ticket,
-  onClick,
-  prefs,
-  forceBars,
-  showQuickStart,
-  currentUserId,
-}: {
-  ticket: TicketRow;
-  onClick: () => void;
-  prefs: CardDisplayPrefs;
-  forceBars: boolean;
-  showQuickStart?: boolean;
-  currentUserId?: string;
-}) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: ticket.id });
-  return (
-    <div ref={setNodeRef} {...attributes} {...listeners}>
-      <TicketCard
-        ticket={ticket}
-        onClick={onClick}
-        isDragging={isDragging}
-        prefs={prefs}
-        forceBars={forceBars}
-        showQuickStart={showQuickStart}
-        currentUserId={currentUserId}
-      />
-    </div>
-  );
-}
-
-function DraggableDisciplineCard({
-  card,
-  onClick,
-  prefs,
-  forceBars,
-  showQuickStart,
-  currentUserId,
-}: {
-  card: DisciplineCard;
-  onClick: () => void;
-  prefs: CardDisplayPrefs;
-  forceBars: boolean;
-  showQuickStart?: boolean;
-  currentUserId?: string;
-}) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: `${card.ticket.id}::${card.slot}`,
-  });
-  return (
-    <div ref={setNodeRef} {...attributes} {...listeners} className="relative">
-      <span
-        className="absolute -top-1.5 -right-1.5 z-10 px-1.5 py-0.5 rounded-full text-[9px] font-semibold ring-1 ring-white/15"
-        style={{ background: "hsl(var(--background))", color: "hsl(var(--foreground))" }}
-      >
-        {card.slot === "Project" ? "P" : card.slot}
-      </span>
-      <TicketCard
-        ticket={card.ticket}
-        onClick={onClick}
-        isDragging={isDragging}
-        prefs={prefs}
-        forceBars={forceBars}
-        showQuickStart={showQuickStart}
-        currentUserId={currentUserId}
-        forcedDiscipline={card.slot}
-      />
-    </div>
   );
 }

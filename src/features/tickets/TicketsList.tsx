@@ -9,95 +9,23 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useTimerStore } from "@/store/timer";
 import { startTicketTimer } from "@/features/timelog/startTicketTimer";
 import { toast } from "sonner";
+import {
+  COLS,
+  ColKey,
+  DISC_ORDER,
+  DISC_OPTS,
+  Group,
+  GroupBy,
+  SORTABLE,
+  SORT_STORAGE_KEY,
+  STORAGE_KEY,
+  SortDir,
+  SortState,
+  loadSort,
+  loadWidths,
+} from "./list/columns";
 
-export type GroupBy = "none" | "status" | "assignee" | "type" | "epic" | "version" | "fe_status" | "be_status";
-
-const DISC_OPTS: DisciplineStatus[] = ["todo", "in_progress", "for_integration", "done"];
-
-interface Group {
-  key: string;
-  label: string;
-  color?: string;
-  tickets: TicketRow[];
-}
-
-type ColKey =
-  | "id"
-  | "title"
-  | "epic"
-  | "version"
-  | "status"
-  | "dev_status"
-  | "fe"
-  | "be"
-  | "assignees";
-
-interface ColDef {
-  key: ColKey;
-  label: string;
-  default: number;
-  min: number;
-  align?: "left" | "right";
-}
-
-const COLS: Record<ColKey, ColDef> = {
-  id: { key: "id", label: "ID", default: 90, min: 70 },
-  title: { key: "title", label: "Title", default: 320, min: 160 },
-  epic: { key: "epic", label: "Epic", default: 160, min: 100 },
-  version: { key: "version", label: "Version", default: 110, min: 80 },
-  status: { key: "status", label: "Status", default: 140, min: 100 },
-  dev_status: { key: "dev_status", label: "Dev status", default: 200, min: 140 },
-  fe: { key: "fe", label: "FE", default: 110, min: 80, align: "right" },
-  be: { key: "be", label: "BE", default: 110, min: 80, align: "right" },
-  assignees: { key: "assignees", label: "Assignees", default: 200, min: 120 },
-};
-
-const STORAGE_KEY = "tickets-list-col-widths-v1";
-const SORT_STORAGE_KEY = "tickets-list-sort-v1";
-
-type SortDir = "asc" | "desc";
-interface SortState {
-  key: ColKey;
-  dir: SortDir;
-}
-
-const SORTABLE: Record<ColKey, boolean> = {
-  id: true,
-  title: true,
-  epic: true,
-  version: true,
-  status: true,
-  dev_status: true,
-  fe: true,
-  be: true,
-  assignees: true,
-};
-
-const DISC_ORDER: Record<DisciplineStatus, number> = {
-  todo: 0,
-  in_progress: 1,
-  for_integration: 2,
-  done: 3,
-};
-
-function loadWidths(): Partial<Record<ColKey, number>> {
-  if (typeof window === "undefined") return {};
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-  } catch {
-    return {};
-  }
-}
-
-function loadSort(): SortState | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem(SORT_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
+export type { GroupBy } from "./list/columns";
 
 export function TicketsList({
   tickets,
