@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import type { DisciplineStatus } from "@/lib/types";
-import type { Status } from "@/features/statuses/useStatuses";
+import type { Status } from "@/lib/types";
 import {
   CATEGORY_TO_DISCIPLINE,
   DISCIPLINE_STATUSES,
