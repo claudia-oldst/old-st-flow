@@ -72,13 +72,22 @@ export function TimerSync() {
           .filter(Boolean) as TimerTicket[];
       }
 
-      // Fallback for legacy single-ticket timers (no group rows yet)
+      // Self-heal: backfill missing group row for any pre-migration
+      // active_timers row, then take the single normal path.
       if (tickets.length === 0 && active.ticket_id) {
+        await supabase
+          .from("active_timer_tickets")
+          .upsert(
+            { user_id: user.id, ticket_id: active.ticket_id, position: 0 },
+            { onConflict: "user_id,ticket_id" },
+          );
+
         const { data: t } = await supabase
           .from("tickets")
           .select("id, formatted_id, title, fe_status, be_status, status_id, project_id")
           .eq("id", active.ticket_id)
           .maybeSingle();
+        if (!mounted) return;
         if (t) {
           tickets = [
             {

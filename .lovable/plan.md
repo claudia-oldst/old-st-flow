@@ -1,40 +1,50 @@
 ## Goal
-Make `src/integrations/supabase/client.ts` read Supabase URL + anon key from Vite env vars, with the current hardcoded values kept as fallbacks.
+Eliminate the legacy single-ticket timer fallback in `TimerSync.tsx` so there is exactly one source of truth (`active_timer_tickets`) for "what is being timed", without losing any in-flight legacy timers.
 
-## Why this improves maintainability
-- **Single source of truth per environment.** `.env` already defines `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`; today they are silently ignored. After the change, staging / preview / local builds can point at a different Supabase project without editing source.
-- **No code change per environment.** CI/preview deploys stop requiring a code edit + commit just to swap credentials.
-- **Fallback preserves current behavior.** Fresh clones with no `.env` keep working exactly as today — zero runtime impact, zero UX change.
-- **No new abstractions, no new files, no dependency changes.** Vite's `import.meta.env` is already typed via the existing `src/vite-env.d.ts` reference to `vite/client`.
+## Approach: self-healing backfill
+Replace the read-time fallback (lines 75–95) with a one-time per-user backfill: if `TimerSync` finds an `active_timers` row with no matching `active_timer_tickets` row, it `upsert`s the missing group row, then renders via the standard path. Every subsequent load — for that user and everyone else — hits one code path.
 
-## Change (only file touched)
+## Change (one file)
 
-`src/integrations/supabase/client.ts` — replace the two constant assignments:
+`src/components/TimerSync.tsx` — replace the `// Fallback for legacy single-ticket timers` block with:
 
 ```ts
-const SUPABASE_URL =
-  import.meta.env.VITE_SUPABASE_URL ??
-  "https://vkelhdyulmdhdgerzunu.supabase.co";
+// Self-heal: backfill missing group row for any pre-migration
+// active_timers row, then take the single normal path.
+if (tickets.length === 0 && active.ticket_id) {
+  await supabase
+    .from("active_timer_tickets")
+    .upsert(
+      { user_id: user.id, ticket_id: active.ticket_id, position: 0 },
+      { onConflict: "user_id,ticket_id" },
+    );
 
-const SUPABASE_PUBLISHABLE_KEY =
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrZWxoZHl1bG1kaGRnZXJ6dW51Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwMzIxMTcsImV4cCI6MjA5MjYwODExN30.hDh-GUqgexJVkb5Zqcl6t-OSRNMyQ4it7K6R9jAS9F8";
+  const { data: t } = await supabase
+    .from("tickets")
+    .select("id, formatted_id, title, fe_status, be_status, status_id, project_id")
+    .eq("id", active.ticket_id)
+    .maybeSingle();
+  if (!mounted) return;
+  if (t) {
+    tickets = [{
+      id: t.id, formatted_id: t.formatted_id, title: t.title, position: 0,
+      fe_status: t.fe_status as any, be_status: t.be_status as any,
+      status_id: t.status_id, project_id: t.project_id,
+    }];
+  }
+}
 ```
 
-Everything else in the file is unchanged: the auto-generated header comment, the `createClient<Database>(...)` call, auth options (`storage: localStorage`, `persistSession: true`, `autoRefreshToken: true`), and the exported `supabase` singleton.
-
 ## Guardrails
-- No other files touched. All ~30+ call sites that `import { supabase } from "@/integrations/supabase/client"` are unaffected.
-- No changes to `src/integrations/supabase/types.ts` (generated).
-- No changes to `.env` or `.env.example`.
-- Edge functions continue to use `Deno.env.get(...)` — out of scope.
-- `tsc` must pass with zero new errors.
+- No DB schema change, no migration. RLS on `active_timer_tickets` already permits inserts.
+- No changes to `startTicketTimer.ts`, `LogTimeModal.tsx`, `Start/StopGroupTimerDialog.tsx`, the timer store, or any UI.
+- If upsert fails, behavior degrades to today's (UI still shows the ticket from `active.ticket_id`) — never worse than current.
+- `tsc` passes; no new types or deps.
 
 ## Verification
-1. App loads, login persists, existing Supabase queries and realtime subscriptions work (spot-check `ProjectWorkspace`, `TicketsList`, `useRealtimeReload`).
-2. Optional sanity check: temporarily set `VITE_SUPABASE_URL` to a bogus value in `.env`, restart dev server, confirm requests target the override (then revert).
+1. Normal post-migration timer: backfill branch is skipped; UI unchanged.
+2. Simulated legacy row (`active_timers` only): on next load, group row is written, UI renders the ticket, refresh hits the normal path with no extra writes.
+3. `StopGroupTimerDialog` still clears both tables — no orphans.
 
 ## Out of scope
-- Removing the hardcoded fallback entirely (would break fresh clones).
-- Throwing on missing env vars.
-- Refactoring the client to a factory or moving auth options.
+- Dropping `active_timers.ticket_id` or merging the two tables (separate follow-up).
