@@ -121,7 +121,13 @@ export default function Projects() {
         </Dialog>
       </div>
 
-      {projects.length === 0 ? (
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-[148px] rounded-2xl" />
+          ))}
+        </div>
+      ) : projects.length === 0 ? (
         <div className="glass rounded-2xl p-16 text-center">
           <FolderKanban className="h-10 w-10 mx-auto text-dimmer mb-4" />
           <div className="text-lg font-medium">No projects yet</div>
