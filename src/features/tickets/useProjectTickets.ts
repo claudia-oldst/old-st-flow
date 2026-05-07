@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtimeReload } from "@/hooks/useRealtimeReload";
 import type { DisciplineStatus, TeamMember, TicketAssignee } from "@/lib/types";
 
 export interface TicketRow {
@@ -109,19 +110,17 @@ export function useProjectTickets(projectId: string | undefined) {
     load();
   }, [load]);
 
-  // realtime: any change on tickets in this project triggers reload
-  useEffect(() => {
-    if (!projectId) return;
-    const ch = supabase
-      .channel(`tickets-${projectId}-${Math.random().toString(36).slice(2)}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "tickets", filter: `project_id=eq.${projectId}` }, () => load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "ticket_assignees" }, () => load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "project_epics", filter: `project_id=eq.${projectId}` }, () => load())
-      .subscribe();
-    return () => {
-      supabase.removeChannel(ch);
-    };
-  }, [projectId, load]);
+  useRealtimeReload(
+    projectId
+      ? [
+          { table: "tickets", filter: `project_id=eq.${projectId}` },
+          { table: "ticket_assignees" },
+          { table: "project_epics", filter: `project_id=eq.${projectId}` },
+        ]
+      : null,
+    load,
+    !!projectId,
+  );
 
   return { tickets, loading, reload: load };
 }
