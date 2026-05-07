@@ -30,10 +30,12 @@ export function ProjectBoard({
   tickets?: TicketRow[];
   reload?: () => void;
 }) {
-  const { statuses } = useStatuses();
+  const { statuses, loading: statusesLoading } = useStatuses();
   const local = useProjectTickets(ticketsProp ? undefined : projectId);
   const allTickets = ticketsProp ?? local.tickets;
   const reload = reloadProp ?? local.reload;
+  const initialLoading =
+    !ticketsProp && (local.loading || statusesLoading) && allTickets.length === 0;
   const tickets = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return allTickets;
