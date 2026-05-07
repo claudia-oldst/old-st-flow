@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useRealtimeReload } from "@/hooks/useRealtimeReload";
+import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
 import { PAGE_SIZES } from "@/lib/pagination";
 import type { DisciplineStatus, TeamMember, TicketAssignee } from "@/lib/types";
 
@@ -36,87 +36,88 @@ export interface TicketRow {
   assignees: Array<{ user_id: string; slot: "FE" | "BE" | "Project"; member: TeamMember; created_at: string }>;
 }
 
-export function useProjectTickets(projectId: string | undefined) {
-  const [tickets, setTickets] = useState<TicketRow[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [loading, setLoading] = useState(!!projectId);
+interface FetchResult {
+  tickets: TicketRow[];
+  totalCount: number;
+}
 
-  const load = useCallback(async () => {
-    if (!projectId) {
-      setTickets([]);
-      setTotalCount(0);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    const cap = PAGE_SIZES.ticketsKanban;
-    const { data: tix, count } = await supabase
-      .from("tickets")
-      .select("*, epic:project_epics(epic_name)", { count: "exact" })
-      .eq("project_id", projectId)
-      .order("position", { ascending: true })
-      .order("ticket_number", { ascending: true })
-      .range(0, cap - 1);
+async function fetchProjectTickets(projectId: string): Promise<FetchResult> {
+  const cap = PAGE_SIZES.ticketsKanban;
+  const { data: tix, count } = await supabase
+    .from("tickets")
+    .select("*, epic:project_epics(epic_name)", { count: "exact" })
+    .eq("project_id", projectId)
+    .order("position", { ascending: true })
+    .order("ticket_number", { ascending: true })
+    .range(0, cap - 1);
 
-    const ids = (tix ?? []).map((t) => t.id);
-    let assignees: Array<TicketAssignee & { member: TeamMember }> = [];
-    if (ids.length) {
-      const { data } = await supabase
-        .from("ticket_assignees")
-        .select("*, member:team_members(*)")
-        .in("ticket_id", ids);
-      assignees = (data as any) ?? [];
-    }
+  const ids = (tix ?? []).map((t) => t.id);
+  let assignees: Array<TicketAssignee & { member: TeamMember }> = [];
+  if (ids.length) {
+    const { data } = await supabase
+      .from("ticket_assignees")
+      .select("*, member:team_members(*)")
+      .in("ticket_id", ids);
+    assignees = (data as any) ?? [];
+  }
 
-    const grouped: Record<string, TicketRow["assignees"]> = {};
-    assignees.forEach((a) => {
-      grouped[a.ticket_id] ??= [];
-      grouped[a.ticket_id].push({ user_id: a.user_id, slot: a.slot, member: a.member, created_at: (a as any).created_at });
+  const grouped: Record<string, TicketRow["assignees"]> = {};
+  assignees.forEach((a) => {
+    grouped[a.ticket_id] ??= [];
+    grouped[a.ticket_id].push({
+      user_id: a.user_id,
+      slot: a.slot,
+      member: a.member,
+      created_at: (a as any).created_at,
     });
+  });
 
-    setTickets(
-      (tix ?? []).map((t: any) => ({
-        id: t.id,
-        project_id: t.project_id,
-        ticket_number: t.ticket_number,
-        formatted_id: t.formatted_id,
-        title: t.title,
-        ticket_type: t.ticket_type,
-        status_id: t.status_id,
-        fe_status: (t.fe_status ?? "todo") as DisciplineStatus,
-        be_status: (t.be_status ?? "todo") as DisciplineStatus,
-        project_status_override: !!t.project_status_override,
-        epic_id: t.epic_id ?? null,
-        epic_name: t.epic?.epic_name ?? null,
-        version: t.version ?? null,
-        original_fe_estimate: Number(t.original_fe_estimate),
-        original_be_estimate: Number(t.original_be_estimate),
-        current_fe_estimate: Number(t.current_fe_estimate),
-        current_be_estimate: Number(t.current_be_estimate),
-        original_project_estimate: Number(t.original_project_estimate ?? 0),
-        current_project_estimate: Number(t.current_project_estimate ?? 0),
-        actual_frontend_hours: Number(t.actual_frontend_hours),
-        actual_backend_hours: Number(t.actual_backend_hours),
+  const tickets: TicketRow[] = (tix ?? []).map((t: any) => ({
+    id: t.id,
+    project_id: t.project_id,
+    ticket_number: t.ticket_number,
+    formatted_id: t.formatted_id,
+    title: t.title,
+    ticket_type: t.ticket_type,
+    status_id: t.status_id,
+    fe_status: (t.fe_status ?? "todo") as DisciplineStatus,
+    be_status: (t.be_status ?? "todo") as DisciplineStatus,
+    project_status_override: !!t.project_status_override,
+    epic_id: t.epic_id ?? null,
+    epic_name: t.epic?.epic_name ?? null,
+    version: t.version ?? null,
+    original_fe_estimate: Number(t.original_fe_estimate),
+    original_be_estimate: Number(t.original_be_estimate),
+    current_fe_estimate: Number(t.current_fe_estimate),
+    current_be_estimate: Number(t.current_be_estimate),
+    original_project_estimate: Number(t.original_project_estimate ?? 0),
+    current_project_estimate: Number(t.current_project_estimate ?? 0),
+    actual_frontend_hours: Number(t.actual_frontend_hours),
+    actual_backend_hours: Number(t.actual_backend_hours),
+    actual_project_hours: Number(t.actual_project_hours ?? 0),
+    acceptance_criteria: t.acceptance_criteria ?? null,
+    position: t.position,
+    created_at: t.created_at,
+    cr_approval: (t.cr_approval ?? "pending") as TicketRow["cr_approval"],
+    cr_decided_by: t.cr_decided_by ?? null,
+    cr_decided_at: t.cr_decided_at ?? null,
+    assignees: grouped[t.id] ?? [],
+  }));
 
-        actual_project_hours: Number(t.actual_project_hours ?? 0),
-        acceptance_criteria: t.acceptance_criteria ?? null,
-        position: t.position,
-        created_at: t.created_at,
-        cr_approval: (t.cr_approval ?? "pending") as TicketRow["cr_approval"],
-        cr_decided_by: t.cr_decided_by ?? null,
-        cr_decided_at: t.cr_decided_at ?? null,
-        assignees: grouped[t.id] ?? [],
-      }))
-    );
-    setTotalCount(count ?? (tix?.length ?? 0));
-    setLoading(false);
-  }, [projectId]);
+  return { tickets, totalCount: count ?? tickets.length };
+}
 
-  useEffect(() => {
-    load();
-  }, [load]);
+export function useProjectTickets(projectId: string | undefined) {
+  const qc = useQueryClient();
+  const queryKey = ["projectTickets", projectId] as const;
 
-  useRealtimeReload(
+  const query = useQuery({
+    queryKey,
+    queryFn: () => fetchProjectTickets(projectId!),
+    enabled: !!projectId,
+  });
+
+  useRealtimeInvalidate(
     projectId
       ? [
           { table: "tickets", filter: `project_id=eq.${projectId}` },
@@ -124,10 +125,17 @@ export function useProjectTickets(projectId: string | undefined) {
           { table: "project_epics", filter: `project_id=eq.${projectId}` },
         ]
       : null,
-    load,
+    queryKey,
     !!projectId,
   );
 
-  const truncated = totalCount > tickets.length;
-  return { tickets, loading, reload: load, totalCount, truncated };
+  const tickets = query.data?.tickets ?? [];
+  const totalCount = query.data?.totalCount ?? 0;
+  return {
+    tickets,
+    loading: query.isPending && !!projectId,
+    reload: () => qc.invalidateQueries({ queryKey }),
+    totalCount,
+    truncated: totalCount > tickets.length,
+  };
 }
