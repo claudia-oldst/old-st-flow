@@ -1,56 +1,45 @@
 import { useCurrentUser } from "@/store/currentUser";
 import type { ProjectRole } from "@/lib/types";
-import { useCallback, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useRealtimeReload } from "@/hooks/useRealtimeReload";
+import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
 
 /**
  * Returns the current user's effective role for the given project.
- *
- * Priority:
- * 1. Project-specific role from `project_members` (if assigned)
- * 2. Global role from `team_members.role` (default for the user)
+ * Project-specific role from `project_members` overrides global `team_members.role`.
  */
 export function useProjectRole(projectId: string | undefined): ProjectRole | null {
   const user = useCurrentUser((s) => s.user);
-  const [role, setRole] = useState<ProjectRole | null>(null);
+  const queryKey = ["projectRole", projectId, user?.id] as const;
 
-  const reload = useCallback(() => {
-    if (!user) {
-      setRole(null);
-      return;
-    }
-    if (!projectId) {
-      setRole(user.role ?? null);
-      return;
-    }
-    supabase
-      .from("project_members")
-      .select("role")
-      .eq("project_id", projectId)
-      .eq("user_id", user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        setRole((data?.role as ProjectRole) ?? user.role ?? null);
-      });
-  }, [projectId, user]);
+  const query = useQuery({
+    queryKey,
+    enabled: !!user && !!projectId,
+    queryFn: async (): Promise<ProjectRole | null> => {
+      const { data } = await supabase
+        .from("project_members")
+        .select("role")
+        .eq("project_id", projectId!)
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      return (data?.role as ProjectRole) ?? user!.role ?? null;
+    },
+  });
 
-  useEffect(() => {
-    reload();
-  }, [reload]);
-
-  useRealtimeReload(
+  useRealtimeInvalidate(
     projectId
       ? [
           { table: "project_members", filter: `project_id=eq.${projectId}` },
           { table: "team_members" },
         ]
       : null,
-    reload,
+    queryKey,
     !!projectId && !!user,
   );
 
-  return role;
+  if (!user) return null;
+  if (!projectId) return user.role ?? null;
+  return query.data ?? null;
 }
 
 /** True if the role grants PM/BA permissions (project-level OR global). */

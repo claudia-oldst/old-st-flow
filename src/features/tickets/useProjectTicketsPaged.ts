@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useRealtimeReload } from "@/hooks/useRealtimeReload";
+import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
 import type { DisciplineStatus, TeamMember } from "@/lib/types";
 import type { TicketRow } from "./useProjectTickets";
 import type { TicketFilters } from "./TicketsFilter";
@@ -85,53 +85,39 @@ export function useProjectTicketsPaged(
   projectId: string | undefined,
   opts: UseProjectTicketsPagedOpts,
 ) {
-  const [rows, setRows] = useState<TicketRow[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(!!projectId);
-
+  const qc = useQueryClient();
   const { filters, search, sort, page, pageSize, filterMineUserId } = opts;
-  const filterKey = JSON.stringify({ filters, search, sort, page, pageSize, filterMineUserId });
+  const queryKey = [
+    "projectTicketsPaged",
+    projectId,
+    { filters, search, sort, page, pageSize, filterMineUserId: filterMineUserId ?? null },
+  ] as const;
 
-  const load = useCallback(async () => {
-    if (!projectId) {
-      setRows([]);
-      setTotal(0);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    const payload = {
-      ...filters,
-      filterMineUserId: filterMineUserId ?? null,
-    };
-    const { data, error } = await supabase.rpc("list_project_tickets", {
-      _project_id: projectId,
-      _filters: payload as any,
-      _search: search?.trim() || null,
-      _sort_col: sort.col,
-      _sort_dir: sort.dir,
-      _page: page,
-      _page_size: pageSize,
-    });
-    if (error) {
-      console.error("list_project_tickets failed", error);
-      setRows([]);
-      setTotal(0);
-      setLoading(false);
-      return;
-    }
-    const r = (data ?? { rows: [], total: 0 }) as unknown as RpcResult;
-    setRows((r.rows ?? []).map(normalize));
-    setTotal(r.total ?? 0);
-    setLoading(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, filterKey]);
+  const query = useQuery({
+    queryKey,
+    enabled: !!projectId,
+    placeholderData: keepPreviousData,
+    queryFn: async (): Promise<{ rows: TicketRow[]; total: number }> => {
+      const payload = { ...filters, filterMineUserId: filterMineUserId ?? null };
+      const { data, error } = await supabase.rpc("list_project_tickets", {
+        _project_id: projectId!,
+        _filters: payload as any,
+        _search: search?.trim() || null,
+        _sort_col: sort.col,
+        _sort_dir: sort.dir,
+        _page: page,
+        _page_size: pageSize,
+      });
+      if (error) {
+        console.error("list_project_tickets failed", error);
+        return { rows: [], total: 0 };
+      }
+      const r = (data ?? { rows: [], total: 0 }) as unknown as RpcResult;
+      return { rows: (r.rows ?? []).map(normalize), total: r.total ?? 0 };
+    },
+  });
 
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  useRealtimeReload(
+  useRealtimeInvalidate(
     projectId
       ? [
           { table: "tickets", filter: `project_id=eq.${projectId}` },
@@ -139,9 +125,14 @@ export function useProjectTicketsPaged(
           { table: "project_epics", filter: `project_id=eq.${projectId}` },
         ]
       : null,
-    load,
+    ["projectTicketsPaged", projectId],
     !!projectId,
   );
 
-  return { rows, total, loading, reload: load };
+  return {
+    rows: query.data?.rows ?? [],
+    total: query.data?.total ?? 0,
+    loading: query.isPending && !!projectId,
+    reload: () => qc.invalidateQueries({ queryKey: ["projectTicketsPaged", projectId] }),
+  };
 }

@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
 
 export interface Epic {
   id: number;
@@ -8,53 +10,39 @@ export interface Epic {
 }
 
 export function useProjectEpics(projectId: string | undefined) {
-  const [epics, setEpics] = useState<Epic[]>([]);
-  const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
+  const queryKey = ["projectEpics", projectId] as const;
 
-  const load = useCallback(async () => {
-    if (!projectId) {
-      setEpics([]);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    const { data } = await supabase
-      .from("project_epics")
-      .select("*")
-      .eq("project_id", projectId)
-      .order("epic_name", { ascending: true });
-    setEpics((data as Epic[]) ?? []);
-    setLoading(false);
-  }, [projectId]);
+  const query = useQuery({
+    queryKey,
+    enabled: !!projectId,
+    queryFn: async (): Promise<Epic[]> => {
+      const { data } = await supabase
+        .from("project_epics")
+        .select("*")
+        .eq("project_id", projectId!)
+        .order("epic_name", { ascending: true });
+      return (data as Epic[]) ?? [];
+    },
+  });
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useRealtimeInvalidate(
+    projectId
+      ? [{ table: "project_epics", filter: `project_id=eq.${projectId}` }]
+      : null,
+    queryKey,
+    !!projectId,
+  );
 
-  // realtime
-  useEffect(() => {
-    if (!projectId) return;
-    const ch = supabase
-      .channel(`project_epics-${projectId}-${Math.random().toString(36).slice(2)}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "project_epics",
-          filter: `project_id=eq.${projectId}`,
-        },
-        () => load()
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(ch);
-    };
-  }, [projectId, load]);
+  const epics = query.data ?? [];
+  const reload = useCallback(
+    () => qc.invalidateQueries({ queryKey }) as Promise<void> & any,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [qc, projectId],
+  );
 
   /**
-   * Create a new epic for the project. Returns the new epic's id, or null on failure.
-   * If an epic with the same name already exists, returns its id.
+   * Create a new epic. Returns the new (or existing) epic id, or null on failure.
    */
   const createEpic = useCallback(
     async (name: string): Promise<number | null> => {
@@ -73,11 +61,17 @@ export function useProjectEpics(projectId: string | undefined) {
         .select("*")
         .single();
       if (error || !data) return null;
-      await load();
+      await qc.invalidateQueries({ queryKey });
       return (data as Epic).id;
     },
-    [projectId, epics, load]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [projectId, epics, qc],
   );
 
-  return { epics, loading, reload: load, createEpic };
+  return {
+    epics,
+    loading: query.isPending && !!projectId,
+    reload,
+    createEpic,
+  };
 }

@@ -1,23 +1,25 @@
-import { useCallback, useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useRealtimeReload } from "@/hooks/useRealtimeReload";
+import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
 import type { Status } from "@/lib/types";
 
 export function useStatuses() {
-  const [statuses, setStatuses] = useState<Status[]>([]);
-  const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
+  const queryKey = ["statuses"] as const;
 
-  const load = useCallback(async () => {
-    const { data } = await supabase.from("statuses").select("*").order("position");
-    setStatuses(data ?? []);
-    setLoading(false);
-  }, []);
+  const query = useQuery({
+    queryKey,
+    queryFn: async (): Promise<Status[]> => {
+      const { data } = await supabase.from("statuses").select("*").order("position");
+      return data ?? [];
+    },
+  });
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useRealtimeInvalidate([{ table: "statuses" }], queryKey);
 
-  useRealtimeReload([{ table: "statuses" }], load);
-
-  return { statuses, loading, reload: load };
+  return {
+    statuses: query.data ?? [],
+    loading: query.isPending,
+    reload: () => qc.invalidateQueries({ queryKey }),
+  };
 }

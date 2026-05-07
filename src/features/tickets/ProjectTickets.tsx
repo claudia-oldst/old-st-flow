@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useCurrentUser } from "@/store/currentUser";
 import { useTimerStore } from "@/store/timer";
 import { FileText } from "lucide-react";
@@ -52,7 +52,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
     () => JSON.stringify({ f: v.filters, s: v.search, m: v.filterMine }),
     [v.filters, v.search, v.filterMine],
   );
-  useMemo(() => setPage(1), [filterSig]);
+  useEffect(() => setPage(1), [filterSig]);
 
   const onImportClick = async () => {
     const ok = await handleImport();

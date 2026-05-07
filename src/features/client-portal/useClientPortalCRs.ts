@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useRealtimeReload } from "@/hooks/useRealtimeReload";
+import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
 
 export interface ClientCRTicket {
   id: string;
@@ -45,35 +45,31 @@ export interface ClientPortalCRPayload {
 }
 
 export function useClientPortalCRsByHash(hash: string | undefined) {
-  const [data, setData] = useState<ClientPortalCRPayload | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryKey = ["clientPortalCRs", hash] as const;
 
-  const refresh = useCallback(async () => {
-    if (!hash) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    const { data: payload } = await supabase.rpc(
-      "get_client_portal_change_requests",
-      { _hash: hash },
-    );
-    setData((payload as unknown as ClientPortalCRPayload) ?? null);
-    setLoading(false);
-  }, [hash]);
+  const query = useQuery({
+    queryKey,
+    enabled: !!hash,
+    queryFn: async (): Promise<ClientPortalCRPayload | null> => {
+      const { data } = await supabase.rpc("get_client_portal_change_requests", {
+        _hash: hash!,
+      });
+      return (data as unknown as ClientPortalCRPayload) ?? null;
+    },
+  });
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
-
-  const projectId = data?.project?.id;
-  useRealtimeReload(
+  const projectId = query.data?.project?.id;
+  useRealtimeInvalidate(
     projectId
       ? [{ table: "tickets", filter: `project_id=eq.${projectId}` }]
       : null,
-    refresh,
+    queryKey,
     !!projectId,
   );
 
-  return { data, loading, refresh };
+  return {
+    data: query.data ?? null,
+    loading: query.isPending && !!hash,
+    refresh: () => query.refetch(),
+  };
 }

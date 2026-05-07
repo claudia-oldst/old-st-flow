@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useRealtimeReload } from "@/hooks/useRealtimeReload";
+import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
 
 export interface TicketLogEntry {
   id: string;
@@ -17,30 +17,30 @@ export interface TicketLogEntry {
  * callback for manual refresh after a mutation.
  */
 export function useTicketTimeLogs(ticketId: string | undefined) {
-  const [logs, setLogs] = useState<TicketLogEntry[]>([]);
+  const qc = useQueryClient();
+  const queryKey = ["ticketTimeLogs", ticketId] as const;
 
-  const reload = useCallback(async () => {
-    if (!ticketId) {
-      setLogs([]);
-      return;
-    }
-    const { data } = await supabase
-      .from("time_logs")
-      .select("id,hours,discipline,note,logged_at,source,user:team_members(name,avatar_color)")
-      .eq("ticket_id", ticketId)
-      .order("logged_at", { ascending: false });
-    setLogs((data as unknown as TicketLogEntry[]) ?? []);
-  }, [ticketId]);
+  const query = useQuery({
+    queryKey,
+    enabled: !!ticketId,
+    queryFn: async (): Promise<TicketLogEntry[]> => {
+      const { data } = await supabase
+        .from("time_logs")
+        .select("id,hours,discipline,note,logged_at,source,user:team_members(name,avatar_color)")
+        .eq("ticket_id", ticketId!)
+        .order("logged_at", { ascending: false });
+      return (data as unknown as TicketLogEntry[]) ?? [];
+    },
+  });
 
-  useEffect(() => {
-    reload();
-  }, [reload]);
-
-  useRealtimeReload(
+  useRealtimeInvalidate(
     ticketId ? [{ table: "time_logs", filter: `ticket_id=eq.${ticketId}` }] : null,
-    reload,
+    queryKey,
     !!ticketId,
   );
 
-  return { logs, reload };
+  return {
+    logs: query.data ?? [],
+    reload: () => qc.invalidateQueries({ queryKey }),
+  };
 }
