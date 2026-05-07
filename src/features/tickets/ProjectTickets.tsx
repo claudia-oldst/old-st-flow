@@ -493,7 +493,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
               Cancel
             </Button>
             {rows.length > 0 && (
-              <Button onClick={handleImport} disabled={importing}>
+              <Button onClick={onImportClick} disabled={importing}>
                 Import {rows.filter((r) => !r.error).length} ticket
                 {rows.filter((r) => !r.error).length === 1 ? "" : "s"}
               </Button>
