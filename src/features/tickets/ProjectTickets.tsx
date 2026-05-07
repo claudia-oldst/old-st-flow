@@ -23,7 +23,7 @@ import { PAGE_SIZES } from "@/lib/pagination";
 export function ProjectTickets({ projectId }: { projectId: string }) {
   const role = useProjectRole(projectId);
   const user = useCurrentUser((s) => s.user);
-  const { tickets, loading, reload } = useProjectTickets(projectId);
+  const { tickets, reload } = useProjectTickets(projectId);
   const [importOpen, setImportOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
@@ -191,5 +191,3 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
     </div>
   );
 }
-
-void loading; // intentionally unused — kept for future skeleton states
