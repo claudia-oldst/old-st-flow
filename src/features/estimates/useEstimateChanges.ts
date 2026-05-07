@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
 
 export interface EstimateChange {
   id: string;
@@ -15,108 +16,78 @@ export interface EstimateChange {
   user?: { name: string; avatar_color: string } | null;
 }
 
+function num(c: any): EstimateChange {
+  return {
+    ...c,
+    previous_hours: Number(c.previous_hours),
+    new_hours: Number(c.new_hours),
+    delta: Number(c.delta),
+  };
+}
+
 /** All estimate changes for a single ticket, newest first. */
 export function useTicketEstimateChanges(ticketId: string | undefined) {
-  const [changes, setChanges] = useState<EstimateChange[]>([]);
+  const qc = useQueryClient();
+  const queryKey = ["estimateChangesByTicket", ticketId] as const;
 
-  const load = useCallback(async () => {
-    if (!ticketId) {
-      setChanges([]);
-      return;
-    }
-    const { data } = await supabase
-      .from("ticket_estimate_changes")
-      .select(
-        "id,ticket_id,user_id,discipline,previous_hours,new_hours,delta,reason,status,created_at,user:team_members(name,avatar_color)"
-      )
-      .eq("ticket_id", ticketId)
-      .order("created_at", { ascending: false });
-    setChanges(
-      (data ?? []).map((c: any) => ({
-        ...c,
-        previous_hours: Number(c.previous_hours),
-        new_hours: Number(c.new_hours),
-        delta: Number(c.delta),
-      }))
-    );
-  }, [ticketId]);
+  const query = useQuery({
+    queryKey,
+    enabled: !!ticketId,
+    queryFn: async (): Promise<EstimateChange[]> => {
+      const { data } = await supabase
+        .from("ticket_estimate_changes")
+        .select(
+          "id,ticket_id,user_id,discipline,previous_hours,new_hours,delta,reason,status,created_at,user:team_members(name,avatar_color)"
+        )
+        .eq("ticket_id", ticketId!)
+        .order("created_at", { ascending: false });
+      return ((data ?? []) as any[]).map(num);
+    },
+  });
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useRealtimeInvalidate(
+    ticketId
+      ? [{ table: "ticket_estimate_changes", filter: `ticket_id=eq.${ticketId}` }]
+      : null,
+    queryKey,
+    !!ticketId,
+  );
 
-  useEffect(() => {
-    if (!ticketId) return;
-    const ch = supabase
-      .channel(`tec-${ticketId}-${Math.random().toString(36).slice(2)}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "ticket_estimate_changes",
-          filter: `ticket_id=eq.${ticketId}`,
-        },
-        () => load()
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(ch);
-    };
-  }, [ticketId, load]);
-
-  return { changes, reload: load };
+  return {
+    changes: query.data ?? [],
+    reload: () => qc.invalidateQueries({ queryKey }),
+  };
 }
 
 /** All estimate changes for all tickets in a project. */
 export function useProjectEstimateChanges(projectId: string | undefined) {
-  const [changes, setChanges] = useState<EstimateChange[]>([]);
-  const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
+  const queryKey = ["projectEstimateChanges", projectId] as const;
 
-  const load = useCallback(async () => {
-    if (!projectId) {
-      setChanges([]);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    // join via tickets to filter by project
-    const { data } = await supabase
-      .from("ticket_estimate_changes")
-      .select(
-        "id,ticket_id,user_id,discipline,previous_hours,new_hours,delta,reason,status,created_at,ticket:tickets!inner(project_id,epic_id)"
-      )
-      .eq("ticket.project_id", projectId)
-      .order("created_at", { ascending: true });
-    setChanges(
-      (data ?? []).map((c: any) => ({
-        ...c,
-        previous_hours: Number(c.previous_hours),
-        new_hours: Number(c.new_hours),
-        delta: Number(c.delta),
-      }))
-    );
-    setLoading(false);
-  }, [projectId]);
+  const query = useQuery({
+    queryKey,
+    enabled: !!projectId,
+    queryFn: async (): Promise<EstimateChange[]> => {
+      const { data } = await supabase
+        .from("ticket_estimate_changes")
+        .select(
+          "id,ticket_id,user_id,discipline,previous_hours,new_hours,delta,reason,status,created_at,ticket:tickets!inner(project_id,epic_id)"
+        )
+        .eq("ticket.project_id", projectId!)
+        .order("created_at", { ascending: true });
+      return ((data ?? []) as any[]).map(num);
+    },
+  });
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useRealtimeInvalidate(
+    projectId ? [{ table: "ticket_estimate_changes" }] : null,
+    queryKey,
+    !!projectId,
+  );
 
-  useEffect(() => {
-    if (!projectId) return;
-    const ch = supabase
-      .channel(`tec-proj-${projectId}-${Math.random().toString(36).slice(2)}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "ticket_estimate_changes" },
-        () => load()
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(ch);
-    };
-  }, [projectId, load]);
-
-  return { changes, loading, reload: load };
+  return {
+    changes: query.data ?? [],
+    loading: query.isPending && !!projectId,
+    reload: () => qc.invalidateQueries({ queryKey }),
+  };
 }
