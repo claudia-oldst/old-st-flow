@@ -25,21 +25,50 @@ import {
 import { ChevronDown, Settings, FolderKanban, ListChecks, User, Square } from "lucide-react";
 import { cn, formatDuration } from "@/lib/utils";
 
+// Leaf component: isolates per-second re-renders to just the ticking text.
+function Ticker({ startedAt }: { startedAt: string }) {
+  const startMs = new Date(startedAt).getTime();
+  const [elapsed, setElapsed] = useState(() => Date.now() - startMs);
+
+  useEffect(() => {
+    const id = setInterval(() => setElapsed(Date.now() - startMs), 1000);
+    return () => clearInterval(id);
+  }, [startMs]);
+
+  return <span className="font-mono ticker">{formatDuration(elapsed)}</span>;
+}
+
+function StopDialogWrapper({
+  open,
+  onOpenChange,
+  active,
+  tickets,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  active: NonNullable<ReturnType<typeof useTimerStore.getState>["active"]>;
+  tickets: ReturnType<typeof useTimerStore.getState>["tickets"];
+}) {
+  // Only computes elapsed at the moment dialog opens; no per-second re-render.
+  const elapsedMs = Date.now() - new Date(active.started_at).getTime();
+  return (
+    <StopGroupTimerDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      active={active}
+      groupTickets={tickets}
+      elapsedMs={elapsedMs}
+    />
+  );
+}
+
 function TimerChip() {
   const active = useTimerStore((s) => s.active);
   const tickets = useTimerStore((s) => s.tickets);
-  const [now, setNow] = useState(Date.now());
   const [stopOpen, setStopOpen] = useState(false);
-
-  useEffect(() => {
-    if (!active) return;
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, [active]);
 
   if (!active) return null;
 
-  const elapsed = now - new Date(active.started_at).getTime();
   const sorted = [...tickets].sort((a, b) => a.position - b.position);
   const primaryLabel = sorted[0]?.formatted_id ?? "…";
   const extraCount = Math.max(0, sorted.length - 1);
@@ -65,7 +94,7 @@ function TimerChip() {
                   <span className="ml-1 text-foreground">+{extraCount}</span>
                 )}
               </span>
-              <span className="font-mono ticker">{formatDuration(elapsed)}</span>
+              <Ticker startedAt={active.started_at} />
               <Square className="h-3 w-3 opacity-60 group-hover:opacity-100" />
             </button>
           </TooltipTrigger>
@@ -86,12 +115,11 @@ function TimerChip() {
       </TooltipProvider>
 
       {stopOpen && tickets.length > 0 && (
-        <StopGroupTimerDialog
+        <StopDialogWrapper
           open={stopOpen}
           onOpenChange={setStopOpen}
           active={active}
-          groupTickets={tickets}
-          elapsedMs={elapsed}
+          tickets={tickets}
         />
       )}
     </>
