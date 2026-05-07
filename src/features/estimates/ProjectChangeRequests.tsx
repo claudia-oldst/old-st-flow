@@ -306,17 +306,3 @@ export function ProjectChangeRequests({ projectId }: { projectId: string }) {
     </div>
   );
 }
-
-      <TicketDetailSheet
-        open={!!openTicket}
-        onOpenChange={(o) => !o && setOpenTicketId(null)}
-        ticket={openTicket}
-        projectId={projectId}
-        onChange={() => {
-          reloadTickets();
-          reload();
-        }}
-      />
-    </div>
-  );
-}
