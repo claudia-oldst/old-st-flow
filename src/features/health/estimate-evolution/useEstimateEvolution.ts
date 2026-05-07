@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { format } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useProjectTickets } from "@/features/tickets/useProjectTickets";
 import { useProjectEstimateChanges } from "@/features/estimates/useEstimateChanges";
-import { useRealtimeReload } from "@/hooks/useRealtimeReload";
+import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
 import { ALL_EPICS_KEY, NO_EPIC_KEY, endOfDay, startOfDay } from "./dateUtils";
 
 interface TimeLogLite {
@@ -26,58 +27,50 @@ export function useEstimateEvolution({
 }) {
   const { tickets } = useProjectTickets(projectId);
   const { changes } = useProjectEstimateChanges(projectId);
-  const [logs, setLogs] = useState<TimeLogLite[]>([]);
-  const [projectStart, setProjectStart] = useState<Date | null>(null);
 
-  const loadStart = useCallback(() => {
-    supabase
-      .from("projects")
-      .select("start_date")
-      .eq("id", projectId)
-      .maybeSingle()
-      .then(({ data }) => {
-        const sd = (data as any)?.start_date as string | null | undefined;
-        setProjectStart(sd ? startOfDay(new Date(sd)) : null);
-      });
-  }, [projectId]);
+  const projectStartKey = ["projectStart", projectId] as const;
+  const projectStartQuery = useQuery({
+    queryKey: projectStartKey,
+    enabled: !!projectId,
+    queryFn: async (): Promise<Date | null> => {
+      const { data } = await supabase
+        .from("projects")
+        .select("start_date")
+        .eq("id", projectId)
+        .maybeSingle();
+      const sd = (data as any)?.start_date as string | null | undefined;
+      return sd ? startOfDay(new Date(sd)) : null;
+    },
+  });
+  const projectStart = projectStartQuery.data ?? null;
 
-  useEffect(() => {
-    loadStart();
-  }, [loadStart]);
-
-  useRealtimeReload(
+  useRealtimeInvalidate(
     [{ table: "projects", filter: `id=eq.${projectId}` }],
-    loadStart,
+    projectStartKey,
   );
 
-  const loadLogs = useCallback(() => {
-    const ids = tickets.map((t) => t.id);
-    if (ids.length === 0) {
-      setLogs([]);
-      return;
-    }
-    supabase
-      .from("time_logs")
-      .select("ticket_id,hours,discipline,logged_at")
-      .in("ticket_id", ids)
-      .in("discipline", ["FE", "BE"])
-      .then(({ data }) => {
-        setLogs(
-          (data ?? []).map((l: any) => ({
-            ticket_id: l.ticket_id,
-            hours: Number(l.hours),
-            discipline: l.discipline,
-            logged_at: l.logged_at,
-          }))
-        );
-      });
-  }, [tickets]);
+  const ticketIds = useMemo(() => tickets.map((t) => t.id), [tickets]);
+  const ticketIdsKey = ticketIds.join(",");
+  const logsQuery = useQuery({
+    queryKey: ["evolutionLogs", projectId, ticketIdsKey] as const,
+    enabled: ticketIds.length > 0,
+    queryFn: async (): Promise<TimeLogLite[]> => {
+      const { data } = await supabase
+        .from("time_logs")
+        .select("ticket_id,hours,discipline,logged_at")
+        .in("ticket_id", ticketIds)
+        .in("discipline", ["FE", "BE"]);
+      return (data ?? []).map((l: any) => ({
+        ticket_id: l.ticket_id,
+        hours: Number(l.hours),
+        discipline: l.discipline,
+        logged_at: l.logged_at,
+      }));
+    },
+  });
+  const logs = logsQuery.data ?? [];
 
-  useEffect(() => {
-    loadLogs();
-  }, [loadLogs]);
-
-  useRealtimeReload([{ table: "time_logs" }], loadLogs);
+  useRealtimeInvalidate([{ table: "time_logs" }], ["evolutionLogs", projectId]);
 
   const ticketEpic = useMemo(() => {
     const m = new Map<string, number | null>();
