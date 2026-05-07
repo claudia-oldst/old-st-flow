@@ -13,6 +13,7 @@ import { Column, DisciplineColumn } from "./board/Columns";
 import { useDisciplineCards } from "./board/useDisciplineCards";
 import { useBoardDnd } from "./board/useBoardDnd";
 import { BoardToolbar } from "./board/BoardToolbar";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function ProjectBoard({
   projectId,
@@ -29,10 +30,12 @@ export function ProjectBoard({
   tickets?: TicketRow[];
   reload?: () => void;
 }) {
-  const { statuses } = useStatuses();
+  const { statuses, loading: statusesLoading } = useStatuses();
   const local = useProjectTickets(ticketsProp ? undefined : projectId);
   const allTickets = ticketsProp ?? local.tickets;
   const reload = reloadProp ?? local.reload;
+  const initialLoading =
+    !ticketsProp && (local.loading || statusesLoading) && allTickets.length === 0;
   const tickets = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return allTickets;
@@ -111,6 +114,18 @@ export function ProjectBoard({
           cardCount={disciplineCards.length}
         />
 
+        {initialLoading ? (
+          <div className="flex gap-3 overflow-x-auto pb-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex-1 min-w-[260px] space-y-2">
+                <Skeleton className="h-8 rounded-xl" />
+                <Skeleton className="h-24 rounded-xl" />
+                <Skeleton className="h-24 rounded-xl" />
+                <Skeleton className="h-24 rounded-xl" />
+              </div>
+            ))}
+          </div>
+        ) : (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           {mode === "project" ? (
             <div className="flex gap-3 overflow-x-auto pb-4">
@@ -150,6 +165,7 @@ export function ProjectBoard({
             {activeTicket && <TicketCard ticket={activeTicket} prefs={prefs} forceBars={filterMine} />}
           </DragOverlay>
         </DndContext>
+        )}
 
         <TicketDetailSheet
           open={!!openTicket}

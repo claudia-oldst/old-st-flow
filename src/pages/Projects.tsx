@@ -16,9 +16,11 @@ import {
 import { Label } from "@/components/ui/label";
 import { Plus, ArrowRight, FolderKanban } from "lucide-react";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Projects() {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [acronym, setAcronym] = useState("");
@@ -28,6 +30,7 @@ export default function Projects() {
   const load = useCallback(async () => {
     const { data } = await supabase.from("projects").select("*").order("created_at", { ascending: false });
     setProjects(data ?? []);
+    setLoading(false);
 
     if (data && data.length) {
       const ids = data.map((p) => p.id);
@@ -118,7 +121,13 @@ export default function Projects() {
         </Dialog>
       </div>
 
-      {projects.length === 0 ? (
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-[148px] rounded-2xl" />
+          ))}
+        </div>
+      ) : projects.length === 0 ? (
         <div className="glass rounded-2xl p-16 text-center">
           <FolderKanban className="h-10 w-10 mx-auto text-dimmer mb-4" />
           <div className="text-lg font-medium">No projects yet</div>
