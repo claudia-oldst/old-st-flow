@@ -31,9 +31,14 @@ interface Row {
 export default function MyWork() {
   const user = useCurrentUser((s) => s.user);
   const [rows, setRows] = useState<Row[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const load = useCallback(() => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
     supabase
       .from("ticket_assignees")
       .select(
@@ -53,6 +58,7 @@ export default function MyWork() {
             actual_backend_hours: Number(d.ticket.actual_backend_hours),
           })) ?? [];
         setRows(flat.filter((r) => r.status?.category !== "done"));
+        setLoading(false);
       });
   }, [user]);
 
