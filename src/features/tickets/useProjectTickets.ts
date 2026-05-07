@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
+// useMemo retained for future delta optimisation hooks
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeReload } from "@/hooks/useRealtimeReload";
 import type { DisciplineStatus, TeamMember, TicketAssignee } from "@/lib/types";
