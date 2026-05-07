@@ -13,6 +13,7 @@ import { Column, DisciplineColumn } from "./board/Columns";
 import { useDisciplineCards } from "./board/useDisciplineCards";
 import { useBoardDnd } from "./board/useBoardDnd";
 import { BoardToolbar } from "./board/BoardToolbar";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function ProjectBoard({
   projectId,
