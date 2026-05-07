@@ -1,0 +1,208 @@
+import { Play } from "lucide-react";
+import { toast } from "sonner";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import type { TicketRow } from "@/features/tickets/useProjectTickets";
+import { displayTitle, formatHours, cn } from "@/lib/utils";
+import { DisciplineStatusChip } from "@/features/tickets/DisciplineStatusChip";
+import type { LogDiscipline } from "@/lib/types";
+import type { Status } from "@/lib/types";
+import { useTimerStore } from "@/store/timer";
+import { startTicketTimer } from "@/features/timelog/startTicketTimer";
+import { COLS, ColKey } from "./columns";
+
+export function TicketsListRow({
+  t,
+  visibleCols,
+  selectionEnabled,
+  selected,
+  onOpen,
+  onToggleSelect,
+  showQuickStart,
+  currentUserId,
+  statuses,
+  groupKey,
+}: {
+  t: TicketRow;
+  visibleCols: ColKey[];
+  selectionEnabled: boolean;
+  selected: boolean;
+  onOpen: (t: TicketRow) => void;
+  onToggleSelect?: (id: string, shiftKey: boolean) => void;
+  showQuickStart: boolean;
+  currentUserId?: string;
+  statuses: Status[];
+  groupKey: string;
+}) {
+  const activeTimer = useTimerStore((s) => s.active);
+
+  const renderCell = (key: ColKey) => {
+    switch (key) {
+      case "id":
+        return (
+          <span className="inline-flex items-center gap-1.5">
+            <span className="font-mono text-xs text-dimmer">{t.formatted_id}</span>
+            {t.ticket_type === "CR" && t.cr_approval === "pending" && (
+              <span className="px-1.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider bg-amber-500/15 text-amber-400 ring-1 ring-amber-400/30">
+                Pending
+              </span>
+            )}
+          </span>
+        );
+      case "title": {
+        const mySlots: ("FE" | "BE" | "Project")[] = currentUserId
+          ? Array.from(
+              new Set(
+                t.assignees
+                  .filter((a) => a.user_id === currentUserId)
+                  .map((a) => a.slot as "FE" | "BE" | "Project")
+              )
+            )
+          : [];
+        const canQuickStart =
+          showQuickStart && !!currentUserId && !activeTimer && mySlots.length > 0;
+        const handleQuickStart = async (e: React.MouseEvent) => {
+          e.stopPropagation();
+          if (!currentUserId) return;
+          let discipline: LogDiscipline | undefined;
+          if (mySlots.includes("FE")) discipline = "FE";
+          else if (mySlots.includes("BE")) discipline = "BE";
+          else if (mySlots.includes("Project")) discipline = "Project";
+          if (!discipline) return;
+          const res = await startTicketTimer({ userId: currentUserId, ticketId: t.id, discipline });
+          if (res.ok === true) {
+            toast.success(`Timer started on ${t.formatted_id}`);
+            return;
+          }
+          if (res.reason === "active") {
+            toast.error("Stop your running timer first.");
+            return;
+          }
+          toast.error(res.message ?? "Failed to start timer");
+        };
+        return (
+          <span className="group/title flex items-center gap-2 min-w-0">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="truncate block flex-1 min-w-0">
+                  {displayTitle(t.title, t.ticket_type)}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top" align="start" className="max-w-md">
+                <p className="text-sm">{t.title}</p>
+              </TooltipContent>
+            </Tooltip>
+            {canQuickStart && (
+              <button
+                type="button"
+                onClick={handleQuickStart}
+                aria-label="Start timer on this ticket"
+                title="Start timer"
+                className="shrink-0 h-5 w-5 rounded-full flex items-center justify-center bg-primary text-primary-foreground shadow ring-1 ring-white/10 opacity-0 group-hover/title:opacity-100 focus:opacity-100 transition"
+              >
+                <Play className="h-2.5 w-2.5 fill-current" />
+              </button>
+            )}
+          </span>
+        );
+      }
+      case "epic":
+        return (
+          <span className="text-xs text-dim truncate block">
+            {t.epic_name ?? <span className="text-dimmer">—</span>}
+          </span>
+        );
+      case "version":
+        return t.version ? (
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono bg-white/5 hairline text-dim">
+            {t.version}
+          </span>
+        ) : (
+          <span className="text-dimmer text-xs">—</span>
+        );
+      case "status": {
+        const status = statuses.find((s) => s.id === t.status_id);
+        if (!status) return null;
+        return (
+          <span className="inline-flex items-center gap-1.5 text-xs min-w-0">
+            <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: status.color }} />
+            <span className="truncate">{status.name}</span>
+          </span>
+        );
+      }
+      case "dev_status": {
+        const hasFE = t.assignees.some((a) => a.slot === "FE");
+        const hasBE = t.assignees.some((a) => a.slot === "BE");
+        if (!hasFE && !hasBE) {
+          return <span className="text-dimmer text-xs">—</span>;
+        }
+        return (
+          <span className="inline-flex items-center gap-1.5 flex-wrap">
+            {hasFE && <DisciplineStatusChip slot="FE" status={t.fe_status} />}
+            {hasBE && <DisciplineStatusChip slot="BE" status={t.be_status} />}
+          </span>
+        );
+      }
+      case "fe":
+        return (
+          <span className="text-xs font-mono text-dim whitespace-nowrap">
+            {formatHours(t.actual_frontend_hours)} / {formatHours(t.current_fe_estimate)}
+          </span>
+        );
+      case "be":
+        return (
+          <span className="text-xs font-mono text-dim whitespace-nowrap">
+            {formatHours(t.actual_backend_hours)} / {formatHours(t.current_be_estimate)}
+          </span>
+        );
+      case "assignees":
+        return (
+          <span className="text-xs text-dim truncate block">
+            {t.assignees.length === 0
+              ? "—"
+              : t.assignees.map((a) => a.member.name).join(", ")}
+          </span>
+        );
+    }
+  };
+
+  return (
+    <tr
+      key={`${groupKey}-${t.id}`}
+      onClick={() => onOpen(t)}
+      className={cn(
+        "cursor-pointer transition hairline-b last:border-b-0",
+        selected ? "bg-accent/10 hover:bg-accent/15" : "hover:bg-white/[0.02]"
+      )}
+    >
+      {selectionEnabled && (
+        <td className="pl-4 pr-1 align-middle">
+          <input
+            type="checkbox"
+            aria-label={`Select ticket ${t.formatted_id}`}
+            checked={selected}
+            onChange={() => {}}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleSelect!(t.id, (e as unknown as React.MouseEvent).shiftKey);
+            }}
+            className="h-3.5 w-3.5 rounded border-white/20 bg-transparent accent-accent cursor-pointer"
+          />
+        </td>
+      )}
+      {visibleCols.map((k) => {
+        const c = COLS[k];
+        return (
+          <td
+            key={k}
+            className={cn(
+              "px-4 py-3 align-middle overflow-hidden",
+              c.align === "right" && "text-right"
+            )}
+          >
+            {renderCell(k)}
+          </td>
+        );
+      })}
+    </tr>
+  );
+}
