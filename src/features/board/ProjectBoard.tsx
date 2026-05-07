@@ -34,6 +34,8 @@ export function ProjectBoard({
   const local = useProjectTickets(ticketsProp ? undefined : projectId);
   const allTickets = ticketsProp ?? local.tickets;
   const reload = reloadProp ?? local.reload;
+  const truncated = !ticketsProp && local.truncated;
+  const totalCount = !ticketsProp ? local.totalCount : allTickets.length;
   const initialLoading =
     !ticketsProp && (local.loading || statusesLoading) && allTickets.length === 0;
   const tickets = useMemo(() => {
@@ -113,6 +115,12 @@ export function ProjectBoard({
           visibleCount={visible.length}
           cardCount={disciplineCards.length}
         />
+
+        {truncated && (
+          <div className="mb-3 rounded-xl px-3 py-2 text-xs text-dim bg-accent/10 hairline">
+            Showing first {allTickets.length} of {totalCount} tickets — switch to List view to page through the rest.
+          </div>
+        )}
 
         {initialLoading ? (
           <div className="flex gap-3 overflow-x-auto pb-4">

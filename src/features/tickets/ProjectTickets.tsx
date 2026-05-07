@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useCurrentUser } from "@/store/currentUser";
 import { useTimerStore } from "@/store/timer";
 import { FileText } from "lucide-react";
 import { StartGroupTimerDialog } from "@/features/timelog/StartGroupTimerDialog";
 import { AddTicketsDialog } from "@/features/tickets/AddTicketsDialog";
 import { useProjectTickets, type TicketRow } from "@/features/tickets/useProjectTickets";
+import { useProjectTicketsPaged, type ServerSort } from "@/features/tickets/useProjectTicketsPaged";
 import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
 import { TicketsList } from "@/features/tickets/TicketsList";
 import { BulkActionsBar } from "@/features/tickets/BulkActionsBar";
@@ -16,11 +17,13 @@ import { useProjectTicketsView } from "./project-tickets/useProjectTicketsView";
 import { ProjectTicketsToolbar } from "./project-tickets/ProjectTicketsToolbar";
 import { ImportCsvDialog } from "./project-tickets/ImportCsvDialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ListPagination } from "@/components/ListPagination";
+import { PAGE_SIZES } from "@/lib/pagination";
 
 export function ProjectTickets({ projectId }: { projectId: string }) {
   const role = useProjectRole(projectId);
   const user = useCurrentUser((s) => s.user);
-  const { tickets, loading, reload } = useProjectTickets(projectId);
+  const { tickets, reload } = useProjectTickets(projectId);
   const [importOpen, setImportOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
@@ -32,10 +35,32 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
 
   const v = useProjectTicketsView({ tickets, user, role });
 
+  // List-view server pagination
+  const [page, setPage] = useState(1);
+  const sort: ServerSort = useMemo(() => ({ col: "position", dir: "asc" }), []);
+  const paged = useProjectTicketsPaged(v.view === "list" ? projectId : undefined, {
+    filters: v.filters,
+    search: v.search,
+    sort,
+    page,
+    pageSize: PAGE_SIZES.ticketsList,
+    filterMineUserId: v.filterMine && user ? user.id : null,
+  });
+
+  // Reset to page 1 whenever filters/search/filterMine change
+  const filterSig = useMemo(
+    () => JSON.stringify({ f: v.filters, s: v.search, m: v.filterMine }),
+    [v.filters, v.search, v.filterMine],
+  );
+  useMemo(() => setPage(1), [filterSig]);
+
   const onImportClick = async () => {
     const ok = await handleImport();
     if (ok) setImportOpen(false);
   };
+
+  const listVisible = paged.rows;
+  const listLoading = v.view === "list" && paged.loading && listVisible.length === 0;
 
   return (
     <div>
@@ -76,13 +101,13 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
           tickets={v.filteredTickets}
           reload={reload}
         />
-      ) : loading && tickets.length === 0 ? (
+      ) : listLoading ? (
         <div className="glass rounded-2xl overflow-hidden divide-y divide-white/5">
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-11 rounded-none bg-white/[0.03]" />
           ))}
         </div>
-      ) : v.visibleTickets.length === 0 ? (
+      ) : listVisible.length === 0 ? (
         <div className="glass rounded-2xl p-12 text-center">
           <FileText className="h-8 w-8 mx-auto text-dimmer mb-3" />
           <div className="font-medium">{v.filterMine ? "No tickets assigned to you" : "No tickets yet"}</div>
@@ -91,16 +116,30 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
           </div>
         </div>
       ) : (
-        <TicketsList
-          tickets={v.visibleTickets}
-          groupBy={v.groupBy}
-          onOpen={setOpenTicket}
-          selectedIds={v.selectedIds}
-          onToggleSelect={v.toggleSelect}
-          onToggleSelectAll={v.toggleSelectAll}
-          showQuickStart={v.filterMine}
-          currentUserId={user?.id}
-        />
+        <>
+          <TicketsList
+            tickets={listVisible}
+            groupBy={v.groupBy}
+            onOpen={setOpenTicket}
+            selectedIds={v.selectedIds}
+            onToggleSelect={v.toggleSelect}
+            onToggleSelectAll={v.toggleSelectAll}
+            showQuickStart={v.filterMine}
+            currentUserId={user?.id}
+          />
+          <div className="mt-4 flex items-center justify-between gap-3 flex-wrap">
+            <div className="text-[11px] text-dimmer">
+              Showing {(page - 1) * PAGE_SIZES.ticketsList + 1}–
+              {Math.min(page * PAGE_SIZES.ticketsList, paged.total)} of {paged.total}
+            </div>
+            <ListPagination
+              page={page}
+              total={paged.total}
+              pageSize={PAGE_SIZES.ticketsList}
+              onChange={setPage}
+            />
+          </div>
+        </>
       )}
 
       {v.view === "list" && (
@@ -144,7 +183,10 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
         onOpenChange={(o) => !o && setOpenTicket(null)}
         ticket={openTicket}
         projectId={projectId}
-        onChange={reload}
+        onChange={() => {
+          reload();
+          paged.reload();
+        }}
       />
     </div>
   );

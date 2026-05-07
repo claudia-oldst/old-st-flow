@@ -17,34 +17,54 @@ import { Label } from "@/components/ui/label";
 import { Plus, ArrowRight, FolderKanban } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ListPagination } from "@/components/ListPagination";
+import { PAGE_SIZES } from "@/lib/pagination";
 
 export default function Projects() {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [acronym, setAcronym] = useState("");
   const [creating, setCreating] = useState(false);
   const [counts, setCounts] = useState<Record<string, { tickets: number; members: number }>>({});
+  const [page, setPage] = useState(1);
+  const pageSize = PAGE_SIZES.projects;
 
   const load = useCallback(async () => {
-    const { data } = await supabase.from("projects").select("*").order("created_at", { ascending: false });
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+    const { data, count } = await supabase
+      .from("projects")
+      .select("*", { count: "exact" })
+      .order("created_at", { ascending: false })
+      .range(from, to);
     setProjects(data ?? []);
+    setTotal(count ?? 0);
     setLoading(false);
 
     if (data && data.length) {
-      const ids = data.map((p) => p.id);
-      const [{ data: tix }, { data: mems }] = await Promise.all([
-        supabase.from("tickets").select("project_id").in("project_id", ids),
-        supabase.from("project_members").select("project_id").in("project_id", ids),
-      ]);
-      const c: Record<string, { tickets: number; members: number }> = {};
-      data.forEach((p) => (c[p.id] = { tickets: 0, members: 0 }));
-      tix?.forEach((t) => (c[t.project_id].tickets++));
-      mems?.forEach((m) => (c[m.project_id].members++));
-      setCounts(c);
+      const entries = await Promise.all(
+        data.map(async (p) => {
+          const [{ count: tCount }, { count: mCount }] = await Promise.all([
+            supabase
+              .from("tickets")
+              .select("id", { count: "exact", head: true })
+              .eq("project_id", p.id),
+            supabase
+              .from("project_members")
+              .select("user_id", { count: "exact", head: true })
+              .eq("project_id", p.id),
+          ]);
+          return [p.id, { tickets: tCount ?? 0, members: mCount ?? 0 }] as const;
+        }),
+      );
+      setCounts(Object.fromEntries(entries));
+    } else {
+      setCounts({});
     }
-  }, []);
+  }, [page, pageSize]);
 
   useEffect(() => {
     load();
@@ -73,6 +93,7 @@ export default function Projects() {
     setOpen(false);
     setName("");
     setAcronym("");
+    setPage(1);
     load();
   };
 
@@ -134,32 +155,40 @@ export default function Projects() {
           <div className="text-dim text-sm mt-1">Create your first project to start tracking work.</div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {projects.map((p) => {
-            const c = counts[p.id] ?? { tickets: 0, members: 0 };
-            return (
-              <Link
-                key={p.id}
-                to={`/projects/${p.id}`}
-                className="group glass rounded-2xl p-5 hover:bg-white/[0.04] transition relative overflow-hidden"
-              >
-                <div className="absolute -top-12 -right-12 h-32 w-32 rounded-full bg-accent/5 blur-2xl" />
-                <div className="flex items-start justify-between mb-6">
-                  <div className="font-mono text-xs px-2 py-1 rounded-md bg-white/5 hairline text-dim">
-                    {p.acronym}
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {projects.map((p) => {
+              const c = counts[p.id] ?? { tickets: 0, members: 0 };
+              return (
+                <Link
+                  key={p.id}
+                  to={`/projects/${p.id}`}
+                  className="group glass rounded-2xl p-5 hover:bg-white/[0.04] transition relative overflow-hidden"
+                >
+                  <div className="absolute -top-12 -right-12 h-32 w-32 rounded-full bg-accent/5 blur-2xl" />
+                  <div className="flex items-start justify-between mb-6">
+                    <div className="font-mono text-xs px-2 py-1 rounded-md bg-white/5 hairline text-dim">
+                      {p.acronym}
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-dimmer group-hover:text-foreground transition" />
                   </div>
-                  <ArrowRight className="h-4 w-4 text-dimmer group-hover:text-foreground transition" />
-                </div>
-                <div className="text-lg font-semibold tracking-tight">{p.name}</div>
-                <div className="mt-4 flex gap-4 text-xs text-dim">
-                  <span>{c.tickets} ticket{c.tickets === 1 ? "" : "s"}</span>
-                  <span>·</span>
-                  <span>{c.members} member{c.members === 1 ? "" : "s"}</span>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
+                  <div className="text-lg font-semibold tracking-tight">{p.name}</div>
+                  <div className="mt-4 flex gap-4 text-xs text-dim">
+                    <span>{c.tickets} ticket{c.tickets === 1 ? "" : "s"}</span>
+                    <span>·</span>
+                    <span>{c.members} member{c.members === 1 ? "" : "s"}</span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+          <div className="mt-8 flex items-center justify-between gap-3 flex-wrap">
+            <div className="text-[11px] text-dimmer">
+              Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} of {total}
+            </div>
+            <ListPagination page={page} total={total} pageSize={pageSize} onChange={setPage} />
+          </div>
+        </>
       )}
     </div>
   );

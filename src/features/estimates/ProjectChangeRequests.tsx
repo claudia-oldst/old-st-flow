@@ -13,6 +13,8 @@ import { EpicChangeCard } from "@/features/estimates/EpicChangeCard";
 import { DateRangeControl, defaultRange, type DateRange } from "@/features/health/DateRangeControl";
 import { useProjectTickets } from "@/features/tickets/useProjectTickets";
 import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
+import { ListPagination } from "@/components/ListPagination";
+import { PAGE_SIZES } from "@/lib/pagination";
 
 const NO_EPIC_KEY = (projectId: string) => `noepic:${projectId}`;
 const STATUS_OPTIONS = [
@@ -25,7 +27,7 @@ export function ProjectChangeRequests({ projectId }: { projectId: string }) {
   const user = useCurrentUser((s) => s.user);
   const role = useProjectRole(projectId);
   const canReview = isPMBA(role);
-  const { changes, projects, epics, loading, reload } = useAllEstimateChanges();
+  const { changes, projects, epics, loading, reload } = useAllEstimateChanges(projectId);
 
   const [statusFilter, setStatusFilter] = useState<string[]>(["pending"]);
   const [requesterFilter, setRequesterFilter] = useState<string[] | null>(null);
@@ -64,11 +66,8 @@ export function ProjectChangeRequests({ projectId }: { projectId: string }) {
     };
   }, [projectId, rangeInitialized]);
 
-  // Scope everything to this project up-front.
-  const projectChanges = useMemo(
-    () => changes.filter((c) => c.ticket?.project_id === projectId),
-    [changes, projectId]
-  );
+  // Hook is now project-scoped server-side; alias for clarity downstream.
+  const projectChanges = changes;
 
   const requesterOptions = useMemo(() => {
     const seen = new Map<string, { id: string; name: string }>();
@@ -160,8 +159,22 @@ export function ProjectChangeRequests({ projectId }: { projectId: string }) {
         });
         return { ...b, tickets, approvedChanges };
       })
-      .sort((a, b) => b.changes.length - a.changes.length);
+      .sort((a, b) => {
+        const la = Math.max(...a.changes.map((c) => new Date(c.created_at).getTime()), 0);
+        const lb = Math.max(...b.changes.map((c) => new Date(c.created_at).getTime()), 0);
+        return lb - la;
+      });
   }, [matching, projects, epics, projectChanges]);
+
+  const [page, setPage] = useState(1);
+  const pageSize = PAGE_SIZES.epicChangesPage;
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, effectiveRequester.join(","), range.from.getTime(), range.to.getTime()]);
+  const pagedGroups = useMemo(
+    () => groups.slice((page - 1) * pageSize, page * pageSize),
+    [groups, page, pageSize],
+  );
 
   const handleApprove = async (row: ChangeRow) => {
     if (!user) return toast.error("Sign in first");
@@ -249,25 +262,35 @@ export function ProjectChangeRequests({ projectId }: { projectId: string }) {
           No change requests match the current filters.
         </div>
       ) : (
-        <div className="space-y-3">
-          {groups.map((g) => (
-            <EpicChangeCard
-              key={g.key}
-              epicKey={g.key}
-              epicName={g.epicName}
-              projectAcronym={g.projectAcronym}
-              projectId={g.projectId}
-              tickets={g.tickets}
-              changes={g.changes}
-              approvedChanges={g.approvedChanges}
-              onApprove={handleApprove}
-              onReject={handleReject}
-              onOpenTicket={setOpenTicketId}
-              defaultOpen={statusFilter.includes("pending") && g.changes.length <= 5}
-              range={range}
-            />
-          ))}
-        </div>
+        <>
+          <div className="space-y-3">
+            {pagedGroups.map((g) => (
+              <EpicChangeCard
+                key={g.key}
+                epicKey={g.key}
+                epicName={g.epicName}
+                projectAcronym={g.projectAcronym}
+                projectId={g.projectId}
+                tickets={g.tickets}
+                changes={g.changes}
+                approvedChanges={g.approvedChanges}
+                onApprove={handleApprove}
+                onReject={handleReject}
+                onOpenTicket={setOpenTicketId}
+                defaultOpen={statusFilter.includes("pending") && g.changes.length <= 5}
+                range={range}
+              />
+            ))}
+          </div>
+          {groups.length > pageSize && (
+            <div className="mt-4 flex items-center justify-between gap-3 flex-wrap">
+              <div className="text-[11px] text-dimmer">
+                Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, groups.length)} of {groups.length} epics
+              </div>
+              <ListPagination page={page} total={groups.length} pageSize={pageSize} onChange={setPage} />
+            </div>
+          )}
+        </>
       )}
 
       <TicketDetailSheet
