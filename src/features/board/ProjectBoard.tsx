@@ -1,45 +1,25 @@
 import { useEffect, useMemo, useState } from "react";
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
-import { useDroppable, useDraggable } from "@dnd-kit/core";
 import { useStatuses } from "@/features/statuses/useStatuses";
 import { useProjectTickets, type TicketRow } from "@/features/tickets/useProjectTickets";
 import { TicketCard } from "@/features/tickets/TicketCard";
 import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
-import { QuickAddRow } from "@/features/tickets/QuickAddRow";
 import { useProjectRole, isPMBA } from "@/features/team/useProjectRole";
 import { useCurrentUser } from "@/store/currentUser";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import {
-  DISCIPLINE_STATUS_COLOR,
-  DISCIPLINE_STATUS_LABEL,
-  type DisciplineStatus,
-} from "@/lib/types";
+import { type DisciplineStatus } from "@/lib/types";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useCardDisplayPrefs, type CardDisplayPrefs } from "@/features/tickets/useCardDisplayPrefs";
-
-type BoardMode = "project" | "discipline";
-const DISCIPLINE_STATUSES: DisciplineStatus[] = ["todo", "in_progress", "for_integration", "done"];
-
-interface DisciplineCard {
-  ticket: TicketRow;
-  slot: "FE" | "BE" | "Project";
-  status: DisciplineStatus;
-}
-
-const CATEGORY_TO_DISCIPLINE: Record<string, DisciplineStatus> = {
-  backlog: "todo",
-  active: "in_progress",
-  "dev done": "for_integration",
-  done: "done",
-};
-const DISCIPLINE_TO_CATEGORY: Record<DisciplineStatus, "backlog" | "active" | "dev done" | "done"> = {
-  todo: "backlog",
-  in_progress: "active",
-  for_integration: "dev done",
-  done: "done",
-};
+import { useCardDisplayPrefs } from "@/features/tickets/useCardDisplayPrefs";
+import {
+  BoardMode,
+  CATEGORY_TO_DISCIPLINE,
+  DISCIPLINE_STATUSES,
+  DISCIPLINE_TO_CATEGORY,
+  DisciplineCard,
+} from "./board/constants";
+import { Column, DisciplineColumn } from "./board/Columns";
 
 export function ProjectBoard({
   projectId,
