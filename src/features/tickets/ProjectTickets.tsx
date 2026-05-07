@@ -76,6 +76,12 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
           tickets={v.filteredTickets}
           reload={reload}
         />
+      ) : loading && tickets.length === 0 ? (
+        <div className="glass rounded-2xl overflow-hidden divide-y divide-white/5">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-11 rounded-none bg-white/[0.03]" />
+          ))}
+        </div>
       ) : v.visibleTickets.length === 0 ? (
         <div className="glass rounded-2xl p-12 text-center">
           <FileText className="h-8 w-8 mx-auto text-dimmer mb-3" />
