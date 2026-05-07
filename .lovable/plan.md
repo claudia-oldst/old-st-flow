@@ -1,83 +1,40 @@
+## Goal
+Make `src/integrations/supabase/client.ts` read Supabase URL + anon key from Vite env vars, with the current hardcoded values kept as fallbacks.
 
-# Phase 2 — further reduce file sizes (zero functionality loss)
+## Why this improves maintainability
+- **Single source of truth per environment.** `.env` already defines `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`; today they are silently ignored. After the change, staging / preview / local builds can point at a different Supabase project without editing source.
+- **No code change per environment.** CI/preview deploys stop requiring a code edit + commit just to swap credentials.
+- **Fallback preserves current behavior.** Fresh clones with no `.env` keep working exactly as today — zero runtime impact, zero UX change.
+- **No new abstractions, no new files, no dependency changes.** Vite's `import.meta.env` is already typed via the existing `src/vite-env.d.ts` reference to `vite/client`.
 
-The previous refactor split off the obvious leaf components. Six files still hold tightly-coupled JSX + memos + handlers in a single body. This pass extracts the next layer — hooks for state/derivation, and presentational subcomponents for visually-distinct sections — while keeping every existing import path, hook order, dependency array, Tailwind class, Supabase call, realtime subscription, and toast string identical.
+## Change (only file touched)
 
-## Non-negotiable guardrails
+`src/integrations/supabase/client.ts` — replace the two constant assignments:
 
-- Original file paths stay as composition shells; no import-site changes anywhere in the app.
-- Every `useState`, `useEffect`, `useMemo`, `useCallback` keeps the same dependencies and call order (preserves React hook identity & effect timing).
-- No new dependencies. No prop renames. No new abstractions beyond moving code.
-- After each split: read the resulting entry file, diff hook order against the original, verify the preview route renders with no console/runtime errors.
+```ts
+const SUPABASE_URL =
+  import.meta.env.VITE_SUPABASE_URL ??
+  "https://vkelhdyulmdhdgerzunu.supabase.co";
+
+const SUPABASE_PUBLISHABLE_KEY =
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrZWxoZHl1bG1kaGRnZXJ6dW51Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwMzIxMTcsImV4cCI6MjA5MjYwODExN30.hDh-GUqgexJVkb5Zqcl6t-OSRNMyQ4it7K6R9jAS9F8";
+```
+
+Everything else in the file is unchanged: the auto-generated header comment, the `createClient<Database>(...)` call, auth options (`storage: localStorage`, `persistSession: true`, `autoRefreshToken: true`), and the exported `supabase` singleton.
+
+## Guardrails
+- No other files touched. All ~30+ call sites that `import { supabase } from "@/integrations/supabase/client"` are unaffected.
+- No changes to `src/integrations/supabase/types.ts` (generated).
+- No changes to `.env` or `.env.example`.
+- Edge functions continue to use `Deno.env.get(...)` — out of scope.
 - `tsc` must pass with zero new errors.
 
-## Targets
-
-| File | Now | After (entry) | New siblings |
-|---|---|---|---|
-| `tickets/TicketDetailSheet.tsx` | 537 | ~180 | 4 |
-| `tickets/TicketsList.tsx` | 595 | ~160 | 5 |
-| `tickets/ProjectTickets.tsx` | 521 | ~170 | 3 |
-| `board/ProjectBoard.tsx` | 334 | ~150 | 3 |
-| `health/EstimateEvolution.tsx` | 403 | ~140 | 2 |
-| `tickets/AddTicketsDialog.tsx` | 205 | ~110 | 1 |
-
-## 1. TicketDetailSheet → existing `tickets/detail/`
-
-- `useTicketEditor.ts` — title/feEst/beEst/projEst state, reset effect on `ticket` change, `handleSaveEdit` (incl. audit insert), `handleDelete`. Returns `{ editing, setEditing, title, setTitle, feEst, setFeEst, beEst, setBeEst, projEst, setProjEst, handleSaveEdit, handleDelete }`.
-- `TicketDetailHeader.tsx` — the `<SheetHeader>` block (formatted_id chip, status pill, type/CR/epic/version chips, editable title input). Pure props.
-- `StatusBlock.tsx` — the discipline + project-status card pair (lines 276–352), incl. `updateDiscipline` and `setProjectStatus` / `resetProjectStatusToAuto` (Supabase calls move with the JSX they belong to).
-- `EstimatesPanel.tsx` — the "Estimates & actuals" section (lines 354–444): edit/view modes for Proj vs FE/BE, Stat tiles, project-contributors note, embedded `EstimateChangesPanel`.
-
-Entry file becomes the Sheet shell + Tabs + dialogs (Assign / LogTime / RequestMoreTime) only.
-
-## 2. TicketsList → existing `tickets/list/`
-
-- `useTicketsSort.ts` — `sort` state + `loadSort` persistence effect + `toggleSort` + `sortTickets` comparator (depends on `statusOrder`).
-- `useColumnResize.ts` — `widths` state, `loadWidths`/persistence effect, `dragRef`, `onResizeStart`, `widthFor`, `totalWidth`.
-- `useTicketsGrouping.ts` — the giant `groups` memo (lines 183–284) covering none/status/type/epic/version/fe_status/be_status/assignee branches.
-- `TicketsListRow.tsx` — `<tr>` body row + the `renderCell` switch (lines 288–416 + 542–584). Receives `t`, `visibleCols`, `selectionEnabled`, callbacks.
-- `TicketsListHeader.tsx` — `<thead>` block including select-all checkbox + sortable column buttons + resize handles (lines 457–539).
-
-Entry file becomes the outer `<TooltipProvider>` + `groups.map` shell. Re-exports `GroupBy` unchanged.
-
-## 3. ProjectTickets → existing `tickets/project-tickets/`
-
-- `useProjectTicketsView.ts` — `filteredTickets`, `visibleTickets`, selection state (`selectedIds`, `lastSelectedId`), the two cleanup effects, `toggleSelect`, `toggleSelectAll`, view/groupBy/filterMine/touched/search state, role-default effect.
-- `ProjectTicketsToolbar.tsx` — the entire sticky top toolbar (lines 159–290): view toggle, My/All toggle (list view), group-by select, filters, card-display menu, search box, group-timer button, Add-ticket split button.
-- `ImportCsvDialog.tsx` — the import `<Dialog>` with template button, drop-zone, preview table, footer (lines 343–503). Receives the `useTicketsCsvImport` returns + `open`/`onOpenChange`.
-
-Entry file becomes: hook calls + toolbar + (board | empty | list) + `BulkActionsBar` + child dialogs.
-
-## 4. ProjectBoard → existing `board/board/`
-
-- `useDisciplineCards.ts` — `statusCategoryById`, `disciplineCards` memo, `byDisciplineStatus` memo. Returns both maps + `disciplineCards`.
-- `useBoardDnd.ts` — `sensors`, `activeId`, `handleDragStart`, `handleDragEnd` (both project- and discipline-mode branches with their Supabase updates and `reload()`).
-- `BoardToolbar.tsx` — mode toggle + filter-mine toggle + count line (lines 241–282).
-
-Entry file becomes: data wiring + `byStatus` memo (project mode) + Toolbar + DndContext + columns + DragOverlay + `TicketDetailSheet`.
-
-## 5. EstimateEvolution → existing `health/estimate-evolution/`
-
-- `useEstimateEvolution.ts` — `projectStart`, `logs`, `loadStart`, `loadLogs`, both `useRealtimeReload` calls, `ticketEpic`, `ticketEffectiveMs`, `epicSnapshots`, `trendData`. Takes `{ projectId, asOf, selectedEpic }`. Returns `{ epicSnapshots, trendData }`.
-- `EstimateTrendChart.tsx` — the recharts block (lines 336–398) plus the epic `<Select>` and the empty state. Pure props.
-
-Entry file becomes: state (`asOf`, `selectedEpic`, `epicsOpen`) + header Popover + collapsible epics list + chart wrapper.
-
-## 6. AddTicketsDialog → existing `tickets/add-dialog/`
-
-- `useDraftRows.ts` — `drafts`, both reset effects, `members` load, `update`, `remove`, `addAnother`, `validDrafts`, `submit` (incl. payload build + Supabase insert + assignee insert + toasts).
-
-Entry file becomes: dialog shell + drafts.map(DraftRow) + footer.
-
-## Verification per file
-
-After each split:
-
-1. Open the resulting entry file and confirm the JSX tree, hook order, and effect dependencies match the original line-for-line.
-2. Open the preview route exercising the component (Project workspace tickets/board/health, ticket detail sheet, add dialog) and confirm no console or runtime errors.
-3. Spot-check one realtime path (e.g. log time → estimate evolution updates) to confirm subscriptions still fire.
+## Verification
+1. App loads, login persists, existing Supabase queries and realtime subscriptions work (spot-check `ProjectWorkspace`, `TicketsList`, `useRealtimeReload`).
+2. Optional sanity check: temporarily set `VITE_SUPABASE_URL` to a bogus value in `.env`, restart dev server, confirm requests target the override (then revert).
 
 ## Out of scope
-
-Performance, caching, pagination, error-handling, accessibility passes, and tests — separate work.
+- Removing the hardcoded fallback entirely (would break fresh clones).
+- Throwing on missing env vars.
+- Refactoring the client to a factory or moving auth options.
