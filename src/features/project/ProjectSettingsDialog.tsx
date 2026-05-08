@@ -26,8 +26,9 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { MemberAvatar } from "@/components/MemberAvatar";
-import { Plus, Settings, Trash2, ExternalLink, Eye } from "lucide-react";
+import { Plus, Settings, Trash2, ExternalLink, Eye, Archive } from "lucide-react";
 import { toast } from "sonner";
+import { ArchiveProjectDialog } from "@/features/vault/ArchiveProjectDialog";
 
 
 export interface ProjectLink {
@@ -43,6 +44,7 @@ interface Props {
 
 export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
   const [open, setOpen] = useState(false);
+  const [archiveOpen, setArchiveOpen] = useState(false);
   const [name, setName] = useState(project.name);
   const [acronym, setAcronym] = useState(project.acronym);
   const [clientName, setClientName] = useState(project.client_name ?? "");
@@ -297,6 +299,28 @@ export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
               )}
             </div>
 
+            {canEdit && !project.is_archived && (
+              <div className="hairline-t pt-4 mt-2">
+                <div className="text-xs uppercase tracking-wider text-dimmer mb-2">
+                  Danger zone
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-xs text-dim">
+                    Move this project to the vault. Live data is exported then
+                    deleted to free up rows.
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 text-amber-400 hover:text-amber-300"
+                    onClick={() => setArchiveOpen(true)}
+                  >
+                    <Archive className="h-4 w-4" /> Archive project
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {canEdit && (
               <DialogFooter className="pt-2">
                 <Button variant="ghost" onClick={() => setOpen(false)}>Close</Button>
@@ -387,6 +411,11 @@ export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
           </TabsContent>
         </Tabs>
       </DialogContent>
+      <ArchiveProjectDialog
+        open={archiveOpen}
+        onOpenChange={setArchiveOpen}
+        project={project}
+      />
     </Dialog>
   );
 }
