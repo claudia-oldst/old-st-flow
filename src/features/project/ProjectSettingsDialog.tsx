@@ -411,6 +411,11 @@ export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
           </TabsContent>
         </Tabs>
       </DialogContent>
+      <ArchiveProjectDialog
+        open={archiveOpen}
+        onOpenChange={setArchiveOpen}
+        project={project}
+      />
     </Dialog>
   );
 }
