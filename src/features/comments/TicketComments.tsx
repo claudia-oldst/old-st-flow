@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/store/currentUser";
 import { MessageSquare } from "lucide-react";
+import type { Json } from "@/integrations/supabase/types";
 import { useTicketComments } from "./useTicketComments";
 import { CommentComposer } from "./CommentComposer";
 import { CommentThread } from "./CommentThread";

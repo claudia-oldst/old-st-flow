@@ -2,6 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/store/currentUser";
 import { CommentItem } from "./CommentItem";
+import type { Json } from "@/integrations/supabase/types";
 import { CommentComposer } from "./CommentComposer";
 import type { CommentThreadNode } from "./types";
 

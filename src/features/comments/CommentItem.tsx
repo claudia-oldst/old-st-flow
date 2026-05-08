@@ -2,6 +2,7 @@ import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { MemberAvatar } from "@/components/MemberAvatar";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/store/currentUser";
