@@ -82,33 +82,10 @@ export function ExportProjectDialog({ open, onOpenChange, project }: Props) {
       if (changesRes.error) throw changesRes.error;
       if (logsRes.error) throw logsRes.error;
 
-      type TicketRow = {
-        id: string;
-        formatted_id: string;
-        ticket_type: string;
-        title: string;
-        epic?: { epic_name?: string } | null;
-        original_fe_estimate: number | null;
-        original_be_estimate: number | null;
-        original_project_estimate: number | null;
-        fe_status?: string | null;
-        be_status?: string | null;
-        assignees?: { member?: { name?: string } | null; slot: string }[];
-      };
-      type ChangeRow = {
-        ticket_id: string;
-        status: string;
-        discipline: "FE" | "BE";
-        delta: number | string | null;
-      };
-      type LogRow = {
-        ticket_id: string;
-        discipline: "FE" | "BE" | "Project";
-        hours: number | string | null;
-      };
-      const tickets = (ticketsRes.data ?? []) as TicketRow[];
-      const changes = (changesRes.data ?? []) as ChangeRow[];
-      const logs = (logsRes.data ?? []) as LogRow[];
+      type Row = Record<string, unknown>;
+      const tickets = (ticketsRes.data ?? []) as Row[];
+      const changes = (changesRes.data ?? []) as Row[];
+      const logs = (logsRes.data ?? []) as Row[];
 
       // Aggregate adjusted estimates per ticket from approved estimate-changes
       const deltaByTicket = new Map<string, { FE: number; BE: number }>();
