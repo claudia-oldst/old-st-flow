@@ -1,30 +1,18 @@
 import { useState } from "react";
-import {
-  Sheet,
-  SheetContent,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { supabase } from "@/integrations/supabase/client";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { useStatuses } from "@/features/statuses/useStatuses";
-import { useProjectRole, isPMBA, canManageTickets } from "@/features/team/useProjectRole";
+import { useProjectRole, canManageTickets } from "@/features/team/useProjectRole";
 import { useCurrentUser } from "@/store/currentUser";
 import { AssignDialog } from "@/features/tickets/AssignDialog";
 import { LogTimeModal } from "@/features/timelog/LogTimeModal";
-import { EpicSelect } from "@/features/epics/EpicSelect";
 import { RequestMoreTimeDialog } from "@/features/tickets/RequestMoreTimeDialog";
 import { useTicketEstimateChanges } from "@/features/estimates/useEstimateChanges";
-import { Users, Trash2 } from "lucide-react";
 import { TicketComments } from "@/features/comments/TicketComments";
-import { toast } from "sonner";
-import { AssigneeBlock } from "./detail/AssigneeBlock";
 import { AcceptanceCriteria } from "./detail/AcceptanceCriteria";
-import { TimeLogsPanel } from "./detail/TimeLogsPanel";
 import { TicketDetailHeader } from "./detail/TicketDetailHeader";
-import { StatusBlock } from "./detail/StatusBlock";
-import { EstimatesPanel } from "./detail/EstimatesPanel";
+import { TicketDetailBody } from "./detail/TicketDetailBody";
 import { useTicketEditor } from "./detail/useTicketEditor";
 
 interface Props {
@@ -71,6 +59,9 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
   const canEditProj = isProj && (canManage || isMine);
   const isPMBARole = canManage;
 
+  const defaultTab =
+    ticket.acceptance_criteria && ticket.acceptance_criteria.trim() ? "acceptance" : "detail";
+
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
@@ -83,7 +74,7 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
             setTitle={editor.setTitle}
           />
 
-          <Tabs defaultValue={ticket.acceptance_criteria && ticket.acceptance_criteria.trim() ? "acceptance" : "detail"} className="mt-6 flex-1 flex flex-col min-h-0">
+          <Tabs defaultValue={defaultTab} className="mt-6 flex-1 flex flex-col min-h-0">
             <TabsList className="grid w-full grid-cols-3 shrink-0">
               <TabsTrigger value="acceptance">Acceptance</TabsTrigger>
               <TabsTrigger value="discussion">Discussion</TabsTrigger>
@@ -100,122 +91,30 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
             </TabsContent>
 
             <TabsContent value="detail" className="mt-4 space-y-6 flex-1 overflow-y-auto">
-              {isPMBARole && (
-                <div>
-                  <div className="text-xs uppercase tracking-wider text-dimmer mb-2">Epic</div>
-                  <EpicSelect
-                    projectId={projectId}
-                    value={ticket.epic_id}
-                    onChange={async (id) => {
-                      const { error } = await supabase
-                        .from("tickets")
-                        .update({ epic_id: id })
-                        .eq("id", ticket.id);
-                      if (error) return toast.error(error.message);
-                      onChange();
-                    }}
-                  />
-                </div>
-              )}
-
-              <div>
-                <div className="text-xs uppercase tracking-wider text-dimmer mb-2">Version</div>
-                {isPMBARole ? (
-                  <Input
-                    defaultValue={ticket.version ?? ""}
-                    placeholder="e.g. v1, MVP, Phase 2"
-                    className="h-8 text-sm"
-                    onBlur={async (e) => {
-                      const next = e.target.value.trim() || null;
-                      if ((next ?? null) === (ticket.version ?? null)) return;
-                      const { error } = await supabase
-                        .from("tickets")
-                        .update({ version: next })
-                        .eq("id", ticket.id);
-                      if (error) return toast.error(error.message);
-                      onChange();
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-                    }}
-                  />
-                ) : (
-                  <span className="text-sm text-dim">
-                    {ticket.version ?? <span className="text-dimmer">—</span>}
-                  </span>
-                )}
-              </div>
-
-              <StatusBlock
+              <TicketDetailBody
                 ticket={ticket}
-                statuses={statuses}
+                projectId={projectId}
                 status={status}
-                isPMBARole={isPMBARole}
+                statuses={statuses}
                 isProj={isProj}
+                isPMBARole={isPMBARole}
                 hasFE={hasFE}
                 hasBE={hasBE}
                 canEditFE={canEditFE}
                 canEditBE={canEditBE}
-                onAssign={() => setAssignOpen(true)}
-                onChange={onChange}
-              />
-
-              <EstimatesPanel
-                ticket={ticket}
-                isProj={isProj}
-                isPMBARole={isPMBARole}
-                canEditFE={canEditFE}
-                canEditBE={canEditBE}
                 canEditProj={canEditProj}
-                editing={editor.editing}
-                setEditing={editor.setEditing}
-                feEst={editor.feEst} setFeEst={editor.setFeEst}
-                beEst={editor.beEst} setBeEst={editor.setBeEst}
-                projEst={editor.projEst} setProjEst={editor.setProjEst}
-                onSave={editor.handleSaveEdit}
+                canLog={canLog}
+                editor={editor}
+                estimateChanges={estimateChanges}
+                logsReloadKey={logsReloadKey}
+                onAssign={() => setAssignOpen(true)}
+                onOpenLog={() => setLogOpen(true)}
                 onAdjustEstimate={(slot) => {
                   setRequestSlot(slot);
                   setRequestOpen(true);
                 }}
-                estimateChanges={estimateChanges}
+                onChange={onChange}
               />
-
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-xs uppercase tracking-wider text-dimmer">Assignees</div>
-                  {isPMBARole && (
-                    <Button variant="ghost" size="sm" onClick={() => setAssignOpen(true)} className="gap-1 text-xs">
-                      <Users className="h-3 w-3" /> Manage
-                    </Button>
-                  )}
-                </div>
-                {isProj ? (
-                  <AssigneeBlock label="Members" assignees={ticket.assignees.filter(a => a.slot === "Project")} />
-                ) : (
-                  <>
-                    <AssigneeBlock label="Frontend" assignees={ticket.assignees.filter(a => a.slot === "FE")} />
-                    <AssigneeBlock label="Backend" assignees={ticket.assignees.filter(a => a.slot === "BE")} />
-                    {ticket.assignees.some((a) => a.slot === "Project") && (
-                      <AssigneeBlock label="Project contributors" assignees={ticket.assignees.filter(a => a.slot === "Project")} />
-                    )}
-                  </>
-                )}
-              </div>
-
-              <TimeLogsPanel
-                ticketId={ticket.id}
-                canLog={canLog}
-                onOpenLog={() => setLogOpen(true)}
-                reloadKey={logsReloadKey}
-              />
-
-              {isPMBARole && (
-                <div className="pt-4 hairline-t">
-                  <Button variant="ghost" size="sm" onClick={editor.handleDelete} className="text-destructive hover:text-destructive gap-1.5">
-                    <Trash2 className="h-3.5 w-3.5" /> Delete ticket
-                  </Button>
-                </div>
-              )}
             </TabsContent>
 
             <TabsContent value="discussion" className="mt-4 flex-1 min-h-0 data-[state=active]:flex flex-col">
