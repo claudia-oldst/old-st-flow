@@ -4,7 +4,7 @@ import { useStatuses } from "@/features/statuses/useStatuses";
 import { useProjectTickets, type TicketRow } from "@/features/tickets/useProjectTickets";
 import { TicketCard } from "@/features/tickets/TicketCard";
 import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
-import { useProjectRole, isPMBA } from "@/features/team/useProjectRole";
+import { useProjectRole, canManageTickets } from "@/features/team/useProjectRole";
 import { useCurrentUser } from "@/store/currentUser";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useCardDisplayPrefs } from "@/features/tickets/useCardDisplayPrefs";
