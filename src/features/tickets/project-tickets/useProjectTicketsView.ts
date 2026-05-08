@@ -7,7 +7,7 @@ import {
 } from "@/features/tickets/TicketsFilter";
 import type { GroupBy } from "@/features/tickets/TicketsList";
 import type { ProjectRole } from "@/lib/types";
-import { isPMBA } from "@/features/team/useProjectRole";
+import { canManageTickets } from "@/features/team/useProjectRole";
 
 type ViewMode = "board" | "list";
 
