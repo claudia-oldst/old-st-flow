@@ -82,9 +82,33 @@ export function ExportProjectDialog({ open, onOpenChange, project }: Props) {
       if (changesRes.error) throw changesRes.error;
       if (logsRes.error) throw logsRes.error;
 
-      const tickets = (ticketsRes.data ?? []) as any[];
-      const changes = (changesRes.data ?? []) as any[];
-      const logs = (logsRes.data ?? []) as any[];
+      type TicketRow = {
+        id: string;
+        formatted_id: string;
+        ticket_type: string;
+        title: string;
+        epic?: { epic_name?: string } | null;
+        original_fe_estimate: number | null;
+        original_be_estimate: number | null;
+        original_project_estimate: number | null;
+        fe_status?: string | null;
+        be_status?: string | null;
+        assignees?: { member?: { name?: string } | null; slot: string }[];
+      };
+      type ChangeRow = {
+        ticket_id: string;
+        status: string;
+        discipline: "FE" | "BE";
+        delta: number | string | null;
+      };
+      type LogRow = {
+        ticket_id: string;
+        discipline: "FE" | "BE" | "Project";
+        hours: number | string | null;
+      };
+      const tickets = (ticketsRes.data ?? []) as TicketRow[];
+      const changes = (changesRes.data ?? []) as ChangeRow[];
+      const logs = (logsRes.data ?? []) as LogRow[];
 
       // Aggregate adjusted estimates per ticket from approved estimate-changes
       const deltaByTicket = new Map<string, { FE: number; BE: number }>();
@@ -135,7 +159,7 @@ export function ExportProjectDialog({ open, onOpenChange, project }: Props) {
           const beOrig = Number(t.original_be_estimate) || 0;
           const projOrig = Number(t.original_project_estimate) || 0;
           const assignees = (t.assignees ?? [])
-            .map((x: any) => `${x.member?.name ?? "—"} (${x.slot})`)
+            .map((x) => `${x.member?.name ?? "—"} (${x.slot})`)
             .join(", ");
           return [
             t.formatted_id,
