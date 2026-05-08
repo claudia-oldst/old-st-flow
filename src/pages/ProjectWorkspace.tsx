@@ -12,7 +12,9 @@ import { ProjectSettingsDialog } from "@/features/project/ProjectSettingsDialog"
 import { ExportProjectDialog } from "@/features/project/ExportProjectDialog";
 import { ClientPortalEditor } from "@/features/client-portal/ClientPortalEditor";
 import { useProjectRole, isPMBA } from "@/features/team/useProjectRole";
-import { ArrowLeft, Download } from "lucide-react";
+import { VaultDashboard } from "@/features/vault/VaultDashboard";
+import { ArrowLeft, Download, Archive } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
