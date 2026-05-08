@@ -172,6 +172,9 @@ export type Database = {
       projects: {
         Row: {
           acronym: string
+          archived_at: string | null
+          cached_total_cost: number
+          cached_total_hours: number
           client_name: string | null
           client_portal_hash: string | null
           client_summary_draft: string | null
@@ -180,14 +183,21 @@ export type Database = {
           client_visibility_cutoff: string | null
           created_at: string
           id: string
+          is_archived: boolean
           links: Json
           name: string
           rate_per_hour: number
           start_date: string | null
           updated_at: string
+          vault_checksum: string | null
+          vault_row_counts: Json | null
+          vault_storage_path: string | null
         }
         Insert: {
           acronym: string
+          archived_at?: string | null
+          cached_total_cost?: number
+          cached_total_hours?: number
           client_name?: string | null
           client_portal_hash?: string | null
           client_summary_draft?: string | null
@@ -196,14 +206,21 @@ export type Database = {
           client_visibility_cutoff?: string | null
           created_at?: string
           id?: string
+          is_archived?: boolean
           links?: Json
           name: string
           rate_per_hour?: number
           start_date?: string | null
           updated_at?: string
+          vault_checksum?: string | null
+          vault_row_counts?: Json | null
+          vault_storage_path?: string | null
         }
         Update: {
           acronym?: string
+          archived_at?: string | null
+          cached_total_cost?: number
+          cached_total_hours?: number
           client_name?: string | null
           client_portal_hash?: string | null
           client_summary_draft?: string | null
@@ -212,11 +229,15 @@ export type Database = {
           client_visibility_cutoff?: string | null
           created_at?: string
           id?: string
+          is_archived?: boolean
           links?: Json
           name?: string
           rate_per_hour?: number
           start_date?: string | null
           updated_at?: string
+          vault_checksum?: string | null
+          vault_row_counts?: Json | null
+          vault_storage_path?: string | null
         }
         Relationships: []
       }
@@ -656,10 +677,15 @@ export type Database = {
         Args: { _hash: string }
         Returns: Json
       }
+      get_project_archive_payload: {
+        Args: { _project_id: string }
+        Returns: Json
+      }
       get_project_portal_preview: {
         Args: { _cutoff: string; _project_id: string }
         Returns: Json
       }
+      is_pmba: { Args: { _user_id: string }; Returns: boolean }
       list_project_tickets: {
         Args: {
           _filters?: Json
@@ -672,7 +698,12 @@ export type Database = {
         }
         Returns: Json
       }
+      purge_project_children: { Args: { _project_id: string }; Returns: Json }
       reapply_status_rules: { Args: never; Returns: undefined }
+      rehydrate_project: {
+        Args: { _member_map?: Json; _payload: Json; _project_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       assignee_slot: "FE" | "BE" | "Project"
