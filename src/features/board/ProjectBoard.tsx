@@ -4,7 +4,7 @@ import { useStatuses } from "@/features/statuses/useStatuses";
 import { useProjectTickets, type TicketRow } from "@/features/tickets/useProjectTickets";
 import { TicketCard } from "@/features/tickets/TicketCard";
 import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
-import { useProjectRole, isPMBA } from "@/features/team/useProjectRole";
+import { useProjectRole, canManageTickets } from "@/features/team/useProjectRole";
 import { useCurrentUser } from "@/store/currentUser";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useCardDisplayPrefs } from "@/features/tickets/useCardDisplayPrefs";
@@ -49,7 +49,7 @@ export function ProjectBoard({
   }, [allTickets, search]);
   const role = useProjectRole(projectId);
   const user = useCurrentUser((s) => s.user);
-  const pmba = isPMBA(role);
+  const pmba = canManageTickets(role);
   const isControlled = filterMineProp !== undefined;
   const [internalFilterMine, setInternalFilterMine] = useState<boolean>(true);
   const filterMine = filterMineProp ?? internalFilterMine;
@@ -143,7 +143,7 @@ export function ProjectBoard({
                   status={status}
                   tickets={byStatus[status.id] ?? []}
                   projectId={projectId}
-                  canQuickAdd={isPMBA(role)}
+                  canQuickAdd={pmba}
                   onCardClick={setOpenTicket}
                   onCreated={reload}
                   prefs={prefs}

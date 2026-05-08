@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { useStatuses } from "@/features/statuses/useStatuses";
-import { useProjectRole, isPMBA } from "@/features/team/useProjectRole";
+import { useProjectRole, isPMBA, canManageTickets } from "@/features/team/useProjectRole";
 import { useCurrentUser } from "@/store/currentUser";
 import { AssignDialog } from "@/features/tickets/AssignDialog";
 import { LogTimeModal } from "@/features/timelog/LogTimeModal";
@@ -65,10 +65,11 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
   const myBE = !!user && ticket.assignees.some((a) => a.user_id === user.id && a.slot === "BE");
   const hasFE = !isProj && ticket.assignees.some((a) => a.slot === "FE");
   const hasBE = !isProj && ticket.assignees.some((a) => a.slot === "BE");
-  const canEditFE = hasFE && (isPMBA(role) || myFE);
-  const canEditBE = hasBE && (isPMBA(role) || myBE);
-  const canEditProj = isProj && (isPMBA(role) || isMine);
-  const isPMBARole = isPMBA(role);
+  const canManage = canManageTickets(role);
+  const canEditFE = hasFE && (canManage || myFE);
+  const canEditBE = hasBE && (canManage || myBE);
+  const canEditProj = isProj && (canManage || isMine);
+  const isPMBARole = canManage;
 
   return (
     <>

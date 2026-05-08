@@ -46,3 +46,13 @@ export function useProjectRole(projectId: string | undefined): ProjectRole | nul
 export function isPMBA(role: ProjectRole | null) {
   return role === "PMBA";
 }
+
+/**
+ * True if the role can manage tickets — create, bulk-edit, assign, delete,
+ * and adjust status/version/epic/estimate inline. PMBA + QA.
+ * Excludes approval flows (CR / estimate revisions) and project-level edits,
+ * which remain PMBA-only via `isPMBA`.
+ */
+export function canManageTickets(role: ProjectRole | null) {
+  return role === "PMBA" || role === "QA";
+}
