@@ -67,8 +67,13 @@ export default function ProjectWorkspace() {
         {project?.client_name && (
           <span className="text-sm text-dim">· {project.client_name}</span>
         )}
+        {project?.is_archived && (
+          <Badge className="bg-brand-gold/15 text-brand-gold ring-1 ring-brand-gold/30 hover:bg-brand-gold/20 gap-1">
+            <Archive className="h-3 w-3" /> Vaulted
+          </Badge>
+        )}
         <div className="ml-auto flex items-center gap-1">
-          {project && canEdit && (
+          {project && canEdit && !project.is_archived && (
             <Button
               variant="ghost"
               size="icon"
@@ -96,36 +101,42 @@ export default function ProjectWorkspace() {
         </div>
       </div>
 
-      <nav className="flex gap-1 hairline-b mb-6">
-        {tabs.map((t) => (
-          <NavLink
-            key={t.to}
-            to={t.to}
-            end={t.end}
-            className={({ isActive }) =>
-              cn(
-                "px-4 py-2.5 text-sm transition relative",
-                isActive ? "text-foreground" : "text-dim hover:text-foreground"
-              )
-            }
-          >
-            {({ isActive }) => (
-              <>
-                {t.label}
-                {isActive && <span className="absolute left-2 right-2 -bottom-px h-px bg-foreground" />}
-              </>
-            )}
-          </NavLink>
-        ))}
-      </nav>
+      {project?.is_archived ? (
+        <VaultDashboard project={project} />
+      ) : (
+        <>
+          <nav className="flex gap-1 hairline-b mb-6">
+            {tabs.map((t) => (
+              <NavLink
+                key={t.to}
+                to={t.to}
+                end={t.end}
+                className={({ isActive }) =>
+                  cn(
+                    "px-4 py-2.5 text-sm transition relative",
+                    isActive ? "text-foreground" : "text-dim hover:text-foreground"
+                  )
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    {t.label}
+                    {isActive && <span className="absolute left-2 right-2 -bottom-px h-px bg-foreground" />}
+                  </>
+                )}
+              </NavLink>
+            ))}
+          </nav>
 
-      <Routes>
-        <Route index element={<ProjectTickets projectId={id} />} />
-        <Route path="change-requests-cr" element={<ProjectChangeRequestTickets projectId={id} />} />
-        <Route path="change-requests" element={<ProjectChangeRequests projectId={id} />} />
-        <Route path="health" element={<ProjectHealth projectId={id} />} />
-        <Route path="client" element={<ClientPortalEditor />} />
-      </Routes>
+          <Routes>
+            <Route index element={<ProjectTickets projectId={id} />} />
+            <Route path="change-requests-cr" element={<ProjectChangeRequestTickets projectId={id} />} />
+            <Route path="change-requests" element={<ProjectChangeRequests projectId={id} />} />
+            <Route path="health" element={<ProjectHealth projectId={id} />} />
+            <Route path="client" element={<ClientPortalEditor />} />
+          </Routes>
+        </>
+      )}
     </div>
   );
 }
