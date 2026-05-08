@@ -178,7 +178,7 @@ export function ProjectTicketsToolbar({
             <Clock className="h-4 w-4" /> Start group timer
           </Button>
         )}
-        {isPMBA(role) && (
+        {canManageTickets(role) && (
           <div className="inline-flex rounded-md overflow-hidden">
             <Button
               size="sm"
