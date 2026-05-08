@@ -256,9 +256,9 @@ export function ExportProjectDialog({ open, onOpenChange, project }: Props) {
       XLSX.writeFile(wb, filename);
       toast.success("Export ready");
       onOpenChange(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      toast.error("Export failed: " + (err?.message ?? "unknown error"));
+      toast.error("Export failed: " + (err instanceof Error ? err.message : "unknown error"));
     } finally {
       setBusy(false);
     }
