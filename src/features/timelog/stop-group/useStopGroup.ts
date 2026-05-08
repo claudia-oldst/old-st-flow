@@ -130,7 +130,11 @@ export function useStopGroup({
       for (const r of statusUpdates) {
         await supabase
           .from("tickets")
-          .update({ [disciplineKey]: r.status } as Record<string, DisciplineStatus>)
+          .update(
+            disciplineKey === "fe_status"
+              ? { fe_status: r.status }
+              : { be_status: r.status }
+          )
           .eq("id", r.ticket.id);
       }
     }
