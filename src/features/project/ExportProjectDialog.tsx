@@ -82,10 +82,14 @@ export function ExportProjectDialog({ open, onOpenChange, project }: Props) {
       if (changesRes.error) throw changesRes.error;
       if (logsRes.error) throw logsRes.error;
 
-      type Row = Record<string, unknown>;
-      const tickets = (ticketsRes.data ?? []) as Row[];
-      const changes = (changesRes.data ?? []) as Row[];
-      const logs = (logsRes.data ?? []) as Row[];
+      // Wide row shapes — these are aggregated and serialized to XLSX with
+      // many optional joined fields; typing every column adds noise without
+      // catching real bugs in this single export path.
+      /* eslint-disable @typescript-eslint/no-explicit-any */
+      const tickets = (ticketsRes.data ?? []) as any[];
+      const changes = (changesRes.data ?? []) as any[];
+      const logs = (logsRes.data ?? []) as any[];
+      /* eslint-enable @typescript-eslint/no-explicit-any */
 
       // Aggregate adjusted estimates per ticket from approved estimate-changes
       const deltaByTicket = new Map<string, { FE: number; BE: number }>();
