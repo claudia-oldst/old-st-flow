@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { useStatuses } from "@/features/statuses/useStatuses";
-import { useProjectRole, isPMBA } from "@/features/team/useProjectRole";
+import { useProjectRole, isPMBA, canManageTickets } from "@/features/team/useProjectRole";
 import { useCurrentUser } from "@/store/currentUser";
 import { AssignDialog } from "@/features/tickets/AssignDialog";
 import { LogTimeModal } from "@/features/timelog/LogTimeModal";
