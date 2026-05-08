@@ -44,6 +44,7 @@ interface Props {
 
 export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
   const [open, setOpen] = useState(false);
+  const [archiveOpen, setArchiveOpen] = useState(false);
   const [name, setName] = useState(project.name);
   const [acronym, setAcronym] = useState(project.acronym);
   const [clientName, setClientName] = useState(project.client_name ?? "");
