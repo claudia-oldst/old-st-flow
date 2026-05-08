@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { format } from "date-fns";
-import { CalendarIcon, Copy, ExternalLink, Sparkles, Loader2, PanelRightOpen, PanelRightClose } from "lucide-react";
+import { CalendarIcon, Copy, ExternalLink, Loader2, PanelRightOpen, PanelRightClose } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -11,24 +11,18 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import type { Project } from "@/lib/types";
 import { useProjectRole, isPMBA } from "@/features/team/useProjectRole";
 import { useProjectEstimateChanges } from "@/features/estimates/useEstimateChanges";
 import { useProjectTickets } from "@/features/tickets/useProjectTickets";
-import { useProjectEpics } from "@/features/epics/useProjectEpics";
 import { usePortalPreview } from "./usePortalData";
 import { PortalView } from "./PortalView";
-import { PortalChangeRequests } from "./PortalChangeRequests";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-
-function makeHash() {
-  const arr = new Uint8Array(12);
-  crypto.getRandomValues(arr);
-  return Array.from(arr, (b) => b.toString(36).padStart(2, "0")).join("").slice(0, 16);
-}
+import { makeHash } from "./utils/makeHash";
+import { EpicSummaryEditor } from "./editor/EpicSummaryEditor";
+import { PreviewChangeRequests } from "./editor/PreviewChangeRequests";
 
 export function ClientPortalEditor() {
   const { id } = useParams<{ id: string }>();
