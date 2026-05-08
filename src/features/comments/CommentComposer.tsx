@@ -5,6 +5,7 @@ import { Paperclip, X, Send, Loader2, FileText, Film, Image as ImageIcon } from 
 import { toast } from "sonner";
 import { uploadCommentAttachment, MAX_FILES } from "./uploadCommentAttachment";
 import type { CommentAttachment } from "./types";
+import { commentInputSchema } from "@/lib/schemas/comment";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -53,8 +54,8 @@ export function CommentComposer({
         try {
           const att = await uploadCommentAttachment(f, ticketId);
           setAttachments((a) => [...a, att]);
-        } catch (e: any) {
-          toast.error(e?.message ?? "Upload failed");
+        } catch (e: unknown) {
+          toast.error(e instanceof Error ? e.message : "Upload failed");
         } finally {
           setUploading((n) => n - 1);
         }
@@ -67,13 +68,18 @@ export function CommentComposer({
 
   const submit = async () => {
     if (!canSend) return;
+    const parsed = commentInputSchema.safeParse({ body: body.trim(), attachments });
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? "Invalid comment");
+      return;
+    }
     setSending(true);
     try {
-      await onSubmit(body.trim(), attachments);
+      await onSubmit(parsed.data.body, parsed.data.attachments);
       setBody("");
       setAttachments([]);
-    } catch (e: any) {
-      toast.error(e?.message ?? "Failed to send");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Failed to send");
     } finally {
       setSending(false);
     }
