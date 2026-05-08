@@ -140,7 +140,8 @@ export function ExportProjectDialog({ open, onOpenChange, project }: Props) {
           const beOrig = Number(t.original_be_estimate) || 0;
           const projOrig = Number(t.original_project_estimate) || 0;
           const assignees = (t.assignees ?? [])
-            .map((x) => `${x.member?.name ?? "—"} (${x.slot})`)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .map((x: any) => `${x.member?.name ?? "—"} (${x.slot})`)
             .join(", ");
           return [
             t.formatted_id,
