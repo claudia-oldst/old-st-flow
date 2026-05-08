@@ -5,12 +5,17 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { TopBar } from "@/components/TopBar";
 import { TimerSync } from "@/components/TimerSync";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Projects from "./pages/Projects";
 import ProjectWorkspace from "./pages/ProjectWorkspace";
 import Admin from "./pages/Admin";
 import MyWork from "./pages/MyWork";
 import ClientPortalPublic from "./pages/ClientPortalPublic";
 import NotFound from "./pages/NotFound.tsx";
+
+const wrap = (scope: string, el: React.ReactNode) => (
+  <ErrorBoundary scope={scope}>{el}</ErrorBoundary>
+);
 
 const queryClient = new QueryClient({
   defaultOptions: {
