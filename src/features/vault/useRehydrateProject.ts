@@ -28,8 +28,9 @@ export function useRehydrateProject() {
         },
       });
       if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
-      return data as RehydrateResult;
+      const payload = (data ?? {}) as RehydrateResult & { error?: string };
+      if (payload.error) throw new Error(payload.error);
+      return payload;
     },
     onSuccess: (data) => {
       if (data.ok) {

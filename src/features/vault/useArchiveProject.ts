@@ -14,15 +14,17 @@ export function useArchiveProject() {
         body: { project_id: projectId, user_id: userId },
       });
       if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
-      return data as {
-        ok: true;
-        vault_storage_path: string;
-        checksum: string;
-        counts: Record<string, number>;
-        cached_total_hours: number;
-        cached_total_cost: number;
+      const payload = (data ?? {}) as {
+        error?: string;
+        ok?: true;
+        vault_storage_path?: string;
+        checksum?: string;
+        counts?: Record<string, number>;
+        cached_total_hours?: number;
+        cached_total_cost?: number;
       };
+      if (payload.error) throw new Error(payload.error);
+      return payload;
     },
     onSuccess: () => {
       toast.success("Project archived to vault");
@@ -42,11 +44,11 @@ export function useVaultDownload() {
     const { data, error } = await supabase.functions.invoke("vault-download-url", {
       body: { project_id: projectId, user_id: userId, kind },
     });
-    if (error || (data as any)?.error) {
-      toast.error(error?.message ?? (data as any)?.error ?? "Download failed");
+    const payload = (data ?? {}) as { url?: string; error?: string };
+    if (error || payload.error) {
+      toast.error(error?.message ?? payload.error ?? "Download failed");
       return;
     }
-    const url = (data as any)?.url as string;
-    if (url) window.open(url, "_blank");
+    if (payload.url) window.open(payload.url, "_blank");
   };
 }
