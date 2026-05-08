@@ -18,6 +18,9 @@ import { Tooltip as UiTooltip, TooltipContent, TooltipProvider, TooltipTrigger }
 import { MemberAvatar } from "@/components/MemberAvatar";
 import { cn, formatHours } from "@/lib/utils";
 import type { ChangeRow } from "./useAllEstimateChanges";
+import { Stat } from "@/features/_shared/estimate-ui/Stat";
+import { StatusBadge } from "@/features/_shared/estimate-ui/StatusBadge";
+import { computeEpicTotals, resolveChartRange } from "./epic-change/useEpicChange";
 
 interface EpicTicket {
   id: string;
@@ -69,42 +72,11 @@ export function EpicChangeCard({
 }: Props) {
   const [open, setOpen] = useState(!!defaultOpen);
 
-  const totals = useMemo(() => {
-    const original = tickets.reduce(
-      (a, t) =>
-        a + t.original_fe_estimate + t.original_be_estimate + t.original_project_estimate,
-      0
-    );
-    const currentApproved = tickets.reduce(
-      (a, t) =>
-        a + t.current_fe_estimate + t.current_be_estimate + t.current_project_estimate,
-      0
-    );
-    const actual = tickets.reduce(
-      (a, t) => a + t.actual_frontend_hours + t.actual_backend_hours + t.actual_project_hours,
-      0
-    );
-    // Matching deltas (e.g. pending) — what would happen if all matching rows were approved
-    const matchedDelta = changes.reduce((a, c) => a + c.delta, 0);
-    return { original, currentApproved, actual, projected: currentApproved + matchedDelta };
-  }, [tickets, changes]);
+  const totals = useMemo(() => computeEpicTotals(tickets, changes), [tickets, changes]);
 
   // Sparkline-style data: a couple of buckets along the timeline of matching changes.
   const chartData = useMemo(() => {
-    let start: number;
-    let end: number;
-    if (range) {
-      start = range.from.getTime();
-      end = range.to.getTime();
-    } else {
-      const events = [...approvedChanges, ...changes]
-        .map((c) => new Date(c.created_at).getTime())
-        .filter((n) => !Number.isNaN(n))
-        .sort((a, b) => a - b);
-      start = events[0] ?? Date.now() - 86_400_000 * 7;
-      end = Date.now();
-    }
-    if (end <= start) end = start + 86_400_000;
+    const { start, end } = resolveChartRange(range, [...approvedChanges, ...changes]);
     const buckets = 24;
     const step = Math.max(1, Math.floor((end - start) / buckets));
 
@@ -371,50 +343,3 @@ export function EpicChangeCard({
   );
 }
 
-function Stat({
-  label,
-  value,
-  accent,
-}: {
-  label: string;
-  value: number;
-  accent?: "primary" | "warn" | "gold" | "good";
-}) {
-  const color =
-    accent === "primary"
-      ? "text-primary"
-      : accent === "warn"
-      ? "text-health-warn"
-      : accent === "gold"
-      ? "text-brand-gold"
-      : accent === "good"
-      ? "text-health-good"
-      : "text-foreground";
-  return (
-    <div className="rounded-lg bg-white/[0.02] hairline px-2.5 py-1.5">
-      <div className="text-[9px] uppercase tracking-wider text-dimmer">{label}</div>
-      <div className={cn("font-mono text-sm", color)}>{formatHours(value)}</div>
-    </div>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const cls =
-    status === "approved"
-      ? "bg-health-good/15 text-health-good ring-health-good/30"
-      : status === "pending"
-      ? "bg-health-warn/15 text-health-warn ring-health-warn/30"
-      : status === "rejected"
-      ? "bg-health-bad/15 text-health-bad ring-health-bad/30"
-      : "bg-white/5 text-dim ring-white/10";
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center px-1.5 py-0.5 rounded-full ring-1 text-[10px] capitalize",
-        cls
-      )}
-    >
-      {status}
-    </span>
-  );
-}

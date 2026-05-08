@@ -16,6 +16,9 @@ import { Button } from "@/components/ui/button";
 import { cn, formatHours } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
+import { Stat } from "@/features/_shared/estimate-ui/Stat";
+import { StatusBadge } from "@/features/_shared/estimate-ui/StatusBadge";
+import { crEstimate, computeCRTotals } from "./epic-cr/useEpicCR";
 
 interface Props {
   epicKey: string;
@@ -35,9 +38,6 @@ interface Props {
   range: { from: Date; to: Date };
   hideReject?: boolean;
 }
-
-const crEstimate = (t: TicketRow) =>
-  t.current_fe_estimate + t.current_be_estimate + t.current_project_estimate;
 
 export function EpicCRCard({
   epicName,
@@ -85,31 +85,7 @@ export function EpicCRCard({
     };
   }, [allCRs, memberNames]);
 
-  const totals = useMemo(() => {
-    const original = baselineTickets.reduce(
-      (a, t) =>
-        a + t.original_fe_estimate + t.original_be_estimate + t.original_project_estimate,
-      0
-    );
-    const approvedDelta = allCRs
-      .filter((c) => c.cr_approval === "approved")
-      .reduce((a, c) => a + crEstimate(c), 0);
-    const pendingDelta = allCRs
-      .filter((c) => c.cr_approval === "pending")
-      .reduce((a, c) => a + crEstimate(c), 0);
-    const actual = baselineTickets
-      .concat(allCRs.filter((c) => c.cr_approval === "approved"))
-      .reduce(
-        (a, t) => a + t.actual_frontend_hours + t.actual_backend_hours + t.actual_project_hours,
-        0
-      );
-    return {
-      original,
-      current: original + approvedDelta,
-      projected: original + approvedDelta + pendingDelta,
-      actual,
-    };
-  }, [baselineTickets, allCRs]);
+  const totals = useMemo(() => computeCRTotals(baselineTickets, allCRs), [baselineTickets, allCRs]);
 
   const chartData = useMemo(() => {
     const start = range.from.getTime();
@@ -350,50 +326,3 @@ export function EpicCRCard({
   );
 }
 
-function Stat({
-  label,
-  value,
-  accent,
-}: {
-  label: string;
-  value: number;
-  accent?: "primary" | "warn" | "gold" | "good";
-}) {
-  const color =
-    accent === "primary"
-      ? "text-primary"
-      : accent === "warn"
-      ? "text-health-warn"
-      : accent === "gold"
-      ? "text-brand-gold"
-      : accent === "good"
-      ? "text-health-good"
-      : "text-foreground";
-  return (
-    <div className="rounded-lg bg-white/[0.02] hairline px-2.5 py-1.5">
-      <div className="text-[9px] uppercase tracking-wider text-dimmer">{label}</div>
-      <div className={cn("font-mono text-sm", color)}>{formatHours(value)}</div>
-    </div>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const cls =
-    status === "approved"
-      ? "bg-health-good/15 text-health-good ring-health-good/30"
-      : status === "pending"
-      ? "bg-health-warn/15 text-health-warn ring-health-warn/30"
-      : status === "rejected"
-      ? "bg-health-bad/15 text-health-bad ring-health-bad/30"
-      : "bg-white/5 text-dim ring-white/10";
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center px-1.5 py-0.5 rounded-full ring-1 text-[10px] capitalize",
-        cls
-      )}
-    >
-      {status}
-    </span>
-  );
-}
