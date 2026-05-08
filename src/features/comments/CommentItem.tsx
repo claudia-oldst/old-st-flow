@@ -122,7 +122,7 @@ export function CommentItem({ comment, projectId, ticketId, onReply, onChanged, 
             onSubmit={async (body, attachments) => {
               const { error } = await supabase
                 .from("ticket_comments")
-                .update({ body, attachments: attachments as any, edited_at: new Date().toISOString() })
+                .update({ body, attachments: attachments as unknown as Database["public"]["Tables"]["ticket_comments"]["Insert"]["attachments"], edited_at: new Date().toISOString() })
                 .eq("id", comment.id);
               if (error) throw error;
               setEditing(false);

@@ -67,7 +67,7 @@ export function TicketComments({ ticketId, projectId }: Props) {
               user_id: user.id,
               parent_id: null,
               body,
-              attachments: attachments as any,
+              attachments: attachments as unknown as Database["public"]["Tables"]["ticket_comments"]["Insert"]["attachments"],
             });
             if (error) throw error;
             reload();
