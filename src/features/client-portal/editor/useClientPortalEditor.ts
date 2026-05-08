@@ -1,0 +1,165 @@
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import type { Project } from "@/lib/types";
+import { useProjectEstimateChanges } from "@/features/estimates/useEstimateChanges";
+import { useProjectTickets } from "@/features/tickets/useProjectTickets";
+import { usePortalPreview } from "../usePortalData";
+import { makeHash } from "../utils/makeHash";
+
+export function useClientPortalEditor(projectId: string) {
+  const [project, setProject] = useState<Project | null>(null);
+  const [asOf, setAsOf] = useState<Date>(new Date());
+  const [intro, setIntro] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!projectId) return;
+    supabase
+      .from("projects")
+      .select("*")
+      .eq("id", projectId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) return;
+        setProject(data);
+        setIntro(data.client_summary_draft ?? data.client_summary_published ?? "");
+      });
+  }, [projectId]);
+
+  const hash = project?.client_portal_hash ?? null;
+  const { data: payload, refresh } = usePortalPreview(projectId, hash, asOf);
+  const { changes } = useProjectEstimateChanges(projectId);
+  const { tickets } = useProjectTickets(projectId);
+
+  const epicDeltas = useMemo(() => {
+    const ticketEpic = new Map(tickets.map((t) => [t.id, t.epic_id]));
+    const ticketLabel = new Map(tickets.map((t) => [t.id, t.formatted_id]));
+    const cutoffMs = asOf.getTime();
+    const map = new Map<
+      number,
+      { delta: number; rows: Array<{ ticket: string; discipline: string; delta: number; reason: string | null }> }
+    >();
+    for (const c of changes) {
+      if (c.status !== "approved") continue;
+      const occurredAt = new Date(c.created_at).getTime();
+      if (occurredAt > cutoffMs) continue;
+      const epicId = ticketEpic.get(c.ticket_id);
+      if (epicId == null) continue;
+      const entry = map.get(epicId) ?? { delta: 0, rows: [] };
+      entry.delta += Number(c.delta) || 0;
+      entry.rows.push({
+        ticket: ticketLabel.get(c.ticket_id) ?? c.ticket_id.slice(0, 6),
+        discipline: c.discipline,
+        delta: Number(c.delta) || 0,
+        reason: c.reason ?? null,
+      });
+      map.set(epicId, entry);
+    }
+    return map;
+  }, [changes, tickets, asOf]);
+
+  async function ensureHash() {
+    if (!project) return null;
+    if (project.client_portal_hash) return project.client_portal_hash;
+    const newHash = makeHash();
+    const { data, error } = await supabase
+      .from("projects")
+      .update({
+        client_portal_hash: newHash,
+        client_visibility_cutoff: asOf.toISOString(),
+      })
+      .eq("id", project.id)
+      .select()
+      .maybeSingle();
+    if (error || !data) {
+      toast.error("Failed to enable portal");
+      return null;
+    }
+    setProject(data);
+    return data.client_portal_hash;
+  }
+
+  async function handleUpdate() {
+    if (!project) return;
+    setBusy(true);
+    const { data, error } = await supabase
+      .from("projects")
+      .update({
+        client_visibility_cutoff: asOf.toISOString(),
+        client_summary_draft: intro,
+      })
+      .eq("id", project.id)
+      .select()
+      .maybeSingle();
+    setBusy(false);
+    if (error || !data) {
+      toast.error("Update failed");
+      return;
+    }
+    setProject(data);
+    refresh();
+    toast.success("Snapshot updated");
+  }
+
+  async function handlePublish() {
+    if (!project) return;
+    setBusy(true);
+    const newHash = await ensureHash();
+    if (!newHash) {
+      setBusy(false);
+      return;
+    }
+    const { data, error } = await supabase
+      .from("projects")
+      .update({
+        client_visibility_cutoff: asOf.toISOString(),
+        client_summary_published: intro,
+        client_summary_draft: intro,
+        client_summary_updated_at: new Date().toISOString(),
+      })
+      .eq("id", project.id)
+      .select()
+      .maybeSingle();
+    setBusy(false);
+    if (error || !data) {
+      toast.error("Publish failed");
+      return;
+    }
+    setProject(data);
+    refresh();
+    toast.success("Published to client");
+  }
+
+  async function handleDisable() {
+    if (!project) return;
+    const { data, error } = await supabase
+      .from("projects")
+      .update({ client_portal_hash: null })
+      .eq("id", project.id)
+      .select()
+      .maybeSingle();
+    if (error || !data) {
+      toast.error("Failed to disable portal");
+      return;
+    }
+    setProject(data);
+    toast.success("Public link disabled");
+  }
+
+  return {
+    project,
+    asOf,
+    setAsOf,
+    intro,
+    setIntro,
+    busy,
+    hash,
+    payload,
+    epicDeltas,
+    refresh,
+    handleUpdate,
+    handlePublish,
+    handleDisable,
+  };
+}
