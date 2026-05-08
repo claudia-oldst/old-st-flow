@@ -143,7 +143,7 @@ export function ProjectBoard({
                   status={status}
                   tickets={byStatus[status.id] ?? []}
                   projectId={projectId}
-                  canQuickAdd={isPMBA(role)}
+                  canQuickAdd={pmba}
                   onCardClick={setOpenTicket}
                   onCreated={reload}
                   prefs={prefs}
