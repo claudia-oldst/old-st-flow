@@ -84,7 +84,7 @@ export function CommentItem({ comment, projectId, ticketId, onReply, onChanged, 
   const [editing, setEditing] = useState(false);
 
   const isAuthor = user?.id === comment.user_id;
-  const canDelete = isAuthor || isPMBA(role);
+  const canDelete = isAuthor || canManageTickets(role);
   const canEdit = isAuthor;
 
   const handleDelete = async () => {
