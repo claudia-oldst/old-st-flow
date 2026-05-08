@@ -1,64 +1,89 @@
-## What's wrong
+## Goal
 
-The Health rings (Frontend 732.3h, Backend 658.6h, Project 42.0h) are exactly **2× the real time-logs**, while the Estimate Evolution graph (~700h aggregated) is correct.
+Replace the delta-based `apply_time_log` trigger with an **idempotent recompute-from-SUM** version. The cached `tickets.actual_*_hours` columns stay (no frontend changes), but they're rebuilt from `time_logs` after every change instead of being incremented. Any future bulk insert / replay / rehydration is automatically correct.
 
-DB confirms it for this project:
+## Changes (one DB migration)
 
-| | tickets.actual_*_hours (rings) | sum(time_logs.hours) (graph) |
-|---|---|---|
-| FE | 732.32 | 366.16 |
-| BE | 658.64 | 329.32 |
-| Project | 41.96 | 20.98 |
+### 1. Rewrite `public.apply_time_log()`
 
-Every actual is doubled, exactly.
-
-## Root cause
-
-`rehydrate_project` (migration `20260508104709`) does two things in the same transaction:
-
-1. Inserts each ticket with `actual_frontend_hours / actual_backend_hours / actual_project_hours` taken straight from the snapshot (the values that were correct at archive time).
-2. Re-inserts every row of `time_logs`.
-
-But `time_logs` has an `AFTER INSERT` trigger (migration `20260428143002`) that increments `tickets.actual_*_hours` by the new row's hours. So during rehydrate the snapshot value is loaded, then the trigger adds the same hours again on top → exact doubling.
-
-The graph isn't affected because `useEstimateEvolution` reads `time_logs` directly, not the cached ticket columns.
-
-## Fix
-
-Two parts, both DB-only. No frontend changes.
-
-### 1. Fix `rehydrate_project` so future restores are correct
-
-Drop and recreate the function with one change: insert tickets with `actual_frontend_hours = 0`, `actual_backend_hours = 0`, `actual_project_hours = 0`. The trigger on the subsequent `time_logs` insert will rebuild them to the correct totals.
-
-(Snapshot values for actuals become advisory — the time-logs are the source of truth, which they already are everywhere else in the app.)
-
-### 2. Repair already-rehydrated data
-
-A one-shot UPDATE that recomputes `actual_frontend_hours / actual_backend_hours / actual_project_hours` for every ticket from `time_logs`. This corrects the current project and any other previously-rehydrated project in the same state.
+Make it a single statement that recomputes the affected ticket(s) from `time_logs`:
 
 ```sql
-UPDATE tickets t
-SET actual_frontend_hours = COALESCE(s.fe, 0),
-    actual_backend_hours  = COALESCE(s.be, 0),
-    actual_project_hours  = COALESCE(s.pj, 0)
-FROM (
-  SELECT ticket_id,
-         SUM(hours) FILTER (WHERE discipline='FE')      AS fe,
-         SUM(hours) FILTER (WHERE discipline='BE')      AS be,
-         SUM(hours) FILTER (WHERE discipline='Project') AS pj
-  FROM time_logs GROUP BY ticket_id
-) s
-WHERE s.ticket_id = t.id
-  AND (t.actual_frontend_hours <> COALESCE(s.fe,0)
-    OR t.actual_backend_hours  <> COALESCE(s.be,0)
-    OR t.actual_project_hours  <> COALESCE(s.pj,0));
+CREATE OR REPLACE FUNCTION public.apply_time_log()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
+DECLARE
+  affected uuid[];
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    affected := ARRAY[NEW.ticket_id];
+  ELSIF TG_OP = 'DELETE' THEN
+    affected := ARRAY[OLD.ticket_id];
+  ELSE -- UPDATE: ticket_id may have changed
+    affected := ARRAY[NEW.ticket_id, OLD.ticket_id];
+  END IF;
+
+  UPDATE public.tickets t
+  SET actual_frontend_hours = COALESCE(s.fe, 0),
+      actual_backend_hours  = COALESCE(s.be, 0),
+      actual_project_hours  = COALESCE(s.pj, 0)
+  FROM (
+    SELECT tk.id AS ticket_id,
+           SUM(l.hours) FILTER (WHERE l.discipline='FE')      AS fe,
+           SUM(l.hours) FILTER (WHERE l.discipline='BE')      AS be,
+           SUM(l.hours) FILTER (WHERE l.discipline='Project') AS pj
+    FROM public.tickets tk
+    LEFT JOIN public.time_logs l ON l.ticket_id = tk.id
+    WHERE tk.id = ANY(affected)
+    GROUP BY tk.id
+  ) s
+  WHERE t.id = s.ticket_id;
+
+  RETURN COALESCE(NEW, OLD);
+END;
+$$;
 ```
 
-Both go in a single migration. Approve and the rings will match the graph immediately.
+Properties:
+- Idempotent: result depends only on the current `time_logs` rows.
+- Handles INSERT, UPDATE (incl. moving a log to another ticket), DELETE.
+- No more drift, no `GREATEST(0, …)` workarounds.
+
+### 2. One-time recompute (safety net)
+
+Same recompute-from-SUM UPDATE we already did, kept in the migration so any other project that still holds residual drift gets cleaned up:
+
+```sql
+WITH s AS (
+  SELECT ticket_id,
+    SUM(hours) FILTER (WHERE discipline='FE')      AS fe,
+    SUM(hours) FILTER (WHERE discipline='BE')      AS be,
+    SUM(hours) FILTER (WHERE discipline='Project') AS pj
+  FROM public.time_logs GROUP BY ticket_id
+)
+UPDATE public.tickets t
+SET actual_frontend_hours = COALESCE(s.fe,0),
+    actual_backend_hours  = COALESCE(s.be,0),
+    actual_project_hours  = COALESCE(s.pj,0)
+FROM s WHERE s.ticket_id = t.id;
+
+UPDATE public.tickets t
+SET actual_frontend_hours = 0, actual_backend_hours = 0, actual_project_hours = 0
+WHERE NOT EXISTS (SELECT 1 FROM public.time_logs l WHERE l.ticket_id = t.id);
+```
+
+### 3. Simplify `rehydrate_project` (optional cleanup)
+
+With an idempotent trigger, `rehydrate_project` can safely insert ticket actuals as snapshot values OR zeros — both produce the same result after time_logs replay. We'll keep the current "insert as 0" form (already correct, no change needed). No edit to the RPC.
 
 ## Out of scope
 
-- No edge function changes (`rehydrate-project/index.ts` only calls the RPC).
-- No UI changes — the Health page already displays the correct columns; they'll just hold correct numbers.
-- `cached_total_hours` / `cached_total_cost` are reset to 0 by the rehydrate UPDATE and only repopulated on archive — not affected.
+- No frontend changes. All ~15 read sites keep using `tickets.actual_*_hours`.
+- No edge function changes.
+- No schema changes — same columns, same types.
+
+## Risk
+
+Very low. The trigger fires once per `time_logs` row change and does a single `UPDATE … WHERE id = ANY(...)` against at most 2 tickets. Perf is on par with the current 2-statement delta version.
