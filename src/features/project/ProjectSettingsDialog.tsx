@@ -145,12 +145,6 @@ export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
     loadMembers();
   };
 
-  const updateLink = (idx: number, key: keyof ProjectLink, value: string) => {
-    setLinks((prev) => prev.map((l, i) => (i === idx ? { ...l, [key]: value } : l)));
-  };
-
-  const addLink = () => setLinks((prev) => [...prev, { name: "", url: "" }]);
-  const removeLink = (idx: number) => setLinks((prev) => prev.filter((_, i) => i !== idx));
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
