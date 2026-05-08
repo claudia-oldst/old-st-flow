@@ -2,6 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/store/currentUser";
 import { CommentItem } from "./CommentItem";
+import type { Json } from "@/integrations/supabase/types";
 import { CommentComposer } from "./CommentComposer";
 import type { CommentThreadNode } from "./types";
 
@@ -51,7 +52,7 @@ export function CommentThread({ thread, projectId, ticketId, onChanged }: Props)
                   user_id: user.id,
                   parent_id: thread.id,
                   body,
-                  attachments: attachments as any,
+                  attachments: attachments as unknown as Json,
                 });
                 if (error) throw error;
                 setReplying(false);

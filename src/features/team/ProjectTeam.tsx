@@ -38,7 +38,7 @@ export function ProjectTeam({ projectId }: { projectId: string }) {
         .eq("project_id", projectId),
       supabase.from("team_members").select("*").order("name"),
     ]);
-    setMembers((pm as any) ?? []);
+    setMembers(((pm ?? []) as unknown) as (ProjectMember & { member: TeamMember })[]);
     setAllMembers(all ?? []);
   }, [projectId]);
 

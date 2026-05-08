@@ -82,9 +82,14 @@ export function ExportProjectDialog({ open, onOpenChange, project }: Props) {
       if (changesRes.error) throw changesRes.error;
       if (logsRes.error) throw logsRes.error;
 
+      // Wide row shapes — these are aggregated and serialized to XLSX with
+      // many optional joined fields; typing every column adds noise without
+      // catching real bugs in this single export path.
+      /* eslint-disable @typescript-eslint/no-explicit-any */
       const tickets = (ticketsRes.data ?? []) as any[];
       const changes = (changesRes.data ?? []) as any[];
       const logs = (logsRes.data ?? []) as any[];
+      /* eslint-enable @typescript-eslint/no-explicit-any */
 
       // Aggregate adjusted estimates per ticket from approved estimate-changes
       const deltaByTicket = new Map<string, { FE: number; BE: number }>();
@@ -135,6 +140,7 @@ export function ExportProjectDialog({ open, onOpenChange, project }: Props) {
           const beOrig = Number(t.original_be_estimate) || 0;
           const projOrig = Number(t.original_project_estimate) || 0;
           const assignees = (t.assignees ?? [])
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             .map((x: any) => `${x.member?.name ?? "—"} (${x.slot})`)
             .join(", ");
           return [
@@ -250,9 +256,9 @@ export function ExportProjectDialog({ open, onOpenChange, project }: Props) {
       XLSX.writeFile(wb, filename);
       toast.success("Export ready");
       onOpenChange(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      toast.error("Export failed: " + (err?.message ?? "unknown error"));
+      toast.error("Export failed: " + (err instanceof Error ? err.message : "unknown error"));
     } finally {
       setBusy(false);
     }

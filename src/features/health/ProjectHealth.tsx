@@ -23,7 +23,7 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
       .from("project_members")
       .select("user_id,role,member:team_members(id,name,avatar_color)")
       .eq("project_id", projectId)
-      .then(({ data }) => setMembers((data as any) ?? []));
+      .then(({ data }) => setMembers((data ?? []) as typeof members));
   }, [projectId]);
 
   useEffect(() => {

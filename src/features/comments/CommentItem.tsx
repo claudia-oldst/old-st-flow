@@ -2,6 +2,7 @@ import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { MemberAvatar } from "@/components/MemberAvatar";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/store/currentUser";
@@ -122,7 +123,7 @@ export function CommentItem({ comment, projectId, ticketId, onReply, onChanged, 
             onSubmit={async (body, attachments) => {
               const { error } = await supabase
                 .from("ticket_comments")
-                .update({ body, attachments: attachments as any, edited_at: new Date().toISOString() })
+                .update({ body, attachments: attachments as unknown as Json, edited_at: new Date().toISOString() })
                 .eq("id", comment.id);
               if (error) throw error;
               setEditing(false);

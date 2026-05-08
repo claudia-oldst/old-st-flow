@@ -36,7 +36,7 @@ export default function StatusRulesAdmin({ canEdit }: { canEdit: boolean }) {
       .select("*")
       .order("position", { ascending: true });
     if (error) toast.error(error.message);
-    setRules(((data as any) ?? []).map((r: any) => ({
+    setRules(((data ?? []) as Rule[]).map((r) => ({
       id: r.id,
       position: r.position,
       fe_statuses: r.fe_statuses ?? [],
@@ -68,7 +68,7 @@ export default function StatusRulesAdmin({ canEdit }: { canEdit: boolean }) {
   const updateRule = async (id: string, patch: Partial<Rule>) => {
     setRules((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)));
     setSaving(true);
-    const { error } = await supabase.from("status_derivation_rules").update(patch as any).eq("id", id);
+    const { error } = await supabase.from("status_derivation_rules").update(patch).eq("id", id);
     setSaving(false);
     if (error) {
       toast.error(error.message);
@@ -89,19 +89,20 @@ export default function StatusRulesAdmin({ canEdit }: { canEdit: boolean }) {
         be_statuses: [],
         operator: "AND",
         status_id: statuses[0].id,
-      } as any)
+      })
       .select()
       .single();
     if (error || !data) return toast.error(error?.message ?? "Failed to add rule");
+    const row = data as Rule;
     setRules((rs) => [
       ...rs,
       {
-        id: (data as any).id,
-        position: (data as any).position,
-        fe_statuses: (data as any).fe_statuses ?? [],
-        be_statuses: (data as any).be_statuses ?? [],
-        operator: (data as any).operator,
-        status_id: (data as any).status_id,
+        id: row.id,
+        position: row.position,
+        fe_statuses: row.fe_statuses ?? [],
+        be_statuses: row.be_statuses ?? [],
+        operator: row.operator,
+        status_id: row.status_id,
       },
     ]);
     toast.success("Rule added");
@@ -152,7 +153,7 @@ export default function StatusRulesAdmin({ canEdit }: { canEdit: boolean }) {
       { position: 1, fe_statuses: ["done"], be_statuses: ["done"], operator: "AND", status_id: done.id },
       { position: 2, fe_statuses: ["in_progress", "done"], be_statuses: ["in_progress", "done"], operator: "OR", status_id: active.id },
       { position: 3, fe_statuses: ["todo"], be_statuses: ["todo"], operator: "AND", status_id: backlog.id },
-    ] as any);
+    ]);
     if (error) return toast.error(error.message);
     toast.success("Defaults restored");
     await reapply();

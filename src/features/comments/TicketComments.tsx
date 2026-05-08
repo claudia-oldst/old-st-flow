@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/store/currentUser";
 import { MessageSquare } from "lucide-react";
+import type { Json } from "@/integrations/supabase/types";
 import { useTicketComments } from "./useTicketComments";
 import { CommentComposer } from "./CommentComposer";
 import { CommentThread } from "./CommentThread";
@@ -67,7 +68,7 @@ export function TicketComments({ ticketId, projectId }: Props) {
               user_id: user.id,
               parent_id: null,
               body,
-              attachments: attachments as any,
+              attachments: attachments as unknown as Json,
             });
             if (error) throw error;
             reload();

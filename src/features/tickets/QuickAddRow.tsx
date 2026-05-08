@@ -12,6 +12,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import type { TicketType } from "@/lib/types";
 import { EpicSelect } from "@/features/epics/EpicSelect";
+import { ticketInputSchema } from "@/lib/schemas/ticket";
 import { toast } from "sonner";
 
 export function QuickAddRow({
@@ -35,28 +36,40 @@ export function QuickAddRow({
   const isProj = type === "Proj";
 
   const submit = async () => {
-    const t = title.trim();
-    if (!t) return;
-    setBusy(true);
     const projHrs = parseFloat(proj) || 0;
     const feHrs = parseFloat(fe) || 0;
     const beHrs = parseFloat(be) || 0;
+
+    const parsed = ticketInputSchema.safeParse({
+      title,
+      ticket_type: type,
+      epic_id: epicId,
+      fe_estimate: isProj ? 0 : feHrs,
+      be_estimate: isProj ? 0 : beHrs,
+      project_estimate: isProj ? projHrs : 0,
+    });
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? "Invalid ticket");
+      return;
+    }
+
+    setBusy(true);
     const { error } = await supabase.from("tickets").insert({
       project_id: projectId,
-      title: t,
-      ticket_type: type,
+      title: parsed.data.title,
+      ticket_type: parsed.data.ticket_type,
       status_id: statusId,
-      epic_id: epicId,
-      original_fe_estimate: isProj ? 0 : feHrs,
-      original_be_estimate: isProj ? 0 : beHrs,
-      current_fe_estimate: isProj ? 0 : feHrs,
-      current_be_estimate: isProj ? 0 : beHrs,
-      original_project_estimate: isProj ? projHrs : 0,
-      current_project_estimate: isProj ? projHrs : 0,
+      epic_id: parsed.data.epic_id ?? null,
+      original_fe_estimate: parsed.data.fe_estimate ?? 0,
+      original_be_estimate: parsed.data.be_estimate ?? 0,
+      current_fe_estimate: parsed.data.fe_estimate ?? 0,
+      current_be_estimate: parsed.data.be_estimate ?? 0,
+      original_project_estimate: parsed.data.project_estimate ?? 0,
+      current_project_estimate: parsed.data.project_estimate ?? 0,
       // ticket_number + formatted_id are filled by the before-insert trigger
       ticket_number: 0,
       formatted_id: "",
-    } as any);
+    });
     setBusy(false);
     if (error) return toast.error(error.message);
     setTitle("");

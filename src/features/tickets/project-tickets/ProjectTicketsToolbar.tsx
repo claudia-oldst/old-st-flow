@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CardDisplayMenu } from "@/features/tickets/CardDisplayMenu";
+import type { CardDisplayPrefs } from "@/features/tickets/useCardDisplayPrefs";
 import {
   TicketsFilter,
   type TicketFilters,
@@ -62,8 +63,8 @@ export function ProjectTicketsToolbar({
   setTouched: (v: boolean) => void;
   groupBy: GroupBy;
   setGroupBy: (g: GroupBy) => void;
-  cardPrefs: any;
-  setCardPrefs: (p: any) => void;
+  cardPrefs: CardDisplayPrefs;
+  setCardPrefs: (p: CardDisplayPrefs) => void;
   resetCardPrefs: () => void;
   search: string;
   setSearch: (s: string) => void;
