@@ -44,7 +44,7 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
       .from("project_members")
       .select("*, member:team_members(*)")
       .eq("project_id", projectId)
-      .then(({ data }) => setMembers((data as any) ?? []));
+      .then(({ data }) => setMembers(((data ?? []) as unknown) as (ProjectMember & { member: TeamMember })[]));
   }, [open, projectId, current]);
 
   const feEligible = members.filter((m) => m.role === "Frontend" || m.role === "Fullstack");

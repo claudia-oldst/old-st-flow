@@ -54,7 +54,7 @@ export function BulkAssignDialog({
       .select("*, member:team_members(*)")
       .eq("project_id", projectId)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .then(({ data }) => setMembers(((data as any) ?? []) as (ProjectMember & { member: TeamMember })[]));
+      .then(({ data }) => setMembers(((data ?? []) as unknown) as (ProjectMember & { member: TeamMember })[]));
     if (ticketIds.length) {
       supabase
         .from("tickets")
