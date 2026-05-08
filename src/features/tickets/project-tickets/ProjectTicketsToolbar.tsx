@@ -22,7 +22,7 @@ import {
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import type { GroupBy } from "@/features/tickets/TicketsList";
 import type { ProjectRole } from "@/lib/types";
-import { isPMBA } from "@/features/team/useProjectRole";
+import { canManageTickets } from "@/features/team/useProjectRole";
 import { cn } from "@/lib/utils";
 
 type ViewMode = "board" | "list";
