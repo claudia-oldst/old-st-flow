@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeReload } from "@/hooks/useRealtimeReload";
 import { useCurrentUser } from "@/store/currentUser";
 import { displayTitle, formatHours } from "@/lib/utils";
 import { ListChecks, ArrowRight } from "lucide-react";
 import { DisciplineStatusChip } from "@/features/tickets/DisciplineStatusChip";
-import type { DisciplineStatus } from "@/lib/types";
+import type { DisciplineStatus, TeamMember, TicketAssignee } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
+import type { TicketRow } from "@/features/tickets/useProjectTickets";
+import { toast } from "sonner";
 
 interface Row {
   id: string;
@@ -28,10 +30,63 @@ interface Row {
   actual_project_hours?: number;
 }
 
+async function fetchTicketDetail(ticketId: string): Promise<TicketRow | null> {
+  const { data: t } = await supabase
+    .from("tickets")
+    .select("*, epic:project_epics(epic_name)")
+    .eq("id", ticketId)
+    .maybeSingle();
+  if (!t) return null;
+  const { data: assignees } = await supabase
+    .from("ticket_assignees")
+    .select("*, member:team_members(*)")
+    .eq("ticket_id", ticketId);
+  const list = (assignees as Array<TicketAssignee & { member: TeamMember; created_at: string }> | null) ?? [];
+  const tt: any = t;
+  return {
+    id: tt.id,
+    project_id: tt.project_id,
+    ticket_number: tt.ticket_number,
+    formatted_id: tt.formatted_id,
+    title: tt.title,
+    ticket_type: tt.ticket_type,
+    status_id: tt.status_id,
+    fe_status: (tt.fe_status ?? "todo") as DisciplineStatus,
+    be_status: (tt.be_status ?? "todo") as DisciplineStatus,
+    project_status_override: !!tt.project_status_override,
+    epic_id: tt.epic_id ?? null,
+    epic_name: tt.epic?.epic_name ?? null,
+    version: tt.version ?? null,
+    original_fe_estimate: Number(tt.original_fe_estimate),
+    original_be_estimate: Number(tt.original_be_estimate),
+    current_fe_estimate: Number(tt.current_fe_estimate),
+    current_be_estimate: Number(tt.current_be_estimate),
+    original_project_estimate: Number(tt.original_project_estimate ?? 0),
+    current_project_estimate: Number(tt.current_project_estimate ?? 0),
+    actual_frontend_hours: Number(tt.actual_frontend_hours),
+    actual_backend_hours: Number(tt.actual_backend_hours),
+    actual_project_hours: Number(tt.actual_project_hours ?? 0),
+    acceptance_criteria: tt.acceptance_criteria ?? null,
+    position: tt.position,
+    created_at: tt.created_at,
+    cr_approval: (tt.cr_approval ?? "pending") as TicketRow["cr_approval"],
+    cr_decided_by: tt.cr_decided_by ?? null,
+    cr_decided_at: tt.cr_decided_at ?? null,
+    assignees: list.map((a) => ({
+      user_id: a.user_id,
+      slot: a.slot,
+      member: a.member,
+      created_at: (a as any).created_at,
+    })),
+  };
+}
+
 export default function MyWork() {
   const user = useCurrentUser((s) => s.user);
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<TicketRow | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const load = useCallback(() => {
     if (!user) {
@@ -78,6 +133,24 @@ export default function MyWork() {
     !!user,
   );
 
+  const openTicket = useCallback(async (ticketId: string) => {
+    const detail = await fetchTicketDetail(ticketId);
+    if (!detail) {
+      toast.error("Ticket not found");
+      return;
+    }
+    setSelected(detail);
+    setSheetOpen(true);
+  }, []);
+
+  const refreshSelected = useCallback(async () => {
+    load();
+    if (selected) {
+      const detail = await fetchTicketDetail(selected.id);
+      if (detail) setSelected(detail);
+    }
+  }, [load, selected]);
+
   return (
     <div className="mx-auto max-w-[1480px] px-4 sm:px-6 py-10">
       <div className="mb-8">
@@ -109,10 +182,11 @@ export default function MyWork() {
               const actual = isFE ? r.actual_frontend_hours : isBE ? r.actual_backend_hours : 0;
               const estimate = isFE ? r.current_fe_estimate : isBE ? r.current_be_estimate : 0;
               return (
-                <Link
+                <button
                   key={`${r.id}-${r.slot}`}
-                  to={`/projects/${r.project.id}`}
-                  className="group flex items-center gap-4 px-4 py-3 hover:bg-white/[0.02] transition"
+                  type="button"
+                  onClick={() => openTicket(r.id)}
+                  className="group w-full text-left flex items-center gap-4 px-4 py-3 hover:bg-white/[0.02] transition"
                 >
                   <div className="font-mono text-xs text-dimmer w-20">{r.formatted_id}</div>
                   <div className="flex-1 min-w-0">
@@ -137,12 +211,20 @@ export default function MyWork() {
                     {r.slot === "Project" ? "—" : `${formatHours(actual)} / ${formatHours(estimate)}`}
                   </div>
                   <ArrowRight className="h-4 w-4 text-dimmer group-hover:text-foreground transition" />
-                </Link>
+                </button>
               );
             })}
           </div>
         </div>
       )}
+
+      <TicketDetailSheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        ticket={selected}
+        projectId={selected?.project_id ?? ""}
+        onChange={refreshSelected}
+      />
     </div>
   );
 }
