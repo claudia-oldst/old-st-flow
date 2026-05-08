@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { epicSummarySchema } from "@/lib/schemas/clientPortal";
 import { toast } from "sonner";
 
 export interface EpicSummaryEditorProps {
@@ -44,6 +45,11 @@ export function EpicSummaryEditor({
   }, [initialText, initialIncluded]);
 
   async function persist(nextText: string, nextIncluded: boolean, opts?: { silent?: boolean }) {
+    const parsed = epicSummarySchema.safeParse({ text: nextText, included: nextIncluded });
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? "Invalid summary");
+      return false;
+    }
     const { error } = await supabase.from("project_epic_summaries").upsert(
       {
         project_id: projectId,
