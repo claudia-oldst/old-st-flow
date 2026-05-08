@@ -65,10 +65,11 @@ export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onCha
   const myBE = !!user && ticket.assignees.some((a) => a.user_id === user.id && a.slot === "BE");
   const hasFE = !isProj && ticket.assignees.some((a) => a.slot === "FE");
   const hasBE = !isProj && ticket.assignees.some((a) => a.slot === "BE");
-  const canEditFE = hasFE && (isPMBA(role) || myFE);
-  const canEditBE = hasBE && (isPMBA(role) || myBE);
-  const canEditProj = isProj && (isPMBA(role) || isMine);
-  const isPMBARole = isPMBA(role);
+  const canManage = canManageTickets(role);
+  const canEditFE = hasFE && (canManage || myFE);
+  const canEditBE = hasBE && (canManage || myBE);
+  const canEditProj = isProj && (canManage || isMine);
+  const isPMBARole = canManage;
 
   return (
     <>
