@@ -49,7 +49,7 @@ export function ProjectBoard({
   }, [allTickets, search]);
   const role = useProjectRole(projectId);
   const user = useCurrentUser((s) => s.user);
-  const pmba = isPMBA(role);
+  const pmba = canManageTickets(role);
   const isControlled = filterMineProp !== undefined;
   const [internalFilterMine, setInternalFilterMine] = useState<boolean>(true);
   const filterMine = filterMineProp ?? internalFilterMine;
