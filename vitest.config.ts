@@ -9,6 +9,25 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "html", "json-summary"],
+      include: ["src/features/**", "src/lib/**", "src/hooks/**"],
+      exclude: [
+        "**/*.test.*",
+        "**/*.spec.*",
+        "src/test/**",
+        "src/components/ui/**",
+        "src/integrations/supabase/types.ts",
+      ],
+      thresholds: {
+        // Repo-wide floor; raise as coverage grows.
+        lines: 25,
+        statements: 25,
+        functions: 25,
+        branches: 50,
+      },
+    },
   },
   resolve: {
     alias: { "@": path.resolve(__dirname, "./src") },
