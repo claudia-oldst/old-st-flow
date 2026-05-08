@@ -41,7 +41,7 @@ export function ExportProjectDialog({ open, onOpenChange, project }: Props) {
       const res = await runExportProject({
         project, asOf, includeTickets, includeChanges, includeLogs,
       });
-      if (!res.ok) {
+      if ("error" in res) {
         toast.error(res.error);
         return;
       }
