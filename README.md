@@ -119,8 +119,9 @@ npm run dev        # Vite at http://localhost:8080
 | `npm run build:dev`  | Development-mode build (source maps, etc.)  |
 | `npm run preview`    | Preview the production build locally        |
 | `npm run lint`       | Run ESLint across the project               |
-| `npm run test`       | Run the Vitest suite once                   |
-| `npm run test:watch` | Vitest in watch mode                        |
+| `npm run test`          | Run the Vitest suite once                   |
+| `npm run test:watch`    | Vitest in watch mode                        |
+| `npm run test:coverage` | Vitest with v8 coverage (HTML + text)       |
 
 ## Project structure
 
@@ -152,7 +153,10 @@ src/
 │   └── utils.ts         # cn(), formatting helpers
 ├── pages/               # Route entry points
 ├── store/               # Zustand stores (currentUser, timer)
-├── test/                # Vitest setup + sample tests
+├── test/                # Vitest setup, fixtures, mocks, renderWithProviders
+│   ├── fixtures/        # Typed factory functions (tickets, ...)
+│   ├── mocks/           # Reusable test doubles (supabase chainable mock)
+│   └── utils.tsx        # renderWithProviders (QueryClient + Router)
 └── types/domain.ts      # Convenience aliases over Database row types
 
 supabase/
@@ -188,18 +192,45 @@ Rules:
 ## Testing
 
 ```sh
-npm run test          # one-shot
-npm run test:watch    # watch mode
+npm run test           # one-shot
+npm run test:watch     # watch mode
+npm run test:coverage  # v8 coverage → ./coverage/index.html
 ```
 
-The suite uses Vitest + React Testing Library + jsdom. It covers:
+Vitest + React Testing Library + jsdom. Tests live next to the unit under test as
+`*.test.ts(x)`. Shared helpers live in `src/test/`:
 
-- Zod schemas (ticket, comment, project, client portal)
-- ErrorBoundary fallback behavior
-- Pure utilities (`evaluateRule`, `makeHash`, `useEpicCR`, `useEpicChange`, ...)
-- Presentational components (`Stat`, `StatusBadge`, `ChipGroup`, `ProjectLinksEditor`)
+- `src/test/fixtures/` — typed factories (`makeTicket`, `withFeAssignee`, ...).
+- `src/test/mocks/supabase.ts` — chainable mock of `supabase-js`. Tests replace
+  the real client via `vi.mock("@/integrations/supabase/client", () => import("@/test/mocks/supabase"))`
+  and drive responses with `setSupabaseHandler({ table, ops }) => { data, error }`.
+  Recorded chains are exposed via `recordedChains` for asserting the exact
+  payload sent to Supabase.
+- `src/test/utils.tsx` — `renderWithProviders` wraps the UI in a fresh
+  `QueryClientProvider` and `MemoryRouter`.
 
-When adding a feature, co-locate `*.test.ts(x)` next to the unit under test.
+What is covered today:
+
+- **Zod schemas** — ticket, comment, project, client portal.
+- **Pure utilities & helpers** — `applyFilters`, `buildChangeRequestGroups`,
+  `evenSplit`, `evaluateRule`, `makeHash`, `relativeTime`, `useDebounced`,
+  `buildEpicTrendSeries`.
+- **Estimate logic** — `useEpicCR`, `useEpicChange`.
+- **Feature hooks** with mocked Supabase — `useBulkAssign` (payload shape +
+  guards), and the supabase mock pattern is reusable for the rest.
+- **Export pipeline** — `runExportProject` (mocked `xlsx` + Supabase) verifies
+  sheet composition and approved-delta math.
+- **Presentational components** — `Stat`, `StatusBadge`, `ChipGroup`,
+  `ProjectLinksEditor`, `Ring`, `ProfitabilityPill`, plus the `ErrorBoundary`
+  fallback.
+
+Coverage thresholds (in `vitest.config.ts`) are intentionally a floor, not a
+ceiling — raise them as more hooks gain tests. Out of scope for this layer:
+end-to-end browser tests (Playwright is the planned next step).
+
+When adding a feature, co-locate `*.test.ts(x)` next to the unit, prefer pure
+helpers extracted from hooks for the bulk of assertions, and use the supabase
+mock for hook-level integration where mutation payloads are the contract.
 
 ## Deployment
 
@@ -216,7 +247,17 @@ This project is built and deployed via **Lovable**.
 3. Prefer small, focused components and hooks. Split files that grow past ~250 lines.
 4. Validate user input with Zod; tighten `any` whenever you touch a file.
 5. Add or update tests for non-trivial logic.
-6. Run `npm run lint && npm run test` before opening a PR.
+
+### Quality gates (run before every PR)
+
+| Gate           | Command                  | What it checks                              |
+| -------------- | ------------------------ | ------------------------------------------- |
+| Lint           | `npm run lint`           | ESLint (typescript-eslint, react-hooks)     |
+| Typecheck      | `npx tsc --noEmit`       | Strict TypeScript across the SPA            |
+| Tests          | `npm run test`           | Vitest suite (must stay green)              |
+| Coverage       | `npm run test:coverage`  | v8 coverage; respects thresholds            |
+| File-size cap  | manual                   | Keep files ≤ ~250 LOC; split when over      |
+| Build          | `npm run build`          | Production build succeeds with no warnings  |
 
 ---
 
