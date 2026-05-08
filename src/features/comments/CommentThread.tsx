@@ -51,7 +51,7 @@ export function CommentThread({ thread, projectId, ticketId, onChanged }: Props)
                   user_id: user.id,
                   parent_id: thread.id,
                   body,
-                  attachments: attachments as unknown as Database["public"]["Tables"]["ticket_comments"]["Insert"]["attachments"],
+                  attachments: attachments as unknown as Json,
                 });
                 if (error) throw error;
                 setReplying(false);
