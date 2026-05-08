@@ -26,15 +26,13 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { MemberAvatar } from "@/components/MemberAvatar";
-import { Plus, Settings, Trash2, ExternalLink, Eye, Archive } from "lucide-react";
+import { Plus, Settings, Trash2, Eye, Archive } from "lucide-react";
 import { toast } from "sonner";
 import { ArchiveProjectDialog } from "@/features/vault/ArchiveProjectDialog";
+import { ProjectLinksEditor } from "./settings/ProjectLinksEditor";
+import type { ProjectLink } from "./settings/types";
 
-
-export interface ProjectLink {
-  name: string;
-  url: string;
-}
+export type { ProjectLink } from "./settings/types";
 
 interface Props {
   project: Project;
