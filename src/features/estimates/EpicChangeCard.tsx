@@ -1,26 +1,13 @@
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
-import { ChevronDown, Check, X, Sparkles } from "lucide-react";
-
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-  Legend,
-} from "recharts";
+import { ChevronDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Button } from "@/components/ui/button";
-import { Tooltip as UiTooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { MemberAvatar } from "@/components/MemberAvatar";
-import { cn, formatHours } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import type { ChangeRow } from "./useAllEstimateChanges";
 import { Stat } from "@/features/_shared/estimate-ui/Stat";
-import { StatusBadge } from "@/features/_shared/estimate-ui/StatusBadge";
+import { EpicMiniTrendChart } from "@/features/_shared/estimate-ui/EpicMiniTrendChart";
 import { computeEpicTotals, resolveChartRange } from "./epic-change/useEpicChange";
+import { EpicChangeRow } from "./EpicChangeRow";
 
 interface EpicTicket {
   id: string;
@@ -45,47 +32,31 @@ interface Props {
   projectAcronym: string;
   projectId: string;
   tickets: EpicTicket[];
-  /** All changes for tickets in this epic (already matching the active filters). */
   changes: ChangeRow[];
-  /** All approved changes (for computing the "real current" baseline regardless of filter). */
   approvedChanges: ChangeRow[];
   onApprove: (row: ChangeRow) => void;
   onReject: (row: ChangeRow) => void;
   onOpenTicket?: (ticketId: string) => void;
   defaultOpen?: boolean;
-  /** Optional time window for the chart (defaults to first event → now). */
   range?: { from: Date; to: Date };
 }
 
 export function EpicChangeCard({
-  epicName,
-  projectAcronym,
-  projectId,
-  tickets,
-  changes,
-  approvedChanges,
-  onApprove,
-  onReject,
-  onOpenTicket,
-  defaultOpen,
-  range,
+  epicName, projectAcronym, tickets, changes, approvedChanges,
+  onApprove, onReject, onOpenTicket, defaultOpen, range,
 }: Props) {
   const [open, setOpen] = useState(!!defaultOpen);
-
   const totals = useMemo(() => computeEpicTotals(tickets, changes), [tickets, changes]);
 
-  // Sparkline-style data: a couple of buckets along the timeline of matching changes.
   const chartData = useMemo(() => {
     const { start, end } = resolveChartRange(range, [...approvedChanges, ...changes]);
     const buckets = 24;
     const step = Math.max(1, Math.floor((end - start) / buckets));
-
     const out: Array<{ label: string; original: number; current: number; projected: number }> = [];
     for (let t = start; t <= end; t += step) {
       let originalAt = 0;
       tickets.forEach((tk) => {
-        originalAt +=
-          tk.original_fe_estimate + tk.original_be_estimate + tk.original_project_estimate;
+        originalAt += tk.original_fe_estimate + tk.original_be_estimate + tk.original_project_estimate;
       });
       let approvedDelta = 0;
       approvedChanges.forEach((c) => {
@@ -122,10 +93,7 @@ export function EpicChangeCard({
                 </div>
               </div>
               <ChevronDown
-                className={cn(
-                  "h-4 w-4 text-dim transition-transform shrink-0",
-                  open && "rotate-180"
-                )}
+                className={cn("h-4 w-4 text-dim transition-transform shrink-0", open && "rotate-180")}
               />
             </div>
 
@@ -136,69 +104,7 @@ export function EpicChangeCard({
               <Stat label="Actual" value={totals.actual} accent="gold" />
             </div>
 
-            {chartData.length > 1 && (
-              <div className="h-24 -mx-1">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData} margin={{ top: 4, right: 8, left: 4, bottom: 0 }}>
-                    <CartesianGrid stroke="hsl(0 0% 100% / 0.04)" vertical={false} />
-                    <XAxis
-                      dataKey="label"
-                      stroke="hsl(0 0% 100% / 0.3)"
-                      tick={{ fontSize: 9 }}
-                      tickLine={false}
-                      axisLine={false}
-                      minTickGap={28}
-                    />
-                    <YAxis
-                      stroke="hsl(0 0% 100% / 0.3)"
-                      tick={{ fontSize: 9 }}
-                      tickLine={false}
-                      axisLine={false}
-                      tickFormatter={(v) => formatHours(Number(v))}
-                      width={44}
-                      domain={[0, (dataMax: number) => Math.max(1, Math.ceil(dataMax * 1.1))]}
-                      allowDecimals={false}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        background: "hsl(0 0% 8%)",
-                        border: "1px solid hsl(0 0% 100% / 0.1)",
-                        borderRadius: 8,
-                        fontSize: 11,
-                      }}
-                      formatter={(v: any) => formatHours(Number(v))}
-                    />
-                    <Legend wrapperStyle={{ fontSize: 10 }} />
-                    <Line
-                      type="monotone"
-                      dataKey="original"
-                      name="Original"
-                      stroke="hsl(0 0% 60%)"
-                      strokeDasharray="4 4"
-                      dot={false}
-                      strokeWidth={1.2}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="current"
-                      name="Current"
-                      stroke="hsl(var(--health-good))"
-                      dot={false}
-                      strokeWidth={1.8}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="projected"
-                      name="If approved"
-                      stroke="hsl(38 92% 50%)"
-                      strokeDasharray="2 3"
-                      dot={false}
-                      strokeWidth={1.5}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            )}
+            {chartData.length > 1 && <EpicMiniTrendChart data={chartData} />}
           </div>
         </CollapsibleTrigger>
 
@@ -222,117 +128,15 @@ export function EpicChangeCard({
                   </tr>
                 </thead>
                 <tbody>
-                  {changes.map((c) => {
-                    const isAuto = (c.reason ?? "").startsWith("Auto-trimmed");
-                    return (
-                      <tr key={c.id} className="border-t border-white/5 hover:bg-white/[0.02]">
-                        <td className="px-3 py-2 font-mono text-[11px]">
-                          <TooltipProvider>
-                            <UiTooltip>
-                              <TooltipTrigger asChild>
-                                <button
-                                  type="button"
-                                  onClick={() => c.ticket && onOpenTicket?.(c.ticket.id)}
-                                  className="text-foreground hover:text-primary transition cursor-pointer"
-                                >
-                                  {c.ticket?.formatted_id ?? "?"}
-                                </button>
-                              </TooltipTrigger>
-                              {c.ticket?.title && (
-                                <TooltipContent side="top" align="start" className="max-w-xs">
-                                  <p className="text-sm">{c.ticket.title}</p>
-                                </TooltipContent>
-                              )}
-                            </UiTooltip>
-                          </TooltipProvider>
-                        </td>
-                        <td className="px-2 py-2 text-dim">{c.discipline}</td>
-                        <td className="px-2 py-2 text-right font-mono text-dim">
-                          {formatHours(c.previous_hours)}
-                        </td>
-                        <td className="px-2 py-2 text-right font-mono">
-                          {formatHours(c.new_hours)}
-                        </td>
-                        <td
-                          className={cn(
-                            "px-2 py-2 text-right font-mono",
-                            c.delta > 0
-                              ? "text-health-warn"
-                              : c.delta < 0
-                              ? "text-health-good"
-                              : "text-dim"
-                          )}
-                        >
-                          {c.delta > 0 ? "+" : ""}
-                          {formatHours(c.delta)}
-                        </td>
-                        <td className="px-2 py-2 max-w-[260px]">
-                          <div className="flex items-center gap-1.5">
-                            {isAuto && (
-                              <span
-                                title="Auto-generated"
-                                className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-white/5 text-[9px] uppercase tracking-wider text-dimmer"
-                              >
-                                <Sparkles className="h-2.5 w-2.5" /> auto
-                              </span>
-                            )}
-                            <span className="text-dim truncate" title={c.reason ?? ""}>
-                              {c.reason ?? "—"}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-2 py-2">
-                          {c.requester ? (
-                            <div className="flex items-center gap-1.5">
-                              <MemberAvatar
-                                name={c.requester.name}
-                                color={c.requester.avatar_color}
-                                size="xs"
-                              />
-                              <span className="text-dim truncate">{c.requester.name}</span>
-                            </div>
-                          ) : (
-                            <span className="text-dimmer">—</span>
-                          )}
-                        </td>
-                        <td className="px-2 py-2 text-dimmer whitespace-nowrap">
-                          {format(new Date(c.created_at), "d MMM")}
-                        </td>
-                        <td className="px-2 py-2">
-                          <StatusBadge status={c.status} />
-                        </td>
-                        <td className="px-2 py-2 text-dimmer whitespace-nowrap">
-                          {c.status === "approved" && c.decided_at
-                            ? format(new Date(c.decided_at), "d MMM")
-                            : "—"}
-                        </td>
-                        <td className="px-3 py-2 text-right">
-                          {c.status === "pending" ? (
-                            <div className="inline-flex items-center gap-1">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 px-2 text-health-good hover:text-health-good hover:bg-health-good/10"
-                                onClick={() => onApprove(c)}
-                              >
-                                <Check className="h-3.5 w-3.5 mr-1" /> Approve
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 px-2 text-health-bad hover:text-health-bad hover:bg-health-bad/10"
-                                onClick={() => onReject(c)}
-                              >
-                                <X className="h-3.5 w-3.5 mr-1" /> Reject
-                              </Button>
-                            </div>
-                          ) : (
-                            <span className="text-dimmer text-[10px]">—</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {changes.map((c) => (
+                    <EpicChangeRow
+                      key={c.id}
+                      change={c}
+                      onApprove={onApprove}
+                      onReject={onReject}
+                      onOpenTicket={onOpenTicket}
+                    />
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -342,4 +146,3 @@ export function EpicChangeCard({
     </div>
   );
 }
-
