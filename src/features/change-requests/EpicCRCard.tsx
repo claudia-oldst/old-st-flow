@@ -1,34 +1,21 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { format } from "date-fns";
-import { ChevronDown, Check, X } from "lucide-react";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-  Legend,
-} from "recharts";
+import { ChevronDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Button } from "@/components/ui/button";
-import { cn, formatHours } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { Stat } from "@/features/_shared/estimate-ui/Stat";
-import { StatusBadge } from "@/features/_shared/estimate-ui/StatusBadge";
+import { EpicMiniTrendChart } from "@/features/_shared/estimate-ui/EpicMiniTrendChart";
 import { crEstimate, computeCRTotals } from "./epic-cr/useEpicCR";
+import { useCRDeciderNames } from "./epic-cr/useCRDeciderNames";
+import { EpicCRRow } from "./EpicCRRow";
 
 interface Props {
   epicKey: string;
   epicName: string;
   projectAcronym: string;
-  /** All non-CR tickets in the epic (used for original baseline + actuals). */
   baselineTickets: TicketRow[];
-  /** CR tickets in this epic, after status/date filtering — what shows in the table. */
   filteredCRs: TicketRow[];
-  /** All CR tickets in this epic (used for chart math). */
   allCRs: TicketRow[];
   canReview: boolean;
   onApprove: (t: TicketRow) => void;
@@ -40,50 +27,18 @@ interface Props {
 }
 
 export function EpicCRCard({
-  epicName,
-  projectAcronym,
-  baselineTickets,
-  filteredCRs,
-  allCRs,
-  canReview,
-  onApprove,
-  onReject,
-  onOpenTicket,
-  defaultOpen,
-  range,
-  hideReject,
+  epicName, projectAcronym, baselineTickets, filteredCRs, allCRs,
+  canReview, onApprove, onReject, onOpenTicket, defaultOpen, range, hideReject,
 }: Props) {
   const [open, setOpen] = useState(!!defaultOpen);
-  const [memberNames, setMemberNames] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    const ids = Array.from(
-      new Set(
-        allCRs
-          .filter((t) => t.cr_approval === "approved" && t.cr_decided_by)
-          .map((t) => t.cr_decided_by as string),
-      ),
-    ).filter((id) => !(id in memberNames));
-    if (ids.length === 0) return;
-    let cancelled = false;
-    supabase
-      .from("team_members")
-      .select("id,name")
-      .in("id", ids)
-      .then(({ data }) => {
-        if (cancelled || !data) return;
-        setMemberNames((prev) => {
-          const next = { ...prev };
-          data.forEach((m: any) => {
-            next[m.id] = m.name;
-          });
-          return next;
-        });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [allCRs, memberNames]);
+  const deciderIds = useMemo(
+    () => allCRs
+      .filter((t) => t.cr_approval === "approved" && t.cr_decided_by)
+      .map((t) => t.cr_decided_by as string),
+    [allCRs],
+  );
+  const memberNames = useCRDeciderNames(deciderIds);
 
   const totals = useMemo(() => computeCRTotals(baselineTickets, allCRs), [baselineTickets, allCRs]);
 
@@ -132,10 +87,7 @@ export function EpicCRCard({
                 </div>
               </div>
               <ChevronDown
-                className={cn(
-                  "h-4 w-4 text-dim transition-transform shrink-0",
-                  open && "rotate-180"
-                )}
+                className={cn("h-4 w-4 text-dim transition-transform shrink-0", open && "rotate-180")}
               />
             </div>
 
@@ -146,69 +98,7 @@ export function EpicCRCard({
               <Stat label="Actual" value={totals.actual} accent="gold" />
             </div>
 
-            {chartData.length > 1 && (
-              <div className="h-24 -mx-1">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData} margin={{ top: 4, right: 8, left: 4, bottom: 0 }}>
-                    <CartesianGrid stroke="hsl(0 0% 100% / 0.04)" vertical={false} />
-                    <XAxis
-                      dataKey="label"
-                      stroke="hsl(0 0% 100% / 0.3)"
-                      tick={{ fontSize: 9 }}
-                      tickLine={false}
-                      axisLine={false}
-                      minTickGap={28}
-                    />
-                    <YAxis
-                      stroke="hsl(0 0% 100% / 0.3)"
-                      tick={{ fontSize: 9 }}
-                      tickLine={false}
-                      axisLine={false}
-                      tickFormatter={(v) => formatHours(Number(v))}
-                      width={44}
-                      domain={[0, (dataMax: number) => Math.max(1, Math.ceil(dataMax * 1.1))]}
-                      allowDecimals={false}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        background: "hsl(0 0% 8%)",
-                        border: "1px solid hsl(0 0% 100% / 0.1)",
-                        borderRadius: 8,
-                        fontSize: 11,
-                      }}
-                      formatter={(v: any) => formatHours(Number(v))}
-                    />
-                    <Legend wrapperStyle={{ fontSize: 10 }} />
-                    <Line
-                      type="monotone"
-                      dataKey="original"
-                      name="Original"
-                      stroke="hsl(0 0% 60%)"
-                      strokeDasharray="4 4"
-                      dot={false}
-                      strokeWidth={1.2}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="current"
-                      name="Current"
-                      stroke="hsl(var(--health-good))"
-                      dot={false}
-                      strokeWidth={1.8}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="projected"
-                      name="If approved"
-                      stroke="hsl(38 92% 50%)"
-                      strokeDasharray="2 3"
-                      dot={false}
-                      strokeWidth={1.5}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            )}
+            {chartData.length > 1 && <EpicMiniTrendChart data={chartData} />}
           </div>
         </CollapsibleTrigger>
 
@@ -237,84 +127,16 @@ export function EpicCRCard({
                     </tr>
                   )}
                   {filteredCRs.map((t) => (
-                    <tr key={t.id} className="border-t border-white/5 hover:bg-white/[0.02]">
-                      <td className="px-3 py-2 font-mono text-[11px]">
-                        <button
-                          type="button"
-                          onClick={() => onOpenTicket?.(t)}
-                          className="text-foreground hover:text-primary transition"
-                        >
-                          {t.formatted_id}
-                        </button>
-                      </td>
-                      <td className="px-2 py-2 max-w-[420px]">
-                        <span className="truncate block" title={t.title}>
-                          {t.title}
-                        </span>
-                      </td>
-                      <td className="px-2 py-2 text-right font-mono text-dim">
-                        {formatHours(t.current_fe_estimate)}
-                      </td>
-                      <td className="px-2 py-2 text-right font-mono text-dim">
-                        {formatHours(t.current_be_estimate)}
-                      </td>
-                      <td className="px-2 py-2 text-dimmer whitespace-nowrap">
-                        {format(new Date(t.created_at), "d MMM")}
-                      </td>
-                      <td className="px-2 py-2">
-                        <StatusBadge status={t.cr_approval} />
-                      </td>
-                      <td className="px-2 py-2 text-dimmer whitespace-nowrap">
-                        {t.cr_approval === "approved" && t.cr_decided_at ? (
-                          <div className="flex flex-col leading-tight">
-                            <span>{format(new Date(t.cr_decided_at), "d MMM")}</span>
-                            {t.cr_decided_by === null ? (
-                              <span
-                                className="text-[10px] text-health-good font-mono"
-                                title="Approved by client"
-                              >
-                                Client
-                              </span>
-                            ) : (
-                              <span
-                                className="text-[10px] text-dim truncate max-w-[140px]"
-                                title={memberNames[t.cr_decided_by] ?? ""}
-                              >
-                                {memberNames[t.cr_decided_by] ?? "…"}
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          "—"
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-right">
-                        {canReview && t.cr_approval === "pending" ? (
-                          <div className="inline-flex items-center gap-1">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-7 px-2 text-health-good hover:text-health-good hover:bg-health-good/10"
-                              onClick={() => onApprove(t)}
-                            >
-                              <Check className="h-3.5 w-3.5 mr-1" /> Approve
-                            </Button>
-                            {!hideReject && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 px-2 text-health-bad hover:text-health-bad hover:bg-health-bad/10"
-                                onClick={() => onReject(t)}
-                              >
-                                <X className="h-3.5 w-3.5 mr-1" /> Reject
-                              </Button>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-dimmer text-[10px]">—</span>
-                        )}
-                      </td>
-                    </tr>
+                    <EpicCRRow
+                      key={t.id}
+                      ticket={t}
+                      canReview={canReview}
+                      hideReject={hideReject}
+                      memberNames={memberNames}
+                      onApprove={onApprove}
+                      onReject={onReject}
+                      onOpenTicket={onOpenTicket}
+                    />
                   ))}
                 </tbody>
               </table>
@@ -325,4 +147,3 @@ export function EpicCRCard({
     </div>
   );
 }
-
