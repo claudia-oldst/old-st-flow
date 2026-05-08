@@ -1,112 +1,25 @@
 import { useMemo } from "react";
-import { Filter, X, Check } from "lucide-react";
+import { Filter, X } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { useStatuses } from "@/features/statuses/useStatuses";
 import { useProjectEpics } from "@/features/epics/useProjectEpics";
-import { DISCIPLINE_STATUS_LABEL, type DisciplineStatus } from "@/lib/types";
+import { DISCIPLINE_STATUS_LABEL } from "@/lib/types";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
-import { cn, healthRatio } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import {
+  EMPTY_FILTERS,
+  activeFilterCount,
+  applyFilters,
+  type HealthColor,
+  type TicketFilters,
+} from "./filters/applyFilters";
+import { DISC_OPTS, HEALTH_OPTS, TYPE_OPTS } from "./filters/constants";
+import { FilterRow, FilterSection } from "./filters/FilterPrimitives";
 
-export type HealthColor = "good" | "warn" | "bad";
-
-export interface TicketFilters {
-  epicIds: string[]; // string of epic id, or "_none" for no epic
-  versions: string[]; // version label, or "_none" for no version
-  statusIds: string[];
-  feStatuses: DisciplineStatus[];
-  beStatuses: DisciplineStatus[];
-  assigneeIds: string[]; // user ids, or "_unassigned"
-  types: string[]; // Standard | Bug | CR
-  health: HealthColor[]; // matches if ANY of FE/BE/Project ratio matches
-}
-
-export const EMPTY_FILTERS: TicketFilters = {
-  epicIds: [],
-  versions: [],
-  statusIds: [],
-  feStatuses: [],
-  beStatuses: [],
-  assigneeIds: [],
-  types: [],
-  health: [],
-};
-
-export function activeFilterCount(f: TicketFilters): number {
-  return (
-    f.epicIds.length +
-    f.versions.length +
-    f.statusIds.length +
-    f.feStatuses.length +
-    f.beStatuses.length +
-    f.assigneeIds.length +
-    f.types.length +
-    f.health.length
-  );
-}
-
-export function applyFilters(tickets: TicketRow[], f: TicketFilters): TicketRow[] {
-  if (activeFilterCount(f) === 0) return tickets;
-  return tickets.filter((t) => {
-    if (f.epicIds.length) {
-      const key = t.epic_id == null ? "_none" : String(t.epic_id);
-      if (!f.epicIds.includes(key)) return false;
-    }
-    if (f.versions.length) {
-      const v = t.version?.trim();
-      const key = v ? v : "_none";
-      if (!f.versions.includes(key)) return false;
-    }
-    if (f.statusIds.length) {
-      const key = t.status_id ?? "_none";
-      if (!f.statusIds.includes(key)) return false;
-    }
-    if (f.feStatuses.length) {
-      const hasFE = t.assignees.some((a) => a.slot === "FE");
-      if (!hasFE || !f.feStatuses.includes(t.fe_status)) return false;
-    }
-    if (f.beStatuses.length) {
-      const hasBE = t.assignees.some((a) => a.slot === "BE");
-      if (!hasBE || !f.beStatuses.includes(t.be_status)) return false;
-    }
-    if (f.assigneeIds.length) {
-      if (t.assignees.length === 0) {
-        if (!f.assigneeIds.includes("_unassigned")) return false;
-      } else {
-        const ids = t.assignees.map((a) => a.user_id);
-        if (!ids.some((id) => f.assigneeIds.includes(id))) return false;
-      }
-    }
-    if (f.types.length && !f.types.includes(t.ticket_type)) return false;
-    if (f.health.length) {
-      const candidates: HealthColor[] = [];
-      const hasFE = t.assignees.some((a) => a.slot === "FE");
-      const hasBE = t.assignees.some((a) => a.slot === "BE");
-      if (hasFE) {
-        const h = healthRatio(t.actual_frontend_hours, t.current_fe_estimate);
-        if (h !== "none") candidates.push(h);
-      }
-      if (hasBE) {
-        const h = healthRatio(t.actual_backend_hours, t.current_be_estimate);
-        if (h !== "none") candidates.push(h);
-      }
-      if (t.ticket_type === "Proj") {
-        const h = healthRatio(t.actual_project_hours, t.current_project_estimate);
-        if (h !== "none") candidates.push(h);
-      }
-      if (!candidates.some((c) => f.health.includes(c))) return false;
-    }
-    return true;
-  });
-}
-
-const DISC_OPTS: DisciplineStatus[] = ["todo", "in_progress", "for_integration", "done"];
-const TYPE_OPTS = ["Standard", "Bug", "CR", "Proj"];
-const HEALTH_OPTS: { value: HealthColor; label: string; dot: string }[] = [
-  { value: "good", label: "Green — under 80%", dot: "hsl(var(--health-good))" },
-  { value: "warn", label: "Orange — 80–99%", dot: "hsl(var(--health-warn))" },
-  { value: "bad", label: "Red — at or over estimate", dot: "hsl(var(--health-bad))" },
-];
+// Re-export public API at original module path for existing imports.
+export { EMPTY_FILTERS, activeFilterCount, applyFilters };
+export type { TicketFilters, HealthColor };
 
 export function TicketsFilter({
   projectId,
@@ -122,7 +35,6 @@ export function TicketsFilter({
   const { statuses } = useStatuses();
   const { epics } = useProjectEpics(projectId);
 
-  // Derive assignees from tickets so we only show people actually on this project's tickets
   const assigneeOptions = useMemo(() => {
     const map = new Map<string, { id: string; name: string; color: string }>();
     tickets.forEach((t) =>
@@ -151,7 +63,7 @@ export function TicketsFilter({
 
   function toggle<K extends keyof TicketFilters>(key: K, value: string) {
     const arr = filters[key] as string[];
-    const next = arr.includes(value as any)
+    const next = arr.includes(value)
       ? arr.filter((v) => v !== value)
       : [...arr, value];
     onChange({ ...filters, [key]: next } as TicketFilters);
@@ -317,55 +229,5 @@ export function TicketsFilter({
         </button>
       )}
     </div>
-  );
-}
-
-function FilterSection({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="p-2">
-      <div className="text-[10px] uppercase tracking-wider text-dimmer px-2 py-1">{title}</div>
-      <div className="space-y-0.5">{children}</div>
-    </div>
-  );
-}
-
-function FilterRow({
-  label,
-  selected,
-  onClick,
-  dot,
-  muted,
-}: {
-  label: string;
-  selected: boolean;
-  onClick: () => void;
-  dot?: string;
-  muted?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs text-left transition",
-        "hover:bg-white/[0.04]",
-        selected && "bg-white/[0.04]"
-      )}
-    >
-      <span
-        className={cn(
-          "h-3.5 w-3.5 rounded border flex items-center justify-center shrink-0 transition",
-          selected
-            ? "bg-foreground border-foreground text-background"
-            : "border-white/20"
-        )}
-      >
-        {selected && <Check className="h-2.5 w-2.5" strokeWidth={3} />}
-      </span>
-      {dot && (
-        <span className="h-2 w-2 rounded-full shrink-0" style={{ background: dot }} />
-      )}
-      <span className={cn("truncate", muted && "text-dim")}>{label}</span>
-    </button>
   );
 }
