@@ -18,6 +18,9 @@ import { Tooltip as UiTooltip, TooltipContent, TooltipProvider, TooltipTrigger }
 import { MemberAvatar } from "@/components/MemberAvatar";
 import { cn, formatHours } from "@/lib/utils";
 import type { ChangeRow } from "./useAllEstimateChanges";
+import { Stat } from "@/features/_shared/estimate-ui/Stat";
+import { StatusBadge } from "@/features/_shared/estimate-ui/StatusBadge";
+import { computeEpicTotals, resolveChartRange } from "./epic-change/useEpicChange";
 
 interface EpicTicket {
   id: string;
