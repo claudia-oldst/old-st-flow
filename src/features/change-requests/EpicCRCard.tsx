@@ -16,6 +16,9 @@ import { Button } from "@/components/ui/button";
 import { cn, formatHours } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
+import { Stat } from "@/features/_shared/estimate-ui/Stat";
+import { StatusBadge } from "@/features/_shared/estimate-ui/StatusBadge";
+import { crEstimate, computeCRTotals } from "./epic-cr/useEpicCR";
 
 interface Props {
   epicKey: string;
@@ -35,9 +38,6 @@ interface Props {
   range: { from: Date; to: Date };
   hideReject?: boolean;
 }
-
-const crEstimate = (t: TicketRow) =>
-  t.current_fe_estimate + t.current_be_estimate + t.current_project_estimate;
 
 export function EpicCRCard({
   epicName,
