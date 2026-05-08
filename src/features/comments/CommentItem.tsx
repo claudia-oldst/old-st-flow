@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { MemberAvatar } from "@/components/MemberAvatar";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/store/currentUser";
-import { useProjectRole, isPMBA } from "@/features/team/useProjectRole";
+import { useProjectRole, canManageTickets } from "@/features/team/useProjectRole";
 import { Reply, Pencil, Trash2, Download, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { CommentComposer } from "./CommentComposer";
