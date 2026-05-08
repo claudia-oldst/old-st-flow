@@ -31,6 +31,7 @@ import { toast } from "sonner";
 import { ArchiveProjectDialog } from "@/features/vault/ArchiveProjectDialog";
 import { ProjectLinksEditor } from "./settings/ProjectLinksEditor";
 import type { ProjectLink } from "./settings/types";
+import { projectDetailsSchema } from "@/lib/schemas/project";
 
 export type { ProjectLink } from "./settings/types";
 
@@ -65,7 +66,7 @@ export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
         .eq("project_id", project.id),
       supabase.from("team_members").select("*").order("name"),
     ]);
-    setMembers((pm as any) ?? []);
+    setMembers(((pm as (ProjectMember & { member: TeamMember })[] | null) ?? []));
     setAllMembers(all ?? []);
   };
 
@@ -86,23 +87,31 @@ export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
 
   const handleSaveDetails = async () => {
     if (!canEdit) return;
-    const trimmedName = name.trim();
-    if (!trimmedName) return toast.error("Project name is required");
-    const numericRate = Number(rate);
-    if (Number.isNaN(numericRate) || numericRate < 0) return toast.error("Rate must be a positive number");
     const cleanedLinks = links
       .map((l) => ({ name: l.name.trim(), url: l.url.trim() }))
       .filter((l) => l.url.length > 0);
 
+    const parsed = projectDetailsSchema.safeParse({
+      name,
+      acronym,
+      client_name: clientName,
+      rate_per_hour: Number(rate),
+      start_date: startDate || null,
+      links: cleanedLinks,
+    });
+    if (!parsed.success) {
+      return toast.error(parsed.error.issues[0]?.message ?? "Invalid project details");
+    }
+
     const { data, error } = await supabase
       .from("projects")
       .update({
-        name: trimmedName,
-        acronym: acronym.trim().toUpperCase(),
-        client_name: clientName.trim() || null,
-        rate_per_hour: numericRate,
-        start_date: startDate ? startDate : null,
-        links: cleanedLinks as unknown as Project["links"],
+        name: parsed.data.name,
+        acronym: parsed.data.acronym.toUpperCase(),
+        client_name: parsed.data.client_name || null,
+        rate_per_hour: parsed.data.rate_per_hour,
+        start_date: parsed.data.start_date ?? null,
+        links: parsed.data.links as unknown as Project["links"],
       })
       .eq("id", project.id)
       .select("*")
