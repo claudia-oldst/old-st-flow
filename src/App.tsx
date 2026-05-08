@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -13,7 +14,7 @@ import MyWork from "./pages/MyWork";
 import ClientPortalPublic from "./pages/ClientPortalPublic";
 import NotFound from "./pages/NotFound.tsx";
 
-const wrap = (scope: string, el: React.ReactNode) => (
+const wrap = (scope: string, el: ReactNode) => (
   <ErrorBoundary scope={scope}>{el}</ErrorBoundary>
 );
 
@@ -36,17 +37,17 @@ const App = () => (
       <BrowserRouter>
         <TimerSync />
         <Routes>
-          <Route path="/h/:hash" element={<ClientPortalPublic />} />
+          <Route path="/h/:hash" element={wrap("client portal", <ClientPortalPublic />)} />
           <Route
             path="*"
             element={
               <div className="min-h-screen">
                 <TopBar />
                 <Routes>
-                  <Route path="/" element={<Projects />} />
-                  <Route path="/projects/:id/*" element={<ProjectWorkspace />} />
-                  <Route path="/admin" element={<Admin />} />
-                  <Route path="/my-work" element={<MyWork />} />
+                  <Route path="/" element={wrap("projects", <Projects />)} />
+                  <Route path="/projects/:id/*" element={wrap("project", <ProjectWorkspace />)} />
+                  <Route path="/admin" element={wrap("admin", <Admin />)} />
+                  <Route path="/my-work" element={wrap("my work", <MyWork />)} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </div>
