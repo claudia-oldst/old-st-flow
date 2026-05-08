@@ -75,7 +75,7 @@ export function CommentComposer({
     }
     setSending(true);
     try {
-      await onSubmit(parsed.data.body, parsed.data.attachments);
+      await onSubmit(parsed.data.body, attachments);
       setBody("");
       setAttachments([]);
     } catch (e: unknown) {
