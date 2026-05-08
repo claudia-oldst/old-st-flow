@@ -26,8 +26,9 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { MemberAvatar } from "@/components/MemberAvatar";
-import { Plus, Settings, Trash2, ExternalLink, Eye } from "lucide-react";
+import { Plus, Settings, Trash2, ExternalLink, Eye, Archive } from "lucide-react";
 import { toast } from "sonner";
+import { ArchiveProjectDialog } from "@/features/vault/ArchiveProjectDialog";
 
 
 export interface ProjectLink {
