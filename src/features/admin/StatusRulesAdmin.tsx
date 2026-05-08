@@ -12,8 +12,8 @@ import {
 } from "@/components/ui/select";
 import { ArrowDown, ArrowUp, Plus, RefreshCw, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-
-type Operator = "AND" | "OR";
+import { ChipGroup, DISC_OPTIONS } from "./status-rules/ChipGroup";
+import { evaluateRule, type Operator } from "./status-rules/evaluateRule";
 
 interface Rule {
   id: string;
@@ -22,63 +22,6 @@ interface Rule {
   be_statuses: DisciplineStatus[];
   operator: Operator;
   status_id: string;
-}
-
-const DISC_OPTIONS: { value: DisciplineStatus; label: string }[] = [
-  { value: "todo", label: "Todo" },
-  { value: "in_progress", label: "In progress" },
-  { value: "for_integration", label: "For integration" },
-  { value: "done", label: "Done" },
-];
-
-function ChipGroup({
-  value,
-  onChange,
-  disabled,
-}: {
-  value: DisciplineStatus[];
-  onChange: (v: DisciplineStatus[]) => void;
-  disabled?: boolean;
-}) {
-  const toggle = (s: DisciplineStatus) => {
-    if (disabled) return;
-    onChange(value.includes(s) ? value.filter((x) => x !== s) : [...value, s]);
-  };
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {DISC_OPTIONS.map((o) => {
-        const active = value.includes(o.value);
-        return (
-          <button
-            key={o.value}
-            type="button"
-            onClick={() => toggle(o.value)}
-            disabled={disabled}
-            className={`px-2.5 py-1 rounded-full text-xs ring-1 transition ${
-              active
-                ? "bg-primary/15 text-primary ring-primary/40"
-                : "bg-white/[0.02] text-dim ring-white/10 hover:text-foreground"
-            } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
-          >
-            {o.label}
-          </button>
-        );
-      })}
-      {value.length === 0 && (
-        <span className="text-xs text-dimmer self-center pl-1">any</span>
-      )}
-    </div>
-  );
-}
-
-function evaluateRule(
-  rule: Pick<Rule, "fe_statuses" | "be_statuses" | "operator">,
-  fe: DisciplineStatus,
-  be: DisciplineStatus,
-) {
-  const feMatch = rule.fe_statuses.length === 0 || rule.fe_statuses.includes(fe);
-  const beMatch = rule.be_statuses.length === 0 || rule.be_statuses.includes(be);
-  return rule.operator === "AND" ? feMatch && beMatch : feMatch || beMatch;
 }
 
 export default function StatusRulesAdmin({ canEdit }: { canEdit: boolean }) {
