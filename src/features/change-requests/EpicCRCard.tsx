@@ -85,31 +85,7 @@ export function EpicCRCard({
     };
   }, [allCRs, memberNames]);
 
-  const totals = useMemo(() => {
-    const original = baselineTickets.reduce(
-      (a, t) =>
-        a + t.original_fe_estimate + t.original_be_estimate + t.original_project_estimate,
-      0
-    );
-    const approvedDelta = allCRs
-      .filter((c) => c.cr_approval === "approved")
-      .reduce((a, c) => a + crEstimate(c), 0);
-    const pendingDelta = allCRs
-      .filter((c) => c.cr_approval === "pending")
-      .reduce((a, c) => a + crEstimate(c), 0);
-    const actual = baselineTickets
-      .concat(allCRs.filter((c) => c.cr_approval === "approved"))
-      .reduce(
-        (a, t) => a + t.actual_frontend_hours + t.actual_backend_hours + t.actual_project_hours,
-        0
-      );
-    return {
-      original,
-      current: original + approvedDelta,
-      projected: original + approvedDelta + pendingDelta,
-      actual,
-    };
-  }, [baselineTickets, allCRs]);
+  const totals = useMemo(() => computeCRTotals(baselineTickets, allCRs), [baselineTickets, allCRs]);
 
   const chartData = useMemo(() => {
     const start = range.from.getTime();
