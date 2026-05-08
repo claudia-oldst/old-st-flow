@@ -18,7 +18,7 @@ export type EstimateChangeRow = Tables["ticket_estimate_changes"]["Row"];
 export type CommentRowDB = Tables["ticket_comments"]["Row"];
 export type ActiveTimerRow = Tables["active_timers"]["Row"];
 
-export type EpicRow = Tables["epics"] extends { Row: infer R } ? R : never;
+export type EpicRow = Tables["project_epics"]["Row"];
 
 export type ProjectMemberWithMember = ProjectMemberRow & {
   member: TeamMemberRow | null;
