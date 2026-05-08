@@ -1,127 +1,87 @@
-# Refactor: Split files >250 lines
+## Goal
 
-Goal: bring every non-generated, non-shadcn file under ~250 lines by extracting sub-components and hooks. **Zero behavior changes** — pure structural moves. Existing tests stay green; props on already-imported public components are preserved.
+Close the testing gap exposed by the recent refactor and update the README to reflect the new test posture. Storybook is explicitly out.
 
-## Method (applied to every file)
+## Current state
 
-1. Extract data + mutation logic into a `useXxx` hook in a sibling folder (`./<name>/useXxx.ts`).
-2. Split JSX into `Header`, `Body`/`Form`, `Footer`/`Actions`, plus any obvious row/section components.
-3. Keep the original file as the thin shell that wires hook → sub-components and re-exports the same public API.
-4. Move file-local helper functions / constants into `./<name>/utils.ts` or `./<name>/constants.ts`.
-5. Run `npm run lint && npm run test` after each file. No edits to imports outside the file being refactored except its new sibling files.
+- Vitest + RTL already wired (`vitest.config.ts`, `src/test/setup.ts`, scripts `test` / `test:watch`).
+- 14 test files exist (small utils + a few components). No coverage on the hooks/sub-components produced by the refactor.
+- README has a `Testing` section but it's stale — no coverage script, no fixtures convention, no list of what's covered.
 
-## Files & target decomposition
+## Scope
 
-### Pages
+### 1. Test coverage for refactored code
 
-- **`src/pages/Admin.tsx` (384)** → keep shell (tabs + auth gate). Extract:
-  - `features/admin/team/TeamAdmin.tsx` (already partially there — move `TeamAdmin` out)
-  - `features/admin/statuses/StatusesAdmin.tsx` (move `StatusesAdmin` out)
-  - `features/admin/TabButton.tsx`
-  - `features/admin/constants.ts` (PRESET_COLORS)
+Target the **pure logic** extracted during the refactor first — highest ROI, no DOM noise — then add hook tests and a thin layer of component smoke tests.
 
-- **`src/pages/Projects.tsx` (373)** → keep route shell. Extract:
-  - `features/project/list/ProjectsToolbar.tsx` (search + sort + status filter)
-  - `features/project/list/ProjectCard.tsx` / `ProjectsGrid.tsx`
-  - `features/project/list/useProjectsList.ts` (query + filtering + sort)
-  - `lib/time.ts` for `relativeTime`, `hooks/useDebounced.ts`
+**Test infrastructure (new, shared):**
+- `src/test/fixtures/` — typed factory functions for `tickets`, `epics`, `projects`, `users`, `time_logs` (built off generated Supabase types).
+- `src/test/mocks/supabase.ts` — chainable mock of the supabase-js client (`from().select().eq()...`) returning configurable rows; used by all hook tests.
+- `src/test/utils.tsx` — `renderWithProviders` wrapping with `QueryClientProvider` (fresh client per test), `MemoryRouter`, and `Toaster`.
+- Add `@vitest/coverage-v8` devDep and `test:coverage` script (`vitest run --coverage`).
+- Coverage targets: ≥ 70% on `src/features/**/use*.ts` and `src/features/**/*.{utils,helpers}.ts`; ≥ 50% statements overall on `src/features`.
 
-### Health / portal
+**Pure utility / helper tests:**
+- `features/tickets/filters/applyFilters.test.ts` — every filter dimension (status, assignee, epic, search), multi-combo, empty filter, no-match.
+- `features/estimates/project-change-requests/buildChangeRequestGroups.test.ts` — grouping, ordering, empty input, mixed epics.
+- `features/timelog/utils.test.ts` — duration / split math, boundary cases.
+- `features/project/export/runExportProject.test.ts` — sheet-row builder functions (mock workbook writer; do not exercise file IO).
+- `features/client-portal/epic-trend/usePortalEpicTrendData.test.ts` — extract and test the pure data-shaping function (split it out of the hook if still inlined).
 
-- **`features/health/ProjectHealth.tsx` (379)** → shell + tabs. Extract:
-  - `health/overview/OverviewPanel.tsx`
-  - `health/overview/Ring.tsx`, `ProfitabilityPill.tsx`
-  - `health/useProjectHealth.ts` (aggregations)
+**Hook tests (`renderHook` + mocked supabase):**
+- `useStopGroup`, `useStartGroup`, `useLogTime` — state transitions, payload shape sent to mutations, error path surfaces a toast.
+- `useBulkAssign` — slot reducer + submit payload.
+- `useProjectHealth` — derived metrics from fixture rows.
+- `useClientPortalEditor` — dirty-state detection, save payload.
+- `useProjectSettings` — form → mutation payload, danger-zone guard.
+- `useProjectsList` — filter/sort over fixture data.
 
-- **`features/client-portal/ClientPortalEditor.tsx` (378)** → shell. Extract:
-  - `client-portal/editor/EditorHeader.tsx` (publish + hash)
-  - `client-portal/editor/IntroSection.tsx`
-  - `client-portal/editor/EpicList.tsx` (already have `EpicSummaryEditor`)
-  - `client-portal/editor/useClientPortalEditor.ts` (load/save snapshot)
+**Component smoke tests (light, one render + one interaction):**
+- `BulkActionsBar`, `TicketsFilter`, `ProjectCard`, `ProjectsToolbar`, `RuleRow`, `EpicChangeRow`, `EpicCRRow`, `Ring`, `HealthSummaryRow`, `PortalToolbar`.
+- Each: render with minimal props, assert a key text/role, fire one interaction, assert callback fired or expected text changed.
 
-- **`features/client-portal/PortalEpicTrend.tsx` (358)** →
-  - `portal-epic-trend/TrendChart.tsx`
-  - `portal-epic-trend/useEpicTrendData.ts` (build series, helpers `startOfDay`/`endOfDay` to `dateUtils.ts`)
-  - shell renders header + chart
+### 2. README updates
 
-### Tickets
-
-- **`features/tickets/TicketsFilter.tsx` (371)** → keep `applyFilters`/`activeFilterCount`/`EMPTY_FILTERS` exports. Extract:
-  - `tickets/filters/FilterSection.tsx`, `FilterRow.tsx`
-  - `tickets/filters/sections/AssigneeSection.tsx`, `EpicSection.tsx`, `TypeSection.tsx`, `StatusSection.tsx`, `HealthSection.tsx`
-  - `tickets/filters/constants.ts` (TYPE_OPTS)
-
-- **`features/tickets/BulkAssignDialog.tsx` (312)** → extract `Slot` to `bulk-assign/Slot.tsx`, `useBulkAssign.ts` for the mutation.
-
-- **`features/tickets/BulkActionsBar.tsx` (296)** → split into `bulk-actions/StatusMenu.tsx`, `AssignMenu.tsx`, `MoreMenu.tsx`; shell composes them.
-
-- **`features/tickets/TicketDetailSheet.tsx` (274)** → most subviews already exist in `detail/`. Extract `detail/useTicketDetailRealtime.ts` and `detail/TicketDetailBody.tsx`; shell only owns Sheet + close handling.
-
-### Project dialogs
-
-- **`features/project/ProjectSettingsDialog.tsx` (369)** →
-  - `project/settings/SettingsForm.tsx`
-  - `project/settings/DangerZone.tsx` (archive)
-  - `project/settings/useProjectSettings.ts`
-
-- **`features/project/ExportProjectDialog.tsx` (359)** →
-  - `project/export/useExportProject.ts` (data fetch + CSV/XLSX build)
-  - `project/export/ExportOptions.tsx` (date range, includes)
-  - `project/export/utils.ts` (`endOfDay`, sheet builders)
-
-### Estimates / change requests
-
-- **`features/admin/StatusRulesAdmin.tsx` (361)** →
-  - `admin/status-rules/RuleRow.tsx`
-  - `admin/status-rules/RuleEditor.tsx`
-  - `admin/status-rules/useStatusRules.ts`
-
-- **`features/estimates/EpicChangeCard.tsx` (345)** →
-  - `estimates/epic-change/EpicChangeHeader.tsx`
-  - `estimates/epic-change/TicketRow.tsx`
-  - `estimates/epic-change/DeltaSummary.tsx`
-
-- **`features/change-requests/EpicCRCard.tsx` (328)** → mirror split: `Header.tsx`, `CRRow.tsx`, `CRSummary.tsx`.
-
-- **`features/estimates/ProjectChangeRequests.tsx` (308)** →
-  - `estimates/project-crs/Toolbar.tsx`
-  - `estimates/project-crs/EpicGroup.tsx`
-  - `estimates/project-crs/useProjectCRs.ts`
-
-### Timelog
-
-- **`features/timelog/StopGroupTimerDialog.tsx` (398)** →
-  - `timelog/stop-group/useStopGroup.ts` (rows state + even-split + submit)
-  - `timelog/stop-group/RowEditor.tsx`
-  - `timelog/stop-group/SplitControls.tsx`
-  - move `evenSplit` to `timelog/utils.ts`
-
-- **`features/timelog/StartGroupTimerDialog.tsx` (356)** →
-  - `timelog/start-group/Filters.tsx` (status + type)
-  - `timelog/start-group/TicketPicker.tsx`
-  - `timelog/start-group/useStartGroup.ts`
-
-- **`features/timelog/LogTimeModal.tsx` (264)** →
-  - `timelog/log-time/Form.tsx`
-  - `timelog/log-time/useLogTime.ts`
-  - drop the trailing `export { Square }` workaround if unused (check refs first; if used, leave a one-line re-export).
-
-## Order of execution (smallest blast radius first)
-
-1. Timelog dialogs (3 files) — internal, fully self-contained.
-2. Bulk dialogs + filters (3 files) — only touch tickets feature.
-3. Health, Portal trend, Editor (3 files) — leaf views.
-4. Estimates / CR cards (3 files) — leaf views.
-5. Project dialogs + Status rules (3 files).
-6. Pages (Admin, Projects) last — they import from above and benefit from the new modules.
+- Rewrite the `Testing` section:
+  - How to run: `npm test`, `npm run test:watch`, `npm run test:coverage`.
+  - Conventions: `*.test.ts(x)` co-located with source; shared helpers under `src/test/{fixtures,mocks,utils.tsx}`.
+  - What's covered: pure utilities, feature hooks, component smoke; what's intentionally not (E2E — flagged as future work).
+  - Coverage thresholds (the numbers above) and how to read the report.
+- Add a `Quality gates` subsection under `Contributing`: typecheck, lint, `npm test`, file-size ceiling (250 LOC).
+- Update the `Project structure` tree to mention `src/test/` and co-located `*.test.tsx`.
 
 ## Out of scope
 
-- No prop renames, no public API changes, no Supabase queries reshuffled, no styling changes.
-- `src/integrations/supabase/types.ts` (generated) and `src/components/ui/*` (shadcn) untouched.
-- `TicketDetailSheet` won't go below 250 if Sheet boilerplate dominates — acceptable target ~180–220.
+- Storybook (explicitly removed).
+- E2E (Playwright) — future work, mention in README only.
+- Visual regression.
+- Backfilling tests for legacy untouched code outside the refactor surface.
+- Auth / RLS work — tracked separately.
 
-## Verification
+## Technical notes
 
-- After each file: `npm run lint`, `npm run test`, manual smoke of the touched route in preview.
-- Final pass: `wc -l` on the list above — all under ~260 except where noted.
+- `renderHook` ships with `@testing-library/react` v16 (already installed) — no extra dep beyond `@vitest/coverage-v8`.
+- Mock the supabase client via `vi.mock("@/integrations/supabase/client", …)` inside `src/test/mocks/supabase.ts`; tests import a `setSupabaseMock(rows)` helper.
+- Keep tests deterministic: stub `Date.now` via `vi.useFakeTimers()` where timing matters (timelog).
+- No network. No real Supabase. No real workbook generation.
+
+## Deliverable shape
+
+```text
+src/test/
+  fixtures/{tickets,epics,projects,users,timelogs}.ts
+  mocks/supabase.ts
+  utils.tsx
+src/features/**/*.test.ts(x)         (new — per list above)
+package.json                          (+ test:coverage script, + @vitest/coverage-v8)
+vitest.config.ts                      (coverage config block)
+README.md                             (Testing rewrite + Quality gates + structure tweak)
+```
+
+## Rollout order
+
+1. Test infra (fixtures, supabase mock, `renderWithProviders`, coverage script + config).
+2. Pure-util tests (no mocking required — fastest wins).
+3. Hook tests, one feature at a time: timelog → tickets → health → portal → project → projects.
+4. Component smoke tests.
+5. README rewrite.
