@@ -1,72 +1,49 @@
-## Goal
-Backfill **Project Cousteau** (`COU`) with assignees, time logs, and estimate change requests from the four uploaded CSVs.
+## Migration: enforce Proj-ticket FE/BE = 0 invariant
 
-## Step 1 — Create missing team members
-Insert into `team_members` with default `Fullstack` role, generated email `<first>@old.st`:
-- Joyce Albos, Keneth Paladin, Patricia Regarde, Trixie Amistad
+### Part 1 — Backfill existing data
 
-## Step 2 — Build name → user_id map
-| CSV name | team_members |
-|---|---|
-| Claudia Schwaeble | Claudia |
-| Gino Cuevas | Gino |
-| Ida Jimenez | Ida |
-| Jethro Tanjay | Jethro |
-| Joven Tan | Joven |
-| Kevin Brygs Tiangco | Brygs |
-| Lind Tan | Lind |
-| Lorenz Noble | Lorenz |
-| Merielle Locsin | Merielle |
-| Regina Abdao | Reg |
-| (4 new from step 1) | new rows |
+1. **Roll FE+BE estimates into project_*** for `ticket_type='Proj'`:
+   ```sql
+   UPDATE tickets SET
+     original_project_estimate = original_fe_estimate + original_be_estimate + original_project_estimate,
+     current_project_estimate  = current_fe_estimate  + current_be_estimate  + current_project_estimate,
+     original_fe_estimate = 0, original_be_estimate = 0,
+     current_fe_estimate  = 0, current_be_estimate  = 0
+   WHERE ticket_type = 'Proj';
+   ```
 
-## Step 3 — Discipline mapping
-- `frontend` → **FE**
-- `backend` → **BE**
-- `designer`, `project manager`, `quality analyst` → **Project**
-- `fullstack` → look up that user's `project_members.role` for COU; if Frontend → FE, if Backend → BE, else Project (fallback FE)
+2. **Reassign FE/BE time logs on Proj tickets to Project discipline**:
+   ```sql
+   UPDATE time_logs SET discipline = 'Project'
+   WHERE discipline IN ('FE','BE')
+     AND ticket_id IN (SELECT id FROM tickets WHERE ticket_type='Proj');
+   ```
 
-## Step 4 — Create stub tickets for orphan time-log rows
-For every distinct title in `Time_Export` that does NOT start with `COU-###`:
-- Insert a new `tickets` row in project COU
-- `title` = the orphan string (truncated reasonably)
-- `ticket_type` = `Standard` (Bug if title contains "error"/"fix"/"bug" — keep simple: all Standard)
-- Default estimates 0; trigger auto-assigns `ticket_number` and `formatted_id`
-- Build a map `orphan_title → new ticket id` for reuse across all its log rows
+3. **Recalculate actuals** for Proj tickets (FE/BE = 0; Project = SUM of all logs):
+   ```sql
+   UPDATE tickets t SET
+     actual_frontend_hours = 0,
+     actual_backend_hours  = 0,
+     actual_project_hours  = COALESCE((SELECT SUM(hours) FROM time_logs WHERE ticket_id = t.id), 0)
+   WHERE t.ticket_type = 'Proj';
+   ```
 
-## Step 5 — Insert time logs
-For each row in `Time_Export`:
-- Resolve ticket via `COU-###` prefix or orphan map
-- Resolve user via name map
-- `discipline` per Step 3
-- `hours` = `Duration (minutes)` / 60
-- `note` = Activity text
-- `source` = `manual`
-- `logged_at` = parsed `Date Logged` (e.g. "May 12, 2026")
+4. **fe_status / be_status**: leave untouched (per your instruction).
 
-The existing `apply_time_log` trigger will recompute `actual_*_hours` on tickets automatically.
+### Part 2 — Enforcement triggers (prevent future drift)
 
-## Step 6 — Insert estimate change requests
-For each row in `Request_Export`:
-- Resolve ticket + user
-- `discipline`: frontend→FE, backend→BE, quality analyst→Project
-- `previous_hours` = current ticket estimate for that discipline (read live)
-- `new_hours` = `previous_hours` + (Requested Time / 60)  *(treating Requested Time as the delta hours requested)*
-- `reason` = Reason text
-- `status` = lower-case (`pending` / `approved`)
-- `decided_at` = parsed Decision Date if present
-- `created_at` = parsed Date Created
+**Trigger A — `enforce_proj_ticket_zero_fe_be`** (BEFORE INSERT/UPDATE on `tickets`):
+- If `NEW.ticket_type = 'Proj'`:
+  - Move any non-zero `original_fe_estimate` + `original_be_estimate` into `original_project_estimate`, then zero them.
+  - Move any non-zero `current_fe_estimate` + `current_be_estimate` into `current_project_estimate`, then zero them.
+  - Force `actual_frontend_hours = 0`, `actual_backend_hours = 0`.
 
-(If you want Requested Time interpreted as the **new total** instead of a delta, say so before I run.)
+**Trigger B — `coerce_proj_time_log_discipline`** (BEFORE INSERT/UPDATE on `time_logs`):
+- If the ticket's `ticket_type = 'Proj'` and `NEW.discipline IN ('FE','BE')`, set `NEW.discipline := 'Project'`.
+- The existing `apply_time_log` AFTER trigger then correctly rolls hours into `actual_project_hours`.
 
-## Step 7 — Derive assignees
-Collect every distinct `(ticket_id, user_id, slot)` from steps 5 + 6. Insert into `ticket_assignees` ignoring conflicts. Slot = the discipline used (FE/BE/Project). Note: the `validate_ticket_assignee` trigger requires the user to be a `project_members` row for COU with a compatible role — I'll pre-insert any missing `project_members` (role inferred: FE-only→Frontend, BE-only→Backend, both→Fullstack, Project-only→PMBA fallback).
+### Result
 
-## Execution
-A single Python script using the Supabase REST/SQL via psql (or a migration with bulk INSERTs). I'll run it in batches and report counts:
-- members created, project_members added, stub tickets created, time_logs inserted, change requests inserted, assignees inserted.
-
-## Things to confirm before I run
-1. **Requested Time = delta hours added** (assumed) vs total replacement.
-2. **Stub ticket type** — all `Standard` OK?
-3. **Pending CRs** — should I also bump `current_*_estimate` on the ticket? (Default: only for `approved` rows; pending leaves estimates alone — matches existing `ticket_estimate_changes` semantics.)
+- Existing Proj tickets cleaned up: FE/BE fields = 0, all hours/estimates live on Project.
+- Going forward: any insert/update on a Proj ticket or its time logs is auto-corrected at the DB level — even if the UI or an import sends FE/BE values.
+- No application code changes needed.
