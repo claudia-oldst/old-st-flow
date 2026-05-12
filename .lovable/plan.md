@@ -1,87 +1,72 @@
 ## Goal
+Backfill **Project Cousteau** (`COU`) with assignees, time logs, and estimate change requests from the four uploaded CSVs.
 
-Close the testing gap exposed by the recent refactor and update the README to reflect the new test posture. Storybook is explicitly out.
+## Step 1 — Create missing team members
+Insert into `team_members` with default `Fullstack` role, generated email `<first>@old.st`:
+- Joyce Albos, Keneth Paladin, Patricia Regarde, Trixie Amistad
 
-## Current state
+## Step 2 — Build name → user_id map
+| CSV name | team_members |
+|---|---|
+| Claudia Schwaeble | Claudia |
+| Gino Cuevas | Gino |
+| Ida Jimenez | Ida |
+| Jethro Tanjay | Jethro |
+| Joven Tan | Joven |
+| Kevin Brygs Tiangco | Brygs |
+| Lind Tan | Lind |
+| Lorenz Noble | Lorenz |
+| Merielle Locsin | Merielle |
+| Regina Abdao | Reg |
+| (4 new from step 1) | new rows |
 
-- Vitest + RTL already wired (`vitest.config.ts`, `src/test/setup.ts`, scripts `test` / `test:watch`).
-- 14 test files exist (small utils + a few components). No coverage on the hooks/sub-components produced by the refactor.
-- README has a `Testing` section but it's stale — no coverage script, no fixtures convention, no list of what's covered.
+## Step 3 — Discipline mapping
+- `frontend` → **FE**
+- `backend` → **BE**
+- `designer`, `project manager`, `quality analyst` → **Project**
+- `fullstack` → look up that user's `project_members.role` for COU; if Frontend → FE, if Backend → BE, else Project (fallback FE)
 
-## Scope
+## Step 4 — Create stub tickets for orphan time-log rows
+For every distinct title in `Time_Export` that does NOT start with `COU-###`:
+- Insert a new `tickets` row in project COU
+- `title` = the orphan string (truncated reasonably)
+- `ticket_type` = `Standard` (Bug if title contains "error"/"fix"/"bug" — keep simple: all Standard)
+- Default estimates 0; trigger auto-assigns `ticket_number` and `formatted_id`
+- Build a map `orphan_title → new ticket id` for reuse across all its log rows
 
-### 1. Test coverage for refactored code
+## Step 5 — Insert time logs
+For each row in `Time_Export`:
+- Resolve ticket via `COU-###` prefix or orphan map
+- Resolve user via name map
+- `discipline` per Step 3
+- `hours` = `Duration (minutes)` / 60
+- `note` = Activity text
+- `source` = `manual`
+- `logged_at` = parsed `Date Logged` (e.g. "May 12, 2026")
 
-Target the **pure logic** extracted during the refactor first — highest ROI, no DOM noise — then add hook tests and a thin layer of component smoke tests.
+The existing `apply_time_log` trigger will recompute `actual_*_hours` on tickets automatically.
 
-**Test infrastructure (new, shared):**
-- `src/test/fixtures/` — typed factory functions for `tickets`, `epics`, `projects`, `users`, `time_logs` (built off generated Supabase types).
-- `src/test/mocks/supabase.ts` — chainable mock of the supabase-js client (`from().select().eq()...`) returning configurable rows; used by all hook tests.
-- `src/test/utils.tsx` — `renderWithProviders` wrapping with `QueryClientProvider` (fresh client per test), `MemoryRouter`, and `Toaster`.
-- Add `@vitest/coverage-v8` devDep and `test:coverage` script (`vitest run --coverage`).
-- Coverage targets: ≥ 70% on `src/features/**/use*.ts` and `src/features/**/*.{utils,helpers}.ts`; ≥ 50% statements overall on `src/features`.
+## Step 6 — Insert estimate change requests
+For each row in `Request_Export`:
+- Resolve ticket + user
+- `discipline`: frontend→FE, backend→BE, quality analyst→Project
+- `previous_hours` = current ticket estimate for that discipline (read live)
+- `new_hours` = `previous_hours` + (Requested Time / 60)  *(treating Requested Time as the delta hours requested)*
+- `reason` = Reason text
+- `status` = lower-case (`pending` / `approved`)
+- `decided_at` = parsed Decision Date if present
+- `created_at` = parsed Date Created
 
-**Pure utility / helper tests:**
-- `features/tickets/filters/applyFilters.test.ts` — every filter dimension (status, assignee, epic, search), multi-combo, empty filter, no-match.
-- `features/estimates/project-change-requests/buildChangeRequestGroups.test.ts` — grouping, ordering, empty input, mixed epics.
-- `features/timelog/utils.test.ts` — duration / split math, boundary cases.
-- `features/project/export/runExportProject.test.ts` — sheet-row builder functions (mock workbook writer; do not exercise file IO).
-- `features/client-portal/epic-trend/usePortalEpicTrendData.test.ts` — extract and test the pure data-shaping function (split it out of the hook if still inlined).
+(If you want Requested Time interpreted as the **new total** instead of a delta, say so before I run.)
 
-**Hook tests (`renderHook` + mocked supabase):**
-- `useStopGroup`, `useStartGroup`, `useLogTime` — state transitions, payload shape sent to mutations, error path surfaces a toast.
-- `useBulkAssign` — slot reducer + submit payload.
-- `useProjectHealth` — derived metrics from fixture rows.
-- `useClientPortalEditor` — dirty-state detection, save payload.
-- `useProjectSettings` — form → mutation payload, danger-zone guard.
-- `useProjectsList` — filter/sort over fixture data.
+## Step 7 — Derive assignees
+Collect every distinct `(ticket_id, user_id, slot)` from steps 5 + 6. Insert into `ticket_assignees` ignoring conflicts. Slot = the discipline used (FE/BE/Project). Note: the `validate_ticket_assignee` trigger requires the user to be a `project_members` row for COU with a compatible role — I'll pre-insert any missing `project_members` (role inferred: FE-only→Frontend, BE-only→Backend, both→Fullstack, Project-only→PMBA fallback).
 
-**Component smoke tests (light, one render + one interaction):**
-- `BulkActionsBar`, `TicketsFilter`, `ProjectCard`, `ProjectsToolbar`, `RuleRow`, `EpicChangeRow`, `EpicCRRow`, `Ring`, `HealthSummaryRow`, `PortalToolbar`.
-- Each: render with minimal props, assert a key text/role, fire one interaction, assert callback fired or expected text changed.
+## Execution
+A single Python script using the Supabase REST/SQL via psql (or a migration with bulk INSERTs). I'll run it in batches and report counts:
+- members created, project_members added, stub tickets created, time_logs inserted, change requests inserted, assignees inserted.
 
-### 2. README updates
-
-- Rewrite the `Testing` section:
-  - How to run: `npm test`, `npm run test:watch`, `npm run test:coverage`.
-  - Conventions: `*.test.ts(x)` co-located with source; shared helpers under `src/test/{fixtures,mocks,utils.tsx}`.
-  - What's covered: pure utilities, feature hooks, component smoke; what's intentionally not (E2E — flagged as future work).
-  - Coverage thresholds (the numbers above) and how to read the report.
-- Add a `Quality gates` subsection under `Contributing`: typecheck, lint, `npm test`, file-size ceiling (250 LOC).
-- Update the `Project structure` tree to mention `src/test/` and co-located `*.test.tsx`.
-
-## Out of scope
-
-- Storybook (explicitly removed).
-- E2E (Playwright) — future work, mention in README only.
-- Visual regression.
-- Backfilling tests for legacy untouched code outside the refactor surface.
-- Auth / RLS work — tracked separately.
-
-## Technical notes
-
-- `renderHook` ships with `@testing-library/react` v16 (already installed) — no extra dep beyond `@vitest/coverage-v8`.
-- Mock the supabase client via `vi.mock("@/integrations/supabase/client", …)` inside `src/test/mocks/supabase.ts`; tests import a `setSupabaseMock(rows)` helper.
-- Keep tests deterministic: stub `Date.now` via `vi.useFakeTimers()` where timing matters (timelog).
-- No network. No real Supabase. No real workbook generation.
-
-## Deliverable shape
-
-```text
-src/test/
-  fixtures/{tickets,epics,projects,users,timelogs}.ts
-  mocks/supabase.ts
-  utils.tsx
-src/features/**/*.test.ts(x)         (new — per list above)
-package.json                          (+ test:coverage script, + @vitest/coverage-v8)
-vitest.config.ts                      (coverage config block)
-README.md                             (Testing rewrite + Quality gates + structure tweak)
-```
-
-## Rollout order
-
-1. Test infra (fixtures, supabase mock, `renderWithProviders`, coverage script + config).
-2. Pure-util tests (no mocking required — fastest wins).
-3. Hook tests, one feature at a time: timelog → tickets → health → portal → project → projects.
-4. Component smoke tests.
-5. README rewrite.
+## Things to confirm before I run
+1. **Requested Time = delta hours added** (assumed) vs total replacement.
+2. **Stub ticket type** — all `Standard` OK?
+3. **Pending CRs** — should I also bump `current_*_estimate` on the ticket? (Default: only for `approved` rows; pending leaves estimates alone — matches existing `ticket_estimate_changes` semantics.)
