@@ -78,7 +78,7 @@ export default function Projects() {
         <div>
           <div className="text-xs uppercase tracking-[0.18em] text-dimmer mb-2">Workspace</div>
           <h1 className="font-display text-3xl font-semibold tracking-tight">Projects</h1>
-          <p className="text-dim mt-1">1234Active client engagements and internal builds.</p>
+          <p className="text-dim mt-1">Active client engagements and internal builds.</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
