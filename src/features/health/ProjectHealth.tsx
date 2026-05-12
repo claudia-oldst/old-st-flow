@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useProjectTickets } from "@/features/tickets/useProjectTickets";
 import { useStatuses } from "@/features/statuses/useStatuses";
 import { healthRatio } from "@/lib/utils";
@@ -12,6 +14,19 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
   const { tickets } = useProjectTickets(projectId);
   const { statuses } = useStatuses();
   const [range, setRange] = useState<DateRange>(() => defaultRange());
+
+  const { data: projectStart } = useQuery({
+    queryKey: ["projectStartDate", projectId],
+    enabled: !!projectId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("projects")
+        .select("start_date")
+        .eq("id", projectId)
+        .maybeSingle();
+      return (data?.start_date as string | null) ?? null;
+    },
+  });
 
   const { members, weekHours, ticketsByMember, remainingByMember } = useProjectHealth({
     projectId,
