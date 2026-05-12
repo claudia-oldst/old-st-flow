@@ -500,7 +500,7 @@ export type Database = {
           actual_frontend_hours: number
           actual_project_hours: number
           be_status: Database["public"]["Enums"]["discipline_status"]
-          cr_approval: string
+          cr_approval: string | null
           cr_decided_at: string | null
           cr_decided_by: string | null
           created_at: string
@@ -530,7 +530,7 @@ export type Database = {
           actual_frontend_hours?: number
           actual_project_hours?: number
           be_status?: Database["public"]["Enums"]["discipline_status"]
-          cr_approval?: string
+          cr_approval?: string | null
           cr_decided_at?: string | null
           cr_decided_by?: string | null
           created_at?: string
@@ -560,7 +560,7 @@ export type Database = {
           actual_frontend_hours?: number
           actual_project_hours?: number
           be_status?: Database["public"]["Enums"]["discipline_status"]
-          cr_approval?: string
+          cr_approval?: string | null
           cr_decided_at?: string | null
           cr_decided_by?: string | null
           created_at?: string
