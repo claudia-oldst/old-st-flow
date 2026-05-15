@@ -57,7 +57,7 @@ export default function ClientPortalPublic() {
               <TabsTrigger value="change-requests">Change Requests</TabsTrigger>
             </TabsList>
             <TabsContent value="summary">
-              <PortalView payload={data} showRate />
+              <PortalView payload={data} showRate discounts={discounts} />
             </TabsContent>
             <TabsContent value="change-requests">
               {crData ? (
