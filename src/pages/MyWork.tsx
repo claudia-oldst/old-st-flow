@@ -152,7 +152,7 @@ export default function MyWork() {
   }, [load, selected]);
 
   return (
-    <div className="mx-auto max-w-[1480px] px-4 sm:px-6 py-10">
+    <div className={cn(PAGE_SHELL, "py-10")}>
       <div className="mb-8">
         <div className="text-xs uppercase tracking-[0.18em] text-dimmer mb-2">{user?.name ?? "—"}</div>
         <h1 className="font-display text-3xl font-semibold tracking-tight flex items-center gap-2">
