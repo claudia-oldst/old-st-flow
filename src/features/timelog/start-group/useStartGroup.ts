@@ -187,5 +187,9 @@ export function useStartGroup({
     visible,
     busy,
     handleStart,
+    capMap,
+    isOver,
+    blockedSelectedTickets,
+    refetchCapacity,
   };
 }
