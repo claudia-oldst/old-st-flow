@@ -46,6 +46,10 @@ export function StopGroupTimerDialog({
     distributeEvenly,
     handleDiscard,
     handleSave,
+    capMap,
+    discipline,
+    overflowingRowIds,
+    refetchCapacity,
   } = useStopGroup({
     open,
     active,
@@ -53,6 +57,12 @@ export function StopGroupTimerDialog({
     elapsedMs,
     onClose: () => onOpenChange(false),
   });
+
+  const [adjustTicketId, setAdjustTicketId] = useState<string | null>(null);
+  const adjustRow = rows.find((r) => r.ticket.id === adjustTicketId) ?? null;
+  const adjustSlot: AdjustSlot =
+    discipline === "Project" ? "Proj" : (discipline as "FE" | "BE");
+  const adjustCap = adjustTicketId ? capMap[adjustTicketId] : undefined;
 
   const disciplineLabel =
     active.discipline === "FE"
