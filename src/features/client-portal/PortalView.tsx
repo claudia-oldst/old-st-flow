@@ -76,7 +76,7 @@ export function PortalView({
           </div>
         </Tile>
         {showRate && project.rate_per_hour > 0 && (
-          <Tile label="Cost" value={formatGBP(totals.cost_actual)}>
+          <Tile label="Cost" value={formatGBP(effectiveCostActual)}>
             <div className="text-xs text-dim mt-1">
               of {formatGBP(totals.cost_estimate)}
             </div>
