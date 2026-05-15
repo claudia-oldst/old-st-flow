@@ -142,7 +142,7 @@ export function EpicCRCard({
                       </td>
                     </tr>
                   )}
-                  {filteredCRs.map((t) => (
+                  {filteredCRs.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((t) => (
                     <EpicCRRow
                       key={t.id}
                       ticket={t}
@@ -156,6 +156,16 @@ export function EpicCRCard({
                   ))}
                 </tbody>
               </table>
+              {filteredCRs.length > PAGE_SIZE && (
+                <div className="px-3 py-2 hairline-t flex justify-end">
+                  <ListPagination
+                    page={page}
+                    total={filteredCRs.length}
+                    pageSize={PAGE_SIZE}
+                    onChange={setPage}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </CollapsibleContent>
