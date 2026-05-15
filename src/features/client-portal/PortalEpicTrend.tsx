@@ -73,6 +73,7 @@ export function PortalEpicTrend({
               const series = buildEpicTrendSeries({
                 tickets, changes, logs, projectStart, cutoffMs,
                 ticketFilter: (tid) => ticketEpic.get(tid) === e.id,
+                discounts: discounts.filter((d) => d.epic_id === e.id),
               });
               return (
                 <div key={e.id} className="rounded-xl bg-white/[0.02] hairline p-3">
