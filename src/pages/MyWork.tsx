@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeReload } from "@/hooks/useRealtimeReload";
 import { useCurrentUser } from "@/store/currentUser";
-import { displayTitle, formatHours } from "@/lib/utils";
+import { cn, displayTitle, formatHours, PAGE_SHELL } from "@/lib/utils";
 import { ListChecks, ArrowRight } from "lucide-react";
 import { DisciplineStatusChip } from "@/features/tickets/DisciplineStatusChip";
 import type { DisciplineStatus, TeamMember, TicketAssignee } from "@/lib/types";
