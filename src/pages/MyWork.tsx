@@ -69,7 +69,7 @@ async function fetchTicketDetail(ticketId: string): Promise<TicketRow | null> {
     acceptance_criteria: tt.acceptance_criteria ?? null,
     position: tt.position,
     created_at: tt.created_at,
-    cr_approval: (tt.cr_approval ?? "pending") as TicketRow["cr_approval"],
+    cr_approval: (tt.ticket_type === "CR" ? (tt.cr_approval ?? "pending") : null) as TicketRow["cr_approval"],
     cr_decided_by: tt.cr_decided_by ?? null,
     cr_decided_at: tt.cr_decided_at ?? null,
     assignees: list.map((a) => ({

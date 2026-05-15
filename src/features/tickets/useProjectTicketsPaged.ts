@@ -65,7 +65,7 @@ function normalize(raw: any): TicketRow {
     acceptance_criteria: raw.acceptance_criteria ?? null,
     position: raw.position,
     created_at: raw.created_at,
-    cr_approval: (raw.cr_approval ?? "pending") as TicketRow["cr_approval"],
+    cr_approval: (raw.ticket_type === "CR" ? (raw.cr_approval ?? "pending") : null) as TicketRow["cr_approval"],
     cr_decided_by: raw.cr_decided_by ?? null,
     cr_decided_at: raw.cr_decided_at ?? null,
     assignees: ((raw.assignees ?? []) as any[]).map((a) => ({

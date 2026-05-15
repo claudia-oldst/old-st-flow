@@ -6,7 +6,8 @@ const STATUS_CLASS: Record<string, string> = {
   rejected: "bg-health-bad/15 text-health-bad ring-health-bad/30",
 };
 
-export function StatusBadge({ status }: { status: string }) {
+export function StatusBadge({ status }: { status: string | null | undefined }) {
+  if (!status) return null;
   const cls = STATUS_CLASS[status] ?? "bg-white/5 text-dim ring-white/10";
   return (
     <span
