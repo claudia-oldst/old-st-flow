@@ -1,26 +1,31 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, Pencil } from "lucide-react";
 import { MemberAvatar } from "@/components/MemberAvatar";
-import { formatHours } from "@/lib/utils";
-import { useTicketTimeLogs } from "@/features/timelog/useTicketTimeLogs";
+import { cn, formatHours } from "@/lib/utils";
+import { useTicketTimeLogs, type TicketLogEntry } from "@/features/timelog/useTicketTimeLogs";
+import { useCurrentUser } from "@/store/currentUser";
+import { EditTimeLogDialog } from "@/features/timelog/EditTimeLogDialog";
+import type { TicketRow } from "@/features/tickets/useProjectTickets";
 
 const LOGS_PER_PAGE = 10;
 
 export function TimeLogsPanel({
-  ticketId,
+  ticket,
   canLog,
   onOpenLog,
   reloadKey,
 }: {
-  ticketId: string;
+  ticket: TicketRow;
   canLog: boolean;
   onOpenLog: () => void;
   reloadKey: number;
 }) {
-  const { logs, reload } = useTicketTimeLogs(ticketId);
+  const { logs, reload } = useTicketTimeLogs(ticket.id);
+  const user = useCurrentUser((s) => s.user);
   const [logPage, setLogPage] = useState(0);
-  useEffect(() => { setLogPage(0); }, [ticketId, logs.length]);
+  const [editLog, setEditLog] = useState<TicketLogEntry | null>(null);
+  useEffect(() => { setLogPage(0); }, [ticket.id, logs.length]);
   useEffect(() => { reload(); }, [reloadKey, reload]);
 
   return (
@@ -48,16 +53,31 @@ export function TimeLogsPanel({
           const visible = logs.slice(start, start + LOGS_PER_PAGE);
           return (
             <div className="space-y-1.5">
-              {visible.map((l) => (
-                <div key={l.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/[0.02] hairline text-sm">
-                  <MemberAvatar name={l.user.name} color={l.user.avatar_color} size="xs" />
-                  <span className="text-dim flex-1 truncate">
-                    {l.user.name} · <span className="font-mono">{formatHours(l.hours)}</span> · {l.discipline}
-                    {l.note && <span className="text-dimmer"> — {l.note}</span>}
-                  </span>
-                  <span className="text-[10px] text-dimmer">{new Date(l.logged_at).toLocaleDateString()}</span>
-                </div>
-              ))}
+              {visible.map((l) => {
+                const mine = !!user && l.user_id === user.id;
+                return (
+                  <button
+                    key={l.id}
+                    type="button"
+                    disabled={!mine}
+                    onClick={() => mine && setEditLog(l)}
+                    title={mine ? "Edit your time log" : undefined}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-white/[0.02] hairline text-sm text-left transition",
+                      mine && "hover:bg-white/[0.05] cursor-pointer",
+                      !mine && "cursor-default",
+                    )}
+                  >
+                    <MemberAvatar name={l.user.name} color={l.user.avatar_color} size="xs" />
+                    <span className="text-dim flex-1 truncate">
+                      {l.user.name} · <span className="font-mono">{formatHours(l.hours)}</span> · {l.discipline}
+                      {l.note && <span className="text-dimmer"> — {l.note}</span>}
+                    </span>
+                    {mine && <Pencil className="h-3 w-3 text-dimmer shrink-0" />}
+                    <span className="text-[10px] text-dimmer">{new Date(l.logged_at).toLocaleDateString()}</span>
+                  </button>
+                );
+              })}
               {totalPages > 1 && (
                 <div className="flex items-center justify-between pt-2">
                   <span className="text-[11px] text-dimmer">
@@ -91,6 +111,16 @@ export function TimeLogsPanel({
             </div>
           );
         })()
+      )}
+
+      {editLog && (
+        <EditTimeLogDialog
+          open={!!editLog}
+          onOpenChange={(v) => !v && setEditLog(null)}
+          log={editLog}
+          ticket={ticket}
+          onSaved={reload}
+        />
       )}
     </div>
   );
