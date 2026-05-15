@@ -237,11 +237,12 @@ export function TicketCard({
       )}
     </div>
     {logOpen && (
-      <LogTimeModal
+      <LogTimeWithCapacityCheck
         open={logOpen}
         onOpenChange={setLogOpen}
         ticket={ticket}
         role={role}
+        userId={currentUserId}
       />
     )}
     </>
