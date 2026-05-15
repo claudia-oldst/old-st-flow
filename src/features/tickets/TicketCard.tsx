@@ -102,6 +102,7 @@ export function TicketCard({
   };
 
   return (
+    <>
     <div
       onClick={onClick}
       className={cn(
@@ -234,14 +235,15 @@ export function TicketCard({
           </div>
         </div>
       )}
-      {logOpen && (
-        <LogTimeModal
-          open={logOpen}
-          onOpenChange={setLogOpen}
-          ticket={ticket}
-          role={role}
-        />
-      )}
     </div>
+    {logOpen && (
+      <LogTimeModal
+        open={logOpen}
+        onOpenChange={setLogOpen}
+        ticket={ticket}
+        role={role}
+      />
+    )}
+    </>
   );
 }
