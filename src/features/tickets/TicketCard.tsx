@@ -235,6 +235,14 @@ export function TicketCard({
           </div>
         </div>
       )}
+      {logOpen && (
+        <LogTimeModal
+          open={logOpen}
+          onOpenChange={setLogOpen}
+          ticket={ticket}
+          role={role}
+        />
+      )}
     </div>
   );
 }
