@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
       })
       .join("\n\n");
 
-    const userPrompt = `Today's logged work, grouped by project:
+    const userPrompt = `Today's logged work, grouped by project. Each ticket has its title and any notes the dev wrote on the time log.
 
 ${block}
 
@@ -72,11 +72,12 @@ Logging off:
 - {Project name}: {summary}
 Good night!
 
-Rules:
+STRICT rules:
 - One bullet per project, in the order given.
-- Each summary MUST be 5–8 words, terse dev shorthand (e.g. "fixed timer race, polished portal totals").
-- No full sentences, no trailing punctuation, no emojis, no ticket IDs, no hour counts.
-- Audience: the wider dev team (standup tone), not clients or PMs.
+- Base each summary ONLY on the ticket titles and the time-log notes shown. Do NOT invent technologies, features, fixes, file names, or any detail that is not explicitly present.
+- If notes exist, prefer them as the source of truth. If only titles exist, paraphrase them in dev shorthand.
+- Each summary is just a few words of dev shorthand (roughly 4–8 words). Lowercase, comma-separated fragments, no full sentences, no trailing punctuation, no emojis, no ticket IDs, no hour counts.
+- If there is genuinely nothing meaningful to say for a project, write "misc work".
 - Output the block exactly — no preamble, no markdown fences.`;
 
     const response = await fetch(
@@ -93,7 +94,7 @@ Rules:
             {
               role: "system",
               content:
-                "You write terse end-of-day dev standup notes. Always follow the exact output format requested, with 5–8 word bullets in dev shorthand.",
+                "You write terse end-of-day dev standup notes. You never invent details — only paraphrase what's in the supplied ticket titles and time-log notes. Output is dev shorthand, a few words per project.",
             },
             { role: "user", content: userPrompt },
           ],
