@@ -115,6 +115,7 @@ export function PortalView({
             includedEpics={epics
               .filter((e) => e.total_tickets > 0)
               .map((e) => ({ id: e.id, name: e.epic_name ?? "Untitled epic" }))}
+            discounts={discounts}
           />
         </div>
       )}
