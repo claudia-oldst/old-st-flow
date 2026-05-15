@@ -170,11 +170,17 @@ export function PortalView({
                         </span>
                       </>
                     )}
-                    {showRate && project.rate_per_hour > 0 && (
-                      <span className="ml-auto">
-                        {formatGBP(e.actual_hours * project.rate_per_hour)}
-                      </span>
-                    )}
+                    {showRate && project.rate_per_hour > 0 && (() => {
+                      const epicDiscount = sumTotals(
+                        discountByEpic.get(e.id) ?? { FE: 0, BE: 0, Project: 0 },
+                      );
+                      const effActual = Math.max(0, e.actual_hours - epicDiscount);
+                      return (
+                        <span className="ml-auto">
+                          {formatGBP(effActual * project.rate_per_hour)}
+                        </span>
+                      );
+                    })()}
                   </div>
                   <div className="rounded-xl bg-white/[0.03] hairline p-3 text-sm leading-relaxed whitespace-pre-wrap">
                     {e.pmba_text}
