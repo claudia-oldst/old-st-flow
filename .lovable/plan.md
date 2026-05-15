@@ -1,89 +1,38 @@
-# Block log time when over estimate
+# Responsive layout for wider screens
 
-When a user tries to log time on a ticket where their discipline has already burned through the available estimate (current estimate + pending estimate-revision deltas), force them through the **Adjust Estimate** dialog (existing `RequestMoreTimeDialog`) before they can log. On save, continue into the originally intended action.
+## Problem
+All page shells (and the top bar) are hard-capped at `max-w-[1480px]`. On 1600–2560px monitors this leaves large empty gutters and clips the 5th board column. Cards, columns, dialogs and tables should not stretch — only the page container should breathe so more content (extra board columns, longer table rows, wider charts) fits cleanly.
 
-## Capacity rule
+## Approach
+Introduce a single shared "page shell" width rule that grows in steps with the viewport, instead of one fixed cap. Components inside (cards 280px, dialogs, forms, ring charts, etc.) keep their intrinsic widths — they simply get more room to lay out / more columns to show.
 
-For chosen discipline `D` (FE / BE / Project) on a ticket:
+Width steps (Tailwind responsive):
+- default: `max-w-[1480px]` (current behaviour up to ~1600px)
+- `2xl:` (≥1536px): `max-w-[1640px]`
+- `min-[1800px]:` `max-w-[1760px]`
+- `min-[2000px]:` `max-w-[1920px]`
 
-- `actual_D` = `actual_frontend_hours` / `actual_backend_hours` / `actual_project_hours`
-- `current_D` = `current_fe_estimate` / `current_be_estimate` / `current_project_estimate`
-- `pending_delta_D` = sum of `(new_hours - previous_hours)` from `ticket_estimate_changes` where `ticket_id = ticket.id`, `discipline = D`, `status = 'pending'`
-- `available_D = current_D + pending_delta_D`
+Horizontal padding also scales: `px-4 sm:px-6 2xl:px-8`.
 
-A log/start attempt is **blocked** when it would push `actual_D` past `available_D`.
+## Files to change
+- `src/components/TopBar.tsx` — apply the new shell classes so the logo / nav / user menu align with page content at every width.
+- `src/pages/Projects.tsx`
+- `src/pages/ProjectWorkspace.tsx`
+- `src/pages/MyWork.tsx`
+- `src/pages/Admin.tsx`
+- `src/pages/ClientPortalPublic.tsx` — keep its narrower reading width (`1280 → 1440` at 2xl) since it is a public read view, not an app shell.
 
-## Single-ticket flow (Log Time button / Play)
+To avoid drift, define a small helper (or just a constant string) `PAGE_SHELL` in `src/lib/utils.ts` and reuse it in all six files.
 
-Intercept early — do not show the Log Time modal first if already over.
+## What stays the same
+- Board columns stay 280px wide and simply allow more to be visible before horizontal scroll kicks in.
+- Ticket cards, dialogs, modals, dropdowns, and form inputs keep their current sizes.
+- `TicketsList` table already uses `w-full` inside the shell, so it benefits automatically without any cell stretching changes.
+- No changes to mobile / tablet behaviour — the new breakpoints only activate ≥1536px.
 
-1. User clicks Play / Log time on a ticket.
-2. Resolve discipline `D` (same default-discipline logic as `useLogTime`).
-3. If `actual_D >= available_D`:
-   - Open **Adjust Estimate** dialog directly, prefilled with `D` and a hint line: *"Used {actual_D}h of {available_D}h. Add more hours to log against this ticket."*
-   - On Cancel: stop, no modal.
-   - On Save: dialog closes, then automatically open **Log Time** modal for the same ticket / discipline.
-4. Otherwise: open Log Time modal as today.
-
-Inside Log Time modal (manual tab), keep live validation:
-
-- Show capacity line under the title: `Used {actual_D} / {available_D}h (+{pending_delta_D}h pending)`. Coral when at/over.
-- If `actual_D + entered_hours > available_D`: helper text turns coral and the **Log hours** button is replaced by **Adjust estimate**, which opens `RequestMoreTimeDialog`. On save, the modal stays open with the now-valid hours and the button reverts to **Log hours**.
-- Live timer tab: unreachable in blocked state because we intercepted before opening; no extra UI here.
-
-## Group timer flow
-
-Hours aren't allocated to specific tickets until stop, so apply checks at both ends.
-
-### Start (StartGroupTimerDialog)
-
-- In the ticket picker, render a small coral `over` pill next to any ticket where `actual_D >= available_D` for the user's currently-selected discipline. Tooltip: `used / available (+pending)`.
-- Tickets remain selectable.
-- When user clicks **Start**, if any selected ticket is over capacity, show a compact pre-flight panel listing them. Each row has an inline **Adjust** button opening `RequestMoreTimeDialog` for that ticket + discipline. **Start** button stays disabled until every flagged row has been adjusted (refetch clears it) or de-selected.
-
-### Stop (StopGroupTimerDialog)
-
-- After the user splits/edits hours per ticket, validate per row: `actual_D + row_hours > available_D` ⇒ row turns coral and shows an inline **Adjust estimate** action.
-- **Save** is disabled until each offending row has been adjusted or its `row_hours` lowered enough to fit.
-- Other rows in the group remain saveable.
-
-## RequestMoreTimeDialog updates
-
-Currently handles FE / BE only. Extend for Project discipline:
-
-- Accept `Array<"FE" | "BE" | "Proj">` in `allowedSlots`.
-- Add a Proj branch that reads `current_project_estimate` / `actual_project_hours` (new optional `currentProj`/`actualProj` props) and writes the change with `discipline: 'Project'`, patching `current_project_estimate`.
-- Add an optional `helperText` prop so callers can show the "Used X of Y, add more to log" context line at the top.
-- Add an optional `onSavedContinue` callback distinct from the existing `onSaved` so the single-ticket flow can chain straight into Log Time on Save.
-
-## Technical
-
-Files to edit:
-
-- `src/features/timelog/log-time/useLogTime.ts`
-  - Fetch pending estimate-change deltas for the ticket on `open`, expose `availableByDiscipline`, `actualByDiscipline`, and a `refresh()`.
-  - Add helpers `isOverForDiscipline(D)` and `wouldOverflowManual(hoursStr, D)`.
-  - Defensively guard `handleStartTimer` / `handleManualLog` with the same check.
-
-- `src/features/timelog/LogTimeModal.tsx`
-  - Render capacity line and the manual-tab "Adjust estimate" CTA + RequestMoreTimeDialog as sibling.
-  - Refresh availability on RequestMoreTimeDialog `onSaved`.
-
-- New shared hook `src/features/timelog/useTicketCapacity.ts` (or colocated helper)
-  - Given a list of `ticket_id`s + discipline mapping, returns `{ ticketId: { actual, current, pendingDelta, available } }`. Used by both single and group flows.
-
-- `src/features/tickets/TicketCard.tsx` and `src/features/tickets/list/TicketsListRow.tsx`
-  - Replace direct LogTimeModal open with a small wrapper that runs the capacity check first; if over, open `RequestMoreTimeDialog` and chain into LogTimeModal on save. Both files already render LogTimeModal as a sibling — extend that pattern with an Adjust dialog state.
-
-- `src/features/timelog/start-group/StartGroupTicketsList.tsx` + `useStartGroup.ts`
-  - Add `over` pill per row using `useTicketCapacity`.
-  - In `useStartGroup`, expose `blockedTickets` (selected ∩ over) and disable Start when non-empty.
-  - Render pre-flight panel in `StartGroupTimerDialog` with inline Adjust buttons.
-
-- `src/features/timelog/stop-group/RowsList.tsx` + `useStopGroup.ts`
-  - Per-row capacity check against the user's discipline at this ticket; coral state + Adjust action; block Save while any row offends.
-
-- `src/features/tickets/RequestMoreTimeDialog.tsx`
-  - Add Proj support, `helperText`, and `onSavedContinue` as described.
-
-No DB schema changes required.
+## Verification
+- Resize preview to 1280, 1440, 1600, 1920, 2200px and confirm:
+  - No component visibly stretches.
+  - Top bar items align with page content underneath.
+  - Board shows progressively more columns without clipping the last one.
+  - Lists and health charts gain breathing room without distortion.
