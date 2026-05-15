@@ -142,11 +142,21 @@ export function useEstimateEvolution({
       g.actual += l.hours;
     });
 
+    discounts.forEach((d) => {
+      if (new Date(d.created_at).getTime() > asOfMs) return;
+      const key = `e:${d.epic_id}`;
+      const g = groups.get(key);
+      if (!g) return;
+      const h = Number(d.hours) || 0;
+      g.current = Math.max(0, g.current - h);
+      g.actual = Math.max(0, g.actual - h);
+    });
+
     return Array.from(groups.entries())
       .map(([key, v]) => ({ key, ...v }))
       .filter((g) => g.original > 0 || g.current > 0 || g.actual > 0)
       .sort((a, b) => b.current - a.current);
-  }, [tickets, epics, changes, logs, ticketEpic, asOf, ticketEffectiveMs]);
+  }, [tickets, epics, changes, logs, discounts, ticketEpic, asOf, ticketEffectiveMs]);
 
   const trendData = useMemo(() => {
     if (tickets.length === 0) return [];
