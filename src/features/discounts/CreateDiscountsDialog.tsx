@@ -74,7 +74,7 @@ export function CreateDiscountsDialog({ open, onOpenChange, projectId }: Props) 
         hours: parseFloat(d.hours) || 0,
         reason: d.reason,
       });
-      if (parsed.success) out.push(parsed.data);
+      if (parsed.success) out.push(parsed.data as CreateDiscountInput);
     }
     return out;
   }, [drafts]);
