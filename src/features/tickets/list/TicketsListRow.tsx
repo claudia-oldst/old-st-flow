@@ -193,11 +193,12 @@ export function TicketsListRow({
         })}
       </tr>
       {logOpen && (
-        <LogTimeModal
+        <LogTimeWithCapacityCheck
           open={logOpen}
           onOpenChange={setLogOpen}
           ticket={t}
           role={role}
+          userId={currentUserId}
         />
       )}
     </>
