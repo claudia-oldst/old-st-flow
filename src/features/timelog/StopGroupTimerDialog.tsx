@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -14,6 +15,7 @@ import type { TimerTicket } from "@/store/timer";
 import { formatDuration } from "@/lib/utils";
 import { useStopGroup } from "./stop-group/useStopGroup";
 import { RowsList } from "./stop-group/RowsList";
+import { RequestMoreTimeDialog, type AdjustSlot } from "@/features/tickets/RequestMoreTimeDialog";
 
 interface Props {
   open: boolean;
