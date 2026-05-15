@@ -13,6 +13,7 @@ export default function ClientPortalPublic() {
   const { hash } = useParams<{ hash: string }>();
   const { data, loading, error } = usePublicPortal(hash);
   const { data: crData, refresh: refreshCR } = useClientPortalCRsByHash(hash);
+  const { discounts } = useEpicDiscounts(data?.project?.id);
 
   async function handleApprove(ticketId: string) {
     if (!hash) return;
