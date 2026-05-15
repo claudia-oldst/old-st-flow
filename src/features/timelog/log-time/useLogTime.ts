@@ -163,5 +163,8 @@ export function useLogTime({
     busy,
     handleStartTimer,
     handleManualLog,
+    capacity,
+    refetchCapacity,
+    wouldOverflowManual,
   };
 }
