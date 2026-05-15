@@ -42,7 +42,7 @@ export function computeCRTotals(
   };
 }
 
-export function partitionCRs<T extends { cr_approval: string }>(crs: T[]) {
+export function partitionCRs<T extends { cr_approval: string | null }>(crs: T[]) {
   return {
     approved: crs.filter((c) => c.cr_approval === "approved"),
     pending: crs.filter((c) => c.cr_approval === "pending"),
