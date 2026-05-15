@@ -1,41 +1,54 @@
-## Goal
+# Daily Logoff Summary
 
-Make the client portal preview (PMBA editor) and the public `/h/:hash` view reflect epic-level discounts in the existing tiles, cards, numbers, and trend chart — without adding a new "Discounts" section.
+Add a small calendar icon next to the user picker in the top bar. Clicking it opens a modal that shows an AI-generated, editable end-of-day summary of the work the current user logged time against today, grouped by project, ready to copy.
 
-## What changes (display only)
+## UX
 
-Discounts continue to live in `epic_discounts`. We apply them at render time on the client, mirroring the convention used in Health/CR/Estimate views:
+- **TopBar**: new ghost icon button (`Calendar` from lucide-react) immediately to the left of the `UserPicker`. Tooltip: "Logging off summary". Disabled when no current user.
+- **Modal** (`LogoffSummaryDialog`): opens on click.
+  - Header: "Logging off — {today, e.g. Fri 15 May}"
+  - Body: a single `Textarea` (auto-sized, ~14 rows) prefilled with the AI-generated copy. User can freely edit.
+  - Empty state: "No time logged today yet." with a subtle illustration and a Close button.
+  - Loading state: skeleton lines + "Drafting your summary…"
+  - Error state: inline message + Retry button.
+  - Footer: `Regenerate` (ghost, left) and `Copy` (primary, right, `Copy` icon → switches to `Check` for 1.5s on success). `Esc` / overlay click closes.
+
+## Generated copy shape
 
 ```text
-Effective Actual = max(0, Actual − Discounted)
-Cost Actual      = Effective Actual × rate
-Estimate         = unchanged (raw current estimate)
+Logging off:
+- {Project name}: {1–2 sentence summary across that project's tickets}
+- {Project name}: {…}
+Good night!
 ```
 
-Discipline ticket counts (FE/BE done/in-progress/to-do) are unchanged — discounts are hours-only, not ticket-status.
+- One bullet per project the user logged against today.
+- Summary is grounded in: ticket title, formatted_id, hours logged today on that ticket, and the time-log notes the user wrote today.
+- Tone: concise, first-person plural-free, no emojis. Skip projects with 0 hours.
 
-## Files
+## Data flow
 
-1. **`src/features/discounts/useEpicDiscounts.ts`** — already exists. Reuse its project-scoped fetch (works under the open RLS that's already in place, so it loads fine on the public `/h/:hash` page too).
+1. On open, client queries `time_logs` for `user_id = current user` and `logged_at` between today 00:00 and 24:00 (local tz, sent as ISO range), joining `tickets(id, formatted_id, title, project_id, projects(name))`.
+2. Group rows by `project_id` → `{ projectName, tickets: [{ formatted_id, title, hours, notes[] }] }`.
+3. POST that compact JSON payload to a new edge function `daily-logoff-summary`. The function calls Lovable AI Gateway (`google/gemini-3-flash-preview`) with a system prompt that enforces the exact output shape above and returns `{ summary: string }`.
+4. Client puts `summary` into the textarea. `Regenerate` re-calls the function. `Copy` writes the textarea's current value to the clipboard via `navigator.clipboard.writeText`.
 
-2. **`src/features/client-portal/PortalView.tsx`**
-   - Accept `discounts: EpicDiscount[]` as a new prop.
-   - Cost tile: replace `totals.cost_actual` with `max(0, actual_total − totalDiscountedHours) × rate`. Keep label "Cost", keep the "of {cost_estimate}" subline unchanged.
-   - "Estimate Change Detail" per-epic card: subtract that epic's discount total from `actual_hours` before multiplying by rate for the right-hand cost number.
-   - No new section, no extra row.
+## Technical details
 
-3. **`src/features/client-portal/PortalEpicTrend.tsx`** + **`epic-trend/usePortalEpicTrendData.ts`**
-   - Load discounts for the project (same hook).
-   - In `buildEpicTrendSeries`, accept `discounts` and subtract the epic-scoped discount total whose `created_at <= sample timestamp` from the `actual` line. Floor at 0. Original/current lines untouched.
-
-4. **`src/features/client-portal/usePortalData.ts`**
-   - Add `epic_discounts` to the realtime invalidation list for both `usePortalPreview` and `usePublicPortal` so changes flow through immediately.
-
-5. **`src/features/client-portal/ClientPortalEditor.tsx`** and **`src/pages/ClientPortalPublic.tsx`**
-   - Fetch discounts via `useEpicDiscounts(projectId)` and pass them into `<PortalView discounts={...} />`. On the public page, `projectId` comes from `data.project.id` once loaded.
+- New files:
+  - `src/features/logoff/LogoffSummaryButton.tsx` — icon + dialog state.
+  - `src/features/logoff/LogoffSummaryDialog.tsx` — modal UI, textarea, copy/regenerate.
+  - `src/features/logoff/useDailyLoggedWork.ts` — fetches today's logs grouped by project (React Query, enabled only when dialog open).
+  - `src/features/logoff/useGenerateLogoffSummary.ts` — wraps `supabase.functions.invoke('daily-logoff-summary', …)`.
+  - `supabase/functions/daily-logoff-summary/index.ts` — CORS, validate body with Zod, call Lovable AI Gateway (non-streaming), return `{ summary }`. Surfaces 429/402 as user-facing errors.
+- `TopBar.tsx`: import and render `<LogoffSummaryButton />` just before `<UserPicker />` in the right-aligned cluster. Uses existing `useCurrentUser` to know who to query.
+- AI Gateway: requires `LOVABLE_API_KEY` (already provisioned via Lovable Cloud — verify with `fetch_secrets`, enable if missing).
+- No DB schema changes. No new RLS work — `time_logs`, `tickets`, `projects` are already readable.
+- "Today" is computed in the user's local timezone on the client and sent as an explicit start/end ISO range so the edge function stays timezone-agnostic.
+- Toasts: success on copy ("Copied to clipboard"), error toasts for fetch / AI failures.
 
 ## Out of scope
 
-- No SQL/RPC changes. The portal RPCs keep returning raw actuals; discount math stays purely on the client (consistent with how Health/CR already do it).
-- No new "Discounts" section, list, or row in the portal UI.
-- Discipline progress bars (ticket counts) stay as-is.
+- Persisting the summary anywhere.
+- Sending to Slack/email.
+- Multi-day ranges or per-project filtering.
