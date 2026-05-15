@@ -110,6 +110,9 @@ export function useStartGroup({
   const handleStart = async () => {
     if (!user) return toast.error("Pick a user first");
     if (selected.size === 0) return toast.error("Select at least one ticket");
+    if (blockedSelectedTickets.length > 0) {
+      return toast.error("Adjust estimates on flagged tickets before starting");
+    }
 
     const orderedSelected: string[] = [];
     visible.forEach((t) => selected.has(t.id) && orderedSelected.push(t.id));
