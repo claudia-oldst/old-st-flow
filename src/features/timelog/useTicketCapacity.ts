@@ -129,3 +129,68 @@ export function capacityFor(
     isOver: row.availableProj > 0 ? row.actualProj >= row.availableProj : row.actualProj > 0,
   };
 }
+
+/**
+ * Variant that fetches both the ticket estimate/actual fields and pending
+ * deltas given just a list of ticket IDs. Useful when the caller doesn't
+ * already have full ticket rows in hand (e.g. group-stop dialog).
+ */
+export function useTicketCapacityByIds(ids: string[], enabled = true) {
+  const sortedIds = [...ids].sort();
+  const key = sortedIds.join(",");
+
+  const { data, refetch, isLoading } = useQuery({
+    queryKey: ["ticket-capacity-by-ids", key],
+    enabled: enabled && sortedIds.length > 0,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const [{ data: ticketRows, error: tErr }, { data: changeRows, error: cErr }] =
+        await Promise.all([
+          supabase
+            .from("tickets")
+            .select(
+              "id, actual_frontend_hours, actual_backend_hours, actual_project_hours, current_fe_estimate, current_be_estimate, current_project_estimate"
+            )
+            .in("id", sortedIds),
+          supabase
+            .from("ticket_estimate_changes")
+            .select("ticket_id, discipline, previous_hours, new_hours")
+            .in("ticket_id", sortedIds)
+            .eq("status", "pending"),
+        ]);
+      if (tErr) throw tErr;
+      if (cErr) throw cErr;
+
+      const pending: Record<string, { FE: number; BE: number; Project: number }> = {};
+      for (const row of (changeRows as any[]) ?? []) {
+        const p = (pending[row.ticket_id] ??= { FE: 0, BE: 0, Project: 0 });
+        const delta = (Number(row.new_hours) || 0) - (Number(row.previous_hours) || 0);
+        if (row.discipline === "FE") p.FE += delta;
+        else if (row.discipline === "BE") p.BE += delta;
+        else if (row.discipline === "Project") p.Project += delta;
+      }
+
+      const out: CapacityMap = {};
+      for (const t of (ticketRows as any[]) ?? []) {
+        const p = pending[t.id] ?? { FE: 0, BE: 0, Project: 0 };
+        out[t.id] = {
+          actualFE: Number(t.actual_frontend_hours) || 0,
+          currentFE: Number(t.current_fe_estimate) || 0,
+          pendingFE: p.FE,
+          availableFE: (Number(t.current_fe_estimate) || 0) + p.FE,
+          actualBE: Number(t.actual_backend_hours) || 0,
+          currentBE: Number(t.current_be_estimate) || 0,
+          pendingBE: p.BE,
+          availableBE: (Number(t.current_be_estimate) || 0) + p.BE,
+          actualProj: Number(t.actual_project_hours) || 0,
+          currentProj: Number(t.current_project_estimate) || 0,
+          pendingProj: p.Project,
+          availableProj: (Number(t.current_project_estimate) || 0) + p.Project,
+        };
+      }
+      return out;
+    },
+  });
+
+  return { map: data ?? {}, refetch, isLoading };
+}
