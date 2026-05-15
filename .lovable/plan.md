@@ -23,8 +23,9 @@ Good night!
 ```
 
 - One bullet per project the user logged against today.
-- Summary is grounded in: ticket title, formatted_id, hours logged today on that ticket, and the time-log notes the user wrote today.
-- Tone: concise, first-person plural-free, no emojis. Skip projects with 0 hours.
+- Each summary is **5–8 words, terse dev shorthand** (e.g. "fixed timer race, polished portal totals"). No full sentences, no punctuation flourish, no emojis.
+- Audience: the wider dev team standup-style — not clients, not PMs.
+- Grounded in: ticket title, formatted_id, hours logged, and time-log notes from today. Skip projects with 0 hours.
 
 ## Data flow
 
