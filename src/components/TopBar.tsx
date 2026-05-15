@@ -233,6 +233,7 @@ export function TopBar() {
 
         <div className="ml-auto flex items-center gap-3">
           <TimerChip />
+          <LogoffSummaryButton />
           <UserPicker />
         </div>
       </div>
