@@ -24,7 +24,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ChevronDown, Settings, FolderKanban, ListChecks, User, Square } from "lucide-react";
-import { cn, formatDuration } from "@/lib/utils";
+import { cn, formatDuration, PAGE_SHELL } from "@/lib/utils";
 
 // Leaf component: isolates per-second re-renders to just the ticking text.
 function Ticker({ startedAt }: { startedAt: string }) {
