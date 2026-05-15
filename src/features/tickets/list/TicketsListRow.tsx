@@ -1,13 +1,13 @@
+import { useState } from "react";
 import { Play } from "lucide-react";
-import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { displayTitle, formatHours, cn } from "@/lib/utils";
 import { DisciplineStatusChip } from "@/features/tickets/DisciplineStatusChip";
-import type { LogDiscipline } from "@/lib/types";
 import type { Status } from "@/lib/types";
-import { useTimerStore } from "@/store/timer";
-import { startTicketTimer } from "@/features/timelog/startTicketTimer";
+// useTimerStore no longer needed
+import { LogTimeModal } from "@/features/timelog/LogTimeModal";
+import { useProjectRole } from "@/features/team/useProjectRole";
 import { COLS, ColKey } from "./columns";
 
 export function TicketsListRow({
@@ -33,7 +33,9 @@ export function TicketsListRow({
   statuses: Status[];
   groupKey: string;
 }) {
-  const activeTimer = useTimerStore((s) => s.active);
+  // activeTimer no longer gates the play button — it now opens the Log Time modal.
+  const role = useProjectRole(t.project_id);
+  const [logOpen, setLogOpen] = useState(false);
 
   const renderCell = (key: ColKey) => {
     switch (key) {
@@ -59,25 +61,10 @@ export function TicketsListRow({
             )
           : [];
         const canQuickStart =
-          showQuickStart && !!currentUserId && !activeTimer && mySlots.length > 0;
-        const handleQuickStart = async (e: React.MouseEvent) => {
+          showQuickStart && !!currentUserId && mySlots.length > 0;
+        const handleQuickStart = (e: React.MouseEvent) => {
           e.stopPropagation();
-          if (!currentUserId) return;
-          let discipline: LogDiscipline | undefined;
-          if (mySlots.includes("FE")) discipline = "FE";
-          else if (mySlots.includes("BE")) discipline = "BE";
-          else if (mySlots.includes("Project")) discipline = "Project";
-          if (!discipline) return;
-          const res = await startTicketTimer({ userId: currentUserId, ticketId: t.id, discipline });
-          if (res.ok === true) {
-            toast.success(`Timer started on ${t.formatted_id}`);
-            return;
-          }
-          if (res.reason === "active") {
-            toast.error("Stop your running timer first.");
-            return;
-          }
-          toast.error(res.message ?? "Failed to start timer");
+          setLogOpen(true);
         };
         return (
           <span className="group/title flex items-center gap-2 min-w-0">
@@ -166,43 +153,53 @@ export function TicketsListRow({
   };
 
   return (
-    <tr
-      key={`${groupKey}-${t.id}`}
-      onClick={() => onOpen(t)}
-      className={cn(
-        "cursor-pointer transition hairline-b last:border-b-0",
-        selected ? "bg-accent/10 hover:bg-accent/15" : "hover:bg-white/[0.02]"
-      )}
-    >
-      {selectionEnabled && (
-        <td className="pl-4 pr-1 align-middle">
-          <input
-            type="checkbox"
-            aria-label={`Select ticket ${t.formatted_id}`}
-            checked={selected}
-            onChange={() => {}}
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleSelect!(t.id, (e as unknown as React.MouseEvent).shiftKey);
-            }}
-            className="h-3.5 w-3.5 rounded border-white/20 bg-transparent accent-accent cursor-pointer"
-          />
-        </td>
-      )}
-      {visibleCols.map((k) => {
-        const c = COLS[k];
-        return (
-          <td
-            key={k}
-            className={cn(
-              "px-4 py-3 align-middle overflow-hidden",
-              c.align === "right" && "text-right"
-            )}
-          >
-            {renderCell(k)}
+    <>
+      <tr
+        key={`${groupKey}-${t.id}`}
+        onClick={() => onOpen(t)}
+        className={cn(
+          "cursor-pointer transition hairline-b last:border-b-0",
+          selected ? "bg-accent/10 hover:bg-accent/15" : "hover:bg-white/[0.02]"
+        )}
+      >
+        {selectionEnabled && (
+          <td className="pl-4 pr-1 align-middle">
+            <input
+              type="checkbox"
+              aria-label={`Select ticket ${t.formatted_id}`}
+              checked={selected}
+              onChange={() => {}}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleSelect!(t.id, (e as unknown as React.MouseEvent).shiftKey);
+              }}
+              className="h-3.5 w-3.5 rounded border-white/20 bg-transparent accent-accent cursor-pointer"
+            />
           </td>
-        );
-      })}
-    </tr>
+        )}
+        {visibleCols.map((k) => {
+          const c = COLS[k];
+          return (
+            <td
+              key={k}
+              className={cn(
+                "px-4 py-3 align-middle overflow-hidden",
+                c.align === "right" && "text-right"
+              )}
+            >
+              {renderCell(k)}
+            </td>
+          );
+        })}
+      </tr>
+      {logOpen && (
+        <LogTimeModal
+          open={logOpen}
+          onOpenChange={setLogOpen}
+          ticket={t}
+          role={role}
+        />
+      )}
+    </>
   );
 }
