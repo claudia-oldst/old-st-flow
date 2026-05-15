@@ -136,7 +136,7 @@ export function ProjectBoard({
         ) : (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           {mode === "project" ? (
-            <div className="flex gap-3 overflow-x-auto pb-4">
+            <div className="flex gap-3 overflow-x-auto overflow-y-hidden pb-3 h-[calc(100vh-260px)] min-h-[420px]">
               {statuses.map((status) => (
                 <Column
                   key={status.id}
@@ -154,7 +154,7 @@ export function ProjectBoard({
               ))}
             </div>
           ) : (
-            <div className="flex gap-3 overflow-x-auto pb-4">
+            <div className="flex gap-3 overflow-x-auto overflow-y-hidden pb-3 h-[calc(100vh-260px)] min-h-[420px]">
               {disciplineColumns.map((s) => (
                 <DisciplineColumn
                   key={s}
