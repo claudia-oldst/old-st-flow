@@ -7,6 +7,7 @@ import {
   PaginationPrevious,
   PaginationEllipsis,
 } from "@/components/ui/pagination";
+import { cn } from "@/lib/utils";
 
 interface Props {
   page: number;
@@ -32,8 +33,8 @@ export function ListPagination({ page, total, pageSize, onChange, className }: P
     if (next !== page) onChange(next);
   };
 
-  const subtleLink = "h-7 min-w-7 px-2 text-[11px] rounded-md bg-transparent hover:bg-transparent hover:text-foreground text-dimmer";
-  const activeLink = "text-foreground";
+  const subtleLink = "h-7 min-w-7 px-2 text-[11px] rounded-md border-0 bg-transparent hover:bg-transparent hover:text-foreground text-dimmer";
+  const activeLink = "text-foreground font-medium";
 
   return (
     <Pagination className={className}>
