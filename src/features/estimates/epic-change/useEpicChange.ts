@@ -21,7 +21,7 @@ export interface EpicChangeTotals {
 
 export function computeEpicTotals(
   tickets: EpicChangeTicket[],
-  matchedChanges: Pick<ChangeRow, "delta">[],
+  matchedChanges: Pick<ChangeRow, "delta" | "status">[],
   discountHours = 0,
 ): EpicChangeTotals {
   const original = tickets.reduce(
@@ -36,14 +36,17 @@ export function computeEpicTotals(
     (a, t) => a + t.actual_frontend_hours + t.actual_backend_hours + t.actual_project_hours,
     0,
   );
-  const matchedDelta = matchedChanges.reduce((a, c) => a + (Number(c.delta) || 0), 0);
-  // Discounts reduce billable hours: subtract from current, projected, and actual.
+  // Approved deltas are already baked into current_*_estimate. Only pending
+  // deltas should be added on top to project "if all approved".
+  const pendingDelta = matchedChanges
+    .filter((c) => c.status === "pending")
+    .reduce((a, c) => a + (Number(c.delta) || 0), 0);
   const d = Math.max(0, discountHours);
   return {
     original,
     currentApproved: Math.max(0, currentApproved - d),
     actual: Math.max(0, actual - d),
-    projected: Math.max(0, currentApproved + matchedDelta - d),
+    projected: Math.max(0, currentApproved + pendingDelta - d),
   };
 }
 
