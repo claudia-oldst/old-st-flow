@@ -136,8 +136,8 @@ export function ProjectBoard({
         ) : (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           {mode === "project" ? (
-            <div className="overflow-x-auto pb-3 max-h-[calc(100vh-220px)]">
-              <div className="flex gap-3 min-w-max">
+            <div className="overflow-x-auto max-h-[calc(100vh-220px)] [transform:rotateX(180deg)]">
+              <div className="flex gap-3 min-w-max [transform:rotateX(180deg)]">
               {statuses.map((status) => (
                 <Column
                   key={status.id}
