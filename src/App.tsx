@@ -5,6 +5,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { TopBar } from "@/components/TopBar";
+import { WeeklyHoursBar } from "@/components/WeeklyHoursBar";
 import { TimerSync } from "@/components/TimerSync";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Projects from "./pages/Projects";
@@ -43,6 +44,7 @@ const App = () => (
             element={
               <div className="min-h-screen">
                 <TopBar />
+                <WeeklyHoursBar />
                 <Routes>
                   <Route path="/" element={wrap("projects", <Projects />)} />
                   <Route path="/projects/:id/*" element={wrap("project", <ProjectWorkspace />)} />
