@@ -61,7 +61,7 @@ export function TicketsListRow({
             )
           : [];
         const canQuickStart =
-          showQuickStart && !!currentUserId && !activeTimer && mySlots.length > 0;
+          showQuickStart && !!currentUserId && mySlots.length > 0;
         const handleQuickStart = (e: React.MouseEvent) => {
           e.stopPropagation();
           setLogOpen(true);
