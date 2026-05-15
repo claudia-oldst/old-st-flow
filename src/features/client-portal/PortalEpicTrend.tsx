@@ -8,14 +8,18 @@ import {
 } from "./epic-trend/usePortalEpicTrendData";
 import { PortalTrendChart } from "./epic-trend/PortalTrendChart";
 
+import type { EpicDiscount } from "@/features/discounts/applyDiscounts";
+
 export function PortalEpicTrend({
   projectId,
   cutoff,
   includedEpics,
+  discounts = [],
 }: {
   projectId: string;
   cutoff: string;
   includedEpics: Array<{ id: number; name: string }>;
+  discounts?: EpicDiscount[];
 }) {
   const [open, setOpen] = useState(false);
   const { tickets, changes, logs, projectStart, ticketEpic } = usePortalEpicTrendData(
@@ -29,8 +33,9 @@ export function PortalEpicTrend({
       buildEpicTrendSeries({
         tickets, changes, logs, projectStart, cutoffMs,
         ticketFilter: () => true,
+        discounts,
       }),
-    [tickets, changes, logs, projectStart, cutoffMs],
+    [tickets, changes, logs, projectStart, cutoffMs, discounts],
   );
 
   if (includedEpics.length === 0 || tickets.length === 0) return null;
@@ -68,6 +73,7 @@ export function PortalEpicTrend({
               const series = buildEpicTrendSeries({
                 tickets, changes, logs, projectStart, cutoffMs,
                 ticketFilter: (tid) => ticketEpic.get(tid) === e.id,
+                discounts: discounts.filter((d) => d.epic_id === e.id),
               });
               return (
                 <div key={e.id} className="rounded-xl bg-white/[0.02] hairline p-3">

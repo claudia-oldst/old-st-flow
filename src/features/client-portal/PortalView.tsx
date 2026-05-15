@@ -2,19 +2,31 @@ import { format } from "date-fns";
 import { formatHours } from "@/lib/utils";
 import { formatGBP, type PortalPayload } from "./types";
 import { PortalEpicTrend } from "./PortalEpicTrend";
+import {
+  discountTotalsByEpic,
+  sumTotals,
+  type EpicDiscount,
+} from "@/features/discounts/applyDiscounts";
 
 /**
  * Visual render of the client-facing portal payload.
  * Shared between the PMBA editor preview and the public /h/:hash route.
+ * Discounts are applied at display time only — raw totals/actuals are unchanged.
  */
 export function PortalView({
   payload,
   showRate,
+  discounts = [],
 }: {
   payload: PortalPayload;
   showRate: boolean;
+  discounts?: EpicDiscount[];
 }) {
   const { project, totals, epics } = payload;
+  const discountByEpic = discountTotalsByEpic(discounts);
+  const totalDiscountedHours = discounts.reduce((s, d) => s + Number(d.hours), 0);
+  const effectiveActualHours = Math.max(0, totals.actual_total - totalDiscountedHours);
+  const effectiveCostActual = effectiveActualHours * project.rate_per_hour;
   const completionPct =
     totals.tickets_total > 0
       ? Math.round((totals.tickets_done / totals.tickets_total) * 100)
@@ -64,7 +76,7 @@ export function PortalView({
           </div>
         </Tile>
         {showRate && project.rate_per_hour > 0 && (
-          <Tile label="Cost" value={formatGBP(totals.cost_actual)}>
+          <Tile label="Cost" value={formatGBP(effectiveCostActual)}>
             <div className="text-xs text-dim mt-1">
               of {formatGBP(totals.cost_estimate)}
             </div>
@@ -103,6 +115,7 @@ export function PortalView({
             includedEpics={epics
               .filter((e) => e.total_tickets > 0)
               .map((e) => ({ id: e.id, name: e.epic_name ?? "Untitled epic" }))}
+            discounts={discounts}
           />
         </div>
       )}
@@ -157,11 +170,17 @@ export function PortalView({
                         </span>
                       </>
                     )}
-                    {showRate && project.rate_per_hour > 0 && (
-                      <span className="ml-auto">
-                        {formatGBP(e.actual_hours * project.rate_per_hour)}
-                      </span>
-                    )}
+                    {showRate && project.rate_per_hour > 0 && (() => {
+                      const epicDiscount = sumTotals(
+                        discountByEpic.get(e.id) ?? { FE: 0, BE: 0, Project: 0 },
+                      );
+                      const effActual = Math.max(0, e.actual_hours - epicDiscount);
+                      return (
+                        <span className="ml-auto">
+                          {formatGBP(effActual * project.rate_per_hour)}
+                        </span>
+                      );
+                    })()}
                   </div>
                   <div className="rounded-xl bg-white/[0.03] hairline p-3 text-sm leading-relaxed whitespace-pre-wrap">
                     {e.pmba_text}

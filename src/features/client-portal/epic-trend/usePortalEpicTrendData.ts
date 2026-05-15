@@ -146,8 +146,9 @@ export function buildEpicTrendSeries(args: {
   projectStart: string | null;
   cutoffMs: number;
   ticketFilter: (id: string) => boolean;
+  discounts?: Array<{ hours: number; created_at: string }>;
 }) {
-  const { tickets, changes, logs, projectStart, cutoffMs, ticketFilter } = args;
+  const { tickets, changes, logs, projectStart, cutoffMs, ticketFilter, discounts = [] } = args;
   const relevant = tickets.filter((t) => ticketFilter(t.id));
   if (relevant.length === 0) return [];
   const firstMs = Math.min(...relevant.map((t) => new Date(t.created_at).getTime()));
@@ -187,7 +188,12 @@ export function buildEpicTrendSeries(args: {
       if (new Date(l.logged_at).getTime() > c) return;
       actual += l.hours;
     });
-    return { original, current: original + deltas, actual };
+    let discounted = 0;
+    discounts.forEach((d) => {
+      if (new Date(d.created_at).getTime() > c) return;
+      discounted += Number(d.hours) || 0;
+    });
+    return { original, current: original + deltas, actual: Math.max(0, actual - discounted) };
   };
 
   for (let t = startMs; t <= end; t += stride * dayMs) {

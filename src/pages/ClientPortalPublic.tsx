@@ -7,11 +7,13 @@ import { PortalView } from "@/features/client-portal/PortalView";
 import { PortalChangeRequests } from "@/features/client-portal/PortalChangeRequests";
 import { useClientPortalCRsByHash } from "@/features/client-portal/useClientPortalCRs";
 import oldStLogo from "@/assets/oldst-logo.png";
+import { useEpicDiscounts } from "@/features/discounts/useEpicDiscounts";
 
 export default function ClientPortalPublic() {
   const { hash } = useParams<{ hash: string }>();
   const { data, loading, error } = usePublicPortal(hash);
   const { data: crData, refresh: refreshCR } = useClientPortalCRsByHash(hash);
+  const { discounts } = useEpicDiscounts(data?.project?.id);
 
   async function handleApprove(ticketId: string) {
     if (!hash) return;
@@ -55,7 +57,7 @@ export default function ClientPortalPublic() {
               <TabsTrigger value="change-requests">Change Requests</TabsTrigger>
             </TabsList>
             <TabsContent value="summary">
-              <PortalView payload={data} showRate />
+              <PortalView payload={data} showRate discounts={discounts} />
             </TabsContent>
             <TabsContent value="change-requests">
               {crData ? (

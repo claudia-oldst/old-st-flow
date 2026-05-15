@@ -11,6 +11,7 @@ import { EpicSummaryEditor } from "./editor/EpicSummaryEditor";
 import { PreviewChangeRequests } from "./editor/PreviewChangeRequests";
 import { PortalToolbar } from "./editor/PortalToolbar";
 import { useClientPortalEditor } from "./editor/useClientPortalEditor";
+import { useEpicDiscounts } from "@/features/discounts/useEpicDiscounts";
 
 export function ClientPortalEditor() {
   const { id } = useParams<{ id: string }>();
@@ -18,6 +19,7 @@ export function ClientPortalEditor() {
   const canEdit = isPMBA(role);
   const [previewOpen, setPreviewOpen] = useState(true);
   const editor = useClientPortalEditor(id ?? "");
+  const { discounts } = useEpicDiscounts(id);
 
   if (!id) return null;
   if (!canEdit) {
@@ -129,7 +131,7 @@ export function ClientPortalEditor() {
                   <TabsTrigger value="change-requests">Change Requests</TabsTrigger>
                 </TabsList>
                 <TabsContent value="summary">
-                  <PortalView payload={payload} showRate />
+                  <PortalView payload={payload} showRate discounts={discounts} />
                 </TabsContent>
                 <TabsContent value="change-requests">
                   <PreviewChangeRequests projectId={id} />
