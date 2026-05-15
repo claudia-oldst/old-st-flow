@@ -8,6 +8,7 @@ import type { TeamMember } from "@/lib/types";
 import { MemberAvatar } from "@/components/MemberAvatar";
 import { StopGroupTimerDialog } from "@/features/timelog/StopGroupTimerDialog";
 import oldStLogo from "@/assets/oldst-logo.png";
+import { LogoffSummaryButton } from "@/features/logoff/LogoffSummaryButton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -232,6 +233,7 @@ export function TopBar() {
 
         <div className="ml-auto flex items-center gap-3">
           <TimerChip />
+          <LogoffSummaryButton />
           <UserPicker />
         </div>
       </div>
