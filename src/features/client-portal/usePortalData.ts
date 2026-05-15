@@ -73,6 +73,7 @@ export function usePublicPortal(hash: string | undefined) {
           { table: "tickets", filter: `project_id=eq.${projectId}` },
           { table: "project_epics", filter: `project_id=eq.${projectId}` },
           { table: "project_epic_summaries", filter: `project_id=eq.${projectId}` },
+          { table: "epic_discounts", filter: `project_id=eq.${projectId}` },
           { table: "time_logs" },
           { table: "ticket_estimate_changes" },
         ]
