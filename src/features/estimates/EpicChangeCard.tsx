@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { format } from "date-fns";
 import { ChevronDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -8,6 +8,9 @@ import { Stat } from "@/features/_shared/estimate-ui/Stat";
 import { EpicMiniTrendChart } from "@/features/_shared/estimate-ui/EpicMiniTrendChart";
 import { computeEpicTotals, resolveChartRange } from "./epic-change/useEpicChange";
 import { EpicChangeRow } from "./EpicChangeRow";
+import { ListPagination } from "@/components/ListPagination";
+
+const PAGE_SIZE = 6;
 
 interface EpicTicket {
   id: string;
@@ -139,17 +142,31 @@ export function EpicChangeCard({
                   </tr>
                 </thead>
                 <tbody>
-                  {changes.map((c) => (
-                    <EpicChangeRow
-                      key={c.id}
-                      change={c}
-                      onApprove={onApprove}
-                      onReject={onReject}
-                      onOpenTicket={onOpenTicket}
-                    />
-                  ))}
+                  {(() => {
+                    const [page, setPage] = [pageState, setPageState];
+                    const start = (page - 1) * PAGE_SIZE;
+                    return changes.slice(start, start + PAGE_SIZE).map((c) => (
+                      <EpicChangeRow
+                        key={c.id}
+                        change={c}
+                        onApprove={onApprove}
+                        onReject={onReject}
+                        onOpenTicket={onOpenTicket}
+                      />
+                    ));
+                  })()}
                 </tbody>
               </table>
+              {changes.length > PAGE_SIZE && (
+                <div className="px-3 py-2 hairline-t flex justify-end">
+                  <ListPagination
+                    page={pageState}
+                    total={changes.length}
+                    pageSize={PAGE_SIZE}
+                    onChange={setPageState}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </CollapsibleContent>
