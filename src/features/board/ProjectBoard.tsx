@@ -136,8 +136,7 @@ export function ProjectBoard({
         ) : (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           {mode === "project" ? (
-            <div className="overflow-x-auto max-h-[calc(100vh-220px)] [transform:rotateX(180deg)]">
-              <div className="flex gap-3 min-w-max [transform:rotateX(180deg)]">
+            <div className="flex gap-3 overflow-x-auto pb-4">
               {statuses.map((status) => (
                 <Column
                   key={status.id}
@@ -153,11 +152,9 @@ export function ProjectBoard({
                   currentUserId={user?.id}
                 />
               ))}
-              </div>
             </div>
           ) : (
-            <div className="overflow-x-auto max-h-[calc(100vh-220px)] [transform:rotateX(180deg)]">
-              <div className="flex gap-3 min-w-max [transform:rotateX(180deg)]">
+            <div className="flex gap-3 overflow-x-auto pb-4">
               {disciplineColumns.map((s) => (
                 <DisciplineColumn
                   key={s}
@@ -170,7 +167,6 @@ export function ProjectBoard({
                   currentUserId={user?.id}
                 />
               ))}
-              </div>
             </div>
           )}
           <DragOverlay>
