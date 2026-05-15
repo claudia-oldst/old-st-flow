@@ -44,6 +44,7 @@ const App = () => (
             element={
               <div className="min-h-screen">
                 <TopBar />
+                <WeeklyHoursBar />
                 <Routes>
                   <Route path="/" element={wrap("projects", <Projects />)} />
                   <Route path="/projects/:id/*" element={wrap("project", <ProjectWorkspace />)} />
