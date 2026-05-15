@@ -9,6 +9,7 @@ import { DEFAULT_CARD_PREFS, type CardDisplayPrefs } from "@/features/tickets/us
 import { LogTimeWithCapacityCheck } from "@/features/timelog/LogTimeWithCapacityCheck";
 import { useProjectRole } from "@/features/team/useProjectRole";
 import type { LogDiscipline } from "@/lib/types";
+import { StatusBadge } from "@/features/_shared/estimate-ui/StatusBadge";
 
 const HEALTH_BG: Record<string, string> = {
   good: "bg-health-good",
@@ -153,13 +154,8 @@ export function TicketCard({
               )}
             </span>
           )}
-          {ticket.ticket_type === "CR" && ticket.cr_approval === "pending" && (
-            <span
-              className="px-1.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider bg-amber-500/15 text-amber-400 ring-1 ring-amber-400/30"
-              title="Change request awaiting approval"
-            >
-              Pending
-            </span>
+          {ticket.ticket_type === "CR" && (
+            <StatusBadge status={ticket.cr_approval} />
           )}
         </div>
       )}
