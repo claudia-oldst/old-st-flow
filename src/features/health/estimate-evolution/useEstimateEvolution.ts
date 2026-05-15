@@ -28,6 +28,7 @@ export function useEstimateEvolution({
 }) {
   const { tickets } = useProjectTickets(projectId);
   const { changes } = useProjectEstimateChanges(projectId);
+  const { discounts } = useEpicDiscounts(projectId);
 
   const projectStartKey = ["projectStart", projectId] as const;
   const projectStartQuery = useQuery({
