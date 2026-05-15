@@ -33,10 +33,8 @@ export function TicketDetailHeader({
         {ticket.ticket_type !== "Standard" && (
           <span className="px-2 py-0.5 rounded-full text-[10px] bg-white/5 hairline">{ticket.ticket_type}</span>
         )}
-        {ticket.ticket_type === "CR" && ticket.cr_approval === "pending" && (
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-amber-500/15 text-amber-400 ring-1 ring-amber-400/30">
-            Pending
-          </span>
+        {ticket.ticket_type === "CR" && (
+          <CRStatusBadge status={ticket.cr_approval} />
         )}
         {ticket.epic_name && (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-white/5 hairline">
