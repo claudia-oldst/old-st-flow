@@ -131,7 +131,7 @@ export function ClientPortalEditor() {
                   <TabsTrigger value="change-requests">Change Requests</TabsTrigger>
                 </TabsList>
                 <TabsContent value="summary">
-                  <PortalView payload={payload} showRate />
+                  <PortalView payload={payload} showRate discounts={discounts} />
                 </TabsContent>
                 <TabsContent value="change-requests">
                   <PreviewChangeRequests projectId={id} />
