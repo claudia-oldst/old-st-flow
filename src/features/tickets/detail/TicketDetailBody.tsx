@@ -157,7 +157,7 @@ export function TicketDetailBody({
       </div>
 
       <TimeLogsPanel
-        ticketId={ticket.id}
+        ticket={ticket}
         canLog={canLog}
         onOpenLog={onOpenLog}
         reloadKey={logsReloadKey}
