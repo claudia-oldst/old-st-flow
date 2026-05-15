@@ -11,6 +11,7 @@ import { EpicSummaryEditor } from "./editor/EpicSummaryEditor";
 import { PreviewChangeRequests } from "./editor/PreviewChangeRequests";
 import { PortalToolbar } from "./editor/PortalToolbar";
 import { useClientPortalEditor } from "./editor/useClientPortalEditor";
+import { useEpicDiscounts } from "@/features/discounts/useEpicDiscounts";
 
 export function ClientPortalEditor() {
   const { id } = useParams<{ id: string }>();
