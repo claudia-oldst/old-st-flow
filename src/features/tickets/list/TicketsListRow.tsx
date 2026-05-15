@@ -153,43 +153,53 @@ export function TicketsListRow({
   };
 
   return (
-    <tr
-      key={`${groupKey}-${t.id}`}
-      onClick={() => onOpen(t)}
-      className={cn(
-        "cursor-pointer transition hairline-b last:border-b-0",
-        selected ? "bg-accent/10 hover:bg-accent/15" : "hover:bg-white/[0.02]"
-      )}
-    >
-      {selectionEnabled && (
-        <td className="pl-4 pr-1 align-middle">
-          <input
-            type="checkbox"
-            aria-label={`Select ticket ${t.formatted_id}`}
-            checked={selected}
-            onChange={() => {}}
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleSelect!(t.id, (e as unknown as React.MouseEvent).shiftKey);
-            }}
-            className="h-3.5 w-3.5 rounded border-white/20 bg-transparent accent-accent cursor-pointer"
-          />
-        </td>
-      )}
-      {visibleCols.map((k) => {
-        const c = COLS[k];
-        return (
-          <td
-            key={k}
-            className={cn(
-              "px-4 py-3 align-middle overflow-hidden",
-              c.align === "right" && "text-right"
-            )}
-          >
-            {renderCell(k)}
+    <>
+      <tr
+        key={`${groupKey}-${t.id}`}
+        onClick={() => onOpen(t)}
+        className={cn(
+          "cursor-pointer transition hairline-b last:border-b-0",
+          selected ? "bg-accent/10 hover:bg-accent/15" : "hover:bg-white/[0.02]"
+        )}
+      >
+        {selectionEnabled && (
+          <td className="pl-4 pr-1 align-middle">
+            <input
+              type="checkbox"
+              aria-label={`Select ticket ${t.formatted_id}`}
+              checked={selected}
+              onChange={() => {}}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleSelect!(t.id, (e as unknown as React.MouseEvent).shiftKey);
+              }}
+              className="h-3.5 w-3.5 rounded border-white/20 bg-transparent accent-accent cursor-pointer"
+            />
           </td>
-        );
-      })}
-    </tr>
+        )}
+        {visibleCols.map((k) => {
+          const c = COLS[k];
+          return (
+            <td
+              key={k}
+              className={cn(
+                "px-4 py-3 align-middle overflow-hidden",
+                c.align === "right" && "text-right"
+              )}
+            >
+              {renderCell(k)}
+            </td>
+          );
+        })}
+      </tr>
+      {logOpen && (
+        <LogTimeModal
+          open={logOpen}
+          onOpenChange={setLogOpen}
+          ticket={t}
+          role={role}
+        />
+      )}
+    </>
   );
 }
