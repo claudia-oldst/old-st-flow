@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useProjectTickets } from "@/features/tickets/useProjectTickets";
 import { useProjectEstimateChanges } from "@/features/estimates/useEstimateChanges";
+import { useEpicDiscounts } from "@/features/discounts/useEpicDiscounts";
 import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
 import { ALL_EPICS_KEY, NO_EPIC_KEY, endOfDay, startOfDay } from "./dateUtils";
 
@@ -27,6 +28,7 @@ export function useEstimateEvolution({
 }) {
   const { tickets } = useProjectTickets(projectId);
   const { changes } = useProjectEstimateChanges(projectId);
+  const { discounts } = useEpicDiscounts(projectId);
 
   const projectStartKey = ["projectStart", projectId] as const;
   const projectStartQuery = useQuery({
@@ -140,11 +142,21 @@ export function useEstimateEvolution({
       g.actual += l.hours;
     });
 
+    discounts.forEach((d) => {
+      if (new Date(d.created_at).getTime() > asOfMs) return;
+      const key = `e:${d.epic_id}`;
+      const g = groups.get(key);
+      if (!g) return;
+      const h = Number(d.hours) || 0;
+      g.current = Math.max(0, g.current - h);
+      g.actual = Math.max(0, g.actual - h);
+    });
+
     return Array.from(groups.entries())
       .map(([key, v]) => ({ key, ...v }))
       .filter((g) => g.original > 0 || g.current > 0 || g.actual > 0)
       .sort((a, b) => b.current - a.current);
-  }, [tickets, epics, changes, logs, ticketEpic, asOf, ticketEffectiveMs]);
+  }, [tickets, epics, changes, logs, discounts, ticketEpic, asOf, ticketEffectiveMs]);
 
   const trendData = useMemo(() => {
     if (tickets.length === 0) return [];
@@ -156,15 +168,24 @@ export function useEstimateEvolution({
       return `e:${epicId}` === selectedEpic;
     };
 
+    const discountFilter = (epicId: number) => {
+      if (selectedEpic === ALL_EPICS_KEY) return true;
+      if (selectedEpic === NO_EPIC_KEY) return false;
+      return `e:${epicId}` === selectedEpic;
+    };
+    const relevantDiscounts = discounts.filter((d) => discountFilter(d.epic_id));
+
     const relevantTickets = tickets.filter(
       (t) => ticketFilter(t.id) && !(t.ticket_type === "CR" && t.cr_approval !== "approved"),
     );
-    if (relevantTickets.length === 0) return [];
+    if (relevantTickets.length === 0 && relevantDiscounts.length === 0) return [];
 
     const ticketEffMs = new Map<string, number>();
     relevantTickets.forEach((t) => ticketEffMs.set(t.id, ticketEffectiveMs(t)));
 
-    const firstTicketMs = Math.min(...Array.from(ticketEffMs.values()).filter((v) => isFinite(v)));
+    const firstTicketMs = relevantTickets.length > 0
+      ? Math.min(...Array.from(ticketEffMs.values()).filter((v) => isFinite(v)))
+      : Date.now();
     const startMs = projectStart
       ? startOfDay(projectStart).getTime()
       : startOfDay(new Date(firstTicketMs)).getTime();
@@ -201,7 +222,16 @@ export function useEstimateEvolution({
         if (!ticketFilter(l.ticket_id)) return;
         actual += l.hours;
       });
-      return { original, current: original + deltas, actual };
+      let discounted = 0;
+      relevantDiscounts.forEach((d) => {
+        if (new Date(d.created_at).getTime() > cutoff) return;
+        discounted += Number(d.hours) || 0;
+      });
+      return {
+        original,
+        current: Math.max(0, original + deltas - discounted),
+        actual: Math.max(0, actual - discounted),
+      };
     };
 
     for (let t = start; t <= end; t += stride * dayMs) {
@@ -214,7 +244,7 @@ export function useEstimateEvolution({
     }
 
     return buckets;
-  }, [tickets, changes, logs, ticketEpic, selectedEpic, asOf, projectStart, ticketEffectiveMs]);
+  }, [tickets, changes, logs, discounts, ticketEpic, selectedEpic, asOf, projectStart, ticketEffectiveMs]);
 
   return { epicSnapshots, trendData };
 }
