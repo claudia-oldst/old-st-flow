@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/store/currentUser";
 import type { LogDiscipline, ProjectRole } from "@/lib/types";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
+import { useTicketCapacity, capacityFor } from "@/features/timelog/useTicketCapacity";
 import { toast } from "sonner";
 
 export type StatusFilter = "open" | "todo" | "in_progress";
