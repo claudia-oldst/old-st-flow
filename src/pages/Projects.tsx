@@ -74,7 +74,7 @@ export default function Projects() {
   };
 
   return (
-    <div className="mx-auto max-w-[1480px] px-4 sm:px-6 py-10">
+    <div className={cn(PAGE_SHELL, "py-10")}>
       <div className="flex items-end justify-between mb-8">
         <div>
           <div className="text-xs uppercase tracking-[0.18em] text-dimmer mb-2">Workspace</div>
