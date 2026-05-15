@@ -67,15 +67,16 @@ export function EpicChangeCard({
       approvedChanges.forEach((c) => {
         if (new Date(c.created_at).getTime() <= t) approvedDelta += c.delta;
       });
-      let matchedDelta = 0;
+      let pendingDelta = 0;
       changes.forEach((c) => {
-        if (new Date(c.created_at).getTime() <= t) matchedDelta += c.delta;
+        if (c.status !== "pending") return;
+        if (new Date(c.created_at).getTime() <= t) pendingDelta += c.delta;
       });
       out.push({
         label: format(new Date(t), "d MMM"),
         original: originalAt,
         current: originalAt + approvedDelta,
-        projected: originalAt + approvedDelta + matchedDelta,
+        projected: originalAt + approvedDelta + pendingDelta,
       });
     }
     return out;
