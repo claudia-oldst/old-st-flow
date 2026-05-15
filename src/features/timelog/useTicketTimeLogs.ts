@@ -27,7 +27,7 @@ export function useTicketTimeLogs(ticketId: string | undefined) {
     queryFn: async (): Promise<TicketLogEntry[]> => {
       const { data } = await supabase
         .from("time_logs")
-        .select("id,hours,discipline,note,logged_at,source,user:team_members(name,avatar_color)")
+        .select("id,hours,discipline,note,logged_at,source,user_id,user:team_members(name,avatar_color)")
         .eq("ticket_id", ticketId!)
         .order("logged_at", { ascending: false });
       return (data as unknown as TicketLogEntry[]) ?? [];
