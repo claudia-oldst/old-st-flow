@@ -2,19 +2,31 @@ import { format } from "date-fns";
 import { formatHours } from "@/lib/utils";
 import { formatGBP, type PortalPayload } from "./types";
 import { PortalEpicTrend } from "./PortalEpicTrend";
+import {
+  discountTotalsByEpic,
+  sumTotals,
+  type EpicDiscount,
+} from "@/features/discounts/applyDiscounts";
 
 /**
  * Visual render of the client-facing portal payload.
  * Shared between the PMBA editor preview and the public /h/:hash route.
+ * Discounts are applied at display time only — raw totals/actuals are unchanged.
  */
 export function PortalView({
   payload,
   showRate,
+  discounts = [],
 }: {
   payload: PortalPayload;
   showRate: boolean;
+  discounts?: EpicDiscount[];
 }) {
   const { project, totals, epics } = payload;
+  const discountByEpic = discountTotalsByEpic(discounts);
+  const totalDiscountedHours = discounts.reduce((s, d) => s + Number(d.hours), 0);
+  const effectiveActualHours = Math.max(0, totals.actual_total - totalDiscountedHours);
+  const effectiveCostActual = effectiveActualHours * project.rate_per_hour;
   const completionPct =
     totals.tickets_total > 0
       ? Math.round((totals.tickets_done / totals.tickets_total) * 100)
