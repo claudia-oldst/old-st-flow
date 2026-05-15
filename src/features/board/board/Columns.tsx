@@ -35,18 +35,18 @@ export function Column({
     <div
       ref={setNodeRef}
       className={cn(
-        "min-w-[280px] w-[280px] h-full flex flex-col rounded-2xl glass p-2.5 transition",
+        "min-w-[280px] w-[280px] flex flex-col rounded-2xl glass p-2.5 transition",
         isOver && "bg-white/[0.06] ring-1 ring-accent/40"
       )}
     >
-      <div className="flex items-center justify-between px-1.5 pb-2 mb-2 hairline-b shrink-0">
+      <div className="flex items-center justify-between px-1.5 pb-2 mb-2 hairline-b">
         <div className="flex items-center gap-2">
           <div className="h-2 w-2 rounded-full" style={{ background: status.color }} />
           <div className="text-sm font-medium">{status.name}</div>
         </div>
         <div className="text-xs text-dimmer font-mono">{tickets.length}</div>
       </div>
-      <div className="flex flex-col gap-2 flex-1 min-h-[20px] overflow-y-auto">
+      <div className="flex flex-col gap-2 flex-1 min-h-[20px]">
         {tickets.map((t) => (
           <DraggableCard
             key={t.id}
@@ -90,18 +90,18 @@ export function DisciplineColumn({
     <div
       ref={setNodeRef}
       className={cn(
-        "min-w-[280px] w-[280px] h-full flex flex-col rounded-2xl glass p-2.5 transition",
+        "min-w-[280px] w-[280px] flex flex-col rounded-2xl glass p-2.5 transition",
         isOver && "bg-white/[0.06] ring-1 ring-accent/40"
       )}
     >
-      <div className="flex items-center justify-between px-1.5 pb-2 mb-2 hairline-b shrink-0">
+      <div className="flex items-center justify-between px-1.5 pb-2 mb-2 hairline-b">
         <div className="flex items-center gap-2">
           <div className="h-2 w-2 rounded-full" style={{ background: color }} />
           <div className="text-sm font-medium">{label}</div>
         </div>
         <div className="text-xs text-dimmer font-mono">{cards.length}</div>
       </div>
-      <div className="flex flex-col gap-2 flex-1 min-h-[20px] overflow-y-auto">
+      <div className="flex flex-col gap-2 flex-1 min-h-[20px]">
         {cards.map((c) => (
           <DraggableDisciplineCard
             key={`${c.ticket.id}::${c.slot}`}
