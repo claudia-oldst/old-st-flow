@@ -16,7 +16,7 @@ import { VaultDashboard } from "@/features/vault/VaultDashboard";
 import { ArrowLeft, Download, Archive } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, PAGE_SHELL } from "@/lib/utils";
 
 export default function ProjectWorkspace() {
   const { id } = useParams<{ id: string }>();
