@@ -51,6 +51,8 @@ export function EpicChangeCard({
   onApprove, onReject, onOpenTicket, defaultOpen, range, discountHours = 0,
 }: Props) {
   const [open, setOpen] = useState(!!defaultOpen);
+  const [pageState, setPageState] = useState(1);
+  useEffect(() => { setPageState(1); }, [changes.length]);
   const totals = useMemo(
     () => computeEpicTotals(tickets, changes, discountHours),
     [tickets, changes, discountHours],
@@ -142,19 +144,15 @@ export function EpicChangeCard({
                   </tr>
                 </thead>
                 <tbody>
-                  {(() => {
-                    const [page, setPage] = [pageState, setPageState];
-                    const start = (page - 1) * PAGE_SIZE;
-                    return changes.slice(start, start + PAGE_SIZE).map((c) => (
-                      <EpicChangeRow
-                        key={c.id}
-                        change={c}
-                        onApprove={onApprove}
-                        onReject={onReject}
-                        onOpenTicket={onOpenTicket}
-                      />
-                    ));
-                  })()}
+                  {changes.slice((pageState - 1) * PAGE_SIZE, pageState * PAGE_SIZE).map((c) => (
+                    <EpicChangeRow
+                      key={c.id}
+                      change={c}
+                      onApprove={onApprove}
+                      onReject={onReject}
+                      onOpenTicket={onOpenTicket}
+                    />
+                  ))}
                 </tbody>
               </table>
               {changes.length > PAGE_SIZE && (
