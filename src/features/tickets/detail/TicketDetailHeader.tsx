@@ -4,6 +4,7 @@ import { SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import type { Status } from "@/lib/types";
 import { displayTitle } from "@/lib/utils";
+import { StatusBadge } from "@/features/_shared/estimate-ui/StatusBadge";
 
 export function TicketDetailHeader({
   ticket,
@@ -34,7 +35,7 @@ export function TicketDetailHeader({
           <span className="px-2 py-0.5 rounded-full text-[10px] bg-white/5 hairline">{ticket.ticket_type}</span>
         )}
         {ticket.ticket_type === "CR" && (
-          <CRStatusBadge status={ticket.cr_approval} />
+          <StatusBadge status={ticket.cr_approval} />
         )}
         {ticket.epic_name && (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-white/5 hairline">
