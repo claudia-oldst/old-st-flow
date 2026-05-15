@@ -112,6 +112,8 @@ export function useStopGroup({
     if (remainingMinutes !== 0)
       return toast.error(`Allocated ${allocatedMinutes}m, expected ${totalMinutes}m`);
     if (rows.some((r) => r.minutes < 0)) return toast.error("Time must be ≥ 0");
+    if (overflowingRowIds.length > 0)
+      return toast.error("Adjust estimates on flagged tickets before saving");
 
     setBusy(true);
 
