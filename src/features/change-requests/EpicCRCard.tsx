@@ -37,6 +37,8 @@ export function EpicCRCard({
   discountHours = 0,
 }: Props) {
   const [open, setOpen] = useState(!!defaultOpen);
+  const [page, setPage] = useState(1);
+  useEffect(() => { setPage(1); }, [filteredCRs.length]);
 
   const deciderIds = useMemo(
     () => allCRs
