@@ -188,7 +188,12 @@ export function buildEpicTrendSeries(args: {
       if (new Date(l.logged_at).getTime() > c) return;
       actual += l.hours;
     });
-    return { original, current: original + deltas, actual };
+    let discounted = 0;
+    discounts.forEach((d) => {
+      if (new Date(d.created_at).getTime() > c) return;
+      discounted += Number(d.hours) || 0;
+    });
+    return { original, current: original + deltas, actual: Math.max(0, actual - discounted) };
   };
 
   for (let t = startMs; t <= end; t += stride * dayMs) {
