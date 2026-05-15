@@ -17,7 +17,7 @@ Add a small calendar icon next to the user picker in the top bar. Clicking it op
 
 ```text
 Logging off:
-- {Project name}: {1–2 sentence summary across that project's tickets}
+- {Project name}: {5–8 word summary, terse dev shorthand}
 - {Project name}: {…}
 Good night!
 ```
