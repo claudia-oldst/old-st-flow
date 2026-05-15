@@ -9,6 +9,7 @@ export interface TicketLogEntry {
   note: string | null;
   logged_at: string;
   source: "timer" | "manual";
+  user_id: string;
   user: { name: string; avatar_color: string };
 }
 
