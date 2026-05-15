@@ -158,7 +158,14 @@ export function TicketCard({
         <div className="flex items-center gap-1.5 mb-1.5">
           {prefs.type && <TypeIcon type={ticket.ticket_type} />}
           {prefs.id && (
-            <span className="font-mono text-[10px] text-dimmer">{ticket.formatted_id}</span>
+            <span className="font-mono text-[10px] text-dimmer inline-flex items-center gap-1 min-w-0">
+              <span className="shrink-0">{ticket.formatted_id}</span>
+              {ticket.epic_name && (
+                <span className="truncate max-w-[140px]" title={ticket.epic_name}>
+                  [{ticket.epic_name}]
+                </span>
+              )}
+            </span>
           )}
           {ticket.ticket_type === "CR" && ticket.cr_approval === "pending" && (
             <span
