@@ -5,7 +5,7 @@ import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { displayTitle, formatHours, cn } from "@/lib/utils";
 import { DisciplineStatusChip } from "@/features/tickets/DisciplineStatusChip";
 import type { Status } from "@/lib/types";
-import { useTimerStore } from "@/store/timer";
+// useTimerStore no longer needed
 import { LogTimeModal } from "@/features/timelog/LogTimeModal";
 import { useProjectRole } from "@/features/team/useProjectRole";
 import { COLS, ColKey } from "./columns";
