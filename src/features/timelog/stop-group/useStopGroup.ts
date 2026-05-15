@@ -64,6 +64,21 @@ export function useStopGroup({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+  const ids = useMemo(() => rows.map((r) => r.ticket.id), [rows]);
+  const { map: capMap, refetch: refetchCapacity } = useTicketCapacityByIds(ids, open);
+  const discipline: LogDiscipline = active.discipline;
+
+  const overflowsRow = (id: string, minutes: number) => {
+    const cap = capacityFor(capMap[id], discipline);
+    if (cap.available <= 0) return false;
+    return cap.actual + minutes / 60 > cap.available + 1e-6;
+  };
+  const overflowingRowIds = useMemo(
+    () => rows.filter((r) => overflowsRow(r.ticket.id, r.minutes)).map((r) => r.ticket.id),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [rows, capMap, discipline],
+  );
+
   const allocatedMinutes = useMemo(
     () => rows.reduce((sum, r) => sum + (Number.isFinite(r.minutes) ? r.minutes : 0), 0),
     [rows]
