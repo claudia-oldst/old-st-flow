@@ -7,6 +7,7 @@ import { PortalView } from "@/features/client-portal/PortalView";
 import { PortalChangeRequests } from "@/features/client-portal/PortalChangeRequests";
 import { useClientPortalCRsByHash } from "@/features/client-portal/useClientPortalCRs";
 import oldStLogo from "@/assets/oldst-logo.png";
+import { useEpicDiscounts } from "@/features/discounts/useEpicDiscounts";
 
 export default function ClientPortalPublic() {
   const { hash } = useParams<{ hash: string }>();
