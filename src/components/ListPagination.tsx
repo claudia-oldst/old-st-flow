@@ -7,6 +7,7 @@ import {
   PaginationPrevious,
   PaginationEllipsis,
 } from "@/components/ui/pagination";
+import { cn } from "@/lib/utils";
 
 interface Props {
   page: number;
@@ -32,25 +33,35 @@ export function ListPagination({ page, total, pageSize, onChange, className }: P
     if (next !== page) onChange(next);
   };
 
+  const subtleLink = "h-7 min-w-7 px-2 text-[11px] rounded-md border-0 bg-transparent hover:bg-transparent hover:text-foreground text-dimmer";
+  const activeLink = "text-foreground font-medium";
+
   return (
     <Pagination className={className}>
-      <PaginationContent>
+      <PaginationContent className="gap-0.5">
         <PaginationItem>
           <PaginationPrevious
             href="#"
             onClick={go(page - 1)}
             aria-disabled={page <= 1}
-            className={page <= 1 ? "pointer-events-none opacity-40" : ""}
+            size="sm"
+            className={cn(subtleLink, "gap-1 px-2", page <= 1 && "pointer-events-none opacity-30")}
           />
         </PaginationItem>
         {pages.map((p, i) =>
           p === "…" ? (
             <PaginationItem key={`e-${i}`}>
-              <PaginationEllipsis />
+              <PaginationEllipsis className="h-7 w-7 text-dimmer" />
             </PaginationItem>
           ) : (
             <PaginationItem key={p}>
-              <PaginationLink href="#" isActive={p === page} onClick={go(p)}>
+              <PaginationLink
+                href="#"
+                isActive={p === page}
+                onClick={go(p)}
+                size="sm"
+                className={cn(subtleLink, p === page && activeLink)}
+              >
                 {p}
               </PaginationLink>
             </PaginationItem>
@@ -61,7 +72,8 @@ export function ListPagination({ page, total, pageSize, onChange, className }: P
             href="#"
             onClick={go(page + 1)}
             aria-disabled={page >= totalPages}
-            className={page >= totalPages ? "pointer-events-none opacity-40" : ""}
+            size="sm"
+            className={cn(subtleLink, "gap-1 px-2", page >= totalPages && "pointer-events-none opacity-30")}
           />
         </PaginationItem>
       </PaginationContent>
