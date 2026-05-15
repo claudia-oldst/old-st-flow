@@ -68,6 +68,42 @@ export type Database = {
           },
         ]
       }
+      epic_discounts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          discipline: Database["public"]["Enums"]["assignee_slot"]
+          epic_id: number
+          hours: number
+          id: string
+          project_id: string
+          reason: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          discipline: Database["public"]["Enums"]["assignee_slot"]
+          epic_id: number
+          hours: number
+          id?: string
+          project_id: string
+          reason: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          discipline?: Database["public"]["Enums"]["assignee_slot"]
+          epic_id?: number
+          hours?: number
+          id?: string
+          project_id?: string
+          reason?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       project_epic_summaries: {
         Row: {
           ai_draft: string | null
