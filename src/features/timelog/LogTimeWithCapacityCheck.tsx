@@ -62,15 +62,21 @@ export function LogTimeWithCapacityCheck({
   const discipline = resolveDefaultDiscipline(ticket, role, userId);
   const cap = capacityFor(map[ticket.id], discipline);
 
-  // Sync from parent open: when parent opens us, route to the right modal.
-  // We use a small effect-less pattern by tracking "open" against local state.
-  if (open && !logOpen && !adjustOpen) {
-    if (cap.isOver) {
-      setAdjustOpen(true);
-    } else {
-      setLogOpen(true);
+  // When the parent opens us, route to the right modal once capacity is known.
+  // Capacity loads async; wait for the row to appear before deciding.
+  const hasCap = !!map[ticket.id];
+  useEffect(() => {
+    if (!open) {
+      setLogOpen(false);
+      setAdjustOpen(false);
+      return;
     }
-  }
+    if (logOpen || adjustOpen) return;
+    if (!hasCap) return;
+    if (cap.isOver) setAdjustOpen(true);
+    else setLogOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, hasCap, cap.isOver]);
 
   const closeAll = () => {
     setLogOpen(false);
