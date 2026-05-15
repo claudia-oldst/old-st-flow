@@ -82,7 +82,7 @@ export function TicketCard({
   const anyBars = showFEBar || showBEBar || showProjectBar;
   const showHeaderRow = prefs.type || prefs.id;
 
-  const activeTimer = useTimerStore((s) => s.active);
+  // activeTimer no longer gates the play button — it now opens the Log Time modal.
   const role = useProjectRole(ticket.project_id);
   const [logOpen, setLogOpen] = useState(false);
   const mySlots: ("FE" | "BE" | "Project")[] = currentUserId

@@ -33,7 +33,7 @@ export function TicketsListRow({
   statuses: Status[];
   groupKey: string;
 }) {
-  const activeTimer = useTimerStore((s) => s.active);
+  // activeTimer no longer gates the play button — it now opens the Log Time modal.
   const role = useProjectRole(t.project_id);
   const [logOpen, setLogOpen] = useState(false);
 
