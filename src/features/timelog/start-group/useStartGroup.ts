@@ -79,6 +79,16 @@ export function useStartGroup({
     });
   }, [myTickets, search, statusFilter, typeFilter, discipline]);
 
+  const { map: capMap, refetch: refetchCapacity } = useTicketCapacity(visible, open);
+
+  const isOver = (id: string) => capacityFor(capMap[id], discipline).isOver;
+
+  const blockedSelectedTickets = useMemo(
+    () => visible.filter((t) => selected.has(t.id) && isOver(t.id)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [visible, selected, capMap, discipline],
+  );
+
   const allVisibleSelected = visible.length > 0 && visible.every((t) => selected.has(t.id));
 
   const toggleSelect = (id: string) =>
