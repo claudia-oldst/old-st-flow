@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { ChevronDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -9,6 +9,9 @@ import { EpicMiniTrendChart } from "@/features/_shared/estimate-ui/EpicMiniTrend
 import { crEstimate, computeCRTotals } from "./epic-cr/useEpicCR";
 import { useCRDeciderNames } from "./epic-cr/useCRDeciderNames";
 import { EpicCRRow } from "./EpicCRRow";
+import { ListPagination } from "@/components/ListPagination";
+
+const PAGE_SIZE = 6;
 
 interface Props {
   epicKey: string;
