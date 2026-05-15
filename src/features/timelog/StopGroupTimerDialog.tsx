@@ -72,6 +72,7 @@ export function StopGroupTimerDialog({
       : "Project";
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="glass-strong max-w-2xl">
         <DialogHeader>
