@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -14,6 +15,7 @@ import type { TimerTicket } from "@/store/timer";
 import { formatDuration } from "@/lib/utils";
 import { useStopGroup } from "./stop-group/useStopGroup";
 import { RowsList } from "./stop-group/RowsList";
+import { RequestMoreTimeDialog, type AdjustSlot } from "@/features/tickets/RequestMoreTimeDialog";
 
 interface Props {
   open: boolean;
@@ -44,6 +46,10 @@ export function StopGroupTimerDialog({
     distributeEvenly,
     handleDiscard,
     handleSave,
+    capMap,
+    discipline,
+    overflowingRowIds,
+    refetchCapacity,
   } = useStopGroup({
     open,
     active,
@@ -51,6 +57,12 @@ export function StopGroupTimerDialog({
     elapsedMs,
     onClose: () => onOpenChange(false),
   });
+
+  const [adjustTicketId, setAdjustTicketId] = useState<string | null>(null);
+  const adjustRow = rows.find((r) => r.ticket.id === adjustTicketId) ?? null;
+  const adjustSlot: AdjustSlot =
+    discipline === "Project" ? "Proj" : (discipline as "FE" | "BE");
+  const adjustCap = adjustTicketId ? capMap[adjustTicketId] : undefined;
 
   const disciplineLabel =
     active.discipline === "FE"
@@ -60,6 +72,7 @@ export function StopGroupTimerDialog({
       : "Project";
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="glass-strong max-w-2xl">
         <DialogHeader>
@@ -116,6 +129,9 @@ export function StopGroupTimerDialog({
           isProject={isProject}
           updateRow={updateRow}
           removeRow={removeRow}
+          capMap={capMap}
+          discipline={discipline}
+          onAdjust={setAdjustTicketId}
         />
 
         <div className="space-y-2">
@@ -141,7 +157,8 @@ export function StopGroupTimerDialog({
               rows.length === 0 ||
               remainingMinutes !== 0 ||
               totalMinutes === 0 ||
-              rows.every((r) => r.minutes === 0)
+              rows.every((r) => r.minutes === 0) ||
+              overflowingRowIds.length > 0
             }
           >
             Save logs
@@ -149,5 +166,27 @@ export function StopGroupTimerDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    {adjustRow && (
+      <RequestMoreTimeDialog
+        open={!!adjustRow}
+        onOpenChange={(v) => !v && setAdjustTicketId(null)}
+        ticketId={adjustRow.ticket.id}
+        currentFE={adjustCap?.currentFE ?? 0}
+        currentBE={adjustCap?.currentBE ?? 0}
+        actualFE={adjustCap?.actualFE ?? 0}
+        actualBE={adjustCap?.actualBE ?? 0}
+        currentProj={adjustCap?.currentProj ?? 0}
+        actualProj={adjustCap?.actualProj ?? 0}
+        allowedSlots={[adjustSlot]}
+        defaultSlot={adjustSlot}
+        helperText="Logged time would exceed this ticket's available estimate. Bump the estimate to save."
+        onSaved={() => {
+          setAdjustTicketId(null);
+          refetchCapacity();
+        }}
+      />
+    )}
+    </>
   );
 }

@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/store/currentUser";
 import type { LogDiscipline, ProjectRole } from "@/lib/types";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
+import { useTicketCapacity, capacityFor } from "@/features/timelog/useTicketCapacity";
 import { toast } from "sonner";
 
 export function useLogTime({
@@ -95,10 +96,22 @@ export function useLogTime({
     onClose();
   };
 
+  const { map: capMap, refetch: refetchCapacity } = useTicketCapacity([ticket], open);
+  const capacity = useMemo(
+    () => capacityFor(capMap[ticket.id], discipline),
+    [capMap, ticket.id, discipline],
+  );
+
+  const wouldOverflowManual = (h: number) =>
+    capacity.available > 0 && capacity.actual + h > capacity.available + 1e-6;
+
   const handleManualLog = async () => {
     if (!user) return toast.error("Pick a user first");
     const h = parseFloat(hours);
     if (!h || h <= 0) return toast.error("Enter hours > 0");
+    if (wouldOverflowManual(h)) {
+      return toast.error("Adjust the estimate first — this would exceed available hours.");
+    }
     setBusy(true);
     const { error } = await supabase.from("time_logs").insert({
       ticket_id: ticket.id,
@@ -150,5 +163,8 @@ export function useLogTime({
     busy,
     handleStartTimer,
     handleManualLog,
+    capacity,
+    refetchCapacity,
+    wouldOverflowManual,
   };
 }

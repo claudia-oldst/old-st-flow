@@ -6,7 +6,7 @@ import { displayTitle, formatHours, cn } from "@/lib/utils";
 import { DisciplineStatusChip } from "@/features/tickets/DisciplineStatusChip";
 import type { Status } from "@/lib/types";
 // useTimerStore no longer needed
-import { LogTimeModal } from "@/features/timelog/LogTimeModal";
+import { LogTimeWithCapacityCheck } from "@/features/timelog/LogTimeWithCapacityCheck";
 import { useProjectRole } from "@/features/team/useProjectRole";
 import { COLS, ColKey } from "./columns";
 
@@ -193,11 +193,12 @@ export function TicketsListRow({
         })}
       </tr>
       {logOpen && (
-        <LogTimeModal
+        <LogTimeWithCapacityCheck
           open={logOpen}
           onOpenChange={setLogOpen}
           ticket={t}
           role={role}
+          userId={currentUserId}
         />
       )}
     </>

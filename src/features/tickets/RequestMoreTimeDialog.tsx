@@ -22,6 +22,8 @@ import { useCurrentUser } from "@/store/currentUser";
 import { formatHours } from "@/lib/utils";
 import { toast } from "sonner";
 
+export type AdjustSlot = "FE" | "BE" | "Proj";
+
 interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -30,9 +32,14 @@ interface Props {
   currentBE: number;
   actualFE: number;
   actualBE: number;
+  /** Optional Proj discipline values, required when allowedSlots includes "Proj". */
+  currentProj?: number;
+  actualProj?: number;
   /** Disciplines the user is allowed to request changes for. */
-  allowedSlots: Array<"FE" | "BE">;
-  defaultSlot?: "FE" | "BE";
+  allowedSlots: AdjustSlot[];
+  defaultSlot?: AdjustSlot;
+  /** Optional contextual blurb shown at the top (e.g. "Used X of Yh — add more to log"). */
+  helperText?: string;
   onSaved: () => void;
 }
 
@@ -44,12 +51,15 @@ export function RequestMoreTimeDialog({
   currentBE,
   actualFE,
   actualBE,
+  currentProj = 0,
+  actualProj = 0,
   allowedSlots,
   defaultSlot,
+  helperText,
   onSaved,
 }: Props) {
   const user = useCurrentUser((s) => s.user);
-  const [slot, setSlot] = useState<"FE" | "BE">(
+  const [slot, setSlot] = useState<AdjustSlot>(
     defaultSlot ?? allowedSlots[0] ?? "FE"
   );
   const [hours, setHours] = useState("");
@@ -64,7 +74,10 @@ export function RequestMoreTimeDialog({
   }, [open, defaultSlot, allowedSlots]);
 
   const additional = parseFloat(hours) || 0;
-  const previous = slot === "FE" ? currentFE : currentBE;
+  const previous =
+    slot === "FE" ? currentFE : slot === "BE" ? currentBE : currentProj;
+  const used =
+    slot === "FE" ? actualFE : slot === "BE" ? actualBE : actualProj;
   const next = previous + additional;
 
   const submit = async () => {
@@ -74,12 +87,13 @@ export function RequestMoreTimeDialog({
     if (!reason.trim()) return toast.error("Reason is required");
     setBusy(true);
 
+    const dbDiscipline = slot === "Proj" ? "Project" : slot;
     const { error: logErr } = await supabase
       .from("ticket_estimate_changes")
       .insert({
         ticket_id: ticketId,
         user_id: user.id,
-        discipline: slot,
+        discipline: dbDiscipline,
         previous_hours: previous,
         new_hours: next,
         reason: reason.trim(),
@@ -95,7 +109,9 @@ export function RequestMoreTimeDialog({
     const patch =
       slot === "FE"
         ? { current_fe_estimate: next }
-        : { current_be_estimate: next };
+        : slot === "BE"
+        ? { current_be_estimate: next }
+        : { current_project_estimate: next };
     const { error: tErr } = await supabase
       .from("tickets")
       .update(patch)
@@ -108,6 +124,9 @@ export function RequestMoreTimeDialog({
     onSaved();
   };
 
+  const slotLabel = (s: AdjustSlot) =>
+    s === "FE" ? "Frontend" : s === "BE" ? "Backend" : "Project";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="glass-strong max-w-md">
@@ -115,23 +134,28 @@ export function RequestMoreTimeDialog({
           <DialogTitle>Adjust estimate</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
+          {helperText && (
+            <div className="text-xs text-primary px-3 py-2 rounded-lg bg-primary/10 hairline">
+              {helperText}
+            </div>
+          )}
+
           <div className="space-y-1.5">
             <Label className="text-xs">Discipline</Label>
             <Select
               value={slot}
-              onValueChange={(v) => setSlot(v as "FE" | "BE")}
+              onValueChange={(v) => setSlot(v as AdjustSlot)}
               disabled={allowedSlots.length === 1}
             >
               <SelectTrigger className="h-9 text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {allowedSlots.includes("FE") && (
-                  <SelectItem value="FE">Frontend</SelectItem>
-                )}
-                {allowedSlots.includes("BE") && (
-                  <SelectItem value="BE">Backend</SelectItem>
-                )}
+                {allowedSlots.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {slotLabel(s)}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -155,9 +179,7 @@ export function RequestMoreTimeDialog({
               </span>
               <span className="text-dimmer">
                 Used so far:{" "}
-                <span className="text-foreground font-mono">
-                  {formatHours(slot === "FE" ? actualFE : actualBE)}
-                </span>
+                <span className="text-foreground font-mono">{formatHours(used)}</span>
               </span>
             </div>
           </div>

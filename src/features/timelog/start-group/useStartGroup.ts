@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/store/currentUser";
 import type { LogDiscipline, ProjectRole } from "@/lib/types";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
+import { useTicketCapacity, capacityFor } from "@/features/timelog/useTicketCapacity";
 import { toast } from "sonner";
 
 export type StatusFilter = "open" | "todo" | "in_progress";
@@ -78,6 +79,16 @@ export function useStartGroup({
     });
   }, [myTickets, search, statusFilter, typeFilter, discipline]);
 
+  const { map: capMap, refetch: refetchCapacity } = useTicketCapacity(visible, open);
+
+  const isOver = (id: string) => capacityFor(capMap[id], discipline).isOver;
+
+  const blockedSelectedTickets = useMemo(
+    () => visible.filter((t) => selected.has(t.id) && isOver(t.id)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [visible, selected, capMap, discipline],
+  );
+
   const allVisibleSelected = visible.length > 0 && visible.every((t) => selected.has(t.id));
 
   const toggleSelect = (id: string) =>
@@ -99,6 +110,9 @@ export function useStartGroup({
   const handleStart = async () => {
     if (!user) return toast.error("Pick a user first");
     if (selected.size === 0) return toast.error("Select at least one ticket");
+    if (blockedSelectedTickets.length > 0) {
+      return toast.error("Adjust estimates on flagged tickets before starting");
+    }
 
     const orderedSelected: string[] = [];
     visible.forEach((t) => selected.has(t.id) && orderedSelected.push(t.id));
@@ -173,5 +187,9 @@ export function useStartGroup({
     visible,
     busy,
     handleStart,
+    capMap,
+    isOver,
+    blockedSelectedTickets,
+    refetchCapacity,
   };
 }

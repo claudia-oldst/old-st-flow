@@ -1,6 +1,8 @@
 import { Checkbox } from "@/components/ui/checkbox";
-import { cn, displayTitle } from "@/lib/utils";
+import { cn, displayTitle, formatHours } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
+import type { CapacityForDiscipline } from "@/features/timelog/useTicketCapacity";
 
 interface Props {
   visible: TicketRow[];
@@ -8,6 +10,7 @@ interface Props {
   toggleSelect: (id: string) => void;
   toggleAllVisible: () => void;
   allVisibleSelected: boolean;
+  capacityFor: (id: string) => CapacityForDiscipline;
 }
 
 export function StartGroupTicketsList({
@@ -16,6 +19,7 @@ export function StartGroupTicketsList({
   toggleSelect,
   toggleAllVisible,
   allVisibleSelected,
+  capacityFor,
 }: Props) {
   return (
     <div className="rounded-lg hairline overflow-hidden">
@@ -39,6 +43,7 @@ export function StartGroupTicketsList({
         ) : (
           visible.map((t) => {
             const checked = selected.has(t.id);
+            const cap = capacityFor(t.id);
             return (
               <label
                 key={t.id}
@@ -54,6 +59,19 @@ export function StartGroupTicketsList({
                 <span className="flex-1 truncate text-sm">
                   {displayTitle(t.title, t.ticket_type)}
                 </span>
+                {cap.isOver && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider bg-primary/15 text-primary ring-1 ring-primary/30">
+                        Over
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="text-xs">
+                      {formatHours(cap.actual)} / {formatHours(cap.available)}
+                      {cap.pending !== 0 && ` (${cap.pending > 0 ? "+" : ""}${formatHours(cap.pending)} pending)`}
+                    </TooltipContent>
+                  </Tooltip>
+                )}
               </label>
             );
           })

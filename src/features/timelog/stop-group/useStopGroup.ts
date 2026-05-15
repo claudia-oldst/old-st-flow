@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTimerStore, type TimerTicket } from "@/store/timer";
-import type { ActiveTimer, DisciplineStatus } from "@/lib/types";
+import type { ActiveTimer, DisciplineStatus, LogDiscipline } from "@/lib/types";
 import { toast } from "sonner";
 import { evenSplit } from "../utils";
+import { useTicketCapacityByIds, capacityFor } from "../useTicketCapacity";
 
 export interface StopRow {
   ticket: TimerTicket;
@@ -63,6 +64,21 @@ export function useStopGroup({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+  const ids = useMemo(() => rows.map((r) => r.ticket.id), [rows]);
+  const { map: capMap, refetch: refetchCapacity } = useTicketCapacityByIds(ids, open);
+  const discipline: LogDiscipline = active.discipline;
+
+  const overflowsRow = (id: string, minutes: number) => {
+    const cap = capacityFor(capMap[id], discipline);
+    if (cap.available <= 0) return false;
+    return cap.actual + minutes / 60 > cap.available + 1e-6;
+  };
+  const overflowingRowIds = useMemo(
+    () => rows.filter((r) => overflowsRow(r.ticket.id, r.minutes)).map((r) => r.ticket.id),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [rows, capMap, discipline],
+  );
+
   const allocatedMinutes = useMemo(
     () => rows.reduce((sum, r) => sum + (Number.isFinite(r.minutes) ? r.minutes : 0), 0),
     [rows]
@@ -96,6 +112,8 @@ export function useStopGroup({
     if (remainingMinutes !== 0)
       return toast.error(`Allocated ${allocatedMinutes}m, expected ${totalMinutes}m`);
     if (rows.some((r) => r.minutes < 0)) return toast.error("Time must be ≥ 0");
+    if (overflowingRowIds.length > 0)
+      return toast.error("Adjust estimates on flagged tickets before saving");
 
     setBusy(true);
 
@@ -197,5 +215,9 @@ export function useStopGroup({
     distributeEvenly,
     handleDiscard,
     handleSave,
+    capMap,
+    discipline,
+    overflowingRowIds,
+    refetchCapacity,
   };
 }
