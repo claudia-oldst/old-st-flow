@@ -215,5 +215,9 @@ export function useStopGroup({
     distributeEvenly,
     handleDiscard,
     handleSave,
+    capMap,
+    discipline,
+    overflowingRowIds,
+    refetchCapacity,
   };
 }
