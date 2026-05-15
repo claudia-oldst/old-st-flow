@@ -19,6 +19,7 @@ export function ClientPortalEditor() {
   const canEdit = isPMBA(role);
   const [previewOpen, setPreviewOpen] = useState(true);
   const editor = useClientPortalEditor(id ?? "");
+  const { discounts } = useEpicDiscounts(id);
 
   if (!id) return null;
   if (!canEdit) {
