@@ -108,6 +108,11 @@ export function EpicChangeCard({
               <Stat label="If all approved" value={totals.projected} accent="warn" />
               <Stat label="Actual" value={totals.actual} accent="gold" />
             </div>
+            {discountHours > 0 && (
+              <div className="text-[11px] text-health-bad font-mono">
+                −{discountHours.toFixed(discountHours % 1 === 0 ? 0 : 1)}h discounted
+              </div>
+            )}
 
             {chartData.length > 1 && <EpicMiniTrendChart data={chartData} />}
           </div>
