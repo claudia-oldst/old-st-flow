@@ -38,7 +38,7 @@ const newDraft = (): DraftDiscount => ({
   reason: "",
 });
 
-const rowSchema = z.object({
+const rowSchema: z.ZodType<CreateDiscountInput> = z.object({
   epic_id: z.number().int().positive(),
   discipline: z.enum(["FE", "BE", "Project"]),
   hours: z.number().positive().max(10000),
