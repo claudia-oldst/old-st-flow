@@ -1,13 +1,13 @@
+import { useState } from "react";
 import { Play } from "lucide-react";
-import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { displayTitle, formatHours, cn } from "@/lib/utils";
 import { DisciplineStatusChip } from "@/features/tickets/DisciplineStatusChip";
-import type { LogDiscipline } from "@/lib/types";
 import type { Status } from "@/lib/types";
 import { useTimerStore } from "@/store/timer";
-import { startTicketTimer } from "@/features/timelog/startTicketTimer";
+import { LogTimeModal } from "@/features/timelog/LogTimeModal";
+import { useProjectRole } from "@/features/team/useProjectRole";
 import { COLS, ColKey } from "./columns";
 
 export function TicketsListRow({
@@ -34,6 +34,8 @@ export function TicketsListRow({
   groupKey: string;
 }) {
   const activeTimer = useTimerStore((s) => s.active);
+  const role = useProjectRole(t.project_id);
+  const [logOpen, setLogOpen] = useState(false);
 
   const renderCell = (key: ColKey) => {
     switch (key) {
@@ -60,24 +62,9 @@ export function TicketsListRow({
           : [];
         const canQuickStart =
           showQuickStart && !!currentUserId && !activeTimer && mySlots.length > 0;
-        const handleQuickStart = async (e: React.MouseEvent) => {
+        const handleQuickStart = (e: React.MouseEvent) => {
           e.stopPropagation();
-          if (!currentUserId) return;
-          let discipline: LogDiscipline | undefined;
-          if (mySlots.includes("FE")) discipline = "FE";
-          else if (mySlots.includes("BE")) discipline = "BE";
-          else if (mySlots.includes("Project")) discipline = "Project";
-          if (!discipline) return;
-          const res = await startTicketTimer({ userId: currentUserId, ticketId: t.id, discipline });
-          if (res.ok === true) {
-            toast.success(`Timer started on ${t.formatted_id}`);
-            return;
-          }
-          if (res.reason === "active") {
-            toast.error("Stop your running timer first.");
-            return;
-          }
-          toast.error(res.message ?? "Failed to start timer");
+          setLogOpen(true);
         };
         return (
           <span className="group/title flex items-center gap-2 min-w-0">
