@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { cn, displayTitle, formatHours, healthRatio } from "@/lib/utils";
 import { MemberAvatar } from "@/components/MemberAvatar";
 import { Bug, GitPullRequest, FileText, FolderKanban, Play } from "lucide-react";
@@ -6,8 +7,8 @@ import { DisciplineStatusChip } from "@/features/tickets/DisciplineStatusChip";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DEFAULT_CARD_PREFS, type CardDisplayPrefs } from "@/features/tickets/useCardDisplayPrefs";
 import { useTimerStore } from "@/store/timer";
-import { startTicketTimer } from "@/features/timelog/startTicketTimer";
-import { toast } from "sonner";
+import { LogTimeModal } from "@/features/timelog/LogTimeModal";
+import { useProjectRole } from "@/features/team/useProjectRole";
 import type { LogDiscipline } from "@/lib/types";
 
 const HEALTH_BG: Record<string, string> = {
@@ -82,6 +83,8 @@ export function TicketCard({
   const showHeaderRow = prefs.type || prefs.id;
 
   const activeTimer = useTimerStore((s) => s.active);
+  const role = useProjectRole(ticket.project_id);
+  const [logOpen, setLogOpen] = useState(false);
   const mySlots: ("FE" | "BE" | "Project")[] = currentUserId
     ? Array.from(
         new Set(
@@ -94,26 +97,9 @@ export function TicketCard({
   const canQuickStart =
     showQuickStart && !!currentUserId && !activeTimer && mySlots.length > 0;
 
-  const handleQuickStart = async (e: React.MouseEvent) => {
+  const handleQuickStart = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!currentUserId) return;
-    let discipline: LogDiscipline | undefined = forcedDiscipline;
-    if (!discipline) {
-      if (mySlots.includes("FE")) discipline = "FE";
-      else if (mySlots.includes("BE")) discipline = "BE";
-      else if (mySlots.includes("Project")) discipline = "Project";
-    }
-    if (!discipline) return;
-    const res = await startTicketTimer({ userId: currentUserId, ticketId: ticket.id, discipline });
-    if (res.ok === true) {
-      toast.success(`Timer started on ${ticket.formatted_id}`);
-      return;
-    }
-    if (res.reason === "active") {
-      toast.error("Stop your running timer first.");
-      return;
-    }
-    toast.error(res.message ?? "Failed to start timer");
+    setLogOpen(true);
   };
 
   return (
