@@ -24,7 +24,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ChevronDown, Settings, FolderKanban, ListChecks, User, Square } from "lucide-react";
-import { cn, formatDuration } from "@/lib/utils";
+import { cn, formatDuration, PAGE_SHELL } from "@/lib/utils";
 
 // Leaf component: isolates per-second re-renders to just the ticking text.
 function Ticker({ startedAt }: { startedAt: string }) {
@@ -197,7 +197,7 @@ export function TopBar() {
 
   return (
     <header className="sticky top-0 z-40 hairline-b backdrop-blur-xl bg-background/80">
-      <div className="mx-auto max-w-[1480px] px-4 sm:px-6 h-14 flex items-center gap-6">
+      <div className={cn(PAGE_SHELL, "h-14 flex items-center gap-6")}>
         <Link to="/" className="flex items-center gap-2.5 group">
           <img
             src={oldStLogo}

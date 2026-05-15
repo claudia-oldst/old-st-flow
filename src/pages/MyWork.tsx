@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeReload } from "@/hooks/useRealtimeReload";
 import { useCurrentUser } from "@/store/currentUser";
-import { displayTitle, formatHours } from "@/lib/utils";
+import { cn, displayTitle, formatHours, PAGE_SHELL } from "@/lib/utils";
 import { ListChecks, ArrowRight } from "lucide-react";
 import { DisciplineStatusChip } from "@/features/tickets/DisciplineStatusChip";
 import type { DisciplineStatus, TeamMember, TicketAssignee } from "@/lib/types";
@@ -152,7 +152,7 @@ export default function MyWork() {
   }, [load, selected]);
 
   return (
-    <div className="mx-auto max-w-[1480px] px-4 sm:px-6 py-10">
+    <div className={cn(PAGE_SHELL, "py-10")}>
       <div className="mb-8">
         <div className="text-xs uppercase tracking-[0.18em] text-dimmer mb-2">{user?.name ?? "—"}</div>
         <h1 className="font-display text-3xl font-semibold tracking-tight flex items-center gap-2">
