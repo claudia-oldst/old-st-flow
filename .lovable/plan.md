@@ -1,117 +1,41 @@
-
 ## Goal
 
-Allow PMBAs to record one or more **epic-level discounts** (per discipline: FE / BE / Project) that reduce **billable / effective** hours without touching estimates or actuals. The discount flows through to:
-- Health rings (arcs use effective ratio; new "Discounted" stat line; `Effective Actual = Actual − Discounted`)
-- Estimate evolution chart (current + actual lines reflect discount)
-- Estimate Revisions and CR views (totals reflect discounted hours)
-- Client portal (totals + cost calculations reflect discounts)
+Make the client portal preview (PMBA editor) and the public `/h/:hash` view reflect epic-level discounts in the existing tiles, cards, numbers, and trend chart — without adding a new "Discounts" section.
 
-## Database (new migration)
+## What changes (display only)
 
-New table `public.epic_discounts`:
-- `id uuid pk default gen_random_uuid()`
-- `project_id uuid not null`
-- `epic_id bigint not null`
-- `discipline assignee_slot not null` (`FE` | `BE` | `Project`)
-- `hours numeric not null check (hours > 0)`
-- `reason text not null`
-- `created_by uuid` (team_members.id)
-- `created_at`, `updated_at` (with trigger)
+Discounts continue to live in `epic_discounts`. We apply them at render time on the client, mirroring the convention used in Health/CR/Estimate views:
 
-RLS: read = all; insert/update/delete = `is_pmba(auth.uid())`.
+```text
+Effective Actual = max(0, Actual − Discounted)
+Cost Actual      = Effective Actual × rate
+Estimate         = unchanged (raw current estimate)
+```
 
-Validation trigger: ensures `epic.project_id = NEW.project_id`.
+Discipline ticket counts (FE/BE done/in-progress/to-do) are unchanged — discounts are hours-only, not ticket-status.
 
-Update SQL functions `get_client_portal` and `get_project_portal_preview` to:
-- Aggregate `epic_discounts` per epic and project-wide
-- Subtract discount hours from `actual_*`, `current_*` totals
-- Recompute `cost_actual` / `cost_estimate` on effective hours
-- Return `discount_hours` per epic + `discount_total` in totals
+## Files
 
-## Hook + shared logic
+1. **`src/features/discounts/useEpicDiscounts.ts`** — already exists. Reuse its project-scoped fetch (works under the open RLS that's already in place, so it loads fine on the public `/h/:hash` page too).
 
-`src/features/discounts/useEpicDiscounts.ts` — list + realtime invalidate; `createDiscounts(rows[])`, `updateDiscount`, `deleteDiscount`.
+2. **`src/features/client-portal/PortalView.tsx`**
+   - Accept `discounts: EpicDiscount[]` as a new prop.
+   - Cost tile: replace `totals.cost_actual` with `max(0, actual_total − totalDiscountedHours) × rate`. Keep label "Cost", keep the "of {cost_estimate}" subline unchanged.
+   - "Estimate Change Detail" per-epic card: subtract that epic's discount total from `actual_hours` before multiplying by rate for the right-hand cost number.
+   - No new section, no extra row.
 
-`src/features/discounts/applyDiscounts.ts`:
-- `discountTotalsByDiscipline(discounts)` → `{ FE, BE, Project }`
-- `discountTotalsByEpic(discounts)` → Map<epicId, totals>
-- `discountsBefore(discounts, cutoffMs)` → time-filtered list (for evolution chart + portal cutoff)
-- Used everywhere effective hours are needed.
+3. **`src/features/client-portal/PortalEpicTrend.tsx`** + **`epic-trend/usePortalEpicTrendData.ts`**
+   - Load discounts for the project (same hook).
+   - In `buildEpicTrendSeries`, accept `discounts` and subtract the epic-scoped discount total whose `created_at <= sample timestamp` from the `actual` line. Floor at 0. Original/current lines untouched.
 
-## Create Discount dialog
+4. **`src/features/client-portal/usePortalData.ts`**
+   - Add `epic_discounts` to the realtime invalidation list for both `usePortalPreview` and `usePublicPortal` so changes flow through immediately.
 
-`src/features/discounts/CreateDiscountsDialog.tsx`, modeled on `AddTicketsDialog` / `useDraftRows`:
-- Add row / remove row controls
-- Each row: Epic select, Discipline select (FE/BE/Project), Hours input, Reason input
-- Bulk submit; toast on success; invalidates discounts + health + estimate-revisions + CR queries.
-- Zod validation (epic, discipline, positive hours, non-empty reason).
-
-## Surfacing
-
-### Health page (`ProjectHealth.tsx`)
-- PMBA-only **"Create discount"** button in section header.
-- Aggregate discounts per discipline; pass to each `Ring` and `HealthSummaryRow`.
-- Below rings: `DiscountsList` (epic, discipline, hours, reason, created_at). Edit/delete for PMBA.
-
-### Ring (`overview/Ring.tsx`)
-- New optional `discounted` prop.
-- Effective actual = `max(0, actual − discounted)`.
-- **Outer arc uses `effective / estimate`** (per your direction).
-- Inner arc uses `effective / original`.
-- Stat list adds a "Discounted" line (coral, `−Xh`) above Actual; shows "Effective" line right after.
-
-### HealthSummaryRow
-- Profitability % uses effective totals (cost = effective_hours × rate).
-
-### Estimate evolution chart (`useEstimateEvolution.ts` + `EstimateTrendChart.tsx`)
-- Load discounts (with `created_at` + epic + discipline).
-- At each time bucket: subtract sum of discounts whose `created_at ≤ cutoff` from both `current` and `actual` series, filtered by `selectedEpic`.
-- "Original" line untouched.
-
-### Estimate Revisions (`ProjectChangeRequests.tsx` + `EpicChangeCard` / `Row` + `useEpicChange.ts`)
-- `computeEpicTotals` (in `epic-change/useEpicChange.ts`) gains a `discounts` param; subtracts epic+discipline discount totals from `currentApproved`, `actual`, and `projected`.
-- Card surfaces a "Discounted" line under each epic's totals.
-
-### CR views (`ProjectChangeRequestTickets.tsx` + `EpicCRCard` / `useEpicCR.ts`)
-- Same treatment: subtract matching epic discounts from displayed effective totals and projected impact.
-
-### Client portal
-- `ClientPortalEditor`: PMBA-only "Create discount" button in `PortalToolbar`.
-- `PortalView`: shows "Discounts applied" line per epic + in totals (uses fields returned from updated RPCs).
-- `PortalEpicTrend` / `usePortalEpicTrendData`: subtract discounts (respecting cutoff) from current + actual series.
-
-## PMBA gating
-
-- Dialog launchers and edit/delete controls hidden unless `isPMBA(role)`.
-- Server-side enforced via RLS calling `is_pmba()`.
+5. **`src/features/client-portal/ClientPortalEditor.tsx`** and **`src/pages/ClientPortalPublic.tsx`**
+   - Fetch discounts via `useEpicDiscounts(projectId)` and pass them into `<PortalView discounts={...} />`. On the public page, `projectId` comes from `data.project.id` once loaded.
 
 ## Out of scope
 
-- No retroactive recalculation of `cached_total_hours` / `cached_total_cost` on `projects`.
-- No CSV import of discounts.
-- No per-ticket discounts (epic-level only).
-
-## Files touched
-
-```text
-supabase migration                                              NEW
-src/features/discounts/useEpicDiscounts.ts                      NEW
-src/features/discounts/applyDiscounts.ts                        NEW
-src/features/discounts/CreateDiscountsDialog.tsx                NEW
-src/features/discounts/DiscountsList.tsx                        NEW
-src/features/health/ProjectHealth.tsx                           edit
-src/features/health/overview/Ring.tsx                           edit
-src/features/health/overview/useProjectHealth.ts                edit
-src/features/health/overview/HealthSummaryRow.tsx               edit
-src/features/health/estimate-evolution/useEstimateEvolution.ts  edit
-src/features/estimates/epic-change/useEpicChange.ts             edit
-src/features/estimates/EpicChangeCard.tsx                       edit
-src/features/estimates/EpicChangeRow.tsx                        edit
-src/features/change-requests/epic-cr/useEpicCR.ts               edit
-src/features/change-requests/EpicCRCard.tsx                     edit
-src/features/change-requests/EpicCRRow.tsx                      edit
-src/features/client-portal/editor/PortalToolbar.tsx             edit
-src/features/client-portal/PortalView.tsx                       edit
-src/features/client-portal/epic-trend/usePortalEpicTrendData.ts edit
-```
+- No SQL/RPC changes. The portal RPCs keep returning raw actuals; discount math stays purely on the client (consistent with how Health/CR already do it).
+- No new "Discounts" section, list, or row in the portal UI.
+- Discipline progress bars (ticket counts) stay as-is.
