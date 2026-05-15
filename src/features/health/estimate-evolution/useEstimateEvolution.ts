@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useProjectTickets } from "@/features/tickets/useProjectTickets";
 import { useProjectEstimateChanges } from "@/features/estimates/useEstimateChanges";
+import { useEpicDiscounts } from "@/features/discounts/useEpicDiscounts";
 import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
 import { ALL_EPICS_KEY, NO_EPIC_KEY, endOfDay, startOfDay } from "./dateUtils";
 
