@@ -12,6 +12,8 @@ import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
 import { MultiSelectFilter } from "@/features/estimates/MultiSelectFilter";
 import { DateRangeControl, defaultRange, type DateRange } from "@/features/health/DateRangeControl";
 import { EpicCRCard } from "./EpicCRCard";
+import { useEpicDiscounts } from "@/features/discounts/useEpicDiscounts";
+import { discountTotalsByEpic, sumTotals } from "@/features/discounts/applyDiscounts";
 
 const STATUS_OPTIONS = [
   { value: "pending", label: "Pending" },
@@ -26,6 +28,8 @@ export function ProjectChangeRequestTickets({ projectId }: { projectId: string }
   const canReview = isPMBA(role);
   const { tickets, reload } = useProjectTickets(projectId);
   const { epics } = useProjectEpics(projectId);
+  const { discounts } = useEpicDiscounts(projectId);
+  const discountByEpic = useMemo(() => discountTotalsByEpic(discounts), [discounts]);
 
   const [statusFilter, setStatusFilter] = useState<string[]>(["pending", "approved"]);
   const [range, setRange] = useState<DateRange>(() => defaultRange());
@@ -178,23 +182,29 @@ export function ProjectChangeRequestTickets({ projectId }: { projectId: string }
         </div>
       ) : (
         <div className="space-y-3">
-          {groups.map((g) => (
-            <EpicCRCard
-              key={g.key}
-              epicKey={g.key}
-              epicName={g.epicName}
-              projectAcronym={acronym}
-              baselineTickets={g.baseline}
-              filteredCRs={g.filtered}
-              allCRs={g.all}
-              canReview={canReview}
-              onApprove={handleApprove}
-              onReject={handleReject}
-              onOpenTicket={(t) => setOpenTicket(t)}
-              defaultOpen={g.filtered.length > 0 && g.filtered.length <= 8}
-              range={range}
-            />
-          ))}
+          {groups.map((g) => {
+            const dh = g.epicId != null
+              ? sumTotals(discountByEpic.get(g.epicId) ?? { FE: 0, BE: 0, Project: 0 })
+              : 0;
+            return (
+              <EpicCRCard
+                key={g.key}
+                epicKey={g.key}
+                epicName={g.epicName}
+                projectAcronym={acronym}
+                baselineTickets={g.baseline}
+                filteredCRs={g.filtered}
+                allCRs={g.all}
+                canReview={canReview}
+                onApprove={handleApprove}
+                onReject={handleReject}
+                onOpenTicket={(t) => setOpenTicket(t)}
+                defaultOpen={g.filtered.length > 0 && g.filtered.length <= 8}
+                range={range}
+                discountHours={dh}
+              />
+            );
+          })}
         </div>
       )}
 

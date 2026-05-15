@@ -22,6 +22,7 @@ export interface EpicChangeTotals {
 export function computeEpicTotals(
   tickets: EpicChangeTicket[],
   matchedChanges: Pick<ChangeRow, "delta">[],
+  discountHours = 0,
 ): EpicChangeTotals {
   const original = tickets.reduce(
     (a, t) => a + t.original_fe_estimate + t.original_be_estimate + t.original_project_estimate,
@@ -36,7 +37,14 @@ export function computeEpicTotals(
     0,
   );
   const matchedDelta = matchedChanges.reduce((a, c) => a + (Number(c.delta) || 0), 0);
-  return { original, currentApproved, actual, projected: currentApproved + matchedDelta };
+  // Discounts reduce billable hours: subtract from current, projected, and actual.
+  const d = Math.max(0, discountHours);
+  return {
+    original,
+    currentApproved: Math.max(0, currentApproved - d),
+    actual: Math.max(0, actual - d),
+    projected: Math.max(0, currentApproved + matchedDelta - d),
+  };
 }
 
 export function resolveChartRange(

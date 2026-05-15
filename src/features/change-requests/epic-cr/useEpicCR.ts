@@ -12,7 +12,11 @@ export interface CRTotals {
   actual: number;
 }
 
-export function computeCRTotals(baselineTickets: TicketRow[], allCRs: TicketRow[]): CRTotals {
+export function computeCRTotals(
+  baselineTickets: TicketRow[],
+  allCRs: TicketRow[],
+  discountHours = 0,
+): CRTotals {
   const original = baselineTickets.reduce(
     (a, t) => a + t.original_fe_estimate + t.original_be_estimate + t.original_project_estimate,
     0,
@@ -29,11 +33,12 @@ export function computeCRTotals(baselineTickets: TicketRow[], allCRs: TicketRow[
       (a, t) => a + t.actual_frontend_hours + t.actual_backend_hours + t.actual_project_hours,
       0,
     );
+  const d = Math.max(0, discountHours);
   return {
     original,
-    current: original + approvedDelta,
-    projected: original + approvedDelta + pendingDelta,
-    actual,
+    current: Math.max(0, original + approvedDelta - d),
+    projected: Math.max(0, original + approvedDelta + pendingDelta - d),
+    actual: Math.max(0, actual - d),
   };
 }
 

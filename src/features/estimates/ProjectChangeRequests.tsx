@@ -16,6 +16,8 @@ import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
 import { ListPagination } from "@/components/ListPagination";
 import { PAGE_SIZES } from "@/lib/pagination";
 import { buildChangeRequestGroups } from "./project-change-requests/buildChangeRequestGroups";
+import { useEpicDiscounts } from "@/features/discounts/useEpicDiscounts";
+import { discountTotalsByEpic, sumTotals } from "@/features/discounts/applyDiscounts";
 
 const STATUS_OPTIONS = [
   { value: "pending", label: "Pending" },
@@ -28,6 +30,8 @@ export function ProjectChangeRequests({ projectId }: { projectId: string }) {
   const role = useProjectRole(projectId);
   const canReview = isPMBA(role);
   const { changes, projects, epics, loading, reload } = useAllEstimateChanges(projectId);
+  const { discounts } = useEpicDiscounts(projectId);
+  const discountByEpic = useMemo(() => discountTotalsByEpic(discounts), [discounts]);
 
   const [statusFilter, setStatusFilter] = useState<string[]>(["pending"]);
   const [requesterFilter, setRequesterFilter] = useState<string[] | null>(null);
@@ -199,23 +203,30 @@ export function ProjectChangeRequests({ projectId }: { projectId: string }) {
       ) : (
         <>
           <div className="space-y-3">
-            {pagedGroups.map((g) => (
-              <EpicChangeCard
-                key={g.key}
-                epicKey={g.key}
-                epicName={g.epicName}
-                projectAcronym={g.projectAcronym}
-                projectId={g.projectId}
-                tickets={g.tickets}
-                changes={g.changes}
-                approvedChanges={g.approvedChanges}
-                onApprove={handleApprove}
-                onReject={handleReject}
-                onOpenTicket={setOpenTicketId}
-                defaultOpen={statusFilter.includes("pending") && g.changes.length <= 5}
-                range={range}
-              />
-            ))}
+            {pagedGroups.map((g) => {
+              const epicIdNum = g.key.startsWith("e:") ? Number(g.key.slice(2)) : null;
+              const dh = epicIdNum != null
+                ? sumTotals(discountByEpic.get(epicIdNum) ?? { FE: 0, BE: 0, Project: 0 })
+                : 0;
+              return (
+                <EpicChangeCard
+                  key={g.key}
+                  epicKey={g.key}
+                  epicName={g.epicName}
+                  projectAcronym={g.projectAcronym}
+                  projectId={g.projectId}
+                  tickets={g.tickets}
+                  changes={g.changes}
+                  approvedChanges={g.approvedChanges}
+                  onApprove={handleApprove}
+                  onReject={handleReject}
+                  onOpenTicket={setOpenTicketId}
+                  defaultOpen={statusFilter.includes("pending") && g.changes.length <= 5}
+                  range={range}
+                  discountHours={dh}
+                />
+              );
+            })}
           </div>
           {groups.length > pageSize && (
             <div className="mt-4 flex items-center justify-between gap-3 flex-wrap">

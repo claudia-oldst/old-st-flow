@@ -39,14 +39,19 @@ interface Props {
   onOpenTicket?: (ticketId: string) => void;
   defaultOpen?: boolean;
   range?: { from: Date; to: Date };
+  /** Total discount hours for this epic across all disciplines. */
+  discountHours?: number;
 }
 
 export function EpicChangeCard({
   epicName, projectAcronym, tickets, changes, approvedChanges,
-  onApprove, onReject, onOpenTicket, defaultOpen, range,
+  onApprove, onReject, onOpenTicket, defaultOpen, range, discountHours = 0,
 }: Props) {
   const [open, setOpen] = useState(!!defaultOpen);
-  const totals = useMemo(() => computeEpicTotals(tickets, changes), [tickets, changes]);
+  const totals = useMemo(
+    () => computeEpicTotals(tickets, changes, discountHours),
+    [tickets, changes, discountHours],
+  );
 
   const chartData = useMemo(() => {
     const { start, end } = resolveChartRange(range, [...approvedChanges, ...changes]);
@@ -103,6 +108,11 @@ export function EpicChangeCard({
               <Stat label="If all approved" value={totals.projected} accent="warn" />
               <Stat label="Actual" value={totals.actual} accent="gold" />
             </div>
+            {discountHours > 0 && (
+              <div className="text-[11px] text-health-bad font-mono">
+                −{discountHours.toFixed(discountHours % 1 === 0 ? 0 : 1)}h discounted
+              </div>
+            )}
 
             {chartData.length > 1 && <EpicMiniTrendChart data={chartData} />}
           </div>
