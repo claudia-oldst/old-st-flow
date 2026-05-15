@@ -42,3 +42,11 @@ export function displayTitle(title: string, type: string) {
   // "Proj" tickets use the title as-is.
   return title;
 }
+
+/**
+ * Shared page-shell width: grows in steps on wider monitors so content gets
+ * more room without stretching individual components. Use on the outer
+ * container of pages and the top bar so they align horizontally.
+ */
+export const PAGE_SHELL =
+  "mx-auto w-full max-w-[1480px] 2xl:max-w-[1640px] min-[1800px]:max-w-[1760px] min-[2000px]:max-w-[1920px] px-4 sm:px-6 2xl:px-8";
