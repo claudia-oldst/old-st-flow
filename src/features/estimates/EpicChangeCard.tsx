@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { format } from "date-fns";
 import { ChevronDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -8,6 +8,9 @@ import { Stat } from "@/features/_shared/estimate-ui/Stat";
 import { EpicMiniTrendChart } from "@/features/_shared/estimate-ui/EpicMiniTrendChart";
 import { computeEpicTotals, resolveChartRange } from "./epic-change/useEpicChange";
 import { EpicChangeRow } from "./EpicChangeRow";
+import { ListPagination } from "@/components/ListPagination";
+
+const PAGE_SIZE = 6;
 
 interface EpicTicket {
   id: string;
@@ -48,6 +51,8 @@ export function EpicChangeCard({
   onApprove, onReject, onOpenTicket, defaultOpen, range, discountHours = 0,
 }: Props) {
   const [open, setOpen] = useState(!!defaultOpen);
+  const [pageState, setPageState] = useState(1);
+  useEffect(() => { setPageState(1); }, [changes.length]);
   const totals = useMemo(
     () => computeEpicTotals(tickets, changes, discountHours),
     [tickets, changes, discountHours],
@@ -139,7 +144,7 @@ export function EpicChangeCard({
                   </tr>
                 </thead>
                 <tbody>
-                  {changes.map((c) => (
+                  {changes.slice((pageState - 1) * PAGE_SIZE, pageState * PAGE_SIZE).map((c) => (
                     <EpicChangeRow
                       key={c.id}
                       change={c}
@@ -150,6 +155,16 @@ export function EpicChangeCard({
                   ))}
                 </tbody>
               </table>
+              {changes.length > PAGE_SIZE && (
+                <div className="px-3 py-2 hairline-t flex justify-end">
+                  <ListPagination
+                    page={pageState}
+                    total={changes.length}
+                    pageSize={PAGE_SIZE}
+                    onChange={setPageState}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </CollapsibleContent>

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { ChevronDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -9,6 +9,9 @@ import { EpicMiniTrendChart } from "@/features/_shared/estimate-ui/EpicMiniTrend
 import { crEstimate, computeCRTotals } from "./epic-cr/useEpicCR";
 import { useCRDeciderNames } from "./epic-cr/useCRDeciderNames";
 import { EpicCRRow } from "./EpicCRRow";
+import { ListPagination } from "@/components/ListPagination";
+
+const PAGE_SIZE = 6;
 
 interface Props {
   epicKey: string;
@@ -34,6 +37,8 @@ export function EpicCRCard({
   discountHours = 0,
 }: Props) {
   const [open, setOpen] = useState(!!defaultOpen);
+  const [page, setPage] = useState(1);
+  useEffect(() => { setPage(1); }, [filteredCRs.length]);
 
   const deciderIds = useMemo(
     () => allCRs
@@ -137,7 +142,7 @@ export function EpicCRCard({
                       </td>
                     </tr>
                   )}
-                  {filteredCRs.map((t) => (
+                  {filteredCRs.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((t) => (
                     <EpicCRRow
                       key={t.id}
                       ticket={t}
@@ -151,6 +156,16 @@ export function EpicCRCard({
                   ))}
                 </tbody>
               </table>
+              {filteredCRs.length > PAGE_SIZE && (
+                <div className="px-3 py-2 hairline-t flex justify-end">
+                  <ListPagination
+                    page={page}
+                    total={filteredCRs.length}
+                    pageSize={PAGE_SIZE}
+                    onChange={setPage}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </CollapsibleContent>
