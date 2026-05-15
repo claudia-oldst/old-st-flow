@@ -156,7 +156,10 @@ export function EpicChangeCard({
                 </tbody>
               </table>
               {changes.length > PAGE_SIZE && (
-                <div className="px-3 py-2 hairline-t flex justify-end">
+                <div className="px-3 py-2 hairline-t flex items-center justify-between gap-3 flex-wrap">
+                  <div className="text-[11px] text-dimmer">
+                    Showing {(pageState - 1) * PAGE_SIZE + 1}–{Math.min(pageState * PAGE_SIZE, changes.length)} of {changes.length}
+                  </div>
                   <ListPagination
                     page={pageState}
                     total={changes.length}

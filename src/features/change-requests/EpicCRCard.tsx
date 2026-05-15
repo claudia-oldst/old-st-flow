@@ -157,7 +157,10 @@ export function EpicCRCard({
                 </tbody>
               </table>
               {filteredCRs.length > PAGE_SIZE && (
-                <div className="px-3 py-2 hairline-t flex justify-end">
+                <div className="px-3 py-2 hairline-t flex items-center justify-between gap-3 flex-wrap">
+                  <div className="text-[11px] text-dimmer">
+                    Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredCRs.length)} of {filteredCRs.length}
+                  </div>
                   <ListPagination
                     page={page}
                     total={filteredCRs.length}
