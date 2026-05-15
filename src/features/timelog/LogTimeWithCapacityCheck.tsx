@@ -29,8 +29,7 @@ function resolveDefaultDiscipline(
   if (role === "Backend") return "BE";
   if (mySlots.includes("FE") && !mySlots.includes("BE")) return "FE";
   if (mySlots.includes("BE") && !mySlots.includes("FE")) return "BE";
-  if (role === "Frontend" || role === "Fullstack") return "FE";
-  if (role === "Backend" || role === "Fullstack") return "BE";
+  if (role === "Fullstack") return "FE";
   return "Project";
 }
 
