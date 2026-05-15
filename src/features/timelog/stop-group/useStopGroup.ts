@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTimerStore, type TimerTicket } from "@/store/timer";
-import type { ActiveTimer, DisciplineStatus } from "@/lib/types";
+import type { ActiveTimer, DisciplineStatus, LogDiscipline } from "@/lib/types";
 import { toast } from "sonner";
 import { evenSplit } from "../utils";
+import { useTicketCapacityByIds, capacityFor } from "../useTicketCapacity";
 
 export interface StopRow {
   ticket: TimerTicket;
