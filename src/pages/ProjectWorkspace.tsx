@@ -55,7 +55,7 @@ export default function ProjectWorkspace() {
   if (!id) return null;
 
   return (
-    <div className="mx-auto max-w-[1480px] px-4 sm:px-6 pt-6 pb-12">
+    <div className={cn(PAGE_SHELL, "pt-6 pb-12")}>
       <Link to="/" className="inline-flex items-center gap-1 text-xs text-dim hover:text-foreground transition mb-3">
         <ArrowLeft className="h-3 w-3" /> All projects
       </Link>
