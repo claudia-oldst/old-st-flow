@@ -146,8 +146,9 @@ export function buildEpicTrendSeries(args: {
   projectStart: string | null;
   cutoffMs: number;
   ticketFilter: (id: string) => boolean;
+  discounts?: Array<{ hours: number; created_at: string }>;
 }) {
-  const { tickets, changes, logs, projectStart, cutoffMs, ticketFilter } = args;
+  const { tickets, changes, logs, projectStart, cutoffMs, ticketFilter, discounts = [] } = args;
   const relevant = tickets.filter((t) => ticketFilter(t.id));
   if (relevant.length === 0) return [];
   const firstMs = Math.min(...relevant.map((t) => new Date(t.created_at).getTime()));
