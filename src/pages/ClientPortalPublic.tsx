@@ -32,7 +32,7 @@ export default function ClientPortalPublic() {
   return (
     <div className="min-h-screen bg-background">
       <header className="hairline-b">
-        <div className="mx-auto max-w-[1280px] px-4 sm:px-6 h-14 flex items-center">
+        <div className="mx-auto w-full max-w-[1280px] 2xl:max-w-[1440px] px-4 sm:px-6 2xl:px-8 h-14 flex items-center">
           <img
             src={oldStLogo}
             alt="Old St Labs"
