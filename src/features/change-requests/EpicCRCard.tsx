@@ -24,11 +24,14 @@ interface Props {
   defaultOpen?: boolean;
   range: { from: Date; to: Date };
   hideReject?: boolean;
+  /** Total discount hours for this epic across all disciplines. */
+  discountHours?: number;
 }
 
 export function EpicCRCard({
   epicName, projectAcronym, baselineTickets, filteredCRs, allCRs,
   canReview, onApprove, onReject, onOpenTicket, defaultOpen, range, hideReject,
+  discountHours = 0,
 }: Props) {
   const [open, setOpen] = useState(!!defaultOpen);
 
@@ -40,7 +43,10 @@ export function EpicCRCard({
   );
   const memberNames = useCRDeciderNames(deciderIds);
 
-  const totals = useMemo(() => computeCRTotals(baselineTickets, allCRs), [baselineTickets, allCRs]);
+  const totals = useMemo(
+    () => computeCRTotals(baselineTickets, allCRs, discountHours),
+    [baselineTickets, allCRs, discountHours],
+  );
 
   const chartData = useMemo(() => {
     const start = range.from.getTime();
