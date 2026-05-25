@@ -56,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
         setAuthError(`Could not confirm your team account: ${error.message}`);
         setAuthLoading(false);
-        return false;
+        return true;
       }
       if (!data) {
         await supabase.auth.signOut();
