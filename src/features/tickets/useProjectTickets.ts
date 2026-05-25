@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
 import { PAGE_SIZES } from "@/lib/pagination";
-import type { DisciplineStatus, TeamMember, TicketAssignee } from "@/lib/types";
+import type { DisciplineStatus, TeamMember } from "@/lib/types";
 
 export interface TicketRow {
   id: string;
@@ -44,118 +44,85 @@ interface FetchResult {
   totalCount: number;
 }
 
-async function fetchProjectTickets(projectId: string): Promise<FetchResult> {
-  const cap = PAGE_SIZES.ticketsKanban;
-  const { data: tix, count, error: ticketsError } = await supabase
-    .from("tickets")
-    .select("*", { count: "exact" })
-    .eq("project_id", projectId)
-    .order("position", { ascending: true })
-    .order("ticket_number", { ascending: true })
-    .range(0, cap - 1);
+interface RpcResult {
+  total: number;
+  rows: any[];
+}
 
-  if (ticketsError) {
-    throw new Error(`Could not load tickets: ${ticketsError.message}`);
-  }
+function withTimeout<T>(promise: PromiseLike<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    Promise.resolve(promise),
+    new Promise<T>((_, reject) => {
+      globalThis.setTimeout(() => reject(new Error(`${label} timed out. Please retry.`)), ms);
+    }),
+  ]);
+}
 
-  const ticketRows = tix ?? [];
-
-  const epicIds = Array.from(new Set(ticketRows.map((t: any) => t.epic_id).filter(Boolean) as number[]));
-  const epicMap: Record<number, string | null> = {};
-  if (epicIds.length) {
-    const { data: epics, error: epicsError } = await supabase
-      .from("project_epics")
-      .select("id, epic_name")
-      .eq("project_id", projectId)
-      .in("id", epicIds);
-    if (epicsError) {
-      console.warn("Could not load ticket epic names", epicsError);
-    } else {
-      (epics ?? []).forEach((e: any) => {
-        epicMap[e.id] = e.epic_name ?? null;
-      });
-    }
-  }
-
-  const ids = ticketRows.map((t) => t.id);
-  let assignees: Array<TicketAssignee & { member: TeamMember }> = [];
-  if (ids.length) {
-    const { data, error: assigneesError } = await supabase
-      .from("ticket_assignees")
-      .select("*, member:team_members(*)")
-      .in("ticket_id", ids);
-    if (assigneesError) {
-      throw new Error(`Could not load ticket assignees: ${assigneesError.message}`);
-    }
-    assignees = (data as any) ?? [];
-  }
-
-  // Fetch parent ticket info for any tickets that have a parent_ticket_id
-  const parentIds = Array.from(
-    new Set(ticketRows.map((t: any) => t.parent_ticket_id).filter(Boolean) as string[]),
-  );
-  const parentMap: Record<string, { id: string; formatted_id: string; title: string }> = {};
-  if (parentIds.length) {
-    const { data: parents, error: parentsError } = await supabase
-      .from("tickets")
-      .select("id, formatted_id, title")
-      .in("id", parentIds);
-    if (parentsError) {
-      console.warn("Could not load parent ticket details", parentsError);
-    } else {
-      (parents ?? []).forEach((p: any) => {
-        parentMap[p.id] = { id: p.id, formatted_id: p.formatted_id, title: p.title };
-      });
-    }
-  }
-
-  const grouped: Record<string, TicketRow["assignees"]> = {};
-  assignees.forEach((a) => {
-    grouped[a.ticket_id] ??= [];
-    grouped[a.ticket_id].push({
+function normalizeTicket(raw: any): TicketRow {
+  return {
+    id: raw.id,
+    project_id: raw.project_id,
+    ticket_number: raw.ticket_number,
+    formatted_id: raw.formatted_id,
+    title: raw.title,
+    ticket_type: raw.ticket_type,
+    status_id: raw.status_id,
+    fe_status: (raw.fe_status ?? "todo") as DisciplineStatus,
+    be_status: (raw.be_status ?? "todo") as DisciplineStatus,
+    project_status_override: !!raw.project_status_override,
+    epic_id: raw.epic_id ?? null,
+    epic_name: raw.epic?.epic_name ?? null,
+    version: raw.version ?? null,
+    original_fe_estimate: Number(raw.original_fe_estimate),
+    original_be_estimate: Number(raw.original_be_estimate),
+    current_fe_estimate: Number(raw.current_fe_estimate),
+    current_be_estimate: Number(raw.current_be_estimate),
+    original_project_estimate: Number(raw.original_project_estimate ?? 0),
+    current_project_estimate: Number(raw.current_project_estimate ?? 0),
+    actual_frontend_hours: Number(raw.actual_frontend_hours),
+    actual_backend_hours: Number(raw.actual_backend_hours),
+    actual_project_hours: Number(raw.actual_project_hours ?? 0),
+    acceptance_criteria: raw.acceptance_criteria ?? null,
+    position: raw.position,
+    created_at: raw.created_at,
+    cr_approval: (raw.ticket_type === "CR" ? (raw.cr_approval ?? "pending") : null) as TicketRow["cr_approval"],
+    cr_decided_by: raw.cr_decided_by ?? null,
+    cr_decided_at: raw.cr_decided_at ?? null,
+    parent_ticket_id: raw.parent_ticket_id ?? null,
+    bug_sub_number: raw.bug_sub_number ?? null,
+    parent: raw.parent ?? null,
+    assignees: ((raw.assignees ?? []) as any[]).map((a) => ({
       user_id: a.user_id,
       slot: a.slot,
-      member: a.member,
-      created_at: (a as any).created_at,
-    });
-  });
+      created_at: a.created_at,
+      member: a.member as TeamMember,
+    })),
+  };
+}
 
-  const tickets: TicketRow[] = ticketRows.map((t: any) => ({
-    id: t.id,
-    project_id: t.project_id,
-    ticket_number: t.ticket_number,
-    formatted_id: t.formatted_id,
-    title: t.title,
-    ticket_type: t.ticket_type,
-    status_id: t.status_id,
-    fe_status: (t.fe_status ?? "todo") as DisciplineStatus,
-    be_status: (t.be_status ?? "todo") as DisciplineStatus,
-    project_status_override: !!t.project_status_override,
-    epic_id: t.epic_id ?? null,
-    epic_name: t.epic_id ? (epicMap[t.epic_id] ?? null) : null,
-    version: t.version ?? null,
-    original_fe_estimate: Number(t.original_fe_estimate),
-    original_be_estimate: Number(t.original_be_estimate),
-    current_fe_estimate: Number(t.current_fe_estimate),
-    current_be_estimate: Number(t.current_be_estimate),
-    original_project_estimate: Number(t.original_project_estimate ?? 0),
-    current_project_estimate: Number(t.current_project_estimate ?? 0),
-    actual_frontend_hours: Number(t.actual_frontend_hours),
-    actual_backend_hours: Number(t.actual_backend_hours),
-    actual_project_hours: Number(t.actual_project_hours ?? 0),
-    acceptance_criteria: t.acceptance_criteria ?? null,
-    position: t.position,
-    created_at: t.created_at,
-    cr_approval: (t.ticket_type === "CR" ? (t.cr_approval ?? "pending") : null) as TicketRow["cr_approval"],
-    cr_decided_by: t.cr_decided_by ?? null,
-    cr_decided_at: t.cr_decided_at ?? null,
-    parent_ticket_id: t.parent_ticket_id ?? null,
-    bug_sub_number: t.bug_sub_number ?? null,
-    parent: t.parent_ticket_id ? (parentMap[t.parent_ticket_id] ?? null) : null,
-    assignees: grouped[t.id] ?? [],
-  }));
+async function fetchProjectTickets(projectId: string): Promise<FetchResult> {
+  const cap = PAGE_SIZES.ticketsKanban;
+  const { data, error } = await withTimeout(
+    supabase.rpc("list_project_tickets", {
+      _project_id: projectId,
+      _filters: {} as any,
+      _search: null,
+      _sort_col: "position",
+      _sort_dir: "asc",
+      _page: 1,
+      _page_size: cap,
+    }),
+    12_000,
+    "Ticket loading",
+  );
 
-  return { tickets, totalCount: count ?? tickets.length };
+  if (error) {
+    throw new Error(`Could not load tickets: ${error.message}`);
+  }
+
+  const result = (data ?? { rows: [], total: 0 }) as unknown as RpcResult;
+  const tickets = (result.rows ?? []).map(normalizeTicket);
+  return { tickets, totalCount: result.total ?? tickets.length };
 }
 
 export function useProjectTickets(projectId: string | undefined) {
