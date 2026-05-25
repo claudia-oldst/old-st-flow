@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { EpicSelect } from "@/features/epics/EpicSelect";
+import { ParentTicketSelect } from "@/features/tickets/ParentTicketSelect";
 import { cn } from "@/lib/utils";
 import type { ProjectMember, TeamMember, TicketType } from "@/lib/types";
 import type { Draft } from "./types";
