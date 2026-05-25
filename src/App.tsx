@@ -17,6 +17,7 @@ import Login from "./pages/Login";
 import NotFound from "./pages/NotFound.tsx";
 import { AuthProvider } from "@/features/auth/AuthProvider";
 import { RequireAuth } from "@/features/auth/RequireAuth";
+import { RequirePMBA } from "@/features/auth/RequirePMBA";
 
 const wrap = (scope: string, el: ReactNode) => (
   <ErrorBoundary scope={scope}>{el}</ErrorBoundary>
@@ -54,7 +55,7 @@ const App = () => (
                     <Routes>
                       <Route path="/" element={wrap("projects", <Projects />)} />
                       <Route path="/projects/:id/*" element={wrap("project", <ProjectWorkspace />)} />
-                      <Route path="/admin" element={wrap("admin", <Admin />)} />
+                      <Route path="/admin" element={<RequirePMBA>{wrap("admin", <Admin />)}</RequirePMBA>} />
                       <Route path="/my-work" element={wrap("my work", <MyWork />)} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
