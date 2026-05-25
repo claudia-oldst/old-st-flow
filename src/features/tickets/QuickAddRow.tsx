@@ -12,6 +12,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import type { TicketType } from "@/lib/types";
 import { EpicSelect } from "@/features/epics/EpicSelect";
+import { ParentTicketSelect } from "@/features/tickets/ParentTicketSelect";
 import { ticketInputSchema } from "@/lib/schemas/ticket";
 import { toast } from "sonner";
 
