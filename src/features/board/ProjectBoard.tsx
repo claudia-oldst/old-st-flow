@@ -14,6 +14,7 @@ import { useDisciplineCards } from "./board/useDisciplineCards";
 import { useBoardDnd } from "./board/useBoardDnd";
 import { BoardToolbar } from "./board/BoardToolbar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TopScrollSync } from "./TopScrollSync";
 
 export function ProjectBoard({
   projectId,
@@ -136,7 +137,7 @@ export function ProjectBoard({
         ) : (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           {mode === "project" ? (
-            <div className="flex gap-3 overflow-x-auto pb-4">
+            <TopScrollSync>
               {statuses.map((status) => (
                 <Column
                   key={status.id}
@@ -152,9 +153,9 @@ export function ProjectBoard({
                   currentUserId={user?.id}
                 />
               ))}
-            </div>
+            </TopScrollSync>
           ) : (
-            <div className="flex gap-3 overflow-x-auto pb-4">
+            <TopScrollSync>
               {disciplineColumns.map((s) => (
                 <DisciplineColumn
                   key={s}
@@ -167,7 +168,7 @@ export function ProjectBoard({
                   currentUserId={user?.id}
                 />
               ))}
-            </div>
+            </TopScrollSync>
           )}
           <DragOverlay>
             {activeTicket && <TicketCard ticket={activeTicket} prefs={prefs} forceBars={filterMine} />}
