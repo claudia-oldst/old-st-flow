@@ -13,7 +13,10 @@ import ProjectWorkspace from "./pages/ProjectWorkspace";
 import Admin from "./pages/Admin";
 import MyWork from "./pages/MyWork";
 import ClientPortalPublic from "./pages/ClientPortalPublic";
+import Login from "./pages/Login";
 import NotFound from "./pages/NotFound.tsx";
+import { AuthProvider } from "@/features/auth/AuthProvider";
+import { RequireAuth } from "@/features/auth/RequireAuth";
 
 const wrap = (scope: string, el: ReactNode) => (
   <ErrorBoundary scope={scope}>{el}</ErrorBoundary>
@@ -36,26 +39,31 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <TimerSync />
-        <Routes>
-          <Route path="/h/:hash" element={wrap("client portal", <ClientPortalPublic />)} />
-          <Route
-            path="*"
-            element={
-              <div className="min-h-screen">
-                <TopBar />
-                <WeeklyHoursBar />
-                <Routes>
-                  <Route path="/" element={wrap("projects", <Projects />)} />
-                  <Route path="/projects/:id/*" element={wrap("project", <ProjectWorkspace />)} />
-                  <Route path="/admin" element={wrap("admin", <Admin />)} />
-                  <Route path="/my-work" element={wrap("my work", <MyWork />)} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </div>
-            }
-          />
-        </Routes>
+        <AuthProvider>
+          <TimerSync />
+          <Routes>
+            <Route path="/h/:hash" element={wrap("client portal", <ClientPortalPublic />)} />
+            <Route path="/login" element={wrap("login", <Login />)} />
+            <Route
+              path="*"
+              element={
+                <RequireAuth>
+                  <div className="min-h-screen">
+                    <TopBar />
+                    <WeeklyHoursBar />
+                    <Routes>
+                      <Route path="/" element={wrap("projects", <Projects />)} />
+                      <Route path="/projects/:id/*" element={wrap("project", <ProjectWorkspace />)} />
+                      <Route path="/admin" element={wrap("admin", <Admin />)} />
+                      <Route path="/my-work" element={wrap("my work", <MyWork />)} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </div>
+                </RequireAuth>
+              }
+            />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

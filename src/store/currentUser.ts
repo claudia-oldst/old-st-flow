@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 import type { TeamMember } from "@/lib/types";
 
 interface CurrentUserState {
@@ -7,12 +6,7 @@ interface CurrentUserState {
   setUser: (user: TeamMember | null) => void;
 }
 
-export const useCurrentUser = create<CurrentUserState>()(
-  persist(
-    (set) => ({
-      user: null,
-      setUser: (user) => set({ user }),
-    }),
-    { name: "ost-current-user" }
-  )
-);
+export const useCurrentUser = create<CurrentUserState>()((set) => ({
+  user: null,
+  setUser: (user) => set({ user }),
+}));

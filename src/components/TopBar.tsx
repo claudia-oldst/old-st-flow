@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useRealtimeReload } from "@/hooks/useRealtimeReload";
 import { useCurrentUser } from "@/store/currentUser";
 import { useTimerStore } from "@/store/timer";
-import type { TeamMember } from "@/lib/types";
+
 import { MemberAvatar } from "@/components/MemberAvatar";
 import { StopGroupTimerDialog } from "@/features/timelog/StopGroupTimerDialog";
 import oldStLogo from "@/assets/oldst-logo.png";
@@ -23,7 +22,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ChevronDown, Settings, FolderKanban, ListChecks, User, Square } from "lucide-react";
+import { ChevronDown, Settings, FolderKanban, ListChecks, Square, LogOut } from "lucide-react";
 import { cn, formatDuration, PAGE_SHELL } from "@/lib/utils";
 
 // Leaf component: isolates per-second re-renders to just the ticking text.
@@ -128,59 +127,33 @@ function TimerChip() {
 }
 
 function UserPicker() {
-  const [members, setMembers] = useState<TeamMember[]>([]);
   const { user, setUser } = useCurrentUser();
 
-  const load = useCallback(() => {
-    supabase
-      .from("team_members")
-      .select("*")
-      .order("name")
-      .then(({ data }) => {
-        if (data) {
-          setMembers(data);
-          if (!user && data.length) setUser(data[0]);
-        }
-      });
-  }, [user, setUser]);
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    window.location.href = "/login";
+  };
 
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  useRealtimeReload([{ table: "team_members" }], load);
+  if (!user) return null;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="inline-flex items-center gap-2 rounded-full px-2.5 py-1.5 hairline hover:bg-white/5 transition">
-        {user ? (
-          <>
-            <MemberAvatar name={user.name} color={user.avatar_color} size="xs" />
-            <span className="text-sm">{user.name}</span>
-          </>
-        ) : (
-          <>
-            <User className="h-4 w-4" />
-            <span className="text-sm">Pick user</span>
-          </>
-        )}
+        <MemberAvatar name={user.name} color={user.avatar_color} size="xs" />
+        <span className="text-sm">{user.name}</span>
         <ChevronDown className="h-3.5 w-3.5 opacity-60" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56 glass-strong">
-        <DropdownMenuLabel className="text-xs uppercase tracking-wider text-dimmer">
-          Switch user (v1)
+        <DropdownMenuLabel className="text-xs">
+          <div className="font-medium text-foreground">{user.name}</div>
+          <div className="text-dimmer font-normal truncate">{user.email}</div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {members.map((m) => (
-          <DropdownMenuItem
-            key={m.id}
-            onClick={() => setUser(m)}
-            className="gap-2"
-          >
-            <MemberAvatar name={m.name} color={m.avatar_color} size="xs" />
-            <span>{m.name}</span>
-          </DropdownMenuItem>
-        ))}
+        <DropdownMenuItem onClick={signOut} className="gap-2">
+          <LogOut className="h-3.5 w-3.5" />
+          Sign out
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
