@@ -1,59 +1,61 @@
-# Plan: Bug → Parent Ticket Linking
+# Google SSO via @old.st with team_members-driven roles
 
-## Behavior
+## Approach
 
-- When creating a **Bug**, user can optionally pick a parent ticket from the same project.
-- Parent scope: only **Standard** or **CR** tickets (no Bug→Bug, no Proj parents).
-- If a parent is selected:
-  - Bug's `formatted_id` becomes `<parent.formatted_id>:NN` (zero-padded 2-digit sequence, scoped to that parent), e.g. `ACR-012:01`, `ACR-012:02`.
-  - Bug title prefills to the parent's title (editable).
-- If no parent is selected: Bug keeps the normal `ACR-NNN` numbering.
-- Parent can be changed/cleared from the **Ticket Detail** sheet (re-derives the formatted_id).
-- Parent link is displayed **only in the Ticket Detail sheet** (small chip linking to parent), not on cards.
+The app already has a `team_members` table with `email`, `name`, `avatar_color`, and `role`. Today the "current user" is just a manual dropdown (`UserPicker` in `TopBar`). We'll keep `team_members` as the single source of truth for identity/role, and add real Google auth on top, mapping the signed-in Google account to a `team_members` row by email.
 
-## Database changes (one migration)
+PMBAs continue managing team in the Admin → Team tab (add user, set role). Only emails on the `team_members` list — and only `@old.st` Google accounts — can use the app.
 
-Schema:
-- Add `tickets.parent_ticket_id uuid NULL` (self-reference, no FK enforced — keeping pattern of no FKs in this project).
-- Add `tickets.bug_sub_number int NULL` (sequence per parent for ordering/regenerating ID).
-- Index on `(parent_ticket_id)`.
+## What changes
 
-Trigger updates:
-- New trigger `enforce_bug_parent` (BEFORE INSERT/UPDATE on tickets):
-  - If `parent_ticket_id IS NOT NULL`:
-    - Require `ticket_type = 'Bug'`.
-    - Look up parent; require same `project_id` and `ticket_type IN ('Standard','CR')`.
-    - On INSERT or when `parent_ticket_id` changed: assign `bug_sub_number = COALESCE(MAX(bug_sub_number),0)+1` among siblings, then set `formatted_id = parent.formatted_id || ':' || LPAD(bug_sub_number::text,2,'0')`.
-  - If `parent_ticket_id IS NULL` and `ticket_type = 'Bug'`: clear `bug_sub_number`, regenerate normal `ACR-NNN` formatted_id using project acronym + `ticket_number`.
-- Modify `before_ticket_insert`: skip overriding `formatted_id` when parent path applies (let new trigger handle it). `ticket_number` is still assigned as today so the ticket retains a project-wide number for sorting/uniqueness.
+### 1. Supabase setup (one-time, manual by user)
+- In Supabase Dashboard → Authentication → Providers → enable **Google**, paste Client ID/Secret from Google Cloud.
+- Set Site URL + Redirect URLs to the Lovable preview + published URLs.
+- (I'll give exact steps in chat after the plan is approved.)
 
-## Frontend changes
+No `profiles` table is needed — `team_members` already plays that role.
 
-Shared component:
-- `src/features/tickets/ParentTicketSelect.tsx` — searchable select (formatted_id + title), filters to Standard/CR in the current project, excludes self. Used by all three entry points.
+### 2. New `/login` page
+- Single "Continue with Google" button → `supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin }})`.
+- After redirect, an auth callback effect:
+  - If `user.email` doesn't end in `@old.st` → sign out + show "Use your old.st Google account".
+  - Look up `team_members` row where `email = user.email`:
+    - **Found** → set as current user, route to `/`.
+    - **Not found** → sign out + show "Your account isn't on the team yet — ask a PMBA to add you."
 
-Add/Quick Add flow:
-- **`add-dialog/types.ts`**: extend `Draft` with `parentTicketId: string | null`.
-- **`add-dialog/DraftRow.tsx`**: when `type === 'Bug'`, render `ParentTicketSelect`. On parent selection, autofill `title` with parent title (only if title is empty or matches prior parent's title — avoid clobbering manual edits).
-- **`add-dialog/useDraftRows.ts`**: include `parent_ticket_id` in insert payload.
-- **`QuickAddRow.tsx`**: same — show parent select when type is Bug, prefill title, send `parent_ticket_id` on insert.
+### 3. Auth provider / route gating
+- New `AuthProvider` in `src/App.tsx` that:
+  - Sets up `supabase.auth.onAuthStateChange` **before** calling `getSession()` (per Supabase best practice).
+  - On every session change, re-runs the @old.st + team_members lookup and updates `useCurrentUser`.
+  - On sign-out or failed lookup, clears `useCurrentUser` and redirects to `/login`.
+- Wrap all existing routes (`/`, `/projects/*`, `/admin`, `/my-work`) in a `<RequireAuth>` guard. `/h/:hash` (public client portal) and `/login` stay public.
 
-Detail editor:
-- **`detail/useTicketEditor.ts`** + the Ticket Detail sheet: add parent picker for Bug tickets (and a chip showing current parent with a clear button). Allow editing parent; on save, update `parent_ticket_id` (trigger re-derives `formatted_id`).
-- Display a small "Parent: ACR-012" chip in the detail header for bugs with a parent.
+### 4. Replace the `UserPicker` dropdown
+- `TopBar` currently has a "Switch user (v1)" dropdown — replaced with the real signed-in user's avatar + name and a **Sign out** menu item.
+- `useCurrentUser` keeps the same shape (`user: TeamMember | null`) so the rest of the codebase (project role checks, assignment slots, time logs, etc.) keeps working unchanged.
 
-Types:
-- After migration, `src/integrations/supabase/types.ts` regenerates automatically — `TicketRow` types pick up new columns; update local interfaces where tickets are mapped.
+### 5. Role enforcement
+- Role still comes from `team_members.role` (global) + `project_members.role` (per-project), exactly as `useProjectRole` already does — no changes needed there.
+- PMBA-only UI (Admin → Status rules, project settings, etc.) keeps using the existing `isPMBA` / `canManageTickets` checks.
 
-## Edge cases
+### 6. RLS (deferred, called out)
+Current RLS on `team_members`, `tickets`, `projects`, etc. is fully permissive (`true`). Real Google auth means we *could* tighten policies (e.g. only allow writes when `auth.uid()` matches a team member), but that requires linking `team_members.id` to `auth.users.id`, which is a bigger migration touching every assignee/time-log/comment row. **Out of scope for this change** — I'll flag it as a follow-up once SSO is live and stable.
 
-- Changing a bug's parent re-issues a new `:NN` under the new parent; the old slot is not reused (simple, predictable).
-- Deleting a parent: bugs keep their derived `formatted_id` string but `parent_ticket_id` becomes a dangling uuid. Add a follow-up `BEFORE DELETE` on tickets to null out children's parent + regenerate plain `ACR-NNN` formatted_id.
-- CSV import: leave `parent_ticket_id` unset for v1 (out of scope).
-- Client portal / exports: no changes needed — they read `formatted_id` as-is.
+## Technical details
 
-## Out of scope
+- **Files added**
+  - `src/pages/Login.tsx` — Google sign-in screen, branded with logo + coral CTA.
+  - `src/features/auth/AuthProvider.tsx` — session listener, email-domain + team_members lookup, redirects.
+  - `src/features/auth/RequireAuth.tsx` — route guard.
+  - `src/features/auth/useAuthSession.ts` — small hook exposing `{ session, status }`.
 
-- Showing parent on cards/lists (per your choice).
-- Bulk re-parenting.
-- Bug-of-bug chains.
+- **Files edited**
+  - `src/App.tsx` — wrap routes in `<AuthProvider>` + `<RequireAuth>`, add `/login` public route.
+  - `src/components/TopBar.tsx` — replace `UserPicker` with signed-in user menu (avatar, name, Sign out).
+  - `src/store/currentUser.ts` — keep store, drop the persisted "manually picked user" semantics (set only by AuthProvider).
+
+- **Allowed-domain check** runs client-side in AuthProvider. (Server-side enforcement would need a database webhook or auth hook — can be added later if needed.)
+
+## What I'll need from you after approval
+1. Confirm I should proceed (no code changes happen in plan mode).
+2. Then enable Google provider in the Supabase dashboard — I'll link you straight to the page and list the exact Client ID / redirect URL values to paste.
