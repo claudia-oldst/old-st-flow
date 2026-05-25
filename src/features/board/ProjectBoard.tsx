@@ -105,18 +105,20 @@ export function ProjectBoard({
       ? disciplineCards.find((c) => `${c.ticket.id}::${c.slot}` === activeId)?.ticket
       : null;
 
+  const toolbar = (
+    <BoardToolbar
+      mode={mode}
+      setMode={(m) => { setTouched(true); setMode(m); }}
+      filterMine={filterMine}
+      setFilterMine={(v) => { setTouched(true); setFilterMine(v); }}
+      visibleCount={visible.length}
+      cardCount={disciplineCards.length}
+    />
+  );
+
   return (
     <TooltipProvider>
       <div>
-        <BoardToolbar
-          mode={mode}
-          setMode={(m) => { setTouched(true); setMode(m); }}
-          filterMine={filterMine}
-          setFilterMine={(v) => { setTouched(true); setFilterMine(v); }}
-          visibleCount={visible.length}
-          cardCount={disciplineCards.length}
-        />
-
         {truncated && (
           <div className="mb-3 rounded-xl px-3 py-2 text-xs text-dim bg-accent/10 hairline">
             Showing first {allTickets.length} of {totalCount} tickets — switch to List view to page through the rest.
@@ -124,20 +126,23 @@ export function ProjectBoard({
         )}
 
         {initialLoading ? (
-          <div className="flex gap-3 overflow-x-auto pb-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="flex-1 min-w-[260px] space-y-2">
-                <Skeleton className="h-8 rounded-xl" />
-                <Skeleton className="h-24 rounded-xl" />
-                <Skeleton className="h-24 rounded-xl" />
-                <Skeleton className="h-24 rounded-xl" />
-              </div>
-            ))}
-          </div>
+          <>
+            <div className="mb-4">{toolbar}</div>
+            <div className="flex gap-3 overflow-x-auto pb-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex-1 min-w-[260px] space-y-2">
+                  <Skeleton className="h-8 rounded-xl" />
+                  <Skeleton className="h-24 rounded-xl" />
+                  <Skeleton className="h-24 rounded-xl" />
+                  <Skeleton className="h-24 rounded-xl" />
+                </div>
+              ))}
+            </div>
+          </>
         ) : (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           {mode === "project" ? (
-            <TopScrollSync>
+            <TopScrollSync toolbar={toolbar}>
               {statuses.map((status) => (
                 <Column
                   key={status.id}
@@ -155,7 +160,7 @@ export function ProjectBoard({
               ))}
             </TopScrollSync>
           ) : (
-            <TopScrollSync>
+            <TopScrollSync toolbar={toolbar}>
               {disciplineColumns.map((s) => (
                 <DisciplineColumn
                   key={s}
@@ -187,3 +192,4 @@ export function ProjectBoard({
     </TooltipProvider>
   );
 }
+
