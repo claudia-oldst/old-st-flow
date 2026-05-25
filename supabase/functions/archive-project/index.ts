@@ -1,5 +1,5 @@
 // Archive a project to cold storage: dump JSON + XLSX to project-vault bucket,
-// verify integrity via SHA-256, then purge child rows.
+// verify integrity via SHA-256, then purge child rows. PMBA-only.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import * as XLSX from "https://esm.sh/xlsx@0.18.5";
 
@@ -11,7 +11,6 @@ const corsHeaders = {
 
 interface Body {
   project_id: string;
-  user_id: string; // current user (PMBA check)
 }
 
 async function sha256Hex(text: string): Promise<string> {
@@ -108,25 +107,46 @@ function buildXlsx(payload: any): Uint8Array {
   return new Uint8Array(out);
 }
 
+// Verify the caller's JWT and resolve their team_members.id. Returns null on failure.
+async function verifyPmba(
+  req: Request,
+  admin: ReturnType<typeof createClient>,
+): Promise<{ userId: string } | { error: string; status: number }> {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return { error: "Missing bearer token", status: 401 };
+  }
+  const token = authHeader.replace("Bearer ", "");
+  const { data: claims, error } = await admin.auth.getClaims(token);
+  if (error || !claims?.claims) return { error: "Invalid token", status: 401 };
+  const email = (claims.claims as any).email as string | undefined;
+  if (!email) return { error: "Token missing email", status: 401 };
+  const { data: member } = await admin
+    .from("team_members")
+    .select("id")
+    .ilike("email", email)
+    .maybeSingle();
+  if (!member?.id) return { error: "Not a team member", status: 403 };
+  const { data: isPmba } = await admin.rpc("is_pmba", { _user_id: member.id });
+  if (!isPmba) return { error: "PMBA role required", status: 403 };
+  return { userId: member.id };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const body = (await req.json()) as Body;
-    if (!body?.project_id || !body?.user_id) {
-      return json({ error: "project_id and user_id required" }, 400);
-    }
-
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // PMBA gate
-    const { data: isPmba } = await admin.rpc("is_pmba", { _user_id: body.user_id });
-    if (!isPmba) return json({ error: "PMBA role required" }, 403);
+    const auth = await verifyPmba(req, admin);
+    if ("error" in auth) return json({ error: auth.error }, auth.status);
 
-    // 1. Aggregate payload
+    const body = (await req.json()) as Body;
+    if (!body?.project_id) return json({ error: "project_id required" }, 400);
+
     const { data: payload, error: payloadErr } = await admin.rpc(
       "get_project_archive_payload",
       { _project_id: body.project_id },
@@ -155,7 +175,6 @@ Deno.serve(async (req) => {
       time_logs: logs.length,
     };
 
-    // 2. Build artifacts
     const jsonText = JSON.stringify(payload);
     const checksum = await sha256Hex(jsonText);
     const xlsxBytes = buildXlsx(payload);
@@ -164,7 +183,6 @@ Deno.serve(async (req) => {
     const jsonPath = `${folder}/restore_point.json`;
     const xlsxPath = `${folder}/project_summary.xlsx`;
 
-    // 3. Upload
     const upJson = await admin.storage
       .from("project-vault")
       .upload(jsonPath, new Blob([jsonText], { type: "application/json" }), {
@@ -183,7 +201,6 @@ Deno.serve(async (req) => {
       });
     if (upXlsx.error) return json({ error: `XLSX upload: ${upXlsx.error.message}` }, 500);
 
-    // 4. Re-download JSON and verify checksum
     const dl = await admin.storage.from("project-vault").download(jsonPath);
     if (dl.error || !dl.data) return json({ error: "Could not verify JSON upload" }, 500);
     const downloaded = await dl.data.text();
@@ -192,7 +209,6 @@ Deno.serve(async (req) => {
       return json({ error: "Checksum mismatch after upload — aborting purge" }, 500);
     }
 
-    // 5. Mark archived (trigger nulls portal hash)
     const { error: updErr } = await admin
       .from("projects")
       .update({
@@ -207,7 +223,6 @@ Deno.serve(async (req) => {
       .eq("id", body.project_id);
     if (updErr) return json({ error: `Project update: ${updErr.message}` }, 500);
 
-    // 6. Purge children
     const { error: purgeErr } = await admin.rpc("purge_project_children", {
       _project_id: body.project_id,
     });
