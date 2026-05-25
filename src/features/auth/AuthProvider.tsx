@@ -38,6 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!email.endsWith(`@${ALLOWED_DOMAIN}`)) {
         await supabase.auth.signOut();
         setUser(null);
+        setAuthLoading(false);
         toast({
           title: "Use your old.st Google account",
           description: `Only @${ALLOWED_DOMAIN} accounts can sign in.`,
