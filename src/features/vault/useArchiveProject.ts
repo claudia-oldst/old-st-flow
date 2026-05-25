@@ -1,17 +1,16 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useCurrentUser } from "@/store/currentUser";
 import { toast } from "sonner";
+
+// Caller identity now derived server-side from the JWT — no need to pass user_id.
 
 export function useArchiveProject() {
   const qc = useQueryClient();
-  const userId = useCurrentUser((s) => s.user?.id);
 
   return useMutation({
     mutationFn: async (projectId: string) => {
-      if (!userId) throw new Error("Not signed in");
       const { data, error } = await supabase.functions.invoke("archive-project", {
-        body: { project_id: projectId, user_id: userId },
+        body: { project_id: projectId },
       });
       if (error) throw error;
       const payload = (data ?? {}) as {
@@ -35,14 +34,9 @@ export function useArchiveProject() {
 }
 
 export function useVaultDownload() {
-  const userId = useCurrentUser((s) => s.user?.id);
   return async (projectId: string, kind: "json" | "xlsx") => {
-    if (!userId) {
-      toast.error("Not signed in");
-      return;
-    }
     const { data, error } = await supabase.functions.invoke("vault-download-url", {
-      body: { project_id: projectId, user_id: userId, kind },
+      body: { project_id: projectId, kind },
     });
     const payload = (data ?? {}) as { url?: string; error?: string };
     if (error || payload.error) {
