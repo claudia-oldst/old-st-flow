@@ -70,6 +70,7 @@ export function QuickAddRow({
       current_be_estimate: parsed.data.be_estimate ?? 0,
       original_project_estimate: parsed.data.project_estimate ?? 0,
       current_project_estimate: parsed.data.project_estimate ?? 0,
+      parent_ticket_id: isBug ? parentTicketId : null,
       // ticket_number + formatted_id are filled by the before-insert trigger
       ticket_number: 0,
       formatted_id: "",
@@ -82,6 +83,8 @@ export function QuickAddRow({
     setProj("");
     setType("Standard");
     setEpicId(null);
+    setParentTicketId(null);
+    setParentTitle(null);
     onCreated();
   };
 
