@@ -536,6 +536,7 @@ export type Database = {
           actual_frontend_hours: number
           actual_project_hours: number
           be_status: Database["public"]["Enums"]["discipline_status"]
+          bug_sub_number: number | null
           cr_approval: string | null
           cr_decided_at: string | null
           cr_decided_by: string | null
@@ -550,6 +551,7 @@ export type Database = {
           original_be_estimate: number
           original_fe_estimate: number
           original_project_estimate: number
+          parent_ticket_id: string | null
           position: number
           project_id: string
           project_status_override: boolean
@@ -566,6 +568,7 @@ export type Database = {
           actual_frontend_hours?: number
           actual_project_hours?: number
           be_status?: Database["public"]["Enums"]["discipline_status"]
+          bug_sub_number?: number | null
           cr_approval?: string | null
           cr_decided_at?: string | null
           cr_decided_by?: string | null
@@ -580,6 +583,7 @@ export type Database = {
           original_be_estimate?: number
           original_fe_estimate?: number
           original_project_estimate?: number
+          parent_ticket_id?: string | null
           position?: number
           project_id: string
           project_status_override?: boolean
@@ -596,6 +600,7 @@ export type Database = {
           actual_frontend_hours?: number
           actual_project_hours?: number
           be_status?: Database["public"]["Enums"]["discipline_status"]
+          bug_sub_number?: number | null
           cr_approval?: string | null
           cr_decided_at?: string | null
           cr_decided_by?: string | null
@@ -610,6 +615,7 @@ export type Database = {
           original_be_estimate?: number
           original_fe_estimate?: number
           original_project_estimate?: number
+          parent_ticket_id?: string | null
           position?: number
           project_id?: string
           project_status_override?: boolean

@@ -71,6 +71,9 @@ function asTicketRow(t: PortalCRViewTicket): TicketRow {
     cr_approval: t.cr_approval,
     cr_decided_by: null,
     cr_decided_at: t.cr_decided_at,
+    parent_ticket_id: null,
+    bug_sub_number: null,
+    parent: null,
     assignees: [],
   };
 }

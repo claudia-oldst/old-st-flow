@@ -75,6 +75,7 @@ export function useDraftRows({
         current_be_estimate: isProj ? 0 : be,
         original_project_estimate: isProj ? proj : 0,
         current_project_estimate: isProj ? proj : 0,
+        parent_ticket_id: d.type === "Bug" ? d.parentTicketId : null,
         ticket_number: 0,
         formatted_id: "",
       };

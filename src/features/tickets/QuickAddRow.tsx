@@ -12,6 +12,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import type { TicketType } from "@/lib/types";
 import { EpicSelect } from "@/features/epics/EpicSelect";
+import { ParentTicketSelect } from "@/features/tickets/ParentTicketSelect";
 import { ticketInputSchema } from "@/lib/schemas/ticket";
 import { toast } from "sonner";
 
@@ -31,9 +32,12 @@ export function QuickAddRow({
   const [be, setBe] = useState("");
   const [proj, setProj] = useState("");
   const [epicId, setEpicId] = useState<number | null>(null);
+  const [parentTicketId, setParentTicketId] = useState<string | null>(null);
+  const [parentTitle, setParentTitle] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const isProj = type === "Proj";
+  const isBug = type === "Bug";
 
   const submit = async () => {
     const projHrs = parseFloat(proj) || 0;
@@ -66,6 +70,7 @@ export function QuickAddRow({
       current_be_estimate: parsed.data.be_estimate ?? 0,
       original_project_estimate: parsed.data.project_estimate ?? 0,
       current_project_estimate: parsed.data.project_estimate ?? 0,
+      parent_ticket_id: isBug ? parentTicketId : null,
       // ticket_number + formatted_id are filled by the before-insert trigger
       ticket_number: 0,
       formatted_id: "",
@@ -78,6 +83,8 @@ export function QuickAddRow({
     setProj("");
     setType("Standard");
     setEpicId(null);
+    setParentTicketId(null);
+    setParentTitle(null);
     onCreated();
   };
 
@@ -123,6 +130,21 @@ export function QuickAddRow({
         )}
       </div>
       <EpicSelect projectId={projectId} value={epicId} onChange={setEpicId} size="sm" />
+      {isBug && (
+        <ParentTicketSelect
+          projectId={projectId}
+          value={parentTicketId}
+          size="sm"
+          placeholder="Parent ticket (optional)…"
+          onChange={(id, parent) => {
+            const titleIsEmptyOrInherited =
+              !title.trim() || (parentTitle !== null && title.trim() === parentTitle.trim());
+            setParentTicketId(id);
+            setParentTitle(parent?.title ?? null);
+            if (titleIsEmptyOrInherited) setTitle(parent?.title ?? "");
+          }}
+        />
+      )}
       <div className="flex justify-end gap-1">
         <Button size="sm" variant="ghost" onClick={() => setOpen(false)} className="h-6 text-xs px-2">Cancel</Button>
         <Button size="sm" onClick={submit} disabled={busy || !title.trim()} className="h-6 text-xs px-2">Add</Button>

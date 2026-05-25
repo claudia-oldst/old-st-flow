@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { EpicSelect } from "@/features/epics/EpicSelect";
+import { ParentTicketSelect } from "@/features/tickets/ParentTicketSelect";
 import { cn } from "@/lib/utils";
 import type { ProjectMember, TeamMember, TicketType } from "@/lib/types";
 import type { Draft } from "./types";
@@ -175,6 +176,34 @@ export function DraftRow({
           />
         </div>
       </div>
+
+      {draft.type === "Bug" && (
+        <div className="pl-8">
+          <div className="text-[10px] uppercase tracking-wider text-dimmer mb-1">
+            Parent ticket (optional)
+          </div>
+          <ParentTicketSelect
+            projectId={projectId}
+            value={draft.parentTicketId}
+            size="sm"
+            onChange={(id, parent) => {
+              const titleIsEmptyOrInherited =
+                !draft.title.trim() ||
+                (draft.parentTitle !== null && draft.title.trim() === draft.parentTitle.trim());
+              onChange({
+                parentTicketId: id,
+                parentTitle: parent?.title ?? null,
+                title:
+                  parent && titleIsEmptyOrInherited
+                    ? parent.title
+                    : !parent && titleIsEmptyOrInherited
+                      ? ""
+                      : draft.title,
+              });
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }

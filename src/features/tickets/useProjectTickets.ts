@@ -33,6 +33,9 @@ export interface TicketRow {
   cr_approval: "pending" | "approved" | "rejected" | null;
   cr_decided_by: string | null;
   cr_decided_at: string | null;
+  parent_ticket_id: string | null;
+  bug_sub_number: number | null;
+  parent: { id: string; formatted_id: string; title: string } | null;
   assignees: Array<{ user_id: string; slot: "FE" | "BE" | "Project"; member: TeamMember; created_at: string }>;
 }
 
@@ -59,6 +62,21 @@ async function fetchProjectTickets(projectId: string): Promise<FetchResult> {
       .select("*, member:team_members(*)")
       .in("ticket_id", ids);
     assignees = (data as any) ?? [];
+  }
+
+  // Fetch parent ticket info for any tickets that have a parent_ticket_id
+  const parentIds = Array.from(
+    new Set((tix ?? []).map((t: any) => t.parent_ticket_id).filter(Boolean) as string[]),
+  );
+  const parentMap: Record<string, { id: string; formatted_id: string; title: string }> = {};
+  if (parentIds.length) {
+    const { data: parents } = await supabase
+      .from("tickets")
+      .select("id, formatted_id, title")
+      .in("id", parentIds);
+    (parents ?? []).forEach((p: any) => {
+      parentMap[p.id] = { id: p.id, formatted_id: p.formatted_id, title: p.title };
+    });
   }
 
   const grouped: Record<string, TicketRow["assignees"]> = {};
@@ -101,6 +119,9 @@ async function fetchProjectTickets(projectId: string): Promise<FetchResult> {
     cr_approval: (t.ticket_type === "CR" ? (t.cr_approval ?? "pending") : null) as TicketRow["cr_approval"],
     cr_decided_by: t.cr_decided_by ?? null,
     cr_decided_at: t.cr_decided_at ?? null,
+    parent_ticket_id: t.parent_ticket_id ?? null,
+    bug_sub_number: t.bug_sub_number ?? null,
+    parent: t.parent_ticket_id ? (parentMap[t.parent_ticket_id] ?? null) : null,
     assignees: grouped[t.id] ?? [],
   }));
 
