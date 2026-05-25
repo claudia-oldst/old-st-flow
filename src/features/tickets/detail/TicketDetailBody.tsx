@@ -4,6 +4,7 @@ import { Users, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { EpicSelect } from "@/features/epics/EpicSelect";
+import { ParentTicketSelect } from "@/features/tickets/ParentTicketSelect";
 import { AssigneeBlock } from "./AssigneeBlock";
 import { StatusBlock } from "./StatusBlock";
 import { EstimatesPanel } from "./EstimatesPanel";
@@ -72,6 +73,36 @@ export function TicketDetailBody({
               onChange();
             }}
           />
+        </div>
+      )}
+
+      {ticket.ticket_type === "Bug" && isPMBARole && (
+        <div>
+          <div className="text-xs uppercase tracking-wider text-dimmer mb-2">Parent ticket</div>
+          <ParentTicketSelect
+            projectId={projectId}
+            value={ticket.parent_ticket_id}
+            excludeId={ticket.id}
+            size="sm"
+            onChange={async (id) => {
+              const { error } = await supabase
+                .from("tickets")
+                .update({ parent_ticket_id: id })
+                .eq("id", ticket.id);
+              if (error) return toast.error(error.message);
+              onChange();
+            }}
+          />
+        </div>
+      )}
+
+      {ticket.ticket_type === "Bug" && !isPMBARole && ticket.parent && (
+        <div>
+          <div className="text-xs uppercase tracking-wider text-dimmer mb-2">Parent ticket</div>
+          <div className="text-sm">
+            <span className="font-mono text-dimmer mr-2">{ticket.parent.formatted_id}</span>
+            {ticket.parent.title}
+          </div>
         </div>
       )}
 

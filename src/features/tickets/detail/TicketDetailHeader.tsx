@@ -1,4 +1,4 @@
-import { Bookmark, Sparkles } from "lucide-react";
+import { Bookmark, GitBranch, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
@@ -45,6 +45,15 @@ export function TicketDetailHeader({
         {ticket.version && (
           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] bg-white/5 hairline font-mono">
             {ticket.version}
+          </span>
+        )}
+        {ticket.parent && (
+          <span
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-white/5 hairline"
+            title={ticket.parent.title}
+          >
+            <GitBranch className="h-2.5 w-2.5" />
+            <span className="font-mono">{ticket.parent.formatted_id}</span>
           </span>
         )}
       </div>
