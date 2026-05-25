@@ -119,6 +119,9 @@ async function fetchProjectTickets(projectId: string): Promise<FetchResult> {
     cr_approval: (t.ticket_type === "CR" ? (t.cr_approval ?? "pending") : null) as TicketRow["cr_approval"],
     cr_decided_by: t.cr_decided_by ?? null,
     cr_decided_at: t.cr_decided_at ?? null,
+    parent_ticket_id: t.parent_ticket_id ?? null,
+    bug_sub_number: t.bug_sub_number ?? null,
+    parent: t.parent_ticket_id ? (parentMap[t.parent_ticket_id] ?? null) : null,
     assignees: grouped[t.id] ?? [],
   }));
 
