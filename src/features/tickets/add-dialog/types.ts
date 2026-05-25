@@ -18,6 +18,8 @@ export interface Draft {
   be: string;
   proj: string;
   assignees: DraftAssignees;
+  parentTicketId: string | null;
+  parentTitle: string | null;
 }
 
 export const newDraft = (statusId: string | null = null, type: TicketType = "Standard"): Draft => ({
@@ -30,4 +32,6 @@ export const newDraft = (statusId: string | null = null, type: TicketType = "Sta
   be: "",
   proj: "",
   assignees: { fe: new Set(), be: new Set(), project: new Set() },
+  parentTicketId: null,
+  parentTitle: null,
 });
