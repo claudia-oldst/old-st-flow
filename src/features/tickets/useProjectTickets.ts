@@ -64,6 +64,21 @@ async function fetchProjectTickets(projectId: string): Promise<FetchResult> {
     assignees = (data as any) ?? [];
   }
 
+  // Fetch parent ticket info for any tickets that have a parent_ticket_id
+  const parentIds = Array.from(
+    new Set((tix ?? []).map((t: any) => t.parent_ticket_id).filter(Boolean) as string[]),
+  );
+  const parentMap: Record<string, { id: string; formatted_id: string; title: string }> = {};
+  if (parentIds.length) {
+    const { data: parents } = await supabase
+      .from("tickets")
+      .select("id, formatted_id, title")
+      .in("id", parentIds);
+    (parents ?? []).forEach((p: any) => {
+      parentMap[p.id] = { id: p.id, formatted_id: p.formatted_id, title: p.title };
+    });
+  }
+
   const grouped: Record<string, TicketRow["assignees"]> = {};
   assignees.forEach((a) => {
     grouped[a.ticket_id] ??= [];
