@@ -8,11 +8,20 @@ import oldStLogo from "@/assets/oldst-logo.png";
 export default function Login() {
   const navigate = useNavigate();
   const user = useCurrentUser((s) => s.user);
+  const authLoading = useCurrentUser((s) => s.authLoading);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (user) navigate("/", { replace: true });
   }, [user, navigate]);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-dim text-sm">
+        Loading…
+      </div>
+    );
+  }
 
   const signIn = async () => {
     setLoading(true);
