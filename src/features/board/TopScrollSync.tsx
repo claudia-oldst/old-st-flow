@@ -1,12 +1,18 @@
 import { useEffect, useRef, type ReactNode } from "react";
 
 /**
- * Wraps a horizontally-scrolling region and adds a second scrollbar
- * that sits ABOVE the content and stays sticky at the top of the
- * viewport so the user can always move across columns without
- * scrolling to the bottom of the board.
+ * Wraps a horizontally-scrolling region. The optional `toolbar` and a
+ * synced horizontal scrollbar are rendered inside a single sticky header
+ * that sits just below the app's top bar, so the user can always switch
+ * modes, filter and pan across columns from anywhere on the board.
  */
-export function TopScrollSync({ children }: { children: ReactNode }) {
+export function TopScrollSync({
+  children,
+  toolbar,
+}: {
+  children: ReactNode;
+  toolbar?: ReactNode;
+}) {
   const topRef = useRef<HTMLDivElement | null>(null);
   const topInnerRef = useRef<HTMLDivElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -54,15 +60,18 @@ export function TopScrollSync({ children }: { children: ReactNode }) {
 
   return (
     <>
-      <div
-        ref={topRef}
-        className="sticky top-14 z-30 overflow-x-auto overflow-y-hidden bg-background/80 backdrop-blur-sm -mx-1 px-1 mb-2"
-        style={{ height: 14 }}
-        aria-hidden
-      >
-        <div ref={topInnerRef} style={{ height: 1 }} />
+      <div className="sticky top-14 z-30 -mx-4 sm:-mx-6 px-4 sm:px-6 pt-3 pb-2 bg-background/85 backdrop-blur-md hairline-b">
+        {toolbar}
+        <div
+          ref={topRef}
+          className="overflow-x-auto overflow-y-hidden mt-1"
+          style={{ height: 14 }}
+          aria-hidden
+        >
+          <div ref={topInnerRef} style={{ height: 1 }} />
+        </div>
       </div>
-      <div ref={bottomRef} className="flex gap-3 overflow-x-auto pb-4">
+      <div ref={bottomRef} className="flex gap-3 overflow-x-auto pb-4 pt-2">
         {children}
       </div>
     </>
