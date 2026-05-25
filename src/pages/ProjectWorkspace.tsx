@@ -12,6 +12,7 @@ import { ProjectSettingsDialog } from "@/features/project/ProjectSettingsDialog"
 import { ExportProjectDialog } from "@/features/project/ExportProjectDialog";
 import { ClientPortalEditor } from "@/features/client-portal/ClientPortalEditor";
 import { useProjectRole, isPMBA } from "@/features/team/useProjectRole";
+import { useProjectAccess } from "@/features/auth/useProjectAccess";
 import { VaultDashboard } from "@/features/vault/VaultDashboard";
 import { ArrowLeft, Download, Archive } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +24,7 @@ export default function ProjectWorkspace() {
   const [project, setProject] = useState<Project | null>(null);
   const role = useProjectRole(id);
   const canEdit = isPMBA(role);
+  const { allowed, loading: accessLoading } = useProjectAccess(id);
   const [exportOpen, setExportOpen] = useState(false);
 
   const loadProject = useCallback(() => {
@@ -53,6 +55,24 @@ export default function ProjectWorkspace() {
   );
 
   if (!id) return null;
+
+  if (!accessLoading && !allowed) {
+    return (
+      <div className={cn(PAGE_SHELL, "py-16 text-center")}>
+        <h1 className="font-display text-2xl font-semibold tracking-tight mb-2">
+          No access to this project
+        </h1>
+        <p className="text-dim text-sm mb-6">
+          Ask a PMBA to add you as a member to view it.
+        </p>
+        <Link to="/" className="inline-flex items-center gap-1 text-sm text-dim hover:text-foreground transition">
+          <ArrowLeft className="h-3.5 w-3.5" /> Back to all projects
+        </Link>
+      </div>
+    );
+  }
+
+
 
   return (
     <div className={cn(PAGE_SHELL, "pt-6 pb-12")}>

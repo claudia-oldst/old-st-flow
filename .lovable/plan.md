@@ -1,61 +1,56 @@
-# Google SSO via @old.st with team_members-driven roles
+## Visibility & access scoping
 
-## Approach
+### Rules to enforce
+- **PMBA**: full transparency — every project and every ticket.
+- **Non-PMBA (Frontend, Backend, Fullstack, QA)**: only projects they appear in `project_members` for, and only tickets inside those projects.
+- **My Tickets / "Mine" toggle**: filter on top of the above — only tickets where the signed-in user is an assignee.
+- **/my-work** and **daily AI work summary**: signed-in user only — no user switcher, no impersonation.
+- **/admin**: PMBA only — others redirected to `/`.
+- **/h/:hash client portal**: stays fully public, no auth.
 
-The app already has a `team_members` table with `email`, `name`, `avatar_color`, and `role`. Today the "current user" is just a manual dropdown (`UserPicker` in `TopBar`). We'll keep `team_members` as the single source of truth for identity/role, and add real Google auth on top, mapping the signed-in Google account to a `team_members` row by email.
+### Frontend gating
 
-PMBAs continue managing team in the Admin → Team tab (add user, set role). Only emails on the `team_members` list — and only `@old.st` Google accounts — can use the app.
+1. **`useVisibleProjects` (new hook)** wrapping `useProjectsList`
+   - If `user.role === 'PMBA'` → return all projects.
+   - Else → filter to projects where a `project_members` row exists for `user.id`.
+   - Used by `Projects.tsx`, `MyWork.tsx` project picker, vault, etc.
 
-## What changes
+2. **Project route guard** in `ProjectWorkspace.tsx`
+   - Use `useProjectRole(projectId)`; if user is not PMBA and has no `project_members` row → render "You don't have access to this project" and a back link (don't 404).
 
-### 1. Supabase setup (one-time, manual by user)
-- In Supabase Dashboard → Authentication → Providers → enable **Google**, paste Client ID/Secret from Google Cloud.
-- Set Site URL + Redirect URLs to the Lovable preview + published URLs.
-- (I'll give exact steps in chat after the plan is approved.)
+3. **Admin guard** — extend `RequireAuth` (or add `RequirePMBA`) so `/admin` redirects non-PMBA users to `/`.
 
-No `profiles` table is needed — `team_members` already plays that role.
+4. **MyWork (`/my-work`)**
+   - Remove any user-picker UI; always read `useCurrentUser().user.id`.
+   - Scope queries (tickets, time logs, capacity) to the signed-in user id.
+   - Project list inside MyWork uses `useVisibleProjects`.
 
-### 2. New `/login` page
-- Single "Continue with Google" button → `supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin }})`.
-- After redirect, an auth callback effect:
-  - If `user.email` doesn't end in `@old.st` → sign out + show "Use your old.st Google account".
-  - Look up `team_members` row where `email = user.email`:
-    - **Found** → set as current user, route to `/`.
-    - **Not found** → sign out + show "Your account isn't on the team yet — ask a PMBA to add you."
+5. **Daily AI work summary** (`LogoffSummaryButton` / `daily-logoff-summary` edge function)
+   - UI: only renders for the logged-in user; remove any cross-user selection.
+   - Edge function: derive `user_id` from the verified JWT (`supabase.auth.getUser`) instead of trusting a `user_id` payload field. Reject if no session.
 
-### 3. Auth provider / route gating
-- New `AuthProvider` in `src/App.tsx` that:
-  - Sets up `supabase.auth.onAuthStateChange` **before** calling `getSession()` (per Supabase best practice).
-  - On every session change, re-runs the @old.st + team_members lookup and updates `useCurrentUser`.
-  - On sign-out or failed lookup, clears `useCurrentUser` and redirects to `/login`.
-- Wrap all existing routes (`/`, `/projects/*`, `/admin`, `/my-work`) in a `<RequireAuth>` guard. `/h/:hash` (public client portal) and `/login` stay public.
+6. **"My Tickets" filter** — already filters by `assignees.user_id === user.id` via `filterMineUserId`. Keep as-is; verify it still works after the project-scoping changes.
 
-### 4. Replace the `UserPicker` dropdown
-- `TopBar` currently has a "Switch user (v1)" dropdown — replaced with the real signed-in user's avatar + name and a **Sign out** menu item.
-- `useCurrentUser` keeps the same shape (`user: TeamMember | null`) so the rest of the codebase (project role checks, assignment slots, time logs, etc.) keeps working unchanged.
+### Backend (RLS) — defense in depth
 
-### 5. Role enforcement
-- Role still comes from `team_members.role` (global) + `project_members.role` (per-project), exactly as `useProjectRole` already does — no changes needed there.
-- PMBA-only UI (Admin → Status rules, project settings, etc.) keeps using the existing `isPMBA` / `canManageTickets` checks.
+Current policies are all `USING (true)`. Tighten the high-value tables so the frontend filtering can't be bypassed:
 
-### 6. RLS (deferred, called out)
-Current RLS on `team_members`, `tickets`, `projects`, etc. is fully permissive (`true`). Real Google auth means we *could* tighten policies (e.g. only allow writes when `auth.uid()` matches a team member), but that requires linking `team_members.id` to `auth.users.id`, which is a bigger migration touching every assignee/time-log/comment row. **Out of scope for this change** — I'll flag it as a follow-up once SSO is live and stable.
+- Add SQL helper `public.is_project_member(_uid uuid, _pid uuid)` (SECURITY DEFINER).
+- Replace permissive SELECT policies with:
+  - `projects`: PMBA OR `is_project_member(auth.uid(), id)`.
+  - `tickets`, `ticket_assignees`, `ticket_comments`, `ticket_estimate_changes`, `time_logs`, `active_timers`, `active_timer_tickets`, `project_epics`, `project_epic_summaries`, `epic_discounts`, `project_members`: PMBA OR project member of the row's project.
+  - `team_members`, `statuses`, `status_derivation_rules`: keep readable by all signed-in users (needed for avatars/labels).
+- INSERT/UPDATE/DELETE policies: PMBA always allowed; project members allowed for their project's rows (matching today's app behavior). Admin-config tables (`statuses`, `status_derivation_rules`, `team_members`) become PMBA-only for writes.
+- Time logs / comments writes additionally require `user_id = auth.uid()` (except PMBA).
+- Client portal RPCs (`get_client_portal*`, `client_approve_cr`) stay `SECURITY DEFINER` so the public `/h/:hash` route still works.
 
-## Technical details
+Existing helper `public.is_pmba(_user_id uuid)` is reused.
 
-- **Files added**
-  - `src/pages/Login.tsx` — Google sign-in screen, branded with logo + coral CTA.
-  - `src/features/auth/AuthProvider.tsx` — session listener, email-domain + team_members lookup, redirects.
-  - `src/features/auth/RequireAuth.tsx` — route guard.
-  - `src/features/auth/useAuthSession.ts` — small hook exposing `{ session, status }`.
+### Files to change
 
-- **Files edited**
-  - `src/App.tsx` — wrap routes in `<AuthProvider>` + `<RequireAuth>`, add `/login` public route.
-  - `src/components/TopBar.tsx` — replace `UserPicker` with signed-in user menu (avatar, name, Sign out).
-  - `src/store/currentUser.ts` — keep store, drop the persisted "manually picked user" semantics (set only by AuthProvider).
+- New: `src/features/projects/useVisibleProjects.ts`, `src/features/auth/RequirePMBA.tsx`
+- Edit: `src/App.tsx` (wrap `/admin` with `RequirePMBA`), `src/pages/Projects.tsx`, `src/pages/MyWork.tsx`, `src/pages/ProjectWorkspace.tsx`, `src/features/logoff/LogoffSummaryButton.tsx`, `src/features/logoff/LogoffSummaryDialog.tsx`, `supabase/functions/daily-logoff-summary/index.ts`
+- Migration: helper function + replacement RLS policies on the tables above.
 
-- **Allowed-domain check** runs client-side in AuthProvider. (Server-side enforcement would need a database webhook or auth hook — can be added later if needed.)
-
-## What I'll need from you after approval
-1. Confirm I should proceed (no code changes happen in plan mode).
-2. Then enable Google provider in the Supabase dashboard — I'll link you straight to the page and list the exact Client ID / redirect URL values to paste.
+### Open question
+The RLS tightening is the biggest behavioral change — once enforced, any code path that today queries data without going through a project membership will start returning empty results. Want me to (a) ship UI gating + RLS together, or (b) ship UI gating first and add RLS as a follow-up after we verify nothing breaks?
