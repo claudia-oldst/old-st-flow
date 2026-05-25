@@ -76,6 +76,36 @@ export function TicketDetailBody({
         </div>
       )}
 
+      {ticket.ticket_type === "Bug" && isPMBARole && (
+        <div>
+          <div className="text-xs uppercase tracking-wider text-dimmer mb-2">Parent ticket</div>
+          <ParentTicketSelect
+            projectId={projectId}
+            value={ticket.parent_ticket_id}
+            excludeId={ticket.id}
+            size="sm"
+            onChange={async (id) => {
+              const { error } = await supabase
+                .from("tickets")
+                .update({ parent_ticket_id: id })
+                .eq("id", ticket.id);
+              if (error) return toast.error(error.message);
+              onChange();
+            }}
+          />
+        </div>
+      )}
+
+      {ticket.ticket_type === "Bug" && !isPMBARole && ticket.parent && (
+        <div>
+          <div className="text-xs uppercase tracking-wider text-dimmer mb-2">Parent ticket</div>
+          <div className="text-sm">
+            <span className="font-mono text-dimmer mr-2">{ticket.parent.formatted_id}</span>
+            {ticket.parent.title}
+          </div>
+        </div>
+      )}
+
       <div>
         <div className="text-xs uppercase tracking-wider text-dimmer mb-2">Version</div>
         {isPMBARole ? (
