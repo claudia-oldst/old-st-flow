@@ -4,6 +4,7 @@ import { Users, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { EpicSelect } from "@/features/epics/EpicSelect";
+import { ParentTicketSelect } from "@/features/tickets/ParentTicketSelect";
 import { AssigneeBlock } from "./AssigneeBlock";
 import { StatusBlock } from "./StatusBlock";
 import { EstimatesPanel } from "./EstimatesPanel";
