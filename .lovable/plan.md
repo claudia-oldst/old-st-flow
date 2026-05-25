@@ -1,56 +1,56 @@
-## Visibility & access scoping
+# Protect Your Business — Security/Legal/AI Audit
 
-### Rules to enforce
-- **PMBA**: full transparency — every project and every ticket.
-- **Non-PMBA (Frontend, Backend, Fullstack, QA)**: only projects they appear in `project_members` for, and only tickets inside those projects.
-- **My Tickets / "Mine" toggle**: filter on top of the above — only tickets where the signed-in user is an assignee.
-- **/my-work** and **daily AI work summary**: signed-in user only — no user switcher, no impersonation.
-- **/admin**: PMBA only — others redirected to `/`.
-- **/h/:hash client portal**: stays fully public, no auth.
+Produce a single CSV (`/mnt/documents/audit-protect-your-business.csv`) of findings across the three "Protect Your Business" categories, written in plain English for a non-technical owner, all severity levels included.
 
-### Frontend gating
+## Scope
 
-1. **`useVisibleProjects` (new hook)** wrapping `useProjectsList`
-   - If `user.role === 'PMBA'` → return all projects.
-   - Else → filter to projects where a `project_members` row exists for `user.id`.
-   - Used by `Projects.tsx`, `MyWork.tsx` project picker, vault, etc.
+**In scope**
+- Frontend: `src/` (React + Vite + TS, Supabase client, TanStack Query, dnd-kit)
+- Backend: 5 Supabase edge functions (`archive-project`, `daily-logoff-summary`, `epic-summary`, `generate-acceptance-criteria`, `rehydrate-project`, `vault-download-url`)
+- Supabase database: RLS policies, security definer functions, exposed columns (16 tables already in context)
+- Repo hygiene: `.env`, secrets, dependencies, licenses
 
-2. **Project route guard** in `ProjectWorkspace.tsx`
-   - Use `useProjectRole(projectId)`; if user is not PMBA and has no `project_members` row → render "You don't have access to this project" and a back link (don't 404).
+**Out of scope**
+- Performance/scalability, DevOps, code quality, UX — user chose "Protect Your Business only"
+- Changes to the codebase — this is a read-only audit
 
-3. **Admin guard** — extend `RequireAuth` (or add `RequirePMBA`) so `/admin` redirects non-PMBA users to `/`.
+## Audit passes
 
-4. **MyWork (`/my-work`)**
-   - Remove any user-picker UI; always read `useCurrentUser().user.id`.
-   - Scope queries (tickets, time logs, capacity) to the signed-in user id.
-   - Project list inside MyWork uses `useVisibleProjects`.
+1. **Exposed Secrets** — grep `src/` and `supabase/functions/` for hardcoded keys, tokens, JWT secrets, service-role key usage in frontend; check `.env`/`.gitignore`; check for credentials in committed configs.
+2. **AuthN/AuthZ (frontend routes & components)** — review `RequireAuth`, `AuthProvider`, role gates (PMBA vs project member), any admin routes, client-side-only authorization.
+3. **AuthN/AuthZ (edge functions)** — every edge function: does it verify the JWT? does it re-check role server-side? does it accept user-supplied `user_id`/`project_id` without re-authorization?
+4. **RLS deep review** — walk each of the 16 tables. Confirm policies are not overly permissive (`true`), confirm INSERT/UPDATE/DELETE coverage, look for `current_team_member_id()` / `current_is_pmba()` / `current_can_access_ticket()` definer functions and verify they have `search_path` set and aren't bypassable.
+5. **Sensitive storage** — PII in `team_members.email`, project `client_portal_hash`, `vault_storage_path`; check whether `client_portal_hash` is a hash or a token; check `localStorage`/`sessionStorage` use for tokens; Supabase storage bucket policies if any.
+6. **Input validation** — forms (auth, ticket create/edit, comments, time logs, epics): zod schemas? length/charset limits? edge function inputs validated? user-controlled HTML via `dangerouslySetInnerHTML`?
+7. **Database security** — Supabase linter run; check for SECURITY DEFINER funcs without `search_path`; check public-readable tables (`statuses`, `team_members`, `status_derivation_rules` are read-all-authed — confirm that's intentional and doesn't leak PII like emails).
+8. **Backup/recovery** — `vault_storage_path` / `rehydrate-project` / `archive-project` indicate an archival flow; document whether automated backups exist, whether restore is tested, whether vault checksums are verified.
+9. **Legal/Compliance** — search for privacy policy/ToS links, consent UI, data deletion path, retention policy; scan `package.json` for copyleft (GPL/AGPL/LGPL) licenses; check for unattributed assets in `src/assets/`.
+10. **AI-specific risks** — `generate-acceptance-criteria`, `epic-summary`, `daily-logoff-summary` likely call Lovable AI Gateway/LLM: check prompt-injection surface (user-controlled ticket titles/comments fed into prompts), rate limiting, error handling, cost caps, whether ticket/PII content is sent to third-party models, whether AI output is rendered without sanitization.
 
-5. **Daily AI work summary** (`LogoffSummaryButton` / `daily-logoff-summary` edge function)
-   - UI: only renders for the logged-in user; remove any cross-user selection.
-   - Edge function: derive `user_id` from the verified JWT (`supabase.auth.getUser`) instead of trusting a `user_id` payload field. Reject if no session.
+## Tools used (read-only)
 
-6. **"My Tickets" filter** — already filters by `assignees.user_id === user.id` via `filterMineUserId`. Keep as-is; verify it still works after the project-scoping changes.
+- `rg` / `code--view` for code scanning
+- `supabase--linter` for DB warnings
+- `supabase--read_query` to inspect policies, definer functions, and any role tables not in the schema dump
+- `code--dependency_scan` for vulnerable npm packages
+- `secrets--fetch_secrets` to list configured backend secrets (names only) for cross-reference with edge function code
 
-### Backend (RLS) — defense in depth
+## Deliverable
 
-Current policies are all `USING (true)`. Tighten the high-value tables so the frontend filtering can't be bypassed:
+A single CSV at `/mnt/documents/audit-protect-your-business.csv` with header:
 
-- Add SQL helper `public.is_project_member(_uid uuid, _pid uuid)` (SECURITY DEFINER).
-- Replace permissive SELECT policies with:
-  - `projects`: PMBA OR `is_project_member(auth.uid(), id)`.
-  - `tickets`, `ticket_assignees`, `ticket_comments`, `ticket_estimate_changes`, `time_logs`, `active_timers`, `active_timer_tickets`, `project_epics`, `project_epic_summaries`, `epic_discounts`, `project_members`: PMBA OR project member of the row's project.
-  - `team_members`, `statuses`, `status_derivation_rules`: keep readable by all signed-in users (needed for avatars/labels).
-- INSERT/UPDATE/DELETE policies: PMBA always allowed; project members allowed for their project's rows (matching today's app behavior). Admin-config tables (`statuses`, `status_derivation_rules`, `team_members`) become PMBA-only for writes.
-- Time logs / comments writes additionally require `user_id = auth.uid()` (except PMBA).
-- Client portal RPCs (`get_client_portal*`, `client_approve_cr`) stay `SECURITY DEFINER` so the public `/h/:hash` route still works.
+```text
+Issue,Risk Level,Category,Subcategory,Specific Concern,Details,Example,User Result / Impact,Best practice
+```
 
-Existing helper `public.is_pmba(_user_id uuid)` is reused.
+- One row per finding, plain-English Details/Impact/Best practice.
+- Risk Level: Critical / High / Medium / Low.
+- Category: Security & Access Control | Database & Data | Legal & Compliance | AI-Specific Risks.
+- Subcategory matches the bullets in the original prompt (e.g. "Exposed Secrets", "Missing Authentication", "RLS").
+- Rows ordered by Risk Level (Critical → Low).
+- Skipped subcategories (no findings) noted in a short chat summary, not in the CSV.
+- Closing chat message: artifact tag + count of findings by severity + top 3 issues to fix first.
 
-### Files to change
+## Out of this plan
 
-- New: `src/features/projects/useVisibleProjects.ts`, `src/features/auth/RequirePMBA.tsx`
-- Edit: `src/App.tsx` (wrap `/admin` with `RequirePMBA`), `src/pages/Projects.tsx`, `src/pages/MyWork.tsx`, `src/pages/ProjectWorkspace.tsx`, `src/features/logoff/LogoffSummaryButton.tsx`, `src/features/logoff/LogoffSummaryDialog.tsx`, `supabase/functions/daily-logoff-summary/index.ts`
-- Migration: helper function + replacement RLS policies on the tables above.
-
-### Open question
-The RLS tightening is the biggest behavioral change — once enforced, any code path that today queries data without going through a project membership will start returning empty results. Want me to (a) ship UI gating + RLS together, or (b) ship UI gating first and add RLS as a follow-up after we verify nothing breaks?
+- No code changes. If you want fixes for any finding afterward, that's a separate build-mode task.
