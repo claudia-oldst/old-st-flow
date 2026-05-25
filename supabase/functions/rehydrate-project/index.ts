@@ -1,5 +1,5 @@
 // Re-hydrate an archived project from its vault: verify checksum, optionally
-// remap missing user_ids, then call rehydrate_project RPC inside one tx.
+// remap missing user_ids, then call rehydrate_project RPC inside one tx. PMBA-only.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -10,8 +10,7 @@ const corsHeaders = {
 
 interface Body {
   project_id: string;
-  user_id: string;
-  member_map?: Record<string, string>; // original user_id → replacement user_id
+  member_map?: Record<string, string>;
   delete_vault?: boolean;
 }
 
@@ -38,24 +37,39 @@ function collectUserIds(payload: any): string[] {
   return [...ids];
 }
 
+async function verifyPmba(req: Request, admin: ReturnType<typeof createClient>) {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) return { error: "Missing bearer token", status: 401 };
+  const token = authHeader.replace("Bearer ", "");
+  const { data: claims, error } = await admin.auth.getClaims(token);
+  if (error || !claims?.claims) return { error: "Invalid token", status: 401 };
+  const email = (claims.claims as any).email as string | undefined;
+  if (!email) return { error: "Token missing email", status: 401 };
+  const { data: member } = await admin
+    .from("team_members")
+    .select("id")
+    .ilike("email", email)
+    .maybeSingle();
+  if (!member?.id) return { error: "Not a team member", status: 403 };
+  const { data: isPmba } = await admin.rpc("is_pmba", { _user_id: member.id });
+  if (!isPmba) return { error: "PMBA role required", status: 403 };
+  return { userId: member.id as string };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
-    const body = (await req.json()) as Body;
-    if (!body?.project_id || !body?.user_id) {
-      return json({ error: "project_id and user_id required" }, 400);
-    }
-
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // PMBA gate
-    const { data: isPmba } = await admin.rpc("is_pmba", { _user_id: body.user_id });
-    if (!isPmba) return json({ error: "PMBA role required" }, 403);
+    const auth = await verifyPmba(req, admin);
+    if ("error" in auth) return json({ error: auth.error }, auth.status);
 
-    // Load project skeleton
+    const body = (await req.json()) as Body;
+    if (!body?.project_id) return json({ error: "project_id required" }, 400);
+
     const { data: proj, error: projErr } = await admin
       .from("projects")
       .select("id, is_archived, vault_storage_path, vault_checksum")
@@ -66,7 +80,6 @@ Deno.serve(async (req) => {
       return json({ error: "Project is not archived" }, 400);
     }
 
-    // Download JSON
     const dl = await admin.storage
       .from("project-vault")
       .download(`${proj.vault_storage_path}/restore_point.json`);
@@ -78,7 +91,6 @@ Deno.serve(async (req) => {
     }
     const payload = JSON.parse(text);
 
-    // Member-mapping check
     const userIds = collectUserIds(payload);
     if (userIds.length) {
       const { data: existing } = await admin
@@ -93,7 +105,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Rehydrate (single tx)
     const { error: rehErr } = await admin.rpc("rehydrate_project", {
       _project_id: body.project_id,
       _payload: payload,

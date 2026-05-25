@@ -1,6 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useCurrentUser } from "@/store/currentUser";
 import { toast } from "sonner";
 
 export interface RehydrateResult {
@@ -8,9 +7,10 @@ export interface RehydrateResult {
   missing_users?: string[];
 }
 
+// Caller identity now derived server-side from the JWT — no need to pass user_id.
+
 export function useRehydrateProject() {
   const qc = useQueryClient();
-  const userId = useCurrentUser((s) => s.user?.id);
 
   return useMutation({
     mutationFn: async (args: {
@@ -18,11 +18,9 @@ export function useRehydrateProject() {
       memberMap?: Record<string, string>;
       deleteVault?: boolean;
     }): Promise<RehydrateResult> => {
-      if (!userId) throw new Error("Not signed in");
       const { data, error } = await supabase.functions.invoke("rehydrate-project", {
         body: {
           project_id: args.projectId,
-          user_id: userId,
           member_map: args.memberMap ?? {},
           delete_vault: args.deleteVault ?? false,
         },

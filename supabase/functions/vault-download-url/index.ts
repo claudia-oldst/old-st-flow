@@ -9,25 +9,43 @@ const corsHeaders = {
 
 interface Body {
   project_id: string;
-  user_id: string;
   kind: "json" | "xlsx";
+}
+
+async function verifyPmba(req: Request, admin: ReturnType<typeof createClient>) {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) return { error: "Missing bearer token", status: 401 };
+  const token = authHeader.replace("Bearer ", "");
+  const { data: claims, error } = await admin.auth.getClaims(token);
+  if (error || !claims?.claims) return { error: "Invalid token", status: 401 };
+  const email = (claims.claims as any).email as string | undefined;
+  if (!email) return { error: "Token missing email", status: 401 };
+  const { data: member } = await admin
+    .from("team_members")
+    .select("id")
+    .ilike("email", email)
+    .maybeSingle();
+  if (!member?.id) return { error: "Not a team member", status: 403 };
+  const { data: isPmba } = await admin.rpc("is_pmba", { _user_id: member.id });
+  if (!isPmba) return { error: "PMBA role required", status: 403 };
+  return { userId: member.id as string };
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
-    const body = (await req.json()) as Body;
-    if (!body?.project_id || !body?.user_id || !body?.kind) {
-      return json({ error: "project_id, user_id, kind required" }, 400);
-    }
-
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const { data: isPmba } = await admin.rpc("is_pmba", { _user_id: body.user_id });
-    if (!isPmba) return json({ error: "PMBA role required" }, 403);
+    const auth = await verifyPmba(req, admin);
+    if ("error" in auth) return json({ error: auth.error }, auth.status);
+
+    const body = (await req.json()) as Body;
+    if (!body?.project_id || !body?.kind) {
+      return json({ error: "project_id and kind required" }, 400);
+    }
 
     const { data: proj } = await admin
       .from("projects")

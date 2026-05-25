@@ -213,6 +213,7 @@ export type Database = {
           cached_total_hours: number
           client_name: string | null
           client_portal_hash: string | null
+          client_portal_hash_sha: string | null
           client_summary_draft: string | null
           client_summary_published: string | null
           client_summary_updated_at: string | null
@@ -236,6 +237,7 @@ export type Database = {
           cached_total_hours?: number
           client_name?: string | null
           client_portal_hash?: string | null
+          client_portal_hash_sha?: string | null
           client_summary_draft?: string | null
           client_summary_published?: string | null
           client_summary_updated_at?: string | null
@@ -259,6 +261,7 @@ export type Database = {
           cached_total_hours?: number
           client_name?: string | null
           client_portal_hash?: string | null
+          client_portal_hash_sha?: string | null
           client_summary_draft?: string | null
           client_summary_published?: string | null
           client_summary_updated_at?: string | null
@@ -701,6 +704,35 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -734,6 +766,13 @@ export type Database = {
         Args: { _cutoff: string; _project_id: string }
         Returns: Json
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_pmba: { Args: { _user_id: string }; Returns: boolean }
       list_project_tickets: {
         Args: {
@@ -753,8 +792,13 @@ export type Database = {
         Args: { _member_map?: Json; _payload: Json; _project_id: string }
         Returns: Json
       }
+      rotate_client_portal_hash: {
+        Args: { _project_id: string }
+        Returns: string
+      }
     }
     Enums: {
+      app_role: "PMBA" | "member"
       assignee_slot: "FE" | "BE" | "Project"
       discipline_status: "todo" | "in_progress" | "for_integration" | "done"
       log_discipline: "FE" | "BE" | "Project"
@@ -895,6 +939,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["PMBA", "member"],
       assignee_slot: ["FE", "BE", "Project"],
       discipline_status: ["todo", "in_progress", "for_integration", "done"],
       log_discipline: ["FE", "BE", "Project"],
