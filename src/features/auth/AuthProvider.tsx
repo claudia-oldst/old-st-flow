@@ -51,7 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .select("*")
         .ilike("email", email)
         .maybeSingle();
-      if (cancelled) return false;
+      if (cancelled) return true;
       if (error) {
         setUser(null);
         setAuthError(`Could not confirm your team account: ${error.message}`);
