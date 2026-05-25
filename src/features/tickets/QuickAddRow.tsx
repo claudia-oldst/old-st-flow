@@ -32,9 +32,12 @@ export function QuickAddRow({
   const [be, setBe] = useState("");
   const [proj, setProj] = useState("");
   const [epicId, setEpicId] = useState<number | null>(null);
+  const [parentTicketId, setParentTicketId] = useState<string | null>(null);
+  const [parentTitle, setParentTitle] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const isProj = type === "Proj";
+  const isBug = type === "Bug";
 
   const submit = async () => {
     const projHrs = parseFloat(proj) || 0;
