@@ -25,7 +25,7 @@ import { Button } from "@/components/ui/button";
 export function ProjectTickets({ projectId }: { projectId: string }) {
   const role = useProjectRole(projectId);
   const user = useCurrentUser((s) => s.user);
-  const { tickets, reload, error } = useProjectTickets(projectId);
+  const { tickets, loading, reload, error } = useProjectTickets(projectId);
   const [importOpen, setImportOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
@@ -102,6 +102,17 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
             </Button>
           </AlertDescription>
         </Alert>
+      ) : loading && tickets.length === 0 ? (
+        <div className="flex gap-3 overflow-x-auto pb-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="flex-1 min-w-[260px] space-y-2">
+              <Skeleton className="h-8 rounded-xl" />
+              <Skeleton className="h-24 rounded-xl" />
+              <Skeleton className="h-24 rounded-xl" />
+              <Skeleton className="h-24 rounded-xl" />
+            </div>
+          ))}
+        </div>
       ) : v.view === "board" ? (
         <ProjectBoard
           projectId={projectId}
