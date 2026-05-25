@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useRealtimeReload } from "@/hooks/useRealtimeReload";
 import { useCurrentUser } from "@/store/currentUser";
 import { useTimerStore } from "@/store/timer";
-import type { TeamMember } from "@/lib/types";
+
 import { MemberAvatar } from "@/components/MemberAvatar";
 import { StopGroupTimerDialog } from "@/features/timelog/StopGroupTimerDialog";
 import oldStLogo from "@/assets/oldst-logo.png";
