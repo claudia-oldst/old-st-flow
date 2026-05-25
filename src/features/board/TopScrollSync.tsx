@@ -56,7 +56,7 @@ export function TopScrollSync({ children }: { children: ReactNode }) {
     <>
       <div
         ref={topRef}
-        className="sticky top-0 z-30 overflow-x-auto overflow-y-hidden bg-background/80 backdrop-blur-sm -mx-1 px-1 mb-2"
+        className="sticky top-14 z-30 overflow-x-auto overflow-y-hidden bg-background/80 backdrop-blur-sm -mx-1 px-1 mb-2"
         style={{ height: 14 }}
         aria-hidden
       >
