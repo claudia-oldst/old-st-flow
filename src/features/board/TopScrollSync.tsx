@@ -60,7 +60,7 @@ export function TopScrollSync({
 
   return (
     <>
-      <div className="sticky top-14 z-30 -mx-4 sm:-mx-6 px-4 sm:px-6 pt-3 pb-2 bg-background/85 backdrop-blur-md hairline-b">
+      <div className="sticky top-[68px] z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 pt-3 pb-2 bg-background/85 backdrop-blur-md hairline-b">
         {toolbar}
         <div
           ref={topRef}
