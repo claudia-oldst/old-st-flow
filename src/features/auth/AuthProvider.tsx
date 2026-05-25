@@ -17,6 +17,8 @@ const StatusContext = (() => {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const setUser = useCurrentUser((s) => s.setUser);
+  const setAuthLoading = useCurrentUser((s) => s.setAuthLoading);
+  const setAuthError = useCurrentUser((s) => s.setAuthError);
   const navigate = useNavigate();
   const location = useLocation();
   const [, setSession] = useState<Session | null>(null);
@@ -25,8 +27,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     const resolveTeamMember = async (session: Session | null) => {
+      setAuthLoading(true);
+      setAuthError(null);
       if (!session?.user?.email) {
         setUser(null);
+        setAuthLoading(false);
         return false;
       }
       const email = session.user.email.toLowerCase();
@@ -46,9 +51,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .ilike("email", email)
         .maybeSingle();
       if (cancelled) return false;
-      if (error || !data) {
+      if (error) {
+        setUser(null);
+        setAuthError(`Could not confirm your team account: ${error.message}`);
+        setAuthLoading(false);
+        return false;
+      }
+      if (!data) {
         await supabase.auth.signOut();
         setUser(null);
+        setAuthLoading(false);
         toast({
           title: "Account not on the team",
           description: "Ask a PMBA to add you in Admin → Team members.",
@@ -57,6 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return false;
       }
       setUser(data);
+      setAuthLoading(false);
       return true;
     };
 
