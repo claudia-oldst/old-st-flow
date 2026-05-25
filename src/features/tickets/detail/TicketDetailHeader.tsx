@@ -1,4 +1,4 @@
-import { Bookmark, Sparkles } from "lucide-react";
+import { Bookmark, GitBranch, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
