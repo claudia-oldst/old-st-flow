@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeReload } from "@/hooks/useRealtimeReload";
+import { useCurrentUser } from "@/store/currentUser";
 import type { Project } from "@/lib/types";
 import { PAGE_SIZES } from "@/lib/pagination";
 
@@ -23,6 +24,7 @@ export function useProjectsList(args: {
   debouncedQ: string;
 }) {
   const { page, status, sort, debouncedQ } = args;
+  const user = useCurrentUser((s) => s.user);
   const pageSize = PAGE_SIZES.projects;
   const [projects, setProjects] = useState<Project[]>([]);
   const [total, setTotal] = useState(0);
@@ -30,10 +32,29 @@ export function useProjectsList(args: {
   const [counts, setCounts] = useState<Record<string, { tickets: number; members: number }>>({});
 
   const load = useCallback(async () => {
+    if (!user) return;
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
+    // Non-PMBA users only see projects they're a member of.
+    let allowedIds: string[] | null = null;
+    if (user.role !== "PMBA") {
+      const { data: mem } = await supabase
+        .from("project_members")
+        .select("project_id")
+        .eq("user_id", user.id);
+      allowedIds = (mem ?? []).map((r) => r.project_id);
+      if (allowedIds.length === 0) {
+        setProjects([]);
+        setTotal(0);
+        setCounts({});
+        setLoading(false);
+        return;
+      }
+    }
+
     let query = supabase.from("projects").select("*", { count: "exact" });
+    if (allowedIds) query = query.in("id", allowedIds);
     if (status === "active") query = query.eq("is_archived", false);
     else if (status === "vaulted") query = query.eq("is_archived", true);
 
@@ -70,7 +91,7 @@ export function useProjectsList(args: {
     } else {
       setCounts({});
     }
-  }, [page, pageSize, status, sort, debouncedQ]);
+  }, [page, pageSize, status, sort, debouncedQ, user]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -81,6 +102,7 @@ export function useProjectsList(args: {
 
   return { projects, total, loading, counts, pageSize, reload: load };
 }
+
 
 export function relativeTime(iso: string | null): string {
   if (!iso) return "";
