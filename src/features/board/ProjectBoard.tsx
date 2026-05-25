@@ -15,6 +15,9 @@ import { useBoardDnd } from "./board/useBoardDnd";
 import { BoardToolbar } from "./board/BoardToolbar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TopScrollSync } from "./TopScrollSync";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { AlertCircle, RefreshCw } from "lucide-react";
 
 export function ProjectBoard({
   projectId,
@@ -31,10 +34,11 @@ export function ProjectBoard({
   tickets?: TicketRow[];
   reload?: () => void;
 }) {
-  const { statuses, loading: statusesLoading } = useStatuses();
+  const { statuses, loading: statusesLoading, error: statusesError, reload: reloadStatuses } = useStatuses();
   const local = useProjectTickets(ticketsProp ? undefined : projectId);
   const allTickets = ticketsProp ?? local.tickets;
   const reload = reloadProp ?? local.reload;
+  const loadError = (!ticketsProp && local.error) || statusesError;
   const truncated = !ticketsProp && local.truncated;
   const totalCount = !ticketsProp ? local.totalCount : allTickets.length;
   const initialLoading =
@@ -125,7 +129,29 @@ export function ProjectBoard({
           </div>
         )}
 
-        {initialLoading ? (
+        {loadError ? (
+          <>
+            <div className="mb-4">{toolbar}</div>
+            <Alert variant="destructive" className="bg-destructive/10">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Tickets could not load</AlertTitle>
+              <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <span>{loadError}</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    reload();
+                    reloadStatuses();
+                  }}
+                >
+                  <RefreshCw className="h-3.5 w-3.5" /> Retry
+                </Button>
+              </AlertDescription>
+            </Alert>
+          </>
+        ) : initialLoading ? (
           <>
             <div className="mb-4">{toolbar}</div>
             <div className="flex gap-3 overflow-x-auto pb-4">

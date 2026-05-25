@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useCurrentUser } from "@/store/currentUser";
 import { useTimerStore } from "@/store/timer";
-import { FileText } from "lucide-react";
+import { AlertCircle, FileText, RefreshCw } from "lucide-react";
 import { StartGroupTimerDialog } from "@/features/timelog/StartGroupTimerDialog";
 import { AddTicketsDialog } from "@/features/tickets/AddTicketsDialog";
 import { useProjectTickets, type TicketRow } from "@/features/tickets/useProjectTickets";
@@ -19,11 +19,13 @@ import { ImportCsvDialog } from "./project-tickets/ImportCsvDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ListPagination } from "@/components/ListPagination";
 import { PAGE_SIZES } from "@/lib/pagination";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 
 export function ProjectTickets({ projectId }: { projectId: string }) {
   const role = useProjectRole(projectId);
   const user = useCurrentUser((s) => s.user);
-  const { tickets, reload } = useProjectTickets(projectId);
+  const { tickets, reload, error } = useProjectTickets(projectId);
   const [importOpen, setImportOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
@@ -89,7 +91,18 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
         onImport={() => setImportOpen(true)}
       />
 
-      {v.view === "board" ? (
+      {error ? (
+        <Alert variant="destructive" className="bg-destructive/10">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Tickets could not load</AlertTitle>
+          <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <span>{error}</span>
+            <Button type="button" variant="outline" size="sm" onClick={reload}>
+              <RefreshCw className="h-3.5 w-3.5" /> Retry
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : v.view === "board" ? (
         <ProjectBoard
           projectId={projectId}
           search={v.search}
@@ -101,6 +114,17 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
           tickets={v.filteredTickets}
           reload={reload}
         />
+      ) : paged.error ? (
+        <Alert variant="destructive" className="bg-destructive/10">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Ticket list could not load</AlertTitle>
+          <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <span>{paged.error}</span>
+            <Button type="button" variant="outline" size="sm" onClick={paged.reload}>
+              <RefreshCw className="h-3.5 w-3.5" /> Retry
+            </Button>
+          </AlertDescription>
+        </Alert>
       ) : listLoading ? (
         <div className="glass rounded-2xl overflow-hidden divide-y divide-white/5">
           {Array.from({ length: 6 }).map((_, i) => (

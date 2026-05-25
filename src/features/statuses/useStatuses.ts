@@ -10,7 +10,10 @@ export function useStatuses() {
   const query = useQuery({
     queryKey,
     queryFn: async (): Promise<Status[]> => {
-      const { data } = await supabase.from("statuses").select("*").order("position");
+      const { data, error } = await supabase.from("statuses").select("*").order("position");
+      if (error) {
+        throw new Error(`Could not load statuses: ${error.message}`);
+      }
       return data ?? [];
     },
   });
@@ -20,6 +23,7 @@ export function useStatuses() {
   return {
     statuses: query.data ?? [],
     loading: query.isPending,
+    error: query.error instanceof Error ? query.error.message : query.error ? String(query.error) : null,
     reload: () => qc.invalidateQueries({ queryKey }),
   };
 }

@@ -46,37 +46,67 @@ interface FetchResult {
 
 async function fetchProjectTickets(projectId: string): Promise<FetchResult> {
   const cap = PAGE_SIZES.ticketsKanban;
-  const { data: tix, count } = await supabase
+  const { data: tix, count, error: ticketsError } = await supabase
     .from("tickets")
-    .select("*, epic:project_epics(epic_name)", { count: "exact" })
+    .select("*", { count: "exact" })
     .eq("project_id", projectId)
     .order("position", { ascending: true })
     .order("ticket_number", { ascending: true })
     .range(0, cap - 1);
 
-  const ids = (tix ?? []).map((t) => t.id);
+  if (ticketsError) {
+    throw new Error(`Could not load tickets: ${ticketsError.message}`);
+  }
+
+  const ticketRows = tix ?? [];
+
+  const epicIds = Array.from(new Set(ticketRows.map((t: any) => t.epic_id).filter(Boolean) as number[]));
+  const epicMap: Record<number, string | null> = {};
+  if (epicIds.length) {
+    const { data: epics, error: epicsError } = await supabase
+      .from("project_epics")
+      .select("id, epic_name")
+      .eq("project_id", projectId)
+      .in("id", epicIds);
+    if (epicsError) {
+      console.warn("Could not load ticket epic names", epicsError);
+    } else {
+      (epics ?? []).forEach((e: any) => {
+        epicMap[e.id] = e.epic_name ?? null;
+      });
+    }
+  }
+
+  const ids = ticketRows.map((t) => t.id);
   let assignees: Array<TicketAssignee & { member: TeamMember }> = [];
   if (ids.length) {
-    const { data } = await supabase
+    const { data, error: assigneesError } = await supabase
       .from("ticket_assignees")
       .select("*, member:team_members(*)")
       .in("ticket_id", ids);
+    if (assigneesError) {
+      throw new Error(`Could not load ticket assignees: ${assigneesError.message}`);
+    }
     assignees = (data as any) ?? [];
   }
 
   // Fetch parent ticket info for any tickets that have a parent_ticket_id
   const parentIds = Array.from(
-    new Set((tix ?? []).map((t: any) => t.parent_ticket_id).filter(Boolean) as string[]),
+    new Set(ticketRows.map((t: any) => t.parent_ticket_id).filter(Boolean) as string[]),
   );
   const parentMap: Record<string, { id: string; formatted_id: string; title: string }> = {};
   if (parentIds.length) {
-    const { data: parents } = await supabase
+    const { data: parents, error: parentsError } = await supabase
       .from("tickets")
       .select("id, formatted_id, title")
       .in("id", parentIds);
-    (parents ?? []).forEach((p: any) => {
-      parentMap[p.id] = { id: p.id, formatted_id: p.formatted_id, title: p.title };
-    });
+    if (parentsError) {
+      console.warn("Could not load parent ticket details", parentsError);
+    } else {
+      (parents ?? []).forEach((p: any) => {
+        parentMap[p.id] = { id: p.id, formatted_id: p.formatted_id, title: p.title };
+      });
+    }
   }
 
   const grouped: Record<string, TicketRow["assignees"]> = {};
@@ -90,7 +120,7 @@ async function fetchProjectTickets(projectId: string): Promise<FetchResult> {
     });
   });
 
-  const tickets: TicketRow[] = (tix ?? []).map((t: any) => ({
+  const tickets: TicketRow[] = ticketRows.map((t: any) => ({
     id: t.id,
     project_id: t.project_id,
     ticket_number: t.ticket_number,
@@ -102,7 +132,7 @@ async function fetchProjectTickets(projectId: string): Promise<FetchResult> {
     be_status: (t.be_status ?? "todo") as DisciplineStatus,
     project_status_override: !!t.project_status_override,
     epic_id: t.epic_id ?? null,
-    epic_name: t.epic?.epic_name ?? null,
+    epic_name: t.epic_id ? (epicMap[t.epic_id] ?? null) : null,
     version: t.version ?? null,
     original_fe_estimate: Number(t.original_fe_estimate),
     original_be_estimate: Number(t.original_be_estimate),
@@ -155,6 +185,7 @@ export function useProjectTickets(projectId: string | undefined) {
   return {
     tickets,
     loading: query.isPending && !!projectId,
+    error: query.error instanceof Error ? query.error.message : query.error ? String(query.error) : null,
     reload: () => qc.invalidateQueries({ queryKey }),
     totalCount,
     truncated: totalCount > tickets.length,

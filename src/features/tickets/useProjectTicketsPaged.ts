@@ -112,8 +112,7 @@ export function useProjectTicketsPaged(
         _page_size: pageSize,
       });
       if (error) {
-        console.error("list_project_tickets failed", error);
-        return { rows: [], total: 0 };
+        throw new Error(`Could not load ticket list: ${error.message}`);
       }
       const r = (data ?? { rows: [], total: 0 }) as unknown as RpcResult;
       return { rows: (r.rows ?? []).map(normalize), total: r.total ?? 0 };
@@ -136,6 +135,7 @@ export function useProjectTicketsPaged(
     rows: query.data?.rows ?? [],
     total: query.data?.total ?? 0,
     loading: query.isPending && !!projectId,
+    error: query.error instanceof Error ? query.error.message : query.error ? String(query.error) : null,
     reload: () => qc.invalidateQueries({ queryKey: ["projectTicketsPaged", projectId] }),
   };
 }
