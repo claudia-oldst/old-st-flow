@@ -23,7 +23,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ChevronDown, Settings, FolderKanban, ListChecks, User, Square } from "lucide-react";
+import { ChevronDown, Settings, FolderKanban, ListChecks, Square, LogOut } from "lucide-react";
 import { cn, formatDuration, PAGE_SHELL } from "@/lib/utils";
 
 // Leaf component: isolates per-second re-renders to just the ticking text.
