@@ -13,7 +13,10 @@ import ProjectWorkspace from "./pages/ProjectWorkspace";
 import Admin from "./pages/Admin";
 import MyWork from "./pages/MyWork";
 import ClientPortalPublic from "./pages/ClientPortalPublic";
+import Login from "./pages/Login";
 import NotFound from "./pages/NotFound.tsx";
+import { AuthProvider } from "@/features/auth/AuthProvider";
+import { RequireAuth } from "@/features/auth/RequireAuth";
 
 const wrap = (scope: string, el: ReactNode) => (
   <ErrorBoundary scope={scope}>{el}</ErrorBoundary>
