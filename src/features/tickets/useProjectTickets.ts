@@ -49,11 +49,11 @@ interface RpcResult {
   rows: any[];
 }
 
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+function withTimeout<T>(promise: PromiseLike<T>, ms: number, label: string): Promise<T> {
   return Promise.race([
-    promise,
+    Promise.resolve(promise),
     new Promise<T>((_, reject) => {
-      window.setTimeout(() => reject(new Error(`${label} timed out. Please retry.`)), ms);
+      globalThis.setTimeout(() => reject(new Error(`${label} timed out. Please retry.`)), ms);
     }),
   ]);
 }
