@@ -130,6 +130,21 @@ export function QuickAddRow({
         )}
       </div>
       <EpicSelect projectId={projectId} value={epicId} onChange={setEpicId} size="sm" />
+      {isBug && (
+        <ParentTicketSelect
+          projectId={projectId}
+          value={parentTicketId}
+          size="sm"
+          placeholder="Parent ticket (optional)…"
+          onChange={(id, parent) => {
+            const titleIsEmptyOrInherited =
+              !title.trim() || (parentTitle !== null && title.trim() === parentTitle.trim());
+            setParentTicketId(id);
+            setParentTitle(parent?.title ?? null);
+            if (titleIsEmptyOrInherited) setTitle(parent?.title ?? "");
+          }}
+        />
+      )}
       <div className="flex justify-end gap-1">
         <Button size="sm" variant="ghost" onClick={() => setOpen(false)} className="h-6 text-xs px-2">Cancel</Button>
         <Button size="sm" onClick={submit} disabled={busy || !title.trim()} className="h-6 text-xs px-2">Add</Button>
