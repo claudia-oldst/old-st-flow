@@ -56,12 +56,20 @@ Deno.serve(async (req) => {
       return json({ error: "Project is not archived" }, 400);
     }
 
-    const filename = body.kind === "json" ? "restore_point.json" : "project_summary.xlsx";
-    const path = `${proj.vault_storage_path}/${filename}`;
+    const ext = body.kind === "json" ? "json" : "xlsx";
+    // New format: vault_storage_path = "{project_id}/{slug}-{date}" → append .ext
+    // Legacy format: vault_storage_path = "{project_id}" → use fixed filenames
+    const isNewFormat = proj.vault_storage_path.includes("/");
+    const path = isNewFormat
+      ? `${proj.vault_storage_path}.${ext}`
+      : `${proj.vault_storage_path}/${ext === "json" ? "restore_point.json" : "project_summary.xlsx"}`;
+    const downloadName = isNewFormat
+      ? `${proj.vault_storage_path.split("/").pop()}.${ext}`
+      : (ext === "json" ? "restore_point.json" : "project_summary.xlsx");
 
     const { data, error } = await admin.storage
       .from("project-vault")
-      .createSignedUrl(path, 60, { download: filename });
+      .createSignedUrl(path, 60, { download: downloadName });
     if (error || !data) return json({ error: error?.message ?? "Failed" }, 500);
 
     return json({ url: data.signedUrl });
