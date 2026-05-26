@@ -158,6 +158,7 @@ export function useBulkAssign({
     );
     onSaved();
     onClose();
+    void syncTicketsToGithub(ticketIds);
   };
 
   return {
