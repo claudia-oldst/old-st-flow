@@ -105,13 +105,9 @@ Deno.serve(async (req) => {
       return json({ error: "Project is not archived" }, 400);
     }
 
-    const isNewFormat = proj.vault_storage_path.includes("/");
-    const jsonStoragePath = isNewFormat
-      ? `${proj.vault_storage_path}.json`
-      : `${proj.vault_storage_path}/restore_point.json`;
-    const xlsxStoragePath = isNewFormat
-      ? `${proj.vault_storage_path}.xlsx`
-      : `${proj.vault_storage_path}/project_summary.xlsx`;
+    const { jsonPath: jsonStoragePath, xlsxPath: xlsxStoragePath } = resolveVaultPaths(
+      proj.vault_storage_path,
+    );
 
     const dl = await admin.storage
       .from("project-vault")
