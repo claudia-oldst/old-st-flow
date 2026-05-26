@@ -67,6 +67,7 @@ export function BulkActionsBar({
     toast.success(
       `${msg} for ${selectedIds.length} ticket${selectedIds.length === 1 ? "" : "s"}`
     );
+    void syncTicketsToGithub(selectedIds);
   };
 
   const setStatus = (status_id: string | null) =>
