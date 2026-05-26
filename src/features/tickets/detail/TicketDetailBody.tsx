@@ -125,6 +125,7 @@ export function TicketDetailBody({
                 .eq("id", ticket.id);
               if (error) return toast.error(error.message);
               onChange();
+              void syncTicketToGithub(ticket.id);
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter") (e.target as HTMLInputElement).blur();
