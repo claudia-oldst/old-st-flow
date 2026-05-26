@@ -27,6 +27,7 @@ export function ProjectDetailsTab({
   name, setName, acronym, setAcronym,
   clientName, setClientName, rate, setRate,
   startDate, setStartDate, links, setLinks,
+  githubRepoUrl, setGithubRepoUrl,
   onSave, onClose, onArchive,
 }: Props) {
   return (
