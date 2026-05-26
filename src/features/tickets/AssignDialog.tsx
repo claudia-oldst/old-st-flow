@@ -69,7 +69,7 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
     setter(next);
   };
 
-  const handleSave = async () => {
+  const performSave = async () => {
     setBusy(true);
     // Replace all assignees for this ticket
     await supabase.from("ticket_assignees").delete().eq("ticket_id", ticketId);
@@ -105,6 +105,19 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
     toast.success("Assignees updated");
     onSaved();
     onOpenChange(false);
+
+    // Fire-and-forget GitHub sync (skipped server-side if no repo)
+    void syncTicketToGithub(ticketId);
+  };
+
+  const handleSave = async () => {
+    // If assigning a dev (FE/BE) and the project has no repo, prompt first.
+    const assigningDev = !isProj && (feUserIds.size > 0 || beUserIds.size > 0);
+    if (assigningDev && !projectRepoUrl) {
+      setRepoPromptOpen(true);
+      return;
+    }
+    await performSave();
   };
 
   return (
