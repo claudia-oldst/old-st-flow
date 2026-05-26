@@ -126,7 +126,7 @@ function TimerChip() {
   );
 }
 
-function UserPicker() {
+function UserMenu() {
   const { user, setUser } = useCurrentUser();
 
   const signOut = async () => {
@@ -207,7 +207,7 @@ export function TopBar() {
         <div className="ml-auto flex items-center gap-3">
           <TimerChip />
           <LogoffSummaryButton />
-          <UserPicker />
+          <UserMenu />
         </div>
       </div>
     </header>
