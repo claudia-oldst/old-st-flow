@@ -15,6 +15,7 @@ import { EpicSelect } from "@/features/epics/EpicSelect";
 import { ParentTicketSelect } from "@/features/tickets/ParentTicketSelect";
 import { ticketInputSchema } from "@/lib/schemas/ticket";
 import { toast } from "sonner";
+import { syncTicketToGithub } from "@/features/github/syncTicket";
 
 export function QuickAddRow({
   projectId,
@@ -58,25 +59,30 @@ export function QuickAddRow({
     }
 
     setBusy(true);
-    const { error } = await supabase.from("tickets").insert({
-      project_id: projectId,
-      title: parsed.data.title,
-      ticket_type: parsed.data.ticket_type,
-      status_id: statusId,
-      epic_id: parsed.data.epic_id ?? null,
-      original_fe_estimate: parsed.data.fe_estimate ?? 0,
-      original_be_estimate: parsed.data.be_estimate ?? 0,
-      current_fe_estimate: parsed.data.fe_estimate ?? 0,
-      current_be_estimate: parsed.data.be_estimate ?? 0,
-      original_project_estimate: parsed.data.project_estimate ?? 0,
-      current_project_estimate: parsed.data.project_estimate ?? 0,
-      parent_ticket_id: isBug ? parentTicketId : null,
-      // ticket_number + formatted_id are filled by the before-insert trigger
-      ticket_number: 0,
-      formatted_id: "",
-    });
+    const { data: inserted, error } = await supabase
+      .from("tickets")
+      .insert({
+        project_id: projectId,
+        title: parsed.data.title,
+        ticket_type: parsed.data.ticket_type,
+        status_id: statusId,
+        epic_id: parsed.data.epic_id ?? null,
+        original_fe_estimate: parsed.data.fe_estimate ?? 0,
+        original_be_estimate: parsed.data.be_estimate ?? 0,
+        current_fe_estimate: parsed.data.fe_estimate ?? 0,
+        current_be_estimate: parsed.data.be_estimate ?? 0,
+        original_project_estimate: parsed.data.project_estimate ?? 0,
+        current_project_estimate: parsed.data.project_estimate ?? 0,
+        parent_ticket_id: isBug ? parentTicketId : null,
+        // ticket_number + formatted_id are filled by the before-insert trigger
+        ticket_number: 0,
+        formatted_id: "",
+      })
+      .select("id")
+      .single();
     setBusy(false);
     if (error) return toast.error(error.message);
+    if (inserted?.id) void syncTicketToGithub(inserted.id);
     setTitle("");
     setFe("");
     setBe("");

@@ -8,3 +8,6 @@ verify_jwt = true
 
 [functions.daily-logoff-summary]
 verify_jwt = true
+
+[functions.github-sync-ticket]
+verify_jwt = true

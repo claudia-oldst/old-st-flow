@@ -13,6 +13,8 @@ import { MemberAvatar } from "@/components/MemberAvatar";
 import { Check, Users } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { GithubRepoPrompt } from "@/features/github/GithubRepoPrompt";
+import { syncTicketToGithub } from "@/features/github/syncTicket";
 
 type Slot = "FE" | "BE" | "Project";
 
@@ -34,6 +36,8 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
   const [beUserIds, setBeUserIds] = useState<Set<string>>(new Set());
   const [projectUserIds, setProjectUserIds] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
+  const [repoPromptOpen, setRepoPromptOpen] = useState(false);
+  const [projectRepoUrl, setProjectRepoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -45,6 +49,12 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
       .select("*, member:team_members(*)")
       .eq("project_id", projectId)
       .then(({ data }) => setMembers(((data ?? []) as unknown) as (ProjectMember & { member: TeamMember })[]));
+    supabase
+      .from("projects")
+      .select("github_repo_url")
+      .eq("id", projectId)
+      .maybeSingle()
+      .then(({ data }) => setProjectRepoUrl((data as { github_repo_url: string | null } | null)?.github_repo_url ?? null));
   }, [open, projectId, current]);
 
   const feEligible = members.filter((m) => m.role === "Frontend" || m.role === "Fullstack");
@@ -59,7 +69,7 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
     setter(next);
   };
 
-  const handleSave = async () => {
+  const performSave = async () => {
     setBusy(true);
     // Replace all assignees for this ticket
     await supabase.from("ticket_assignees").delete().eq("ticket_id", ticketId);
@@ -95,6 +105,19 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
     toast.success("Assignees updated");
     onSaved();
     onOpenChange(false);
+
+    // Fire-and-forget GitHub sync (skipped server-side if no repo)
+    void syncTicketToGithub(ticketId);
+  };
+
+  const handleSave = async () => {
+    // If assigning a dev (FE/BE) and the project has no repo, prompt first.
+    const assigningDev = !isProj && (feUserIds.size > 0 || beUserIds.size > 0);
+    if (assigningDev && !projectRepoUrl) {
+      setRepoPromptOpen(true);
+      return;
+    }
+    await performSave();
   };
 
   return (
@@ -149,6 +172,15 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
           <Button onClick={handleSave} disabled={busy}>Save</Button>
         </DialogFooter>
       </DialogContent>
+      <GithubRepoPrompt
+        open={repoPromptOpen}
+        projectId={projectId}
+        onOpenChange={setRepoPromptOpen}
+        onSaved={(url) => {
+          setProjectRepoUrl(url);
+          void performSave();
+        }}
+      />
     </Dialog>
   );
 }

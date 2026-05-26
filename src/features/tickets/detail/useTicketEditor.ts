@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { syncTicketToGithub } from "@/features/github/syncTicket";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 
 export function useTicketEditor({
@@ -77,6 +78,7 @@ export function useTicketEditor({
     setEditing(false);
     onChange();
     reloadChanges();
+    void syncTicketToGithub(ticket.id);
   };
 
   const handleDelete = async () => {

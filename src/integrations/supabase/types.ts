@@ -219,6 +219,9 @@ export type Database = {
           client_summary_updated_at: string | null
           client_visibility_cutoff: string | null
           created_at: string
+          github_owner: string | null
+          github_repo: string | null
+          github_repo_url: string | null
           id: string
           is_archived: boolean
           links: Json
@@ -243,6 +246,9 @@ export type Database = {
           client_summary_updated_at?: string | null
           client_visibility_cutoff?: string | null
           created_at?: string
+          github_owner?: string | null
+          github_repo?: string | null
+          github_repo_url?: string | null
           id?: string
           is_archived?: boolean
           links?: Json
@@ -267,6 +273,9 @@ export type Database = {
           client_summary_updated_at?: string | null
           client_visibility_cutoff?: string | null
           created_at?: string
+          github_owner?: string | null
+          github_repo?: string | null
+          github_repo_url?: string | null
           id?: string
           is_archived?: boolean
           links?: Json
@@ -556,6 +565,8 @@ export type Database = {
           epic_id: number | null
           fe_status: Database["public"]["Enums"]["discipline_status"]
           formatted_id: string
+          github_issue_node_id: string | null
+          github_issue_number: number | null
           id: string
           original_be_estimate: number
           original_fe_estimate: number
@@ -588,6 +599,8 @@ export type Database = {
           epic_id?: number | null
           fe_status?: Database["public"]["Enums"]["discipline_status"]
           formatted_id: string
+          github_issue_node_id?: string | null
+          github_issue_number?: number | null
           id?: string
           original_be_estimate?: number
           original_fe_estimate?: number
@@ -620,6 +633,8 @@ export type Database = {
           epic_id?: number | null
           fe_status?: Database["public"]["Enums"]["discipline_status"]
           formatted_id?: string
+          github_issue_node_id?: string | null
+          github_issue_number?: number | null
           id?: string
           original_be_estimate?: number
           original_fe_estimate?: number
