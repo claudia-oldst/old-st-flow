@@ -9,6 +9,7 @@ import { StatusBadge } from "@/features/_shared/estimate-ui/StatusBadge";
 import { LogTimeWithCapacityCheck } from "@/features/timelog/LogTimeWithCapacityCheck";
 import { useProjectRole } from "@/features/team/useProjectRole";
 import { COLS, ColKey } from "./columns";
+import { GithubIssueBadge } from "@/features/github/GithubIssueBadge";
 
 export function TicketsListRow({
   t,
