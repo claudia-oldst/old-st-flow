@@ -53,6 +53,7 @@ const App = () => (
                   <div className="min-h-screen">
                     <TopBar />
                     <WeeklyHoursBar />
+                    <GithubUsernamePrompt />
                     <Routes>
                       <Route path="/" element={wrap("projects", <Projects />)} />
                       <Route path="/projects/:id/*" element={wrap("project", <ProjectWorkspace />)} />
