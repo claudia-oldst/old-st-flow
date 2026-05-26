@@ -18,6 +18,7 @@ import NotFound from "./pages/NotFound.tsx";
 import { AuthProvider } from "@/features/auth/AuthProvider";
 import { RequireAuth } from "@/features/auth/RequireAuth";
 import { RequirePMBA } from "@/features/auth/RequirePMBA";
+import { GithubUsernamePrompt } from "@/features/auth/GithubUsernamePrompt";
 
 const wrap = (scope: string, el: ReactNode) => (
   <ErrorBoundary scope={scope}>{el}</ErrorBoundary>
@@ -52,6 +53,7 @@ const App = () => (
                   <div className="min-h-screen">
                     <TopBar />
                     <WeeklyHoursBar />
+                    <GithubUsernamePrompt />
                     <Routes>
                       <Route path="/" element={wrap("projects", <Projects />)} />
                       <Route path="/projects/:id/*" element={wrap("project", <ProjectWorkspace />)} />

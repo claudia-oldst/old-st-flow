@@ -357,6 +357,7 @@ export type Database = {
           avatar_color: string
           created_at: string
           email: string
+          github_username: string | null
           id: string
           name: string
           role: Database["public"]["Enums"]["project_role"]
@@ -367,6 +368,7 @@ export type Database = {
           avatar_color?: string
           created_at?: string
           email: string
+          github_username?: string | null
           id?: string
           name: string
           role?: Database["public"]["Enums"]["project_role"]
@@ -377,6 +379,7 @@ export type Database = {
           avatar_color?: string
           created_at?: string
           email?: string
+          github_username?: string | null
           id?: string
           name?: string
           role?: Database["public"]["Enums"]["project_role"]
