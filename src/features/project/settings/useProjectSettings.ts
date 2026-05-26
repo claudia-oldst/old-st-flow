@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Project, ProjectMember, ProjectRole, TeamMember } from "@/lib/types";
 import { toast } from "sonner";
 import { projectDetailsSchema } from "@/lib/schemas/project";
+import { parseGithubRepoUrl } from "@/features/github/GithubRepoPrompt";
 import type { ProjectLink } from "../settings/types";
 
 export function useProjectSettings(project: Project, open: boolean, onUpdated?: (p: Project) => void) {
@@ -14,6 +15,7 @@ export function useProjectSettings(project: Project, open: boolean, onUpdated?: 
   const [links, setLinks] = useState<ProjectLink[]>(
     Array.isArray(project.links) ? (project.links as unknown as ProjectLink[]) : []
   );
+  const [githubRepoUrl, setGithubRepoUrl] = useState<string>(project.github_repo_url ?? "");
 
   const [members, setMembers] = useState<(ProjectMember & { member: TeamMember })[]>([]);
   const [allMembers, setAllMembers] = useState<TeamMember[]>([]);
@@ -39,6 +41,7 @@ export function useProjectSettings(project: Project, open: boolean, onUpdated?: 
       setRate(String(project.rate_per_hour ?? 0));
       setStartDate(project.start_date ?? "");
       setLinks(Array.isArray(project.links) ? (project.links as unknown as ProjectLink[]) : []);
+      setGithubRepoUrl(project.github_repo_url ?? "");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, project.id]);
@@ -48,6 +51,7 @@ export function useProjectSettings(project: Project, open: boolean, onUpdated?: 
       .map((l) => ({ name: l.name.trim(), url: l.url.trim() }))
       .filter((l) => l.url.length > 0);
 
+    const trimmedRepo = githubRepoUrl.trim();
     const parsed = projectDetailsSchema.safeParse({
       name,
       acronym,
@@ -55,10 +59,16 @@ export function useProjectSettings(project: Project, open: boolean, onUpdated?: 
       rate_per_hour: Number(rate),
       start_date: startDate || null,
       links: cleanedLinks,
+      github_repo_url: trimmedRepo,
     });
     if (!parsed.success) {
       return toast.error(parsed.error.issues[0]?.message ?? "Invalid project details");
     }
+
+    const repoParsed = trimmedRepo ? parseGithubRepoUrl(trimmedRepo) : null;
+    const canonicalRepoUrl = repoParsed
+      ? `https://github.com/${repoParsed.owner}/${repoParsed.repo}`
+      : null;
 
     const { data, error } = await supabase
       .from("projects")
@@ -69,6 +79,9 @@ export function useProjectSettings(project: Project, open: boolean, onUpdated?: 
         rate_per_hour: parsed.data.rate_per_hour,
         start_date: parsed.data.start_date ?? null,
         links: parsed.data.links as unknown as Project["links"],
+        github_repo_url: canonicalRepoUrl,
+        github_owner: repoParsed?.owner ?? null,
+        github_repo: repoParsed?.repo ?? null,
       })
       .eq("id", project.id)
       .select("*")
@@ -115,6 +128,7 @@ export function useProjectSettings(project: Project, open: boolean, onUpdated?: 
     rate, setRate,
     startDate, setStartDate,
     links, setLinks,
+    githubRepoUrl, setGithubRepoUrl,
     members, allMembers,
     handleSaveDetails, addMember, updateMemberRole, removeMember,
   };

@@ -62,6 +62,7 @@ export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
               rate={s.rate} setRate={s.setRate}
               startDate={s.startDate} setStartDate={s.setStartDate}
               links={s.links} setLinks={s.setLinks}
+              githubRepoUrl={s.githubRepoUrl} setGithubRepoUrl={s.setGithubRepoUrl}
               onSave={s.handleSaveDetails}
               onClose={() => setOpen(false)}
               onArchive={() => setArchiveOpen(true)}

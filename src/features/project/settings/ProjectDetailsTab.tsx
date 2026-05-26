@@ -16,6 +16,7 @@ interface Props {
   rate: string; setRate: (v: string) => void;
   startDate: string; setStartDate: (v: string) => void;
   links: ProjectLink[]; setLinks: (v: ProjectLink[]) => void;
+  githubRepoUrl: string; setGithubRepoUrl: (v: string) => void;
   onSave: () => void;
   onClose: () => void;
   onArchive: () => void;
@@ -26,6 +27,7 @@ export function ProjectDetailsTab({
   name, setName, acronym, setAcronym,
   clientName, setClientName, rate, setRate,
   startDate, setStartDate, links, setLinks,
+  githubRepoUrl, setGithubRepoUrl,
   onSave, onClose, onArchive,
 }: Props) {
   return (
@@ -89,6 +91,20 @@ export function ProjectDetailsTab({
       </div>
 
       <ProjectLinksEditor links={links} canEdit={canEdit} onChange={setLinks} />
+
+      <div className="space-y-1.5">
+        <Label htmlFor="proj-github">GitHub repo URL</Label>
+        <Input
+          id="proj-github"
+          value={githubRepoUrl}
+          onChange={(e) => setGithubRepoUrl(e.target.value)}
+          disabled={!canEdit}
+          placeholder="https://github.com/owner/repo"
+        />
+        <div className="text-[10px] text-dimmer">
+          Tickets in this project will be mirrored as issues in this repo. Leave blank to disable.
+        </div>
+      </div>
 
       {canEdit && !project.is_archived && (
         <div className="hairline-t pt-4 mt-2">
