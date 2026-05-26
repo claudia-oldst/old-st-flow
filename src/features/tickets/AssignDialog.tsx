@@ -49,6 +49,12 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
       .select("*, member:team_members(*)")
       .eq("project_id", projectId)
       .then(({ data }) => setMembers(((data ?? []) as unknown) as (ProjectMember & { member: TeamMember })[]));
+    supabase
+      .from("projects")
+      .select("github_repo_url")
+      .eq("id", projectId)
+      .maybeSingle()
+      .then(({ data }) => setProjectRepoUrl((data as { github_repo_url: string | null } | null)?.github_repo_url ?? null));
   }, [open, projectId, current]);
 
   const feEligible = members.filter((m) => m.role === "Frontend" || m.role === "Fullstack");
