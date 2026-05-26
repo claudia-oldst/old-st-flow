@@ -35,6 +35,7 @@ export interface TicketRow {
   cr_decided_at: string | null;
   parent_ticket_id: string | null;
   bug_sub_number: number | null;
+  github_issue_number: number | null;
   parent: { id: string; formatted_id: string; title: string } | null;
   assignees: Array<{ user_id: string; slot: "FE" | "BE" | "Project"; member: TeamMember; created_at: string }>;
 }
