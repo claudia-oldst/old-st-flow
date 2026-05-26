@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,10 +7,10 @@ import { MemberAvatar } from "@/components/MemberAvatar";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/store/currentUser";
 import { useProjectRole, canManageTickets } from "@/features/team/useProjectRole";
-import { Reply, Pencil, Trash2, Download, FileText } from "lucide-react";
+import { Reply, Pencil, Trash2, Download, FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { CommentComposer } from "./CommentComposer";
-import { deleteAttachment } from "./uploadCommentAttachment";
+import { deleteAttachment, getAttachmentSignedUrl } from "./uploadCommentAttachment";
 import type { CommentRow, CommentAttachment } from "./types";
 
 function relTime(iso: string) {
