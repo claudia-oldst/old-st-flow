@@ -35,7 +35,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
   const csv = useTicketsCsvImport(projectId, tickets, reload);
   const { rows, fileName, dragOver, setDragOver, importing, handleFile, handleImport, reset: resetImport } = csv;
 
-  const v = useProjectTicketsView({ tickets, user, role });
+  const v = useProjectTicketsView({ tickets, user, role, projectId });
 
   // List-view server pagination
   const [page, setPage] = useState(1);
