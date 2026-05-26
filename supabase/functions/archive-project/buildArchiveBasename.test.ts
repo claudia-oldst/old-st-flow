@@ -1,5 +1,5 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { buildArchiveBasename } from "./index.ts";
+import { buildArchiveBasename } from "./helpers.ts";
 
 Deno.test("buildArchiveBasename slugifies project name and appends YYYY-MM-DD", () => {
   assertEquals(

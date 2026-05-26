@@ -1,5 +1,5 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { collectUserIds, resolveVaultPaths } from "./index.ts";
+import { collectUserIds, resolveVaultPaths } from "./helpers.ts";
 
 Deno.test("resolveVaultPaths (new format) appends .json and .xlsx", () => {
   const p = resolveVaultPaths("uuid-1/my-proj-2026-05-26");

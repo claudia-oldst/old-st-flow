@@ -1,5 +1,5 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { resolveVaultDownload } from "./index.ts";
+import { resolveVaultDownload } from "./helpers.ts";
 
 Deno.test("resolveVaultDownload (new format) appends extension to slugged path", () => {
   const v = resolveVaultDownload("uuid-1/my-project-2026-05-26", "json");
