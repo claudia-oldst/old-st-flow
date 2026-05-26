@@ -26,6 +26,7 @@ export function StatusBlock({
   canEditBE,
   onAssign,
   onChange,
+  onLocalPatch,
 }: {
   ticket: TicketRow;
   statuses: Status[];
@@ -38,9 +39,11 @@ export function StatusBlock({
   canEditBE: boolean;
   onAssign: () => void;
   onChange: () => void;
+  onLocalPatch?: (patch: Partial<TicketRow>) => void;
 }) {
   const updateDiscipline = async (slot: "FE" | "BE", value: DisciplineStatus) => {
     const patch = slot === "FE" ? { fe_status: value } : { be_status: value };
+    onLocalPatch?.(patch);
     const { error } = await supabase.from("tickets").update(patch).eq("id", ticket.id);
     if (error) return toast.error(error.message);
     onChange();
