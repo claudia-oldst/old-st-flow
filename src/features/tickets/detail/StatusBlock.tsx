@@ -9,7 +9,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { syncTicketToGithub } from "@/features/github/syncTicket";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import type { DisciplineStatus, Status } from "@/lib/types";
 import { DisciplineRow } from "./DisciplineRow";
@@ -47,7 +46,6 @@ export function StatusBlock({
     const { error } = await supabase.from("tickets").update(patch).eq("id", ticket.id);
     if (error) return toast.error(error.message);
     onChange();
-    void syncTicketToGithub(ticket.id);
   };
 
   const setProjectStatus = async (statusId: string) => {
@@ -58,7 +56,6 @@ export function StatusBlock({
       .eq("id", ticket.id);
     if (error) return toast.error(error.message);
     onChange();
-    void syncTicketToGithub(ticket.id);
   };
 
   const resetProjectStatusToAuto = async () => {

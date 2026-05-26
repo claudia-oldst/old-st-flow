@@ -4,7 +4,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Sparkles, Edit3 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { syncTicketToGithub } from "@/features/github/syncTicket";
 import { MarkdownView } from "./MarkdownView";
 
 export function AcceptanceCriteria({
@@ -79,7 +78,6 @@ export function AcceptanceCriteria({
     }
     toast.success("Acceptance criteria saved");
     onSaved();
-    void syncTicketToGithub(ticketId);
   };
 
   const hasContent = !!(localValue && localValue.trim());
