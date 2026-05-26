@@ -18,12 +18,12 @@ async function verifyPmba(req: Request, admin: ReturnType<typeof createClient>) 
   const token = authHeader.replace("Bearer ", "");
   const { data: claims, error } = await admin.auth.getClaims(token);
   if (error || !claims?.claims) return { error: "Invalid token", status: 401 };
-  const email = (claims.claims as any).email as string | undefined;
-  if (!email) return { error: "Token missing email", status: 401 };
+  const sub = (claims.claims as any).sub as string | undefined;
+  if (!sub) return { error: "Token missing sub", status: 401 };
   const { data: member } = await admin
     .from("team_members")
     .select("id")
-    .ilike("email", email)
+    .eq("auth_user_id", sub)
     .maybeSingle();
   if (!member?.id) return { error: "Not a team member", status: 403 };
   const { data: isPmba } = await admin.rpc("is_pmba", { _user_id: member.id });
