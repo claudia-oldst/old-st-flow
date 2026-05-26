@@ -152,7 +152,9 @@ export function TicketDetailBody({
         canEditBE={canEditBE}
         onAssign={onAssign}
         onChange={onChange}
+        onLocalPatch={onLocalPatch}
       />
+
 
       <EstimatesPanel
         ticket={ticket}
