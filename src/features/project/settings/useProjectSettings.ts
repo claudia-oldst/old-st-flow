@@ -41,6 +41,7 @@ export function useProjectSettings(project: Project, open: boolean, onUpdated?: 
       setRate(String(project.rate_per_hour ?? 0));
       setStartDate(project.start_date ?? "");
       setLinks(Array.isArray(project.links) ? (project.links as unknown as ProjectLink[]) : []);
+      setGithubRepoUrl(project.github_repo_url ?? "");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, project.id]);
