@@ -179,9 +179,16 @@ Deno.serve(async (req) => {
     const checksum = await sha256Hex(jsonText);
     const xlsxBytes = buildXlsx(payload);
 
-    const folder = `${body.project_id}`;
-    const jsonPath = `${folder}/restore_point.json`;
-    const xlsxPath = `${folder}/project_summary.xlsx`;
+    const slug = String(proj.name ?? proj.acronym ?? "project")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 60) || "project";
+    const date = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    const basename = `${slug}-${date}`;
+    const folder = `${body.project_id}/${basename}`;
+    const jsonPath = `${folder}.json`;
+    const xlsxPath = `${folder}.xlsx`;
 
     const upJson = await admin.storage
       .from("project-vault")
