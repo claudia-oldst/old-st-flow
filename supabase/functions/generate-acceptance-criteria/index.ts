@@ -34,8 +34,8 @@ Deno.serve(async (req) => {
     );
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: claims, error: claimsErr } = await userClient.auth.getClaims(token);
-    if (claimsErr || !claims?.claims) return j({ error: "Invalid token" }, 401);
+    const { data: userData, error: claimsErr } = await userClient.auth.getUser(token);
+    if (claimsErr || !userData?.user) return j({ error: "Invalid token" }, 401);
 
     const { ticket_id } = (await req.json()) as Body;
     if (!ticket_id) return j({ error: "ticket_id required" }, 400);
