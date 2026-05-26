@@ -39,7 +39,10 @@ export function useBoardDnd({
         .update({ status_id: overId })
         .eq("id", ticketId);
       if (error) toast.error(error.message);
-      else reload();
+      else {
+        reload();
+        void syncTicketToGithub(ticketId);
+      }
       return;
     }
 
