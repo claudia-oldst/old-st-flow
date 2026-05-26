@@ -1,6 +1,7 @@
 // Re-hydrate an archived project from its vault: verify checksum, optionally
 // remap missing user_ids, then call rehydrate_project RPC inside one tx. PMBA-only.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { collectUserIds, resolveVaultPaths } from "./helpers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
