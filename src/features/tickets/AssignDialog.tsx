@@ -13,6 +13,8 @@ import { MemberAvatar } from "@/components/MemberAvatar";
 import { Check, Users } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { GithubRepoPrompt } from "@/features/github/GithubRepoPrompt";
+import { syncTicketToGithub } from "@/features/github/syncTicket";
 
 type Slot = "FE" | "BE" | "Project";
 
