@@ -153,7 +153,7 @@ async function verifyPmba(
   return { userId: member.id };
 }
 
-Deno.serve(async (req) => {
+if (import.meta.main) Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {

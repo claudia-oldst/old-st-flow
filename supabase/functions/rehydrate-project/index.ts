@@ -81,7 +81,7 @@ async function verifyPmba(req: Request, admin: ReturnType<typeof createClient>) 
   return { userId: member.id as string };
 }
 
-Deno.serve(async (req) => {
+if (import.meta.main) Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
     const admin = createClient(
