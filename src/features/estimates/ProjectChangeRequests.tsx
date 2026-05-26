@@ -140,6 +140,7 @@ export function ProjectChangeRequests({ projectId }: { projectId: string }) {
           : { current_project_estimate: t.current_project_estimate + row.delta };
       const { error: tErr } = await supabase.from("tickets").update(patch).eq("id", t.id);
       if (tErr) return toast.error(tErr.message);
+      void syncTicketToGithub(t.id);
     }
     toast.success("Change request approved");
     reload();
