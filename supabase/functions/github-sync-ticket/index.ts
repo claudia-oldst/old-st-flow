@@ -118,6 +118,7 @@ const LABEL_COLORS: Record<string, string> = {
   "type: bug": "d73a4a",
   "type: feature": "1f6feb",
   "type: task": "8b949e",
+  "type: project": "a371f7",
 };
 const EPIC_COLOR = "8957e5";
 const STATUS_COLOR = "c5d1d8";
