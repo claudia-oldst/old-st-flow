@@ -80,9 +80,17 @@ Deno.serve(async (req) => {
       return json({ error: "Project is not archived" }, 400);
     }
 
+    const isNewFormat = proj.vault_storage_path.includes("/");
+    const jsonStoragePath = isNewFormat
+      ? `${proj.vault_storage_path}.json`
+      : `${proj.vault_storage_path}/restore_point.json`;
+    const xlsxStoragePath = isNewFormat
+      ? `${proj.vault_storage_path}.xlsx`
+      : `${proj.vault_storage_path}/project_summary.xlsx`;
+
     const dl = await admin.storage
       .from("project-vault")
-      .download(`${proj.vault_storage_path}/restore_point.json`);
+      .download(jsonStoragePath);
     if (dl.error || !dl.data) return json({ error: "Vault JSON missing" }, 500);
     const text = await dl.data.text();
     const checksum = await sha256Hex(text);
@@ -114,8 +122,8 @@ Deno.serve(async (req) => {
 
     if (body.delete_vault) {
       await admin.storage.from("project-vault").remove([
-        `${proj.vault_storage_path}/restore_point.json`,
-        `${proj.vault_storage_path}/project_summary.xlsx`,
+        jsonStoragePath,
+        xlsxStoragePath,
       ]);
     }
 
