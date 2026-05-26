@@ -51,6 +51,7 @@ export function StatusBlock({
   };
 
   const setProjectStatus = async (statusId: string) => {
+    onLocalPatch?.({ status_id: statusId, project_status_override: true });
     const { error } = await supabase
       .from("tickets")
       .update({ status_id: statusId })
