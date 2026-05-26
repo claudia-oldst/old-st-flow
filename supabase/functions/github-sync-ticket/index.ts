@@ -170,28 +170,20 @@ Deno.serve(async (req) => {
     });
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return json(401, { error: "Unauthorized" });
-    }
-
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
     const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const GITHUB_TOKEN = Deno.env.get("GITHUB_TOKEN");
+    const GITHUB_SYNC_SECRET = Deno.env.get("GITHUB_SYNC_SECRET");
 
     if (!GITHUB_TOKEN) {
       return json(500, { ok: false, error: "GITHUB_TOKEN not configured" });
     }
 
-    const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claims, error: authErr } = await userClient.auth.getClaims(token);
-    if (authErr || !claims?.claims) {
-      return json(401, { error: "Unauthorized" });
-    }
+    const syncHeader = req.headers.get("x-sync-secret");
+    const authHeader = req.headers.get("Authorization");
+    const isTriggerCall =
+      !!GITHUB_SYNC_SECRET && !!syncHeader && syncHeader === GITHUB_SYNC_SECRET;
 
     const parsed = BodySchema.safeParse(await req.json());
     if (!parsed.success) {
@@ -199,16 +191,29 @@ Deno.serve(async (req) => {
     }
     const { ticket_id } = parsed.data;
 
-    const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
-
-    const { data: accessCheck, error: accessErr } = await userClient
-      .from("tickets")
-      .select("id")
-      .eq("id", ticket_id)
-      .maybeSingle();
-    if (accessErr || !accessCheck) {
-      return json(403, { error: "No access to this ticket" });
+    if (!isTriggerCall) {
+      if (!authHeader?.startsWith("Bearer ")) {
+        return json(401, { error: "Unauthorized" });
+      }
+      const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const token = authHeader.replace("Bearer ", "");
+      const { data: claims, error: authErr } = await userClient.auth.getClaims(token);
+      if (authErr || !claims?.claims) {
+        return json(401, { error: "Unauthorized" });
+      }
+      const { data: accessCheck, error: accessErr } = await userClient
+        .from("tickets")
+        .select("id")
+        .eq("id", ticket_id)
+        .maybeSingle();
+      if (accessErr || !accessCheck) {
+        return json(403, { error: "No access to this ticket" });
+      }
     }
+
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
     const { data: ticket, error: tErr } = await admin
       .from("tickets")
