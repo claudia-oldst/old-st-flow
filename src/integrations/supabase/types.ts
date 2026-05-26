@@ -68,6 +68,24 @@ export type Database = {
           },
         ]
       }
+      app_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       epic_discounts: {
         Row: {
           created_at: string
@@ -770,6 +788,7 @@ export type Database = {
       current_is_pmba: { Args: never; Returns: boolean }
       current_is_project_member: { Args: { _pid: string }; Returns: boolean }
       current_team_member_id: { Args: never; Returns: string }
+      enqueue_github_sync: { Args: { _ticket_id: string }; Returns: undefined }
       first_status_in_category: {
         Args: { _cat: Database["public"]["Enums"]["status_category"] }
         Returns: string
