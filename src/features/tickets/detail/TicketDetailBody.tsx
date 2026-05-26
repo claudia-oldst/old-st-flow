@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Users, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { syncTicketToGithub } from "@/features/github/syncTicket";
 import { toast } from "sonner";
 import { EpicSelect } from "@/features/epics/EpicSelect";
 import { ParentTicketSelect } from "@/features/tickets/ParentTicketSelect";
