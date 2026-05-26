@@ -45,6 +45,7 @@ export function makeTicket(overrides: Partial<TicketRow> = {}): TicketRow {
     cr_decided_at: null,
     parent_ticket_id: null,
     bug_sub_number: null,
+    github_issue_number: null,
     parent: null,
     assignees: [],
     ...overrides,

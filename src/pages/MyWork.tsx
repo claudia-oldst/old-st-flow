@@ -74,6 +74,7 @@ async function fetchTicketDetail(ticketId: string): Promise<TicketRow | null> {
     cr_decided_at: tt.cr_decided_at ?? null,
     parent_ticket_id: tt.parent_ticket_id ?? null,
     bug_sub_number: tt.bug_sub_number ?? null,
+    github_issue_number: tt.github_issue_number ?? null,
     parent: null,
     assignees: list.map((a) => ({
       user_id: a.user_id,

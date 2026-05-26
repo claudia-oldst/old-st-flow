@@ -9,6 +9,7 @@ import { StatusBadge } from "@/features/_shared/estimate-ui/StatusBadge";
 import { LogTimeWithCapacityCheck } from "@/features/timelog/LogTimeWithCapacityCheck";
 import { useProjectRole } from "@/features/team/useProjectRole";
 import { COLS, ColKey } from "./columns";
+import { GithubIssueBadge } from "@/features/github/GithubIssueBadge";
 
 export function TicketsListRow({
   t,
@@ -43,6 +44,7 @@ export function TicketsListRow({
         return (
           <span className="inline-flex items-center gap-1.5">
             <span className="font-mono text-xs text-dimmer">{t.formatted_id}</span>
+            <GithubIssueBadge projectId={t.project_id} issueNumber={t.github_issue_number} />
             {t.ticket_type === "CR" && (
               <StatusBadge status={t.cr_approval} />
             )}

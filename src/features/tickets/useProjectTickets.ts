@@ -35,6 +35,7 @@ export interface TicketRow {
   cr_decided_at: string | null;
   parent_ticket_id: string | null;
   bug_sub_number: number | null;
+  github_issue_number: number | null;
   parent: { id: string; formatted_id: string; title: string } | null;
   assignees: Array<{ user_id: string; slot: "FE" | "BE" | "Project"; member: TeamMember; created_at: string }>;
 }
@@ -90,6 +91,7 @@ function normalizeTicket(raw: any): TicketRow {
     cr_decided_at: raw.cr_decided_at ?? null,
     parent_ticket_id: raw.parent_ticket_id ?? null,
     bug_sub_number: raw.bug_sub_number ?? null,
+    github_issue_number: raw.github_issue_number ?? null,
     parent: raw.parent ?? null,
     assignees: ((raw.assignees ?? []) as any[]).map((a) => ({
       user_id: a.user_id,
