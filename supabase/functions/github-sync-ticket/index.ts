@@ -104,6 +104,13 @@ function renderBody(
   return sections.join("\n\n");
 }
 
+const DISCIPLINE_LABEL: Record<string, string> = {
+  todo: "to-do",
+  in_progress: "in progress",
+  for_integration: "for integration",
+  done: "done",
+};
+
 const LABEL_COLORS: Record<string, string> = {
   "type: bug": "d73a4a",
   "type: feature": "1f6feb",
@@ -111,6 +118,8 @@ const LABEL_COLORS: Record<string, string> = {
 };
 const EPIC_COLOR = "8957e5";
 const STATUS_COLOR = "c5d1d8";
+const FE_STATUS_COLOR = "1f6feb";
+const BE_STATUS_COLOR = "0e8a8a";
 
 async function ensureLabel(
   repoPath: string,
@@ -125,7 +134,15 @@ async function ensureLabel(
   if (check.status !== 404) return;
   const color =
     LABEL_COLORS[name] ??
-    (name.startsWith("epic:") ? EPIC_COLOR : name.startsWith("status:") ? STATUS_COLOR : "ededed");
+    (name.startsWith("epic:")
+      ? EPIC_COLOR
+      : name.startsWith("fe status:")
+        ? FE_STATUS_COLOR
+        : name.startsWith("be status:")
+          ? BE_STATUS_COLOR
+          : name.startsWith("status:")
+            ? STATUS_COLOR
+            : "ededed");
   const res = await fetch(`${GITHUB_API}/repos/${repoPath}/labels`, {
     method: "POST",
     headers,
