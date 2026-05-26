@@ -23,7 +23,37 @@ interface Props {
   onChange: () => void;
 }
 
-export function TicketDetailSheet({ open, onOpenChange, ticket, projectId, onChange }: Props) {
+export function TicketDetailSheet({ open, onOpenChange, ticket: ticketProp, projectId, onChange }: Props) {
+  const [liveTicket, setLiveTicket] = useState<TicketRow | null>(ticketProp);
+
+  // Sync from prop (new ticket opened, or parent reloaded list)
+  useEffect(() => {
+    setLiveTicket(ticketProp);
+  }, [ticketProp]);
+
+  // Subscribe to realtime updates for this specific ticket so the detail view
+  // reflects status / field changes the moment they are persisted, even before
+  // the parent list refetch resolves.
+  useEffect(() => {
+    if (!ticketProp?.id) return;
+    const id = ticketProp.id;
+    const channel = supabase
+      .channel(`ticket-detail-${id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "tickets", filter: `id=eq.${id}` },
+        (payload) => {
+          setLiveTicket((prev) => (prev && prev.id === id ? { ...prev, ...(payload.new as Partial<TicketRow>) } : prev));
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [ticketProp?.id]);
+
+  const ticket = liveTicket;
+
   const role = useProjectRole(projectId);
   const user = useCurrentUser((s) => s.user);
   const { statuses } = useStatuses();
