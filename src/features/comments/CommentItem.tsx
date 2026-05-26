@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,10 +7,10 @@ import { MemberAvatar } from "@/components/MemberAvatar";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/store/currentUser";
 import { useProjectRole, canManageTickets } from "@/features/team/useProjectRole";
-import { Reply, Pencil, Trash2, Download, FileText } from "lucide-react";
+import { Reply, Pencil, Trash2, Download, FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { CommentComposer } from "./CommentComposer";
-import { deleteAttachment } from "./uploadCommentAttachment";
+import { deleteAttachment, getAttachmentSignedUrl } from "./uploadCommentAttachment";
 import type { CommentRow, CommentAttachment } from "./types";
 
 function relTime(iso: string) {
@@ -33,11 +33,46 @@ function formatBytes(n: number) {
 }
 
 function AttachmentView({ a }: { a: CommentAttachment }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    getAttachmentSignedUrl(a.path)
+      .then((u) => {
+        if (!cancelled) setUrl(u);
+      })
+      .catch(() => {
+        if (!cancelled) setError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [a.path]);
+
+  if (error) {
+    return (
+      <div className="inline-flex items-center gap-2 rounded-md bg-white/5 hairline px-2.5 py-1.5 text-xs text-dimmer">
+        <FileText className="h-4 w-4" />
+        <span className="max-w-[220px] truncate">{a.name}</span>
+        <span>(unavailable)</span>
+      </div>
+    );
+  }
+  if (!url) {
+    return (
+      <div className="inline-flex items-center gap-2 rounded-md bg-white/5 hairline px-2.5 py-1.5 text-xs text-dimmer">
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        <span className="max-w-[220px] truncate">{a.name}</span>
+      </div>
+    );
+  }
+
   if (a.kind === "image") {
     return (
-      <a href={a.url} target="_blank" rel="noreferrer" className="block">
+      <a href={url} target="_blank" rel="noreferrer" className="block">
         <img
-          src={a.url}
+          src={url}
           alt={a.name}
           className="max-h-72 rounded-md hairline object-contain bg-black/20"
           loading="lazy"
@@ -48,7 +83,7 @@ function AttachmentView({ a }: { a: CommentAttachment }) {
   if (a.kind === "video") {
     return (
       <video
-        src={a.url}
+        src={url}
         controls
         className="max-h-80 rounded-md hairline bg-black/40 max-w-full"
       />
@@ -56,7 +91,7 @@ function AttachmentView({ a }: { a: CommentAttachment }) {
   }
   return (
     <a
-      href={a.url}
+      href={url}
       target="_blank"
       rel="noreferrer"
       download={a.name}
