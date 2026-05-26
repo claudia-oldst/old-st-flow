@@ -123,6 +123,7 @@ export function RequestMoreTimeDialog({
     toast.success(`Estimate updated: ${formatHours(previous)} → ${formatHours(next)}`);
     onOpenChange(false);
     onSaved();
+    void syncTicketToGithub(ticketId);
   };
 
   const slotLabel = (s: AdjustSlot) =>
