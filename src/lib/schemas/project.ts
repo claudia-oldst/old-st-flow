@@ -36,6 +36,16 @@ export const projectDetailsSchema = z.object({
   links: z
     .array(projectLinkSchema)
     .max(MAX_LINKS, `Max ${MAX_LINKS} links per project`),
+  github_repo_url: z
+    .string()
+    .trim()
+    .regex(
+      /^https?:\/\/github\.com\/[\w.-]+\/[\w.-]+?(?:\.git)?\/?$/i,
+      "Must be a URL like https://github.com/owner/repo",
+    )
+    .nullable()
+    .optional()
+    .or(z.literal("")),
 });
 
 export type ProjectDetailsInput = z.infer<typeof projectDetailsSchema>;
