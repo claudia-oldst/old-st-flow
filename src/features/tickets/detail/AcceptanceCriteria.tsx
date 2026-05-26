@@ -79,6 +79,7 @@ export function AcceptanceCriteria({
     }
     toast.success("Acceptance criteria saved");
     onSaved();
+    void syncTicketToGithub(ticketId);
   };
 
   const hasContent = !!(localValue && localValue.trim());
