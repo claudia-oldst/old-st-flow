@@ -1,5 +1,6 @@
 // Issues a short-lived signed URL for a vaulted artifact (PMBA-only).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { resolveVaultDownload } from "./helpers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
