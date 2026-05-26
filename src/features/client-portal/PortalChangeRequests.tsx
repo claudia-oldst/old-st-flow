@@ -73,6 +73,7 @@ function asTicketRow(t: PortalCRViewTicket): TicketRow {
     cr_decided_at: t.cr_decided_at,
     parent_ticket_id: null,
     bug_sub_number: null,
+    github_issue_number: null,
     parent: null,
     assignees: [],
   };
