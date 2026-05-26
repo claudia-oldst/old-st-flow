@@ -2,6 +2,7 @@
 // verify integrity via SHA-256, then purge child rows. PMBA-only.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import * as XLSX from "https://esm.sh/xlsx@0.18.5";
+import { buildArchiveBasename } from "./helpers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,6 +21,7 @@ async function sha256Hex(text: string): Promise<string> {
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 }
+
 
 function buildXlsx(payload: any): Uint8Array {
   const wb = XLSX.utils.book_new();
@@ -179,13 +181,7 @@ Deno.serve(async (req) => {
     const checksum = await sha256Hex(jsonText);
     const xlsxBytes = buildXlsx(payload);
 
-    const slug = String(proj.name ?? proj.acronym ?? "project")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 60) || "project";
-    const date = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-    const basename = `${slug}-${date}`;
+    const basename = buildArchiveBasename(proj.name, proj.acronym, new Date().toISOString());
     const folder = `${body.project_id}/${basename}`;
     const jsonPath = `${folder}.json`;
     const xlsxPath = `${folder}.xlsx`;

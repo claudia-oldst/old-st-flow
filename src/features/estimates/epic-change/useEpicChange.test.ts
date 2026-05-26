@@ -39,12 +39,45 @@ describe("computeEpicTotals", () => {
     expect(t.actual).toBe(6);
   });
 
-  it("projected = currentApproved + matched delta", () => {
+  it("projected = currentApproved + pending delta (approved already baked into current)", () => {
     const t = computeEpicTotals(
       [ticket({ current_fe_estimate: 10 })],
-      [{ delta: 4 } as never, { delta: -1 } as never],
+      [
+        { delta: 4, status: "pending" } as never,
+        { delta: -1, status: "pending" } as never,
+        { delta: 99, status: "approved" } as never, // ignored: already in current
+      ],
     );
     expect(t.projected).toBe(13);
+  });
+
+  it("discount reduces currentApproved, actual and projected but not original", () => {
+    const t = computeEpicTotals(
+      [
+        ticket({
+          original_fe_estimate: 10,
+          current_fe_estimate: 10,
+          actual_frontend_hours: 8,
+        }),
+      ],
+      [],
+      3,
+    );
+    expect(t.original).toBe(10);
+    expect(t.currentApproved).toBe(7);
+    expect(t.actual).toBe(5);
+    expect(t.projected).toBe(7);
+  });
+
+  it("clamps negative results to zero", () => {
+    const t = computeEpicTotals(
+      [ticket({ current_fe_estimate: 2, actual_frontend_hours: 1 })],
+      [],
+      99,
+    );
+    expect(t.currentApproved).toBe(0);
+    expect(t.actual).toBe(0);
+    expect(t.projected).toBe(0);
   });
 });
 

@@ -1,5 +1,6 @@
 // Issues a short-lived signed URL for a vaulted artifact (PMBA-only).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { resolveVaultDownload } from "./helpers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,6 +12,7 @@ interface Body {
   project_id: string;
   kind: "json" | "xlsx";
 }
+
 
 async function verifyPmba(req: Request, admin: ReturnType<typeof createClient>) {
   const authHeader = req.headers.get("Authorization");
@@ -56,16 +58,7 @@ Deno.serve(async (req) => {
       return json({ error: "Project is not archived" }, 400);
     }
 
-    const ext = body.kind === "json" ? "json" : "xlsx";
-    // New format: vault_storage_path = "{project_id}/{slug}-{date}" → append .ext
-    // Legacy format: vault_storage_path = "{project_id}" → use fixed filenames
-    const isNewFormat = proj.vault_storage_path.includes("/");
-    const path = isNewFormat
-      ? `${proj.vault_storage_path}.${ext}`
-      : `${proj.vault_storage_path}/${ext === "json" ? "restore_point.json" : "project_summary.xlsx"}`;
-    const downloadName = isNewFormat
-      ? `${proj.vault_storage_path.split("/").pop()}.${ext}`
-      : (ext === "json" ? "restore_point.json" : "project_summary.xlsx");
+    const { path, downloadName } = resolveVaultDownload(proj.vault_storage_path, body.kind);
 
     const { data, error } = await admin.storage
       .from("project-vault")

@@ -1,6 +1,7 @@
 // Re-hydrate an archived project from its vault: verify checksum, optionally
 // remap missing user_ids, then call rehydrate_project RPC inside one tx. PMBA-only.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { collectUserIds, resolveVaultPaths } from "./helpers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -22,20 +23,6 @@ async function sha256Hex(text: string): Promise<string> {
     .join("");
 }
 
-function collectUserIds(payload: any): string[] {
-  const ids = new Set<string>();
-  const push = (v: any) => v && typeof v === "string" && ids.add(v);
-  for (const r of payload.project_members ?? []) push(r.user_id);
-  for (const r of payload.ticket_assignees ?? []) push(r.user_id);
-  for (const r of payload.ticket_comments ?? []) push(r.user_id);
-  for (const r of payload.ticket_estimate_changes ?? []) {
-    push(r.user_id);
-    push(r.decided_by);
-  }
-  for (const r of payload.time_logs ?? []) push(r.user_id);
-  for (const r of payload.tickets ?? []) push(r.cr_decided_by);
-  return [...ids];
-}
 
 async function verifyPmba(req: Request, admin: ReturnType<typeof createClient>) {
   const authHeader = req.headers.get("Authorization");
@@ -80,13 +67,9 @@ Deno.serve(async (req) => {
       return json({ error: "Project is not archived" }, 400);
     }
 
-    const isNewFormat = proj.vault_storage_path.includes("/");
-    const jsonStoragePath = isNewFormat
-      ? `${proj.vault_storage_path}.json`
-      : `${proj.vault_storage_path}/restore_point.json`;
-    const xlsxStoragePath = isNewFormat
-      ? `${proj.vault_storage_path}.xlsx`
-      : `${proj.vault_storage_path}/project_summary.xlsx`;
+    const { jsonPath: jsonStoragePath, xlsxPath: xlsxStoragePath } = resolveVaultPaths(
+      proj.vault_storage_path,
+    );
 
     const dl = await admin.storage
       .from("project-vault")
