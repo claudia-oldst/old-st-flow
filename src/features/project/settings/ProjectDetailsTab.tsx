@@ -16,6 +16,7 @@ interface Props {
   rate: string; setRate: (v: string) => void;
   startDate: string; setStartDate: (v: string) => void;
   links: ProjectLink[]; setLinks: (v: ProjectLink[]) => void;
+  githubRepoUrl: string; setGithubRepoUrl: (v: string) => void;
   onSave: () => void;
   onClose: () => void;
   onArchive: () => void;
