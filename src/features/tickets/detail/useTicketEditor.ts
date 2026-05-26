@@ -78,6 +78,7 @@ export function useTicketEditor({
     setEditing(false);
     onChange();
     reloadChanges();
+    void syncTicketToGithub(ticket.id);
   };
 
   const handleDelete = async () => {
