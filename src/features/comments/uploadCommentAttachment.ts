@@ -30,15 +30,22 @@ export async function uploadCommentAttachment(
       upsert: false,
     });
   if (error) throw error;
-  const { data } = supabase.storage.from("ticket-attachments").getPublicUrl(path);
   return {
-    url: data.publicUrl,
+    url: "",
     path,
     name: file.name,
     mime: file.type || "application/octet-stream",
     size: file.size,
     kind: detectKind(file.type || ""),
   };
+}
+
+export async function getAttachmentSignedUrl(path: string, expiresIn = 3600): Promise<string> {
+  const { data, error } = await supabase.storage
+    .from("ticket-attachments")
+    .createSignedUrl(path, expiresIn);
+  if (error) throw error;
+  return data.signedUrl;
 }
 
 export async function deleteAttachment(path: string) {
