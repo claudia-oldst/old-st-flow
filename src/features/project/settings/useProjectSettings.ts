@@ -128,6 +128,7 @@ export function useProjectSettings(project: Project, open: boolean, onUpdated?: 
     rate, setRate,
     startDate, setStartDate,
     links, setLinks,
+    githubRepoUrl, setGithubRepoUrl,
     members, allMembers,
     handleSaveDetails, addMember, updateMemberRole, removeMember,
   };
