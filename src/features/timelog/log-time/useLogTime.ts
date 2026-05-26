@@ -71,6 +71,7 @@ export function useLogTime({
       if (nextActive) {
         await supabase.from("tickets").update({ status_id: nextActive.id }).eq("id", ticket.id);
         toast.info(`Moved to ${nextActive.name}`);
+        void syncTicketToGithub(ticket.id);
       }
     }
   };
