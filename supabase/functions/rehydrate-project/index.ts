@@ -122,8 +122,8 @@ Deno.serve(async (req) => {
 
     if (body.delete_vault) {
       await admin.storage.from("project-vault").remove([
-        `${proj.vault_storage_path}/restore_point.json`,
-        `${proj.vault_storage_path}/project_summary.xlsx`,
+        jsonStoragePath,
+        xlsxStoragePath,
       ]);
     }
 
