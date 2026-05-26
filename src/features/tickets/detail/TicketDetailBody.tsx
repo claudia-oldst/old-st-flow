@@ -34,6 +34,7 @@ interface Props {
   onOpenLog: () => void;
   onAdjustEstimate: (slot: "FE" | "BE") => void;
   onChange: () => void;
+  onLocalPatch?: (patch: Partial<TicketRow>) => void;
 }
 
 export function TicketDetailBody({
