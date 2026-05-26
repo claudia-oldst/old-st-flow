@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { ProjectMember, TeamMember } from "@/lib/types";
 import { toast } from "sonner";
+import { syncTicketsToGithub } from "@/features/github/syncTicket";
 
 export type BulkAssignMode = "add" | "replace";
 
