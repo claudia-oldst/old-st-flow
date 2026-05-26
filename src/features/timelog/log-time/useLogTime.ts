@@ -5,6 +5,7 @@ import type { LogDiscipline, ProjectRole } from "@/lib/types";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { useTicketCapacity, capacityFor } from "@/features/timelog/useTicketCapacity";
 import { toast } from "sonner";
+import { syncTicketToGithub } from "@/features/github/syncTicket";
 
 export function useLogTime({
   open,
