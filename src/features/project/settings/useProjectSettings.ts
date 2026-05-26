@@ -51,6 +51,7 @@ export function useProjectSettings(project: Project, open: boolean, onUpdated?: 
       .map((l) => ({ name: l.name.trim(), url: l.url.trim() }))
       .filter((l) => l.url.length > 0);
 
+    const trimmedRepo = githubRepoUrl.trim();
     const parsed = projectDetailsSchema.safeParse({
       name,
       acronym,
@@ -58,10 +59,16 @@ export function useProjectSettings(project: Project, open: boolean, onUpdated?: 
       rate_per_hour: Number(rate),
       start_date: startDate || null,
       links: cleanedLinks,
+      github_repo_url: trimmedRepo,
     });
     if (!parsed.success) {
       return toast.error(parsed.error.issues[0]?.message ?? "Invalid project details");
     }
+
+    const repoParsed = trimmedRepo ? parseGithubRepoUrl(trimmedRepo) : null;
+    const canonicalRepoUrl = repoParsed
+      ? `https://github.com/${repoParsed.owner}/${repoParsed.repo}`
+      : null;
 
     const { data, error } = await supabase
       .from("projects")
@@ -72,6 +79,9 @@ export function useProjectSettings(project: Project, open: boolean, onUpdated?: 
         rate_per_hour: parsed.data.rate_per_hour,
         start_date: parsed.data.start_date ?? null,
         links: parsed.data.links as unknown as Project["links"],
+        github_repo_url: canonicalRepoUrl,
+        github_owner: repoParsed?.owner ?? null,
+        github_repo: repoParsed?.repo ?? null,
       })
       .eq("id", project.id)
       .select("*")
