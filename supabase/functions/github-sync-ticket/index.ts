@@ -34,10 +34,11 @@ interface Project {
   github_repo: string | null;
 }
 
-const storyType = (t: Ticket["ticket_type"]): "Task" | "Bug" | "Feature" => {
+const storyType = (t: Ticket["ticket_type"]): "Task" | "Bug" | "Feature" | "Project" => {
   if (t === "Bug") return "Bug";
   if (t === "CR") return "Feature";
-  return "Task"; // Standard, Proj
+  if (t === "Proj") return "Project";
+  return "Task"; // Standard
 };
 
 const effortBucket = (total: number): string => {
