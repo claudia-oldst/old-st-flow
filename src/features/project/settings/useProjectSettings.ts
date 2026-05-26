@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Project, ProjectMember, ProjectRole, TeamMember } from "@/lib/types";
 import { toast } from "sonner";
 import { projectDetailsSchema } from "@/lib/schemas/project";
+import { parseGithubRepoUrl } from "@/features/github/GithubRepoPrompt";
 import type { ProjectLink } from "../settings/types";
 
 export function useProjectSettings(project: Project, open: boolean, onUpdated?: (p: Project) => void) {
