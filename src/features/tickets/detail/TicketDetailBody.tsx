@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Users, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { syncTicketToGithub } from "@/features/github/syncTicket";
 import { toast } from "sonner";
 import { EpicSelect } from "@/features/epics/EpicSelect";
 import { ParentTicketSelect } from "@/features/tickets/ParentTicketSelect";
@@ -74,7 +73,6 @@ export function TicketDetailBody({
                 .eq("id", ticket.id);
               if (error) return toast.error(error.message);
               onChange();
-              void syncTicketToGithub(ticket.id);
             }}
           />
         </div>
@@ -95,7 +93,6 @@ export function TicketDetailBody({
                 .eq("id", ticket.id);
               if (error) return toast.error(error.message);
               onChange();
-              void syncTicketToGithub(ticket.id);
             }}
           />
         </div>
@@ -127,7 +124,6 @@ export function TicketDetailBody({
                 .eq("id", ticket.id);
               if (error) return toast.error(error.message);
               onChange();
-              void syncTicketToGithub(ticket.id);
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter") (e.target as HTMLInputElement).blur();

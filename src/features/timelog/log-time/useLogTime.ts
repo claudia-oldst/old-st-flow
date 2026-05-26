@@ -5,7 +5,6 @@ import type { LogDiscipline, ProjectRole } from "@/lib/types";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { useTicketCapacity, capacityFor } from "@/features/timelog/useTicketCapacity";
 import { toast } from "sonner";
-import { syncTicketToGithub } from "@/features/github/syncTicket";
 
 export function useLogTime({
   open,
@@ -71,7 +70,6 @@ export function useLogTime({
       if (nextActive) {
         await supabase.from("tickets").update({ status_id: nextActive.id }).eq("id", ticket.id);
         toast.info(`Moved to ${nextActive.name}`);
-        void syncTicketToGithub(ticket.id);
       }
     }
   };

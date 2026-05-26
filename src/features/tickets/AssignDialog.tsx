@@ -14,7 +14,6 @@ import { Check, Users } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { GithubRepoPrompt } from "@/features/github/GithubRepoPrompt";
-import { syncTicketToGithub } from "@/features/github/syncTicket";
 
 type Slot = "FE" | "BE" | "Project";
 
@@ -107,7 +106,6 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
     onOpenChange(false);
 
     // Fire-and-forget GitHub sync (skipped server-side if no repo)
-    void syncTicketToGithub(ticketId);
   };
 
   const handleSave = async () => {
