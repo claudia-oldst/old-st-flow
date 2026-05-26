@@ -15,6 +15,7 @@ export function useProjectSettings(project: Project, open: boolean, onUpdated?: 
   const [links, setLinks] = useState<ProjectLink[]>(
     Array.isArray(project.links) ? (project.links as unknown as ProjectLink[]) : []
   );
+  const [githubRepoUrl, setGithubRepoUrl] = useState<string>(project.github_repo_url ?? "");
 
   const [members, setMembers] = useState<(ProjectMember & { member: TeamMember })[]>([]);
   const [allMembers, setAllMembers] = useState<TeamMember[]>([]);
