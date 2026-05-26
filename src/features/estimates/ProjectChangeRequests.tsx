@@ -18,6 +18,7 @@ import { PAGE_SIZES } from "@/lib/pagination";
 import { buildChangeRequestGroups } from "./project-change-requests/buildChangeRequestGroups";
 import { useEpicDiscounts } from "@/features/discounts/useEpicDiscounts";
 import { discountTotalsByEpic, sumTotals } from "@/features/discounts/applyDiscounts";
+import { syncTicketToGithub } from "@/features/github/syncTicket";
 
 const STATUS_OPTIONS = [
   { value: "pending", label: "Pending" },
@@ -139,6 +140,7 @@ export function ProjectChangeRequests({ projectId }: { projectId: string }) {
           : { current_project_estimate: t.current_project_estimate + row.delta };
       const { error: tErr } = await supabase.from("tickets").update(patch).eq("id", t.id);
       if (tErr) return toast.error(tErr.message);
+      void syncTicketToGithub(t.id);
     }
     toast.success("Change request approved");
     reload();

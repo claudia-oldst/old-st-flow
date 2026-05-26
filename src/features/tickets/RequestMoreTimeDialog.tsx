@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/store/currentUser";
 import { formatHours } from "@/lib/utils";
 import { toast } from "sonner";
+import { syncTicketToGithub } from "@/features/github/syncTicket";
 
 export type AdjustSlot = "FE" | "BE" | "Proj";
 
@@ -122,6 +123,7 @@ export function RequestMoreTimeDialog({
     toast.success(`Estimate updated: ${formatHours(previous)} → ${formatHours(next)}`);
     onOpenChange(false);
     onSaved();
+    void syncTicketToGithub(ticketId);
   };
 
   const slotLabel = (s: AdjustSlot) =>

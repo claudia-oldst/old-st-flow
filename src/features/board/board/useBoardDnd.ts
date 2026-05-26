@@ -2,6 +2,7 @@ import { useState } from "react";
 import { DragEndEvent, DragStartEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { syncTicketToGithub } from "@/features/github/syncTicket";
 import type { DisciplineStatus, Status } from "@/lib/types";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { BoardMode, DISCIPLINE_STATUSES, DISCIPLINE_TO_CATEGORY } from "./constants";
@@ -38,7 +39,10 @@ export function useBoardDnd({
         .update({ status_id: overId })
         .eq("id", ticketId);
       if (error) toast.error(error.message);
-      else reload();
+      else {
+        reload();
+        void syncTicketToGithub(ticketId);
+      }
       return;
     }
 
@@ -63,7 +67,10 @@ export function useBoardDnd({
         .update({ status_id: target.id, project_status_override: true })
         .eq("id", ticketId);
       if (error) toast.error(error.message);
-      else reload();
+      else {
+        reload();
+        void syncTicketToGithub(ticketId);
+      }
       return;
     }
 
@@ -76,7 +83,10 @@ export function useBoardDnd({
       .update(patch)
       .eq("id", ticketId);
     if (error) toast.error(error.message);
-    else reload();
+    else {
+      reload();
+      void syncTicketToGithub(ticketId);
+    }
   };
 
   return { sensors, activeId, handleDragStart, handleDragEnd };

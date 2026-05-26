@@ -24,6 +24,8 @@ interface Ticket {
   current_be_estimate: number;
   current_project_estimate: number;
   version: string | null;
+  fe_status: string | null;
+  be_status: string | null;
 }
 
 interface Project {
@@ -104,6 +106,13 @@ function renderBody(
   return sections.join("\n\n");
 }
 
+const DISCIPLINE_LABEL: Record<string, string> = {
+  todo: "to-do",
+  in_progress: "in progress",
+  for_integration: "for integration",
+  done: "done",
+};
+
 const LABEL_COLORS: Record<string, string> = {
   "type: bug": "d73a4a",
   "type: feature": "1f6feb",
@@ -111,6 +120,8 @@ const LABEL_COLORS: Record<string, string> = {
 };
 const EPIC_COLOR = "8957e5";
 const STATUS_COLOR = "c5d1d8";
+const FE_STATUS_COLOR = "1f6feb";
+const BE_STATUS_COLOR = "0e8a8a";
 
 async function ensureLabel(
   repoPath: string,
@@ -125,7 +136,15 @@ async function ensureLabel(
   if (check.status !== 404) return;
   const color =
     LABEL_COLORS[name] ??
-    (name.startsWith("epic:") ? EPIC_COLOR : name.startsWith("status:") ? STATUS_COLOR : "ededed");
+    (name.startsWith("epic:")
+      ? EPIC_COLOR
+      : name.startsWith("fe status:")
+        ? FE_STATUS_COLOR
+        : name.startsWith("be status:")
+          ? BE_STATUS_COLOR
+          : name.startsWith("status:")
+            ? STATUS_COLOR
+            : "ededed");
   const res = await fetch(`${GITHUB_API}/repos/${repoPath}/labels`, {
     method: "POST",
     headers,
@@ -192,7 +211,7 @@ Deno.serve(async (req) => {
     const { data: ticket, error: tErr } = await admin
       .from("tickets")
       .select(
-        "id, project_id, formatted_id, title, acceptance_criteria, status_id, github_issue_number, github_issue_node_id, ticket_type, epic_id, parent_ticket_id, current_fe_estimate, current_be_estimate, current_project_estimate, version",
+        "id, project_id, formatted_id, title, acceptance_criteria, status_id, github_issue_number, github_issue_node_id, ticket_type, epic_id, parent_ticket_id, current_fe_estimate, current_be_estimate, current_project_estimate, version, fe_status, be_status",
       )
       .eq("id", ticket_id)
       .single<Ticket>();
@@ -226,7 +245,10 @@ Deno.serve(async (req) => {
         : Promise.resolve({ data: null }),
     ]);
 
-    const userIds = (assigneesRes.data ?? []).map((a) => a.user_id);
+    const assigneeRows = (assigneesRes.data ?? []) as { user_id: string; slot: string }[];
+    const userIds = assigneeRows.map((a) => a.user_id);
+    const hasFE = assigneeRows.some((a) => a.slot === "FE");
+    const hasBE = assigneeRows.some((a) => a.slot === "BE");
     let githubUsernames: string[] = [];
     if (userIds.length) {
       const { data: members } = await admin
@@ -253,6 +275,16 @@ Deno.serve(async (req) => {
     const labels: string[] = [typeLabel];
     if (epicName) labels.push(`epic: ${epicName.toLowerCase()}`);
     if (statusData?.name) labels.push(`status: ${statusData.name.toLowerCase()}`);
+
+    const isProj = ticket.ticket_type === "Proj";
+    if (!isProj && hasFE && ticket.fe_status) {
+      const fe = DISCIPLINE_LABEL[ticket.fe_status] ?? ticket.fe_status;
+      labels.push(`fe status: ${fe}`);
+    }
+    if (!isProj && hasBE && ticket.be_status) {
+      const be = DISCIPLINE_LABEL[ticket.be_status] ?? ticket.be_status;
+      labels.push(`be status: ${be}`);
+    }
 
     const ghHeaders = {
       Authorization: `Bearer ${GITHUB_TOKEN}`,

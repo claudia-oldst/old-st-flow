@@ -1,94 +1,78 @@
-## Goal
+## Problem
 
-Make `github-sync-ticket` write a GitHub issue body that matches your example template, populating every section we can derive from existing ticket data — no AI, no schema changes. Also add GitHub **labels** for type / status / epic for filtering.
+Two issues, one plan:
 
-## Section-by-section coverage of your template
+1. Many ticket mutations don't trigger a GitHub sync, so the issue body and labels go stale.
+2. Today we emit one `status:` label. You want three distinct labels mirroring this platform's two-tier model, with FE/BE values matching the discipline kanban (To-do, In progress, For integration, Done).
 
-| Template section | Source | Status |
+## Label change
+
+Replace the single `status:` label with three:
+
+- `status: <project status name>` — from `statuses.name` via `ticket.status_id` (lowercased)
+- `fe status: <human label>` — from `ticket.fe_status` (`todo` → "to-do", `in_progress` → "in progress", `for_integration` → "for integration", `done` → "done")
+- `be status: <human label>` — same mapping from `ticket.be_status`
+
+Use the existing `DISCIPLINE_STATUS_LABEL` mapping (in `src/lib/types.ts`) — but inlined in the edge function as a small const map since edge functions can't import from `src/`. All four states are covered (no missing case).
+
+Rules:
+
+- All labels lowercased.
+- FE/BE labels **omitted on `Proj` tickets** (no discipline).
+- FE label omitted when no FE assignee; same for BE. (Mirrors the detail UI.)
+- Each label auto-created on the repo if missing. Colors per prefix: `status:` neutral gray, `fe status:` blue, `be status:` teal. Type and epic colors unchanged.
+- Full replacement on each sync, so renaming a project status propagates next sync.
+
+Type and epic labels stay as-is.
+
+## Sync-trigger gaps to close
+
+Add `void syncTicketToGithub(ticketId)` after every ticket mutation that changes anything rendered into the issue (title, AC, type, epic, parent, version, fe_status, be_status, status_id, estimates).
+
+| File | Mutation | Action |
 |---|---|---|
-| Ticket Number | `formatted_id` | ✅ |
-| Story Type | `ticket_type` → Task / Bug / Feature (your mapping) | ✅ |
-| Domain | — | ⛔ no field, omitted |
-| Priority | — | ⛔ no field, omitted |
-| Effort | total hours → `XS ≤4h · S ≤8h · M ≤16h · L ≤40h · XL >40h` | ✅ derived |
-| Recommended Workflow Prompt | — | ⛔ no field, omitted |
-| Estimated Effort (detail) | `current_fe_estimate` / `current_be_estimate` / `current_project_estimate` | ✅ |
-| User Story | `title` (one-line "As described: <title>") | ✅ partial |
-| Expected Results | — | ⛔ no field, omitted |
-| Acceptance Criteria | `acceptance_criteria` (markdown, passed through) | ✅ |
-| Touches (file globs) | — | ⛔ no field, omitted |
-| Assumptions & Cross-Service Dependencies | parent ticket (bugs) + epic name | ✅ partial |
+| `src/features/tickets/detail/AcceptanceCriteria.tsx` | `acceptance_criteria` | add sync |
+| `src/features/tickets/detail/TicketDetailBody.tsx` | `epic_id`, `parent_ticket_id`, `version` (3 sites) | add sync to all |
+| `src/features/tickets/BulkActionsBar.tsx` | bulk status / epic / fe_status / be_status / version | loop `selectedIds`, sync each |
+| `src/features/tickets/bulk-assign/useBulkAssign.ts` | bulk fe/be reset to `todo` | loop + sync |
+| `src/features/board/board/useBoardDnd.ts` | board status change (2 sites) | add sync |
+| `src/features/timelog/log-time/useLogTime.ts` | auto status change on timer start | add sync |
+| `src/features/tickets/RequestMoreTimeDialog.tsx` | estimate change | add sync |
+| `src/features/estimates/ProjectChangeRequests.tsx` | CR approval applies estimate patch | add sync |
 
-Sections with no data source are **omitted entirely** rather than rendered empty, so the issue stays clean. Once new fields exist (priority, domain, expected results, touches) they slot straight into the template.
+Already wired (leave as-is): `QuickAddRow`, `AssignDialog`, `StatusBlock`, `useTicketEditor`.
 
-## Body template (rendered)
+Add a tiny helper next to `syncTicket.ts` for bulk paths:
 
-```
-## Ticket Number
-GTD-08
-
-## Story Type
-Task | Bug | Feature
-
-## Effort
-S (≤ 8h)
-
-## Estimated Effort (detail)
-BE 2h · FE 4h · Project 1h
-
-## User Story
-<ticket.title>
-
-## Acceptance Criteria
-<ticket.acceptance_criteria>
-
-## Epic
-<epic name>          ← omitted if none
-
-## Parent ticket
-#<parent.github_issue_number>   ← bugs only, GitHub auto-links
-                                  fallback: parent.formatted_id text
-
-## Version
-<version>            ← omitted if empty
-
----
-Synced from Lovable · ticket `FORMATTED_ID`
+```ts
+export const syncTicketsToGithub = (ids: string[]) =>
+  Promise.all(ids.map(syncTicketToGithub));
 ```
 
-Title stays `[FORMATTED_ID] Title`. Open/closed state derivation (already in place) is untouched.
+## Edge function change
 
-## Labels (new)
+`supabase/functions/github-sync-ticket/index.ts`:
 
-Applied on every sync, full replacement each time so renames propagate:
+- Add inline `DISCIPLINE_LABEL` map (`todo: "to-do"`, `in_progress: "in progress"`, `for_integration: "for integration"`, `done: "done"`).
+- Drop the current single `status:` label builder.
+- Build the new label list:
+  - `type: …`
+  - `epic: …` (if epic)
+  - `status: <project status name>` (if status_id resolved)
+  - `fe status: <fe label>` (skip if `Proj` or no FE assignee)
+  - `be status: <be label>` (skip if `Proj` or no BE assignee)
+- Extend `ensureLabel` color map: `fe status:` blue, `be status:` teal.
 
-- `type: task` | `type: bug` | `type: feature` (per your mapping)
-- `epic: <epic name>` when `epic_id` is set
-- `status: <status name>` (lowercased)
+(We already fetch `fe_status`, `be_status`, status name, and assignees with slot — no new queries.)
 
-Each label is ensured on the repo first: `GET /labels/{name}` → on 404 `POST /labels` with a sensible default color (bug=red, feature=blue, task=gray, epic=purple, status=neutral). 422 "already exists" ignored.
+## Out of scope
 
-## Implementation (one file)
-
-Edit `supabase/functions/github-sync-ticket/index.ts`:
-
-1. Widen the ticket `select` to: `ticket_type, epic_id, parent_ticket_id, current_fe_estimate, current_be_estimate, current_project_estimate, version`.
-2. Extend the status query to also fetch `name`.
-3. Add two parallel admin lookups: epic name from `project_epics`, parent ticket `formatted_id, github_issue_number` from `tickets`.
-4. Helpers in-file:
-   - `storyType(ticket_type)` → `"Task" | "Bug" | "Feature"`
-   - `effortBucket(totalHours)` → `"XS (≤ 4h)" | "S (≤ 8h)" | …`
-   - `renderBody(...)` → assembles sections, skipping empties
-5. Build the label list and ensure each label exists on the repo before sending.
-6. Pass `labels` in both create and update payloads alongside existing `title`, `body`, `assignees`, `state`.
-
-## Out of scope (would need new ticket fields)
-
-Domain, Priority, Recommended Workflow Prompt, Expected Results, Touches (file globs), Assumptions / cross-service deps. Happy to follow up with a small schema migration to add the high-value ones (priority, domain) if you want.
+No Postgres trigger / pg_net based sync (would be more bulletproof for future code paths but needs a service-role auth path in the edge function). Happy to follow up.
 
 ## Verification
 
-- Sync a Standard ticket → issue body shows Story Type "Task", correct Effort bucket, estimates, AC.
-- Sync a Bug whose parent is already synced → "Parent ticket" line links to parent issue.
-- Move ticket to a `done`-category status → issue closes and `status:` label updates.
-- Rename an epic → next sync replaces `epic:` label on the issue.
+- Change project status in detail sheet → `status:` label updates, FE/BE labels unchanged.
+- Set FE to "For integration" → `fe status: for integration` label appears; BE untouched.
+- Bulk-select 3 tickets, change BE status → all 3 issues get updated `be status:` label.
+- Edit acceptance criteria → issue body updates within ~1s.
+- Open a `Proj` ticket → only `status:` label, no `fe status:` / `be status:`.

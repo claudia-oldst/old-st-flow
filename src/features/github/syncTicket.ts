@@ -25,3 +25,6 @@ export async function syncTicketToGithub(ticketId: string): Promise<void> {
     console.error("[github-sync-ticket] threw", e);
   }
 }
+
+export const syncTicketsToGithub = (ids: string[]) =>
+  Promise.all(ids.map((id) => syncTicketToGithub(id)));

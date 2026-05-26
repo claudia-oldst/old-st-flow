@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { DISCIPLINE_STATUS_LABEL, type DisciplineStatus } from "@/lib/types";
 import { BulkAssignDialog } from "@/features/tickets/BulkAssignDialog";
 import { BulkMenu, BulkMenuRow } from "./bulk-actions/BulkMenu";
+import { syncTicketsToGithub } from "@/features/github/syncTicket";
 
 const DISC_OPTS: DisciplineStatus[] = ["todo", "in_progress", "for_integration", "done"];
 
@@ -66,6 +67,7 @@ export function BulkActionsBar({
     toast.success(
       `${msg} for ${selectedIds.length} ticket${selectedIds.length === 1 ? "" : "s"}`
     );
+    void syncTicketsToGithub(selectedIds);
   };
 
   const setStatus = (status_id: string | null) =>
