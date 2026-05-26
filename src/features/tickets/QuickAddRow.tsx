@@ -15,6 +15,7 @@ import { EpicSelect } from "@/features/epics/EpicSelect";
 import { ParentTicketSelect } from "@/features/tickets/ParentTicketSelect";
 import { ticketInputSchema } from "@/lib/schemas/ticket";
 import { toast } from "sonner";
+import { syncTicketToGithub } from "@/features/github/syncTicket";
 
 export function QuickAddRow({
   projectId,
