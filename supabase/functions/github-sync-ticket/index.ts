@@ -211,7 +211,7 @@ Deno.serve(async (req) => {
     const { data: ticket, error: tErr } = await admin
       .from("tickets")
       .select(
-        "id, project_id, formatted_id, title, acceptance_criteria, status_id, github_issue_number, github_issue_node_id, ticket_type, epic_id, parent_ticket_id, current_fe_estimate, current_be_estimate, current_project_estimate, version",
+        "id, project_id, formatted_id, title, acceptance_criteria, status_id, github_issue_number, github_issue_node_id, ticket_type, epic_id, parent_ticket_id, current_fe_estimate, current_be_estimate, current_project_estimate, version, fe_status, be_status",
       )
       .eq("id", ticket_id)
       .single<Ticket>();
