@@ -34,6 +34,7 @@ interface Props {
   onOpenLog: () => void;
   onAdjustEstimate: (slot: "FE" | "BE") => void;
   onChange: () => void;
+  onLocalPatch?: (patch: Partial<TicketRow>) => void;
 }
 
 export function TicketDetailBody({
@@ -56,6 +57,7 @@ export function TicketDetailBody({
   onOpenLog,
   onAdjustEstimate,
   onChange,
+  onLocalPatch,
 }: Props) {
   return (
     <>
@@ -150,7 +152,9 @@ export function TicketDetailBody({
         canEditBE={canEditBE}
         onAssign={onAssign}
         onChange={onChange}
+        onLocalPatch={onLocalPatch}
       />
+
 
       <EstimatesPanel
         ticket={ticket}

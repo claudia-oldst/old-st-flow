@@ -145,7 +145,11 @@ export function TicketDetailSheet({ open, onOpenChange, ticket: ticketProp, proj
                   setRequestOpen(true);
                 }}
                 onChange={onChange}
+                onLocalPatch={(patch) =>
+                  setLiveTicket((prev) => (prev ? { ...prev, ...patch } : prev))
+                }
               />
+
             </TabsContent>
 
             <TabsContent value="discussion" className="mt-4 flex-1 min-h-0 data-[state=active]:flex flex-col">
