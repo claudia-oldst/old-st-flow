@@ -93,6 +93,7 @@ export function TicketDetailBody({
                 .eq("id", ticket.id);
               if (error) return toast.error(error.message);
               onChange();
+              void syncTicketToGithub(ticket.id);
             }}
           />
         </div>
