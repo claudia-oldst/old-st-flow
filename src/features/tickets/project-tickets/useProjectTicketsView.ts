@@ -8,6 +8,7 @@ import {
 import type { GroupBy } from "@/features/tickets/TicketsList";
 import type { ProjectRole } from "@/lib/types";
 import { canManageTickets } from "@/features/team/useProjectRole";
+import { usePersistentState } from "@/hooks/usePersistentState";
 
 type ViewMode = "board" | "list";
 
@@ -15,24 +16,28 @@ export function useProjectTicketsView({
   tickets,
   user,
   role,
+  projectId,
 }: {
   tickets: TicketRow[];
   user: { id: string } | null;
   role: ProjectRole | null;
+  projectId?: string;
 }) {
   const pmba = canManageTickets(role);
-  const [view, setView] = useState<ViewMode>("board");
-  const [groupBy, setGroupBy] = useState<GroupBy>("status");
-  const [filterMine, setFilterMine] = useState<boolean>(true);
-  const [touched, setTouched] = useState(false);
-  const [filters, setFilters] = useState<TicketFilters>(EMPTY_FILTERS);
+  const k = (name: string) => `pt:${projectId ?? "_"}:${name}`;
+  const [view, setView] = usePersistentState<ViewMode>(k("view"), "board");
+  const [groupBy, setGroupBy] = usePersistentState<GroupBy>(k("groupBy"), "status");
+  const [filterMine, setFilterMine] = usePersistentState<boolean>(k("filterMine"), true);
+  const [touched, setTouched] = usePersistentState<boolean>(k("touched"), false);
+  const [filters, setFilters] = usePersistentState<TicketFilters>(k("filters"), EMPTY_FILTERS);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = usePersistentState<string>(k("search"), "");
 
   useEffect(() => {
     if (touched || role === null) return;
     setFilterMine(!pmba);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [role, pmba, touched]);
 
   const filteredTickets = useMemo(() => applyFilters(tickets, filters), [tickets, filters]);
