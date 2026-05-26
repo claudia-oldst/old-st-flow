@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.purge_project_children(uuid) FROM authenticated, anon, public;
+REVOKE EXECUTE ON FUNCTION public.rehydrate_project(uuid, jsonb, jsonb) FROM authenticated, anon, public;
