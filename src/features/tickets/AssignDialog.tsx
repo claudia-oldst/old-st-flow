@@ -172,6 +172,15 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
           <Button onClick={handleSave} disabled={busy}>Save</Button>
         </DialogFooter>
       </DialogContent>
+      <GithubRepoPrompt
+        open={repoPromptOpen}
+        projectId={projectId}
+        onOpenChange={setRepoPromptOpen}
+        onSaved={(url) => {
+          setProjectRepoUrl(url);
+          void performSave();
+        }}
+      />
     </Dialog>
   );
 }
