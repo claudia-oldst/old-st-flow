@@ -28,8 +28,8 @@ async function verifyAuth(req: Request, admin: ReturnType<typeof createClient>) 
   const authHeader = req.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) return { error: "Missing bearer token", status: 401 };
   const token = authHeader.replace("Bearer ", "");
-  const { data: claims, error } = await admin.auth.getClaims(token);
-  if (error || !claims?.claims) return { error: "Invalid token", status: 401 };
+  const { data: userData, error } = await admin.auth.getUser(token);
+  if (error || !userData?.user) return { error: "Invalid token", status: 401 };
   return { ok: true as const };
 }
 

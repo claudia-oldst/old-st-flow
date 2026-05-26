@@ -117,9 +117,9 @@ async function verifyPmba(
     return { error: "Missing bearer token", status: 401 };
   }
   const token = authHeader.replace("Bearer ", "");
-  const { data: claims, error } = await admin.auth.getClaims(token);
-  if (error || !claims?.claims) return { error: "Invalid token", status: 401 };
-  const sub = (claims.claims as any).sub as string | undefined;
+  const { data: userData, error } = await admin.auth.getUser(token);
+  if (error || !userData?.user) return { error: "Invalid token", status: 401 };
+  const sub = userData.user.id;
   if (!sub) return { error: "Token missing sub", status: 401 };
   const { data: member } = await admin
     .from("team_members")
