@@ -17,12 +17,124 @@ interface Ticket {
   status_id: string | null;
   github_issue_number: number | null;
   github_issue_node_id: string | null;
+  ticket_type: "Standard" | "Bug" | "CR" | "Proj";
+  epic_id: number | null;
+  parent_ticket_id: string | null;
+  current_fe_estimate: number;
+  current_be_estimate: number;
+  current_project_estimate: number;
+  version: string | null;
 }
 
 interface Project {
   id: string;
   github_owner: string | null;
   github_repo: string | null;
+}
+
+const storyType = (t: Ticket["ticket_type"]): "Task" | "Bug" | "Feature" => {
+  if (t === "Bug") return "Bug";
+  if (t === "CR") return "Feature";
+  return "Task"; // Standard, Proj
+};
+
+const effortBucket = (total: number): string => {
+  if (total <= 0) return "Unestimated";
+  if (total <= 4) return "XS (≤ 4h)";
+  if (total <= 8) return "S (≤ 8h)";
+  if (total <= 16) return "M (≤ 16h)";
+  if (total <= 40) return "L (≤ 40h)";
+  return "XL (> 40h)";
+};
+
+const fmtHours = (n: number): string => {
+  if (!n) return "0h";
+  // strip trailing zeros
+  return `${Number.isInteger(n) ? n : Number(n.toFixed(2))}h`;
+};
+
+function renderBody(
+  ticket: Ticket,
+  epicName: string | null,
+  parent: { formatted_id: string; github_issue_number: number | null } | null,
+): string {
+  const sections: string[] = [];
+
+  sections.push(`## Ticket Number\n${ticket.formatted_id}`);
+  sections.push(`## Story Type\n${storyType(ticket.ticket_type)}`);
+
+  const fe = Number(ticket.current_fe_estimate) || 0;
+  const be = Number(ticket.current_be_estimate) || 0;
+  const pj = Number(ticket.current_project_estimate) || 0;
+  const total = fe + be + pj;
+
+  sections.push(`## Effort\n${effortBucket(total)}`);
+
+  if (total > 0) {
+    const parts: string[] = [];
+    if (be > 0) parts.push(`BE ${fmtHours(be)}`);
+    if (fe > 0) parts.push(`FE ${fmtHours(fe)}`);
+    if (pj > 0) parts.push(`Project ${fmtHours(pj)}`);
+    sections.push(`## Estimated Effort (detail)\n${parts.join(" · ")}`);
+  }
+
+  sections.push(`## User Story\n${ticket.title}`);
+
+  if (ticket.acceptance_criteria?.trim()) {
+    sections.push(`## Acceptance Criteria\n${ticket.acceptance_criteria.trim()}`);
+  }
+
+  if (epicName) {
+    sections.push(`## Epic\n${epicName}`);
+  }
+
+  if (ticket.ticket_type === "Bug" && parent) {
+    const ref = parent.github_issue_number
+      ? `#${parent.github_issue_number}`
+      : parent.formatted_id;
+    sections.push(`## Parent ticket\n${ref}`);
+  }
+
+  if (ticket.version?.trim()) {
+    sections.push(`## Version\n${ticket.version.trim()}`);
+  }
+
+  sections.push(`---\nSynced from Lovable · ticket \`${ticket.formatted_id}\``);
+
+  return sections.join("\n\n");
+}
+
+const LABEL_COLORS: Record<string, string> = {
+  "type: bug": "d73a4a",
+  "type: feature": "1f6feb",
+  "type: task": "8b949e",
+};
+const EPIC_COLOR = "8957e5";
+const STATUS_COLOR = "c5d1d8";
+
+async function ensureLabel(
+  repoPath: string,
+  name: string,
+  headers: Record<string, string>,
+) {
+  const check = await fetch(
+    `${GITHUB_API}/repos/${repoPath}/labels/${encodeURIComponent(name)}`,
+    { headers },
+  );
+  if (check.ok) return;
+  if (check.status !== 404) return;
+  const color =
+    LABEL_COLORS[name] ??
+    (name.startsWith("epic:") ? EPIC_COLOR : name.startsWith("status:") ? STATUS_COLOR : "ededed");
+  const res = await fetch(`${GITHUB_API}/repos/${repoPath}/labels`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ name, color }),
+  });
+  if (!res.ok && res.status !== 422) {
+    const txt = await res.text();
+    console.warn(`label create ${name} ${res.status}: ${txt}`);
+  }
 }
 
 Deno.serve(async (req) => {
@@ -51,7 +163,6 @@ Deno.serve(async (req) => {
       return json(500, { ok: false, error: "GITHUB_TOKEN not configured" });
     }
 
-    // Validate caller
     const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -69,7 +180,6 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
-    // RLS check via the user's client — confirms they can access the ticket
     const { data: accessCheck, error: accessErr } = await userClient
       .from("tickets")
       .select("id")
@@ -79,15 +189,15 @@ Deno.serve(async (req) => {
       return json(403, { error: "No access to this ticket" });
     }
 
-    // Load ticket
     const { data: ticket, error: tErr } = await admin
       .from("tickets")
-      .select("id, project_id, formatted_id, title, acceptance_criteria, status_id, github_issue_number, github_issue_node_id")
+      .select(
+        "id, project_id, formatted_id, title, acceptance_criteria, status_id, github_issue_number, github_issue_node_id, ticket_type, epic_id, parent_ticket_id, current_fe_estimate, current_be_estimate, current_project_estimate, version",
+      )
       .eq("id", ticket_id)
       .single<Ticket>();
     if (tErr || !ticket) return json(404, { error: "Ticket not found" });
 
-    // Load project repo config
     const { data: project } = await admin
       .from("projects")
       .select("id, github_owner, github_repo")
@@ -98,13 +208,25 @@ Deno.serve(async (req) => {
       return json(200, { ok: true, skipped: "no_repo" });
     }
 
-    // Load assignees → GitHub usernames
-    const { data: assignees } = await admin
-      .from("ticket_assignees")
-      .select("user_id, slot")
-      .eq("ticket_id", ticket_id);
+    // Parallel lookups
+    const [assigneesRes, statusRes, epicRes, parentRes] = await Promise.all([
+      admin.from("ticket_assignees").select("user_id, slot").eq("ticket_id", ticket_id),
+      ticket.status_id
+        ? admin.from("statuses").select("name, category").eq("id", ticket.status_id).maybeSingle()
+        : Promise.resolve({ data: null }),
+      ticket.epic_id
+        ? admin.from("project_epics").select("epic_name").eq("id", ticket.epic_id).maybeSingle()
+        : Promise.resolve({ data: null }),
+      ticket.parent_ticket_id
+        ? admin
+            .from("tickets")
+            .select("formatted_id, github_issue_number")
+            .eq("id", ticket.parent_ticket_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
 
-    const userIds = (assignees ?? []).map((a) => a.user_id);
+    const userIds = (assigneesRes.data ?? []).map((a) => a.user_id);
     let githubUsernames: string[] = [];
     if (userIds.length) {
       const { data: members } = await admin
@@ -116,24 +238,21 @@ Deno.serve(async (req) => {
         .filter((u): u is string => !!u);
     }
 
-    // Status → state
-    let state: "open" | "closed" = "open";
-    if (ticket.status_id) {
-      const { data: status } = await admin
-        .from("statuses")
-        .select("category")
-        .eq("id", ticket.status_id)
-        .maybeSingle();
-      if (status?.category === "done") state = "closed";
-    }
+    const statusData = statusRes.data as { name: string; category: string } | null;
+    const state: "open" | "closed" = statusData?.category === "done" ? "closed" : "open";
+    const epicName = (epicRes.data as { epic_name: string | null } | null)?.epic_name ?? null;
+    const parent = parentRes.data as
+      | { formatted_id: string; github_issue_number: number | null }
+      | null;
 
     const title = `[${ticket.formatted_id}] ${ticket.title}`;
-    const bodyParts: string[] = [];
-    if (ticket.acceptance_criteria) {
-      bodyParts.push("### Acceptance Criteria\n", ticket.acceptance_criteria);
-    }
-    bodyParts.push(`\n\n_Synced from Lovable — ticket ${ticket.formatted_id}_`);
-    const body = bodyParts.join("\n");
+    const body = renderBody(ticket, epicName, parent);
+
+    // Build labels
+    const typeLabel = `type: ${storyType(ticket.ticket_type).toLowerCase()}`;
+    const labels: string[] = [typeLabel];
+    if (epicName) labels.push(`epic: ${epicName.toLowerCase()}`);
+    if (statusData?.name) labels.push(`status: ${statusData.name.toLowerCase()}`);
 
     const ghHeaders = {
       Authorization: `Bearer ${GITHUB_TOKEN}`,
@@ -144,12 +263,14 @@ Deno.serve(async (req) => {
 
     const repoPath = `${project.github_owner}/${project.github_repo}`;
 
+    // Ensure labels exist on the repo before applying
+    await Promise.all(labels.map((l) => ensureLabel(repoPath, l, ghHeaders)));
+
     if (ticket.github_issue_number == null) {
-      // Create
       const res = await fetch(`${GITHUB_API}/repos/${repoPath}/issues`, {
         method: "POST",
         headers: ghHeaders,
-        body: JSON.stringify({ title, body, assignees: githubUsernames }),
+        body: JSON.stringify({ title, body, assignees: githubUsernames, labels }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -164,7 +285,6 @@ Deno.serve(async (req) => {
         })
         .eq("id", ticket_id);
 
-      // If status is closed, immediately close (POST create doesn't accept state)
       if (state === "closed") {
         await fetch(`${GITHUB_API}/repos/${repoPath}/issues/${data.number}`, {
           method: "PATCH",
@@ -174,13 +294,12 @@ Deno.serve(async (req) => {
       }
       return json(200, { ok: true, action: "created", issue_number: data.number, html_url: data.html_url });
     } else {
-      // Update existing
       const res = await fetch(
         `${GITHUB_API}/repos/${repoPath}/issues/${ticket.github_issue_number}`,
         {
           method: "PATCH",
           headers: ghHeaders,
-          body: JSON.stringify({ title, body, assignees: githubUsernames, state }),
+          body: JSON.stringify({ title, body, assignees: githubUsernames, state, labels }),
         },
       );
       const data = await res.json();
