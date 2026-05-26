@@ -91,6 +91,7 @@ function normalizeTicket(raw: any): TicketRow {
     cr_decided_at: raw.cr_decided_at ?? null,
     parent_ticket_id: raw.parent_ticket_id ?? null,
     bug_sub_number: raw.bug_sub_number ?? null,
+    github_issue_number: raw.github_issue_number ?? null,
     parent: raw.parent ?? null,
     assignees: ((raw.assignees ?? []) as any[]).map((a) => ({
       user_id: a.user_id,
