@@ -126,7 +126,7 @@ function TimerChip() {
   );
 }
 
-function UserPicker() {
+function UserMenu() {
   const { user, setUser } = useCurrentUser();
 
   const signOut = async () => {
