@@ -44,6 +44,7 @@ export function StatusBlock({
     const { error } = await supabase.from("tickets").update(patch).eq("id", ticket.id);
     if (error) return toast.error(error.message);
     onChange();
+    void syncTicketToGithub(ticket.id);
   };
 
   const setProjectStatus = async (statusId: string) => {
@@ -53,6 +54,7 @@ export function StatusBlock({
       .eq("id", ticket.id);
     if (error) return toast.error(error.message);
     onChange();
+    void syncTicketToGithub(ticket.id);
   };
 
   const resetProjectStatusToAuto = async () => {
