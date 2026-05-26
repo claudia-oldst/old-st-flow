@@ -46,11 +46,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
         return false;
       }
-      const { data, error } = await supabase
+      // Identity is now resolved by the verified auth user id (auth_user_id
+      // column on team_members). A DB trigger links a team_member row to its
+      // auth user on signup / on team_member insert, so this should match for
+      // any legitimate user. Email lookup is kept as a one-shot fallback only
+      // in case the linker trigger hasn't run yet for a brand-new row.
+      const authUserId = session.user.id;
+      let { data, error } = await supabase
         .from("team_members")
         .select("*")
-        .ilike("email", email)
+        .eq("auth_user_id", authUserId)
         .maybeSingle();
+      if (!cancelled && !data && !error) {
+        const fallback = await supabase
+          .from("team_members")
+          .select("*")
+          .ilike("email", email)
+          .maybeSingle();
+        data = fallback.data;
+        error = fallback.error;
+      }
       if (cancelled) return true;
       if (error) {
         setUser(null);
