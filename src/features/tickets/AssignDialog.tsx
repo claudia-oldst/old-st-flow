@@ -36,6 +36,8 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
   const [beUserIds, setBeUserIds] = useState<Set<string>>(new Set());
   const [projectUserIds, setProjectUserIds] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
+  const [repoPromptOpen, setRepoPromptOpen] = useState(false);
+  const [projectRepoUrl, setProjectRepoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
