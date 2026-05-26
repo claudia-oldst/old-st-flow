@@ -83,7 +83,10 @@ export function useBoardDnd({
       .update(patch)
       .eq("id", ticketId);
     if (error) toast.error(error.message);
-    else reload();
+    else {
+      reload();
+      void syncTicketToGithub(ticketId);
+    }
   };
 
   return { sensors, activeId, handleDragStart, handleDragEnd };
