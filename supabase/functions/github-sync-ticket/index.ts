@@ -24,6 +24,8 @@ interface Ticket {
   current_be_estimate: number;
   current_project_estimate: number;
   version: string | null;
+  fe_status: string | null;
+  be_status: string | null;
 }
 
 interface Project {
