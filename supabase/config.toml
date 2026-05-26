@@ -1,1 +1,10 @@
 project_id = "vkelhdyulmdhdgerzunu"
+
+[functions.epic-summary]
+verify_jwt = true
+
+[functions.generate-acceptance-criteria]
+verify_jwt = true
+
+[functions.daily-logoff-summary]
+verify_jwt = true
