@@ -243,7 +243,10 @@ Deno.serve(async (req) => {
         : Promise.resolve({ data: null }),
     ]);
 
-    const userIds = (assigneesRes.data ?? []).map((a) => a.user_id);
+    const assigneeRows = (assigneesRes.data ?? []) as { user_id: string; slot: string }[];
+    const userIds = assigneeRows.map((a) => a.user_id);
+    const hasFE = assigneeRows.some((a) => a.slot === "FE");
+    const hasBE = assigneeRows.some((a) => a.slot === "BE");
     let githubUsernames: string[] = [];
     if (userIds.length) {
       const { data: members } = await admin
@@ -270,6 +273,16 @@ Deno.serve(async (req) => {
     const labels: string[] = [typeLabel];
     if (epicName) labels.push(`epic: ${epicName.toLowerCase()}`);
     if (statusData?.name) labels.push(`status: ${statusData.name.toLowerCase()}`);
+
+    const isProj = ticket.ticket_type === "Proj";
+    if (!isProj && hasFE && ticket.fe_status) {
+      const fe = DISCIPLINE_LABEL[ticket.fe_status] ?? ticket.fe_status;
+      labels.push(`fe status: ${fe}`);
+    }
+    if (!isProj && hasBE && ticket.be_status) {
+      const be = DISCIPLINE_LABEL[ticket.be_status] ?? ticket.be_status;
+      labels.push(`be status: ${be}`);
+    }
 
     const ghHeaders = {
       Authorization: `Bearer ${GITHUB_TOKEN}`,
