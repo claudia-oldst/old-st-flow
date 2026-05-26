@@ -57,6 +57,7 @@ export function TicketDetailBody({
   onOpenLog,
   onAdjustEstimate,
   onChange,
+  onLocalPatch,
 }: Props) {
   return (
     <>
