@@ -44,6 +44,7 @@ export function TicketsListRow({
         return (
           <span className="inline-flex items-center gap-1.5">
             <span className="font-mono text-xs text-dimmer">{t.formatted_id}</span>
+            <GithubIssueBadge projectId={t.project_id} issueNumber={t.github_issue_number} />
             {t.ticket_type === "CR" && (
               <StatusBadge status={t.cr_approval} />
             )}
