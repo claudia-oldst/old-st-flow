@@ -34,10 +34,11 @@ interface Project {
   github_repo: string | null;
 }
 
-const storyType = (t: Ticket["ticket_type"]): "Task" | "Bug" | "Feature" => {
+const storyType = (t: Ticket["ticket_type"]): "Task" | "Bug" | "Feature" | "Project" => {
   if (t === "Bug") return "Bug";
   if (t === "CR") return "Feature";
-  return "Task"; // Standard, Proj
+  if (t === "Proj") return "Project";
+  return "Task"; // Standard
 };
 
 const effortBucket = (total: number): string => {
@@ -117,6 +118,7 @@ const LABEL_COLORS: Record<string, string> = {
   "type: bug": "d73a4a",
   "type: feature": "1f6feb",
   "type: task": "8b949e",
+  "type: project": "a371f7",
 };
 const EPIC_COLOR = "8957e5";
 const STATUS_COLOR = "c5d1d8";
