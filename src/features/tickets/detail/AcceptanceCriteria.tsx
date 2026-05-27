@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, Edit3 } from "lucide-react";
+import { Sparkles, Edit3, Copy } from "lucide-react";
+import type { ProjectRole } from "@/lib/types";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { MarkdownView } from "./MarkdownView";

@@ -1,23 +1,32 @@
-## Update CI to Node.js 24
+## Goal
 
-GitHub is deprecating Node.js 20 for JavaScript-based Actions. The warning comes from `actions/checkout@v4`, `actions/setup-node@v4`, and `actions/upload-artifact@v4` still running on their bundled Node 20 runtime.
+Add a small "Copy AI prompt" button in the Acceptance Criteria section header (next to Generate / Add) that copies a pre-formatted prompt to the clipboard, ready to paste into NotebookLM or similar tools.
 
-### Changes to `.github/workflows/ci.yml`
+## Prompt template
 
-1. **Opt the action runtimes into Node 24** by adding a workflow-level env var:
-   ```yaml
-   env:
-     FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-   ```
-   This silences the deprecation warning for `checkout`, `setup-node`, and `upload-artifact` without changing action versions (v4 is still the latest major; no v5 exists yet).
+```
+I am a {role}, looking to understand the following ticket in context of the wider {epic} feature and project.
 
-2. **Bump the project's Node version from 20 to 24** in both jobs' `setup-node` step:
-   ```yaml
-   node-version: '24'
-   ```
-   This keeps the tooling aligned with the runner default and avoids future surprises.
+Ticket: {title}
+Epic: {epic}
 
-### Out of scope
-- No application code changes.
-- No dependency upgrades — current packages run fine on Node 24.
-- Edge functions job (Deno) is unaffected.
+1. Who are the users impacted by this ticket?
+2. How does this ticket influence other related features or parts of the project?
+3. What are the specific business rules discussed for related to this ticket?
+4. What is a simple summary of the expected outcome of this ticket?
+```
+
+If no epic is set, the Epic line and the "wider {epic} feature and" phrase are omitted gracefully.
+
+## Changes
+
+1. `src/features/tickets/detail/AcceptanceCriteria.tsx`
+   - Accept new props: `ticketTitle: string`, `epicName: string | null`, `role: ProjectRole | null`.
+   - Add a ghost icon button (Lucide `Sparkles` + `Copy` combination, matching the screenshot — small icon-only button placed before "Generate") with tooltip "Copy AI prompt".
+   - On click: build prompt from props, call `navigator.clipboard.writeText`, toast "AI prompt copied".
+   - Show the button in both the view and edit headers (consistent with Generate placement).
+
+2. `src/features/tickets/TicketDetailSheet.tsx`
+   - Pass `ticketTitle={ticket.title}`, `epicName={ticket.epic_name}`, `role={role}` to `<AcceptanceCriteria />`.
+
+No backend, schema, or business logic changes.
