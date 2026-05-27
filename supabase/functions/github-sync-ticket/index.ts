@@ -92,9 +92,7 @@ function renderBody(
   }
 
   if (ticket.ticket_type === "Bug" && parent) {
-    const ref = parent.github_issue_number
-      ? `#${parent.github_issue_number}`
-      : parent.formatted_id;
+    const ref = parent.github_issue_number ? `#${parent.github_issue_number}` : parent.formatted_id;
     sections.push(`## Parent ticket\n${ref}`);
   }
 
@@ -102,7 +100,7 @@ function renderBody(
     sections.push(`## Version\n${ticket.version.trim()}`);
   }
 
-  sections.push(`---\nSynced from Lovable · ticket \`${ticket.formatted_id}\``);
+  sections.push(`---\nSynced from Old St Hub · ticket \`${ticket.formatted_id}\``);
 
   return sections.join("\n\n");
 }
@@ -125,15 +123,8 @@ const STATUS_COLOR = "c5d1d8";
 const FE_STATUS_COLOR = "1f6feb";
 const BE_STATUS_COLOR = "0e8a8a";
 
-async function ensureLabel(
-  repoPath: string,
-  name: string,
-  headers: Record<string, string>,
-) {
-  const check = await fetch(
-    `${GITHUB_API}/repos/${repoPath}/labels/${encodeURIComponent(name)}`,
-    { headers },
-  );
+async function ensureLabel(repoPath: string, name: string, headers: Record<string, string>) {
+  const check = await fetch(`${GITHUB_API}/repos/${repoPath}/labels/${encodeURIComponent(name)}`, { headers });
   if (check.ok) return;
   if (check.status !== 404) return;
   const color =
@@ -182,8 +173,7 @@ Deno.serve(async (req) => {
 
     const syncHeader = req.headers.get("x-sync-secret");
     const authHeader = req.headers.get("Authorization");
-    const isTriggerCall =
-      !!GITHUB_SYNC_SECRET && !!syncHeader && syncHeader === GITHUB_SYNC_SECRET;
+    const isTriggerCall = !!GITHUB_SYNC_SECRET && !!syncHeader && syncHeader === GITHUB_SYNC_SECRET;
 
     const parsed = BodySchema.safeParse(await req.json());
     if (!parsed.success) {
@@ -258,21 +248,14 @@ Deno.serve(async (req) => {
     const hasBE = assigneeRows.some((a) => a.slot === "BE");
     let githubUsernames: string[] = [];
     if (userIds.length) {
-      const { data: members } = await admin
-        .from("team_members")
-        .select("id, github_username")
-        .in("id", userIds);
-      githubUsernames = (members ?? [])
-        .map((m) => m.github_username)
-        .filter((u): u is string => !!u);
+      const { data: members } = await admin.from("team_members").select("id, github_username").in("id", userIds);
+      githubUsernames = (members ?? []).map((m) => m.github_username).filter((u): u is string => !!u);
     }
 
     const statusData = statusRes.data as { name: string; category: string } | null;
     const state: "open" | "closed" = statusData?.category === "done" ? "closed" : "open";
     const epicName = (epicRes.data as { epic_name: string | null } | null)?.epic_name ?? null;
-    const parent = parentRes.data as
-      | { formatted_id: string; github_issue_number: number | null }
-      | null;
+    const parent = parentRes.data as { formatted_id: string; github_issue_number: number | null } | null;
 
     const title = `[${ticket.formatted_id}] ${ticket.title}`;
     const body = renderBody(ticket, epicName, parent);
@@ -333,14 +316,11 @@ Deno.serve(async (req) => {
       }
       return json(200, { ok: true, action: "created", issue_number: data.number, html_url: data.html_url });
     } else {
-      const res = await fetch(
-        `${GITHUB_API}/repos/${repoPath}/issues/${ticket.github_issue_number}`,
-        {
-          method: "PATCH",
-          headers: ghHeaders,
-          body: JSON.stringify({ title, body, assignees: githubUsernames, state, labels }),
-        },
-      );
+      const res = await fetch(`${GITHUB_API}/repos/${repoPath}/issues/${ticket.github_issue_number}`, {
+        method: "PATCH",
+        headers: ghHeaders,
+        body: JSON.stringify({ title, body, assignees: githubUsernames, state, labels }),
+      });
       const data = await res.json();
       if (!res.ok) {
         console.error("GitHub update failed", res.status, data);
