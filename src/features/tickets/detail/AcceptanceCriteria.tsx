@@ -9,11 +9,17 @@ import { MarkdownView } from "./MarkdownView";
 
 export function AcceptanceCriteria({
   ticketId,
+  ticketTitle,
+  epicName,
+  role,
   value,
   canEdit,
   onSaved,
 }: {
   ticketId: string;
+  ticketTitle: string;
+  epicName: string | null;
+  role: ProjectRole | null;
   value: string | null;
   canEdit: boolean;
   onSaved: () => void;
