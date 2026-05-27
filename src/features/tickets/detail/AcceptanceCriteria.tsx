@@ -170,6 +170,7 @@ Ticket: ${ticketTitle}${epicLine}
       <div className="flex items-center justify-between">
         <div className="text-xs uppercase tracking-wider text-dimmer">Acceptance criteria</div>
         <div className="flex items-center gap-1">
+          {copyButton}
           <Button
             variant="ghost"
             size="sm"
