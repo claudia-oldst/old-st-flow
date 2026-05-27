@@ -39,7 +39,7 @@ export function RuleRow({
         <span className="text-xs text-dim">IF</span>
       </div>
 
-      <div className="grid grid-cols-[auto_1fr_auto_1fr_auto_1fr] gap-3 items-center">
+      <div className="grid grid-cols-[auto_1fr_auto_auto_1fr] gap-3 items-center">
         <span className="text-xs text-dim font-medium">FE in</span>
         <ChipGroup
           value={rule.fe_statuses}
@@ -59,13 +59,12 @@ export function RuleRow({
           </SelectContent>
         </Select>
 
+        <span className="text-xs text-dim font-medium">BE in</span>
         <ChipGroup
           value={rule.be_statuses}
           onChange={(v) => onUpdate({ be_statuses: v })}
           disabled={!canEdit}
         />
-        <span className="text-xs text-dim font-medium pl-2">BE in</span>
-        <span />
       </div>
 
       <div className="flex items-center gap-3 mt-4">
