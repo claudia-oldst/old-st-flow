@@ -19,9 +19,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const setUser = useCurrentUser((s) => s.setUser);
   const setAuthLoading = useCurrentUser((s) => s.setAuthLoading);
   const setAuthError = useCurrentUser((s) => s.setAuthError);
+  const userId = useCurrentUser((s) => s.user?.id);
   const navigate = useNavigate();
   const location = useLocation();
   const [, setSession] = useState<Session | null>(null);
+
+  // Subscribe to changes on the current user's team_members row so role
+  // updates (and other profile changes) are reflected live without a reload.
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase
+      .channel(`team_member:${userId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "team_members", filter: `id=eq.${userId}` },
+        (payload) => {
+          const next = payload.new as Parameters<typeof setUser>[0];
+          if (next) setUser(next);
+        },
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [userId, setUser]);
 
   useEffect(() => {
     let cancelled = false;
