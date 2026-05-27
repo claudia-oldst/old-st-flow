@@ -89,6 +89,41 @@ export function AcceptanceCriteria({
 
   const hasContent = !!(localValue && localValue.trim());
 
+  const copyAiPrompt = async () => {
+    const roleStr = role ?? "team member";
+    const epic = (epicName ?? "").trim();
+    const intro = epic
+      ? `I am a ${roleStr}, looking to understand the following ticket in context of the wider ${epic} feature and project.`
+      : `I am a ${roleStr}, looking to understand the following ticket in context of the wider project.`;
+    const epicLine = epic ? `\nEpic: ${epic}` : "";
+    const prompt = `${intro}
+
+Ticket: ${ticketTitle}${epicLine}
+
+1. Who are the users impacted by this ticket?
+2. How does this ticket influence other related features or parts of the project?
+3. What are the specific business rules discussed for related to this ticket?
+4. What is a simple summary of the expected outcome of this ticket?`;
+    try {
+      await navigator.clipboard.writeText(prompt);
+      toast.success("AI prompt copied");
+    } catch {
+      toast.error("Could not copy to clipboard");
+    }
+  };
+
+  const copyButton = (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={copyAiPrompt}
+      className="h-7 w-7"
+      title="Copy AI prompt for NotebookLM / ChatGPT"
+    >
+      <Copy className="h-3 w-3" />
+    </Button>
+  );
+
   if (!editing) {
     return (
       <div className="space-y-3">
