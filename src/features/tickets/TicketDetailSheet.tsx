@@ -115,6 +115,9 @@ export function TicketDetailSheet({ open, onOpenChange, ticket: ticketProp, proj
             <TabsContent value="acceptance" className="mt-4 space-y-6 flex-1 overflow-y-auto">
               <AcceptanceCriteria
                 ticketId={ticket.id}
+                ticketTitle={ticket.title}
+                epicName={ticket.epic_name ?? null}
+                role={role}
                 value={ticket.acceptance_criteria}
                 canEdit={isPMBARole}
                 onSaved={onChange}

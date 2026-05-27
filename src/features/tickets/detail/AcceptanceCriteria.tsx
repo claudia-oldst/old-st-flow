@@ -1,18 +1,25 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, Edit3 } from "lucide-react";
+import { Sparkles, Edit3, Copy } from "lucide-react";
+import type { ProjectRole } from "@/lib/types";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { MarkdownView } from "./MarkdownView";
 
 export function AcceptanceCriteria({
   ticketId,
+  ticketTitle,
+  epicName,
+  role,
   value,
   canEdit,
   onSaved,
 }: {
   ticketId: string;
+  ticketTitle: string;
+  epicName: string | null;
+  role: ProjectRole | null;
   value: string | null;
   canEdit: boolean;
   onSaved: () => void;
@@ -82,13 +89,50 @@ export function AcceptanceCriteria({
 
   const hasContent = !!(localValue && localValue.trim());
 
+  const copyAiPrompt = async () => {
+    const roleStr = role ?? "team member";
+    const epic = (epicName ?? "").trim();
+    const intro = epic
+      ? `I am a ${roleStr}, looking to understand the following ticket in context of the wider ${epic} feature and project.`
+      : `I am a ${roleStr}, looking to understand the following ticket in context of the wider project.`;
+    const epicLine = epic ? `\nEpic: ${epic}` : "";
+    const prompt = `${intro}
+
+Ticket: ${ticketTitle}${epicLine}
+
+1. Who are the users impacted by this ticket?
+2. How does this ticket influence other related features or parts of the project?
+3. What are the specific business rules discussed for related to this ticket?
+4. What is a simple summary of the expected outcome of this ticket?`;
+    try {
+      await navigator.clipboard.writeText(prompt);
+      toast.success("AI prompt copied");
+    } catch {
+      toast.error("Could not copy to clipboard");
+    }
+  };
+
+  const copyButton = (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={copyAiPrompt}
+      className="h-7 w-7"
+      title="Copy AI prompt for NotebookLM / ChatGPT"
+    >
+      <Copy className="h-3 w-3" />
+    </Button>
+  );
+
   if (!editing) {
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <div className="text-xs uppercase tracking-wider text-dimmer">Acceptance criteria</div>
-          {canEdit && (
-            <div className="flex items-center gap-1">
+        <div className="text-xs uppercase tracking-wider text-dimmer">Acceptance criteria</div>
+          <div className="flex items-center gap-1">
+            {copyButton}
+            {canEdit && (
+              <>
               <Button
                 variant="ghost"
                 size="sm"
@@ -102,9 +146,11 @@ export function AcceptanceCriteria({
               <Button variant="ghost" size="sm" onClick={() => setEditing(true)} className="gap-1 text-xs">
                 <Edit3 className="h-3 w-3" /> {hasContent ? "Edit" : "Add"}
               </Button>
-            </div>
-          )}
+              </>
+            )}
+          </div>
         </div>
+
         {hasContent ? (
           <div className="rounded-lg bg-white/[0.02] hairline p-4">
             <MarkdownView source={localValue!} />
@@ -124,6 +170,7 @@ export function AcceptanceCriteria({
       <div className="flex items-center justify-between">
         <div className="text-xs uppercase tracking-wider text-dimmer">Acceptance criteria</div>
         <div className="flex items-center gap-1">
+          {copyButton}
           <Button
             variant="ghost"
             size="sm"
