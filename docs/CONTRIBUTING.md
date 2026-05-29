@@ -49,7 +49,7 @@ Keep files under ~250 LOC. If a component grows past that, split it (subcomponen
 - Ask the Lovable agent; it generates the migration. Don't write SQL files by hand.
 - Past migrations are immutable. Fix-forward only.
 - Every new table needs RLS enabled and policies for select/insert/update/delete as appropriate.
-- Sensitive functions: `SECURITY DEFINER` only when needed, always with `set search_path = public`, and only grant `EXECUTE` to the roles that actually need it.
+- Sensitive functions: `SECURITY DEFINER` only when needed, always with an explicit `set search_path` (use `public` by default, or `public, extensions` if the function calls pgcrypto helpers like `digest()` / `gen_random_bytes()`), and only grant `EXECUTE` to the roles that actually need it.
 
 ### Edge functions
 
