@@ -1,32 +1,25 @@
-## Goal
+# Fix: client portal URL resolves to "This portal isn't available"
 
-Add a small "Copy AI prompt" button in the Acceptance Criteria section header (next to Generate / Add) that copies a pre-formatted prompt to the clipboard, ready to paste into NotebookLM or similar tools.
+## Root cause
 
-## Prompt template
+`pgcrypto` lives in the `extensions` schema. The portal hash lookup functions were created with `SET search_path = public`, so the `digest(...)` call inside them fails with `function digest(unknown, unknown) does not exist`. The RPC throws, the public page shows the generic "This portal isn't available" fallback, even though the hash is valid and the project is published.
 
-```
-I am a {role}, looking to understand the following ticket in context of the wider {epic} feature and project.
+Verified: the project row exists with `client_portal_hash = '345g6g466u0z0k0i'`, `client_portal_hash_sha` set, and `client_visibility_cutoff` populated — so data is fine; only the function resolution is broken.
 
-Ticket: {title}
-Epic: {epic}
+## Fix
 
-1. Who are the users impacted by this ticket?
-2. How does this ticket influence other related features or parts of the project?
-3. What are the specific business rules discussed for related to this ticket?
-4. What is a simple summary of the expected outcome of this ticket?
-```
+New migration that recreates the three affected functions with `SET search_path = public, extensions` (matches Supabase's recommended pattern and resolves `digest` / `gen_random_bytes` without dropping security_definer hardening):
 
-If no epic is set, the Epic line and the "wider {epic} feature and" phrase are omitted gracefully.
+1. `public.rotate_client_portal_hash(uuid)`
+2. `public.get_client_portal(text)`
+3. `public.get_client_portal_change_requests(text)`
+4. `public.client_approve_cr(text, uuid)` — same pattern, same fix
 
-## Changes
+Function bodies are unchanged apart from the `SET search_path` line. Existing `GRANT EXECUTE` on `anon` / `authenticated` is preserved (CREATE OR REPLACE keeps grants).
 
-1. `src/features/tickets/detail/AcceptanceCriteria.tsx`
-   - Accept new props: `ticketTitle: string`, `epicName: string | null`, `role: ProjectRole | null`.
-   - Add a ghost icon button (Lucide `Sparkles` + `Copy` combination, matching the screenshot — small icon-only button placed before "Generate") with tooltip "Copy AI prompt".
-   - On click: build prompt from props, call `navigator.clipboard.writeText`, toast "AI prompt copied".
-   - Show the button in both the view and edit headers (consistent with Generate placement).
+No frontend changes. No data migration needed — `client_portal_hash_sha` was already backfilled at migration time when default search_path included extensions.
 
-2. `src/features/tickets/TicketDetailSheet.tsx`
-   - Pass `ticketTitle={ticket.title}`, `epicName={ticket.epic_name}`, `role={role}` to `<AcceptanceCriteria />`.
+## Verification after deploy
 
-No backend, schema, or business logic changes.
+- Reload `/h/345g6g466u0z0k0i` — should render the portal.
+- PMBA "Publish to client" rotates a fresh 64-hex token and the new URL also resolves.
