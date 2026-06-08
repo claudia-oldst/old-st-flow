@@ -194,7 +194,7 @@ export function SprintWorkbench({ projectId, sprints, isPMBA }: Props) {
             />
           </div>
           <div className="col-span-3 min-h-0">
-            <SprintPoolPanel items={poolItems} disabled={!isPMBA} />
+            <SprintPoolPanel projectId={projectId} items={poolItems} disabled={!isPMBA} />
           </div>
           <div className="col-span-6 min-h-0">
             <div className="flex gap-2 overflow-x-auto h-full pb-2">
