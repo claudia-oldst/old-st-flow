@@ -1,57 +1,43 @@
-## Goal
+## Diagnosis
 
-1. Every new ticket must have an **Epic** selected (title is already required and acts as the description).
-2. An estimate is "set" when its value is filled in — **`0` counts as an estimate**; only **blank/NULL** means unestimated.
-3. Before an assignee can log time (or start a timer) on a ticket where their discipline has no estimate, they must first enter the **original estimate** for that discipline.
+The main ticket list/board search (toolbar input on Project Tickets and Board) already uses **direct substring matching** — both server-side (`ILIKE '%q%'` on `title` and `formatted_id` inside the `list_project_tickets` RPC) and client-side (`title.toLowerCase().includes(q)`). Searching `Damin` there would NOT return `Admin`, and `504` would NOT return `405`.
 
-## 1. Required Epic on creation
+The fuzzy behavior the user is seeing comes from the **cmdk-powered combobox pickers** used inside ticket creation:
 
-`EpicSelect` already supports inline creation (type a name → "Create '…'"), so no new UI is needed — we just make epic required.
+- `src/features/epics/EpicSelect.tsx` — Epic picker (search/create)
+- `src/features/tickets/ParentTicketSelect.tsx` — Parent ticket picker
 
-**Add Tickets dialog** (`useDraftRows` + `DraftRow`):
-- `validDrafts` now requires `title.trim()` AND `epicId !== null`.
-- Show the EpicSelect with an error ring + "Epic required" hint when the user tries to submit with it empty.
-- Update the Create button counter to reflect drafts that are fully valid.
+Both wrap shadcn `<Command>`, which by default uses cmdk's built-in fuzzy/score-based filter. That filter scores any item that shares characters with the query above zero, so:
 
-**Quick add row** (`QuickAddRow`):
-- Same rule — disable submit until epic is chosen; show "Epic required" hint.
+- Typing `Damin` returns items containing `Admin` (4 shared chars, transposable distance).
+- Typing `504` returns items containing `405` (digit overlap scores > 0).
 
-**Schema** (`src/lib/schemas/ticket.ts` + test): make `epic_id` required (non-null `number`). Update tests.
+## Fix
 
-## 2. Blank vs zero estimate
+Disable cmdk's fuzzy scorer on both pickers and replace it with a strict, case-insensitive substring filter.
 
-Today the create paths coerce empty FE/BE/Project inputs to `0`, hiding "no estimate". To support the new rule we treat **blank input = NULL** and **`0` = a real estimate**.
+### Changes
 
-- **DB migration**: drop `NOT NULL` / `DEFAULT 0` on the six estimate columns on `public.tickets`
-  (`original_fe_estimate`, `original_be_estimate`, `original_project_estimate`,
-  `current_fe_estimate`, `current_be_estimate`, `current_project_estimate`).
-  Update `enforce_proj_ticket_zero_fe_be` so its checks use `IS NOT NULL` and it doesn't overwrite NULLs with 0.
-- **Create paths** (`useDraftRows`, `QuickAddRow`): if the user leaves an estimate field blank, insert `null` for both `original_*` and `current_*`. If they type `0`, insert `0`.
-- **Numeric reads**: audit aggregation/display call sites (`useTicketCapacity`, board/health/portal sums) to coalesce `NULL → 0` for math while keeping the raw value for the gating logic. Most call sites already use `?? 0`.
+**1. `src/features/epics/EpicSelect.tsx`**
+- On `<Command>`, pass a `filter` prop:
+  ```ts
+  filter={(value, search) =>
+    value.toLowerCase().includes(search.trim().toLowerCase()) ? 1 : 0
+  }
+  ```
+- Keep the existing `value={e.epic_name ?? ""}` on each `CommandItem` so the filter matches against the epic name (and against `__create_<search>` for the create row, which always passes because it contains the query).
 
-## 3. Gate time-logging on missing estimate
+**2. `src/features/tickets/ParentTicketSelect.tsx`**
+- Same `filter` prop on `<Command>`.
+- Each `CommandItem` already uses `value={`${opt.formatted_id} ${opt.title}`}`, so a substring search will correctly match either the ticket code (e.g. `504`) or the title — and will NOT match unrelated codes like `405`.
 
-For the assignee's chosen discipline (FE / BE / Project), if the ticket's `original_*_estimate IS NULL`, block normal logging and instead require them to set the original estimate first.
+### Out of scope
 
-- `useLogTime` / `LogTimeModal`: detect missing original estimate for the active `discipline`. Render a "Set original estimate" prompt (single hours input, `0` allowed) with a Save button that updates both `original_*_estimate` and `current_*_estimate` on the ticket, then transitions to the normal Start Timer / Manual Log UI.
-- `LogTimeWithCapacityCheck`: pass through the same gate.
-- `startTicketTimer` and `StartGroupTimerDialog`: before starting a timer, if the user's discipline has a NULL original estimate, open the same "Set estimate" prompt; on save, proceed to start the timer.
-- PMBA-initiated flows that don't go through the assignee log-time path aren't gated.
+- The Project Tickets toolbar search, Board search, and Projects list search are already direct substring matches — no changes needed.
+- No DB/RPC changes; no schema migration.
 
-## 4. Files to touch
+### Verification
 
-- `src/lib/schemas/ticket.ts` + `src/lib/schemas/ticket.test.ts`
-- `src/features/tickets/add-dialog/useDraftRows.ts`
-- `src/features/tickets/add-dialog/DraftRow.tsx`
-- `src/features/tickets/QuickAddRow.tsx`
-- `src/features/timelog/log-time/useLogTime.ts`
-- `src/features/timelog/LogTimeModal.tsx`
-- `src/features/timelog/LogTimeWithCapacityCheck.tsx`
-- `src/features/timelog/startTicketTimer.ts`
-- `src/features/timelog/StartGroupTimerDialog.tsx`
-- Supabase migration: drop NOT NULL / DEFAULT 0 on the six estimate columns and adjust `enforce_proj_ticket_zero_fe_be`.
-
-## Out of scope
-
-- Existing tickets keep their current values; the new "blank" state only arises from newly created tickets.
-- No change to the AI copy button on acceptance criteria, portal layout, or roles.
+- Open the ticket creation row → Epic picker → type `Damin` → should show only epics containing `damin` (case-insensitive).
+- Same picker → type `504` → should show only items containing `504`, not `405`.
+- Parent ticket picker → repeat both checks against ticket codes and titles.
