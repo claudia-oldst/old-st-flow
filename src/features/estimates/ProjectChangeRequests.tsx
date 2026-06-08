@@ -18,6 +18,7 @@ import { PAGE_SIZES } from "@/lib/pagination";
 import { buildChangeRequestGroups } from "./project-change-requests/buildChangeRequestGroups";
 import { useEpicDiscounts } from "@/features/discounts/useEpicDiscounts";
 import { discountTotalsByEpic, sumTotals } from "@/features/discounts/applyDiscounts";
+import { RejectEstimateRevisionDialog } from "@/features/estimates/RejectEstimateRevisionDialog";
 
 const STATUS_OPTIONS = [
   { value: "pending", label: "Pending" },
@@ -269,6 +270,13 @@ export function ProjectChangeRequests({ projectId }: { projectId: string }) {
           reloadTickets();
           reload();
         }}
+      />
+      <RejectEstimateRevisionDialog
+        open={!!rejectTarget}
+        onOpenChange={(o) => !o && setRejectTarget(null)}
+        originalReason={rejectTarget?.reason ?? null}
+        busy={rejectBusy}
+        onConfirm={confirmReject}
       />
     </div>
   );
