@@ -1,13 +1,26 @@
 import { useMemo, useState } from "react";
 import { addDays, format, parseISO } from "date-fns";
 import { toast } from "sonner";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import type { Sprint, SprintCapacity, SprintMember } from "./types";
+import type { Sprint, SprintMember } from "./types";
 import { memberDisciplines } from "./types";
 import { useSprintCapacities, useProjectMembers } from "./useSprintBoard";
 import type { AssigneeSlot } from "@/lib/types";
@@ -95,6 +108,24 @@ function SprintRow({
   const capFor = (uid: string, d: AssigneeSlot) =>
     Number(capacities.find((c) => c.user_id === uid && c.discipline === d)?.hours ?? 0);
 
+  const addedUserIds = useMemo(() => {
+    const set = new Set<string>();
+    capacities.forEach((c) => set.add(c.user_id));
+    return set;
+  }, [capacities]);
+
+  const addedMembers = useMemo(
+    () => devMembers.filter((m) => addedUserIds.has(m.user_id)),
+    [devMembers, addedUserIds],
+  );
+  const availableMembers = useMemo(
+    () => devMembers.filter((m) => !addedUserIds.has(m.user_id)),
+    [devMembers, addedUserIds],
+  );
+
+  const invalidate = () =>
+    qc.invalidateQueries({ queryKey: ["sprint_capacities", sprint.id] });
+
   const updateCap = async (userId: string, discipline: AssigneeSlot, hours: number) => {
     const existing = capacities.find((c) => c.user_id === userId && c.discipline === discipline);
     if (existing) {
@@ -112,7 +143,29 @@ function SprintRow({
       });
       if (error) toast.error(error.message);
     }
-    qc.invalidateQueries({ queryKey: ["sprint_capacities", sprint.id] });
+    invalidate();
+  };
+
+  const addMember = async (m: SprintMember) => {
+    const primary = memberDisciplines(m.role)[0] as AssigneeSlot;
+    const { error } = await supabase.from("sprint_capacities").insert({
+      sprint_id: sprint.id,
+      user_id: m.user_id,
+      discipline: primary,
+      hours: 0,
+    });
+    if (error) toast.error(error.message);
+    invalidate();
+  };
+
+  const removeMember = async (userId: string) => {
+    const { error } = await supabase
+      .from("sprint_capacities")
+      .delete()
+      .eq("sprint_id", sprint.id)
+      .eq("user_id", userId);
+    if (error) toast.error(error.message);
+    invalidate();
   };
 
   const updateDates = async (field: "start_date" | "end_date", val: string) => {
@@ -163,12 +216,14 @@ function SprintRow({
           )}
         </div>
       </div>
-      {devMembers.length > 0 && (
-        <div className="grid grid-cols-[1fr,auto,auto] gap-x-3 gap-y-1 text-xs">
+
+      {addedMembers.length > 0 ? (
+        <div className="grid grid-cols-[1fr,auto,auto,auto] gap-x-3 gap-y-1 text-xs items-center">
           <div className="text-[10px] uppercase tracking-wide text-dim">Member</div>
           <div className="text-[10px] uppercase tracking-wide text-dim text-right w-16">FE (h)</div>
           <div className="text-[10px] uppercase tracking-wide text-dim text-right w-16">BE (h)</div>
-          {devMembers.map((m) => {
+          <div className="w-6" />
+          {addedMembers.map((m) => {
             const ds = memberDisciplines(m.role);
             return (
               <CapRow
@@ -180,12 +235,71 @@ function SprintRow({
                 allowBE={ds.includes("BE")}
                 isPMBA={isPMBA}
                 onChange={updateCap}
+                onRemove={() => removeMember(m.user_id)}
               />
             );
           })}
         </div>
+      ) : (
+        <div className="text-[11px] text-dim italic">No members added</div>
+      )}
+
+      {isPMBA && (
+        <div className="mt-2">
+          <AddMemberPopover
+            available={availableMembers}
+            onPick={addMember}
+          />
+        </div>
       )}
     </div>
+  );
+}
+
+function AddMemberPopover({
+  available,
+  onPick,
+}: {
+  available: SprintMember[];
+  onPick: (m: SprintMember) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 text-xs"
+          disabled={available.length === 0}
+        >
+          <Plus className="h-3.5 w-3.5 mr-1" /> Project Member
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="p-0 w-64" align="start">
+        <Command>
+          <CommandInput placeholder="Find member…" className="h-8" />
+          <CommandList>
+            <CommandEmpty>No members</CommandEmpty>
+            <CommandGroup>
+              {available.map((m) => (
+                <CommandItem
+                  key={m.user_id}
+                  value={`${m.member.name} ${m.role}`}
+                  onSelect={() => {
+                    onPick(m);
+                    setOpen(false);
+                  }}
+                >
+                  <span className="truncate">{m.member.name}</span>
+                  <span className="ml-auto text-[10px] text-dim">{m.role}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -197,6 +311,7 @@ function CapRow({
   allowBE,
   isPMBA,
   onChange,
+  onRemove,
 }: {
   m: SprintMember;
   feVal: number;
@@ -205,6 +320,7 @@ function CapRow({
   allowBE: boolean;
   isPMBA: boolean;
   onChange: (uid: string, d: AssigneeSlot, h: number) => void;
+  onRemove: () => void;
 }) {
   return (
     <>
@@ -214,6 +330,19 @@ function CapRow({
       </div>
       <CapInput value={feVal} disabled={!isPMBA || !allowFE} onCommit={(v) => onChange(m.user_id, "FE", v)} />
       <CapInput value={beVal} disabled={!isPMBA || !allowBE} onCommit={(v) => onChange(m.user_id, "BE", v)} />
+      {isPMBA ? (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onRemove}
+          className="h-6 w-6"
+          title="Remove from sprint"
+        >
+          <X className="h-3 w-3 text-dim" />
+        </Button>
+      ) : (
+        <div className="w-6" />
+      )}
     </>
   );
 }
