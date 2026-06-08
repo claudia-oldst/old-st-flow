@@ -151,6 +151,34 @@ export function useLogTime({
   }
   if (isProjectContributor) disciplineOptions.push({ value: "Project", label: "Project" });
 
+  const missingEstimate = useMemo(() => {
+    if (discipline === "FE") return !ticket.has_original_fe_estimate;
+    if (discipline === "BE") return !ticket.has_original_be_estimate;
+    return !ticket.has_original_project_estimate;
+  }, [discipline, ticket.has_original_fe_estimate, ticket.has_original_be_estimate, ticket.has_original_project_estimate]);
+
+  const saveOriginalEstimate = async (raw: string): Promise<boolean> => {
+    const v = parseFloat(raw);
+    if (Number.isNaN(v) || v < 0) {
+      toast.error("Enter an estimate (0 or more)");
+      return false;
+    }
+    const patch: Record<string, number> =
+      discipline === "FE"
+        ? { original_fe_estimate: v, current_fe_estimate: v }
+        : discipline === "BE"
+          ? { original_be_estimate: v, current_be_estimate: v }
+          : { original_project_estimate: v, current_project_estimate: v };
+    const { error } = await supabase.from("tickets").update(patch).eq("id", ticket.id);
+    if (error) {
+      toast.error(error.message);
+      return false;
+    }
+    toast.success("Estimate set");
+    await refetchCapacity();
+    return true;
+  };
+
   return {
     isProjTicket,
     discipline,
@@ -166,5 +194,7 @@ export function useLogTime({
     capacity,
     refetchCapacity,
     wouldOverflowManual,
+    missingEstimate,
+    saveOriginalEstimate,
   };
 }
