@@ -36,7 +36,7 @@ describe("ticketInputSchema", () => {
 
   it("rejects unknown ticket_type", () => {
     expect(
-      ticketInputSchema.safeParse({ title: "x", ticket_type: "Other" as never }).success,
+      ticketInputSchema.safeParse({ title: "x", ticket_type: "Other" as never, epic_id: 1 }).success,
     ).toBe(false);
   });
 });
