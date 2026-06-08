@@ -62,9 +62,18 @@ export function SprintWorkbench({ projectId, sprints, isPMBA }: Props) {
 
   const targetSprint = sprints.find((s) => s.id === targetSprintId);
 
+  const sprintMemberIds = useMemo(() => {
+    const set = new Set<string>();
+    capacities.forEach((c) => set.add(c.user_id));
+    return set;
+  }, [capacities]);
+
   const devMembers = useMemo(
-    () => members.filter((m) => memberDisciplines(m.role).length > 0),
-    [members],
+    () =>
+      members.filter(
+        (m) => memberDisciplines(m.role).length > 0 && sprintMemberIds.has(m.user_id),
+      ),
+    [members, sprintMemberIds],
   );
 
   const resolveItems = (rows: SprintTicket[]) =>
