@@ -96,7 +96,11 @@ export function EpicSelect({
         </button>
       </PopoverTrigger>
       <PopoverContent className="p-0 w-[260px]" align="start">
-        <Command>
+        <Command
+          filter={(value, search) =>
+            value.toLowerCase().includes(search.trim().toLowerCase()) ? 1 : 0
+          }
+        >
           <CommandInput
             placeholder="Search or create epic…"
             value={search}

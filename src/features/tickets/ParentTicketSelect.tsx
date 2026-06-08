@@ -106,7 +106,11 @@ export function ParentTicketSelect({
           </Button>
         </PopoverTrigger>
         <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
-          <Command>
+          <Command
+            filter={(value, search) =>
+              value.toLowerCase().includes(search.trim().toLowerCase()) ? 1 : 0
+            }
+          >
             <CommandInput placeholder="Search ticket…" />
             <CommandList>
               <CommandEmpty>No tickets found.</CommandEmpty>
