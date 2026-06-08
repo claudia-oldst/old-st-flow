@@ -15,6 +15,8 @@ import { AcceptanceCriteria } from "./detail/AcceptanceCriteria";
 import { TicketDetailHeader } from "./detail/TicketDetailHeader";
 import { TicketDetailBody } from "./detail/TicketDetailBody";
 import { useTicketEditor } from "./detail/useTicketEditor";
+import { OPEN_TICKET_EVENT } from "@/features/tickets/openTicketEvent";
+import { fetchTicketById } from "@/features/tickets/fetchTicketById";
 
 interface Props {
   open: boolean;
