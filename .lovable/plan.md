@@ -1,45 +1,55 @@
-## Goal
+# Sprint Planning Workbench — Layout Revision
 
-When a PMBA rejects an Estimate Revision in `ProjectChangeRequests`, require a rejection reason. Append that reason to the existing `reason` field on `ticket_estimate_changes` (so the original requester's reason is preserved with the rejection note appended). Also fix the toast wording to say "Estimate Revision".
+Only the Workbench layout changes. All previously-agreed database schema, RLS, DnD semantics, cross-sprint preservation rules, conditional `ticket_assignees` cleanup, realtime invalidation, and PMBA-only gating remain exactly as planned.
 
-## Changes
+## Revised Workbench Layout
 
-### 1. New dialog: `src/features/estimates/RejectEstimateRevisionDialog.tsx`
+The Workbench is now a **three-zone horizontal layout** instead of two:
 
-Small controlled `Dialog` component:
-- Props: `open`, `onOpenChange`, `originalReason` (string | null), `onConfirm(rejectionReason: string)`, `busy`.
-- Shows the original reason (read-only, dimmed) for context.
-- Textarea labeled "Rejection reason" — required, min 1 char after trim.
-- Buttons: "Cancel" and "Reject estimate revision" (destructive variant). Confirm disabled until reason is non-empty.
+```text
+┌──────────────────────────────────────────────────────────────────────────────┐
+│  Target Sprint: [Sprint 14 ▾]            Capacity totals · OVERALLOCATED ⚠   │
+├────────────────┬────────────────┬────────────────────────────────────────────┤
+│  BACKLOG       │  SPRINT POOL   │  DEVELOPER LANES (horizontal scroll →)     │
+│  (source pool) │  (unassigned   │                                            │
+│                │   in sprint)   │  ┌────────┐ ┌────────┐ ┌────────┐ ┌──────  │
+│  Source: [▾]   │                │  │ Alice  │ │ Bob    │ │ Carol  │ │ Dan    │
+│  Search…       │  FE Rem: 42h   │  │ FE     │ │ BE     │ │ FE     │ │ BE     │
+│  Epic [▾]      │  BE Rem: 31h   │  │ 28/40h │ │ 36/40h │ │ 44/40h │ │ 18/32h │
+│  Type [▾]      │                │  │ ▓▓▓▓░  │ │ ▓▓▓▓▓  │ │ ▓▓▓▓▓! │ │ ▓▓░░░  │
+│  Hide done ☐   │  ┌──────────┐  │  ├────────┤ ├────────┤ ├────────┤ ├──────  │
+│                │  │ TCK-201  │  │  │ TCK-12 │ │ TCK-45 │ │ TCK-77 │ │ TCK-9  │
+│  ┌──────────┐  │  │ FE 8 BE3 │  │  │ FE 5h  │ │ BE 12h │ │ FE 13h │ │ BE 6h  │
+│  │ TCK-301  │  │  └──────────┘  │  │ ...    │ │ ...    │ │ ...    │ │ ...    │
+│  │ FE 5 BE2 │  │                │  │        │ │        │ │        │ │        │
+│  └──────────┘  │  ┌──────────┐  │  └────────┘ └────────┘ └────────┘ └──────  │
+│  ┌──────────┐  │  │ TCK-204  │  │                                            │
+│  │ TCK-305  │  │  │ FE 0 BE5 │  │                                            │
+│  └──────────┘  │  └──────────┘  │                                            │
+│                │                │                                            │
+└────────────────┴────────────────┴────────────────────────────────────────────┘
+       3 cols           3 cols                     6 cols (scrolls)
+```
 
-### 2. `src/features/estimates/ProjectChangeRequests.tsx`
+### Column sizing
+- Workbench grid changes from `grid-cols-12` (4 / 8 split) to `grid-cols-12` (**3 / 3 / 6 split**).
+- Backlog column: `col-span-3`, vertical scroll, filters pinned top.
+- Sprint Pool column: `col-span-3`, vertical scroll, header shows `FE Rem` + `BE Rem` totals for unassigned-in-sprint tickets.
+- Developer Lanes container: `col-span-6`, horizontal scroll, each lane a fixed-width column (e.g. `w-72`).
 
-- Add state: `rejectTarget: ChangeRow | null` and `rejectBusy: boolean`.
-- Replace `handleReject` so clicking Reject opens the dialog instead of immediately updating.
-- New `confirmReject(rejectionReason: string)` performs the existing update plus:
-  - Builds `combinedReason`:
-    ```ts
-    const base = (row.reason ?? "").trim();
-    const stamp = `Rejected by ${user.name}: ${rejectionReason.trim()}`;
-    const combinedReason = base ? `${base}\n\n— ${stamp}` : `— ${stamp}`;
-    ```
-  - Updates row with `{ status: "rejected", decided_by, decided_at, reason: combinedReason }`.
-- Change success toast from `"Change request rejected"` → `"Estimate revision rejected"`.
-- Change approval toast from `"Change request approved"` → `"Estimate revision approved"` for consistency with the user's terminology directive.
-- Render `<RejectEstimateRevisionDialog>` at the bottom of the component.
+### Drop targets — unchanged semantics, new spatial mapping
+- **Backlog → Sprint Pool** (now an adjacent left-to-right drop): insert `sprint_tickets(target, ticketId, null)`. Cross-sprint backlog source preserves the original row.
+- **Backlog → Developer Lane**: insert `sprint_tickets` + upsert `ticket_assignees` in dev's specialty slot.
+- **Sprint Pool → Developer Lane**: update `sprint_tickets.assigned_user_id` + upsert `ticket_assignees`.
+- **Developer Lane → Sprint Pool**: set `assigned_user_id = NULL` + conditional `ticket_assignees` cleanup (preserve row if `time_logs` exist for that `ticket_id + user_id + discipline`).
+- **Developer Lane / Sprint Pool → Backlog**: removes from sprint (deletes current-sprint `sprint_tickets` row) with same conditional assignee cleanup.
 
-### 3. RLS / schema
+### Files affected by this layout change only
+- `src/features/sprints/SprintWorkbench.tsx` — grid template updated to three zones.
+- `src/features/sprints/SprintPoolPanel.tsx` — promoted to a full sibling column (no longer nested beneath `BacklogPanel`).
+- `src/features/sprints/BacklogPanel.tsx` — narrows to `col-span-3`; filters stack vertically inside this narrower column.
 
-`ticket_estimate_changes.reason` is already nullable text and editable by PMBAs (existing reject update already writes to that table). No migration needed.
+No other planned files, queries, mutations, or invalidation keys change.
 
-### Out of scope
-
-- `src/features/change-requests/ProjectChangeRequestTickets.tsx` — that handles CR tickets (`cr_approval`), not estimate revisions. Untouched.
-- Portal view passes `hideReject` and a noop, so no change needed there.
-
-## Verification
-
-- As a PMBA, open Project → Estimate Revisions → click Reject on a pending row.
-- Dialog opens showing the original reason; confirm button disabled until text is entered.
-- After confirm: row moves to Rejected, the appended `— Rejected by <name>: <text>` is visible in the row's reason field, toast reads "Estimate revision rejected".
-- Approve action toast reads "Estimate revision approved".
+### Out of scope (still)
+Bulk sprint deletion UI, auto-suggested capacity, sprint membership on Tickets table, mobile/narrow layout (workbench remains desktop-first; below ~1280px the three columns will horizontally scroll as a group), velocity analytics.
