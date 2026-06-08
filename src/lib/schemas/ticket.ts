@@ -26,11 +26,11 @@ export const ticketInputSchema = z.object({
     .max(MAX_TICKET_VERSION, `Version must be ${MAX_TICKET_VERSION} characters or fewer`)
     .optional()
     .nullable(),
-  fe_estimate: hours.optional(),
-  be_estimate: hours.optional(),
-  project_estimate: hours.optional(),
+  fe_estimate: hours.nullable().optional(),
+  be_estimate: hours.nullable().optional(),
+  project_estimate: hours.nullable().optional(),
   ticket_type: z.enum(["Standard", "Bug", "CR", "Proj"]),
-  epic_id: z.number().int().nullable().optional(),
+  epic_id: z.number({ invalid_type_error: "Epic is required" }).int(),
 });
 
 export type TicketInput = z.infer<typeof ticketInputSchema>;
