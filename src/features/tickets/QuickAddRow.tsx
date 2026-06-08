@@ -15,6 +15,8 @@ import { EpicSelect } from "@/features/epics/EpicSelect";
 import { ParentTicketSelect } from "@/features/tickets/ParentTicketSelect";
 import { ticketInputSchema } from "@/lib/schemas/ticket";
 import { toast } from "sonner";
+import { useCurrentUser } from "@/store/currentUser";
+import { postBugLinkComment } from "@/features/tickets/postBugLinkComment";
 
 export function QuickAddRow({
   projectId,
