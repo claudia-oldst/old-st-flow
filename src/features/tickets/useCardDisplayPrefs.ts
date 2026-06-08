@@ -7,6 +7,7 @@ export interface CardDisplayPrefs {
   bars: boolean;
   assignees: boolean;
   projBadge: boolean;
+  status: boolean;
 }
 
 export const DEFAULT_CARD_PREFS: CardDisplayPrefs = {
@@ -16,6 +17,7 @@ export const DEFAULT_CARD_PREFS: CardDisplayPrefs = {
   bars: true,
   assignees: true,
   projBadge: true,
+  status: true,
 };
 
 const STORAGE_KEY = "card-display-prefs-v1";
@@ -33,7 +35,7 @@ function read(): CardDisplayPrefs {
 }
 
 export function isAllOn(p: CardDisplayPrefs): boolean {
-  return p.id && p.type && p.chips && p.bars && p.assignees && p.projBadge;
+  return p.id && p.type && p.chips && p.bars && p.assignees && p.projBadge && p.status;
 }
 
 // Module-level shared state so every `useCardDisplayPrefs()` consumer in the

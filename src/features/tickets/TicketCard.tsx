@@ -10,6 +10,7 @@ import { LogTimeWithCapacityCheck } from "@/features/timelog/LogTimeWithCapacity
 import { useProjectRole } from "@/features/team/useProjectRole";
 import type { LogDiscipline } from "@/lib/types";
 import { StatusBadge } from "@/features/_shared/estimate-ui/StatusBadge";
+import { useStatuses } from "@/features/statuses/useStatuses";
 
 const HEALTH_BG: Record<string, string> = {
   good: "bg-health-good",
@@ -102,6 +103,9 @@ export function TicketCard({
     setLogOpen(true);
   };
 
+  const { statuses } = useStatuses();
+  const projectStatus = ticket.status_id ? statuses.find((s) => s.id === ticket.status_id) : null;
+
   return (
     <>
     <div
@@ -156,6 +160,12 @@ export function TicketCard({
           )}
           {ticket.ticket_type === "CR" && (
             <StatusBadge status={ticket.cr_approval} />
+          )}
+          {prefs.status && projectStatus && (
+            <span className="inline-flex items-center gap-1 text-[10px] text-dim">
+              <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: projectStatus.color }} />
+              <span className="truncate">{projectStatus.name}</span>
+            </span>
           )}
         </div>
       )}

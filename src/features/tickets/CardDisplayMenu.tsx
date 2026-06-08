@@ -11,6 +11,7 @@ import {
 const ROWS: { key: keyof CardDisplayPrefs; label: string }[] = [
   { key: "id", label: "Ticket ID" },
   { key: "type", label: "Type icon" },
+  { key: "status", label: "Project status" },
   { key: "chips", label: "Status chips" },
   { key: "bars", label: "Hours bars" },
   { key: "assignees", label: "Assignees" },
