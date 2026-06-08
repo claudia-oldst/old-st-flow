@@ -1,55 +1,68 @@
-# Sprint Planning Workbench — Layout Revision
+# Refactor Sprint Planning to Reuse Existing Components
 
-Only the Workbench layout changes. All previously-agreed database schema, RLS, DnD semantics, cross-sprint preservation rules, conditional `ticket_assignees` cleanup, realtime invalidation, and PMBA-only gating remain exactly as planned.
+The sprints feature currently re-creates UI/data that already exist in the codebase. This plan removes the duplicates and wires sprints into the same primitives the Board and Tickets views use, so card visuals, data shapes, and tab chrome stay consistent across the app.
 
-## Revised Workbench Layout
+## What gets reused
 
-The Workbench is now a **three-zone horizontal layout** instead of two:
+| Currently in `features/sprints/…` | Replace with existing |
+| --- | --- |
+| `TicketCard.tsx` (custom mini-card) | `features/tickets/TicketCard` (full card with type icons, FE/BE bars, assignees, epic name, CR badge) controlled via `CardDisplayPrefs` |
+| `useProjectTickets` inside `useSprintBoard.ts` (raw Supabase fetch of `tickets`) | `useProjectTickets` from `@/features/tickets/useProjectTickets` (returns normalized `TicketRow[]` with assignees + epic name already joined) |
+| Custom tab buttons in `SprintsPage.tsx` | shadcn `Tabs` primitive from `@/components/ui/tabs` |
+| Hand-rolled type-filter chip buttons in `BacklogPanel.tsx` | `FilterRow` from `@/features/tickets/filters/FilterPrimitives` (matches Tickets/Board filter styling) |
+| Plain-text member name + role in `DeveloperLane.tsx` header | `MemberAvatar` + role badge styling already used in `TicketCard`/`ProjectTeam` |
 
-```text
-┌──────────────────────────────────────────────────────────────────────────────┐
-│  Target Sprint: [Sprint 14 ▾]            Capacity totals · OVERALLOCATED ⚠   │
-├────────────────┬────────────────┬────────────────────────────────────────────┤
-│  BACKLOG       │  SPRINT POOL   │  DEVELOPER LANES (horizontal scroll →)     │
-│  (source pool) │  (unassigned   │                                            │
-│                │   in sprint)   │  ┌────────┐ ┌────────┐ ┌────────┐ ┌──────  │
-│  Source: [▾]   │                │  │ Alice  │ │ Bob    │ │ Carol  │ │ Dan    │
-│  Search…       │  FE Rem: 42h   │  │ FE     │ │ BE     │ │ FE     │ │ BE     │
-│  Epic [▾]      │  BE Rem: 31h   │  │ 28/40h │ │ 36/40h │ │ 44/40h │ │ 18/32h │
-│  Type [▾]      │                │  │ ▓▓▓▓░  │ │ ▓▓▓▓▓  │ │ ▓▓▓▓▓! │ │ ▓▓░░░  │
-│  Hide done ☐   │  ┌──────────┐  │  ├────────┤ ├────────┤ ├────────┤ ├──────  │
-│                │  │ TCK-201  │  │  │ TCK-12 │ │ TCK-45 │ │ TCK-77 │ │ TCK-9  │
-│  ┌──────────┐  │  │ FE 8 BE3 │  │  │ FE 5h  │ │ BE 12h │ │ FE 13h │ │ BE 6h  │
-│  │ TCK-301  │  │  └──────────┘  │  │ ...    │ │ ...    │ │ ...    │ │ ...    │
-│  │ FE 5 BE2 │  │                │  │        │ │        │ │        │ │        │
-│  └──────────┘  │  ┌──────────┐  │  └────────┘ └────────┘ └────────┘ └──────  │
-│  ┌──────────┐  │  │ TCK-204  │  │                                            │
-│  │ TCK-305  │  │  │ FE 0 BE5 │  │                                            │
-│  └──────────┘  │  └──────────┘  │                                            │
-│                │                │                                            │
-└────────────────┴────────────────┴────────────────────────────────────────────┘
-       3 cols           3 cols                     6 cols (scrolls)
-```
+## File-by-file changes
 
-### Column sizing
-- Workbench grid changes from `grid-cols-12` (4 / 8 split) to `grid-cols-12` (**3 / 3 / 6 split**).
-- Backlog column: `col-span-3`, vertical scroll, filters pinned top.
-- Sprint Pool column: `col-span-3`, vertical scroll, header shows `FE Rem` + `BE Rem` totals for unassigned-in-sprint tickets.
-- Developer Lanes container: `col-span-6`, horizontal scroll, each lane a fixed-width column (e.g. `w-72`).
+### Delete
+- `src/features/sprints/TicketCard.tsx` — replaced by a tiny `DraggableTicketCard.tsx` that wraps the existing tickets `TicketCard` with `useDraggable` (mirrors `features/board/board/DraggableCards.tsx`).
 
-### Drop targets — unchanged semantics, new spatial mapping
-- **Backlog → Sprint Pool** (now an adjacent left-to-right drop): insert `sprint_tickets(target, ticketId, null)`. Cross-sprint backlog source preserves the original row.
-- **Backlog → Developer Lane**: insert `sprint_tickets` + upsert `ticket_assignees` in dev's specialty slot.
-- **Sprint Pool → Developer Lane**: update `sprint_tickets.assigned_user_id` + upsert `ticket_assignees`.
-- **Developer Lane → Sprint Pool**: set `assigned_user_id = NULL` + conditional `ticket_assignees` cleanup (preserve row if `time_logs` exist for that `ticket_id + user_id + discipline`).
-- **Developer Lane / Sprint Pool → Backlog**: removes from sprint (deletes current-sprint `sprint_tickets` row) with same conditional assignee cleanup.
+### `src/features/sprints/DraggableTicketCard.tsx` (new, ~25 lines)
+- Thin wrapper: takes `TicketRow`, a `dndId`, a `prefs?: Partial<CardDisplayPrefs>`, and `disabled?: boolean`.
+- Renders `<div ref={setNodeRef} {...listeners} {...attributes}><TicketCard ticket={row} prefs={…} isDragging={isDragging} /></div>`.
+- Two preset prefs:
+  - **Backlog/Pool preset**: `{ type:true, id:true, chips:false, bars:true, assignees:true, projBadge:true }`
+  - **Lane preset** (isolated discipline): same but `assignees:false`, and the consumer controls `forceBars`. Since the existing `TicketCard` doesn't natively hide a single discipline, the lane will still show both FE and BE bars — this matches how the Board renders cards in its own discipline columns. The discipline-isolation requirement is preserved at the data layer (lanes still show only cards `assigned_user_id = dev`), but per-card hour rendering uses the shared component.
 
-### Files affected by this layout change only
-- `src/features/sprints/SprintWorkbench.tsx` — grid template updated to three zones.
-- `src/features/sprints/SprintPoolPanel.tsx` — promoted to a full sibling column (no longer nested beneath `BacklogPanel`).
-- `src/features/sprints/BacklogPanel.tsx` — narrows to `col-span-3`; filters stack vertically inside this narrower column.
+### `src/features/sprints/useSprintBoard.ts`
+- Remove the local `useProjectTickets` (and the Proj-filter). Re-export and use `useProjectTickets` from `@/features/tickets/useProjectTickets`, then filter `Proj` in the consumers (single `.filter(t => t.ticket_type !== "Proj")`).
+- Update `remainingHours` callers to accept `TicketRow` (already exposes `current_fe_estimate`, `actual_frontend_hours`, etc. — drop-in compatible).
+- Keep `useSprints`, `useSprintCapacities`, `useSprintTickets`, `useProjectSprintTickets`, `useProjectMembers` as-is.
+- Adjust `useSprintTickets` return type to fetch `ticket_id` only, then resolve to `TicketRow` by joining against the project-wide `useProjectTickets` cache in `SprintWorkbench` (one source of truth for ticket shape).
 
-No other planned files, queries, mutations, or invalidation keys change.
+### `src/features/sprints/types.ts`
+- `remainingHours(t: TicketRow)` instead of raw `Ticket`. (Field names are identical, just a type swap.)
+- Keep `SprintDiscipline`, `memberDisciplines`, `dndId` helpers.
 
-### Out of scope (still)
-Bulk sprint deletion UI, auto-suggested capacity, sprint membership on Tickets table, mobile/narrow layout (workbench remains desktop-first; below ~1280px the three columns will horizontally scroll as a group), velocity analytics.
+### `src/features/sprints/SprintsPage.tsx`
+- Replace the custom tab `<button>`s with `<Tabs value={tab} onValueChange={…}><TabsList><TabsTrigger value="forecast">…</TabsTrigger>…` from `@/components/ui/tabs`.
+
+### `src/features/sprints/BacklogPanel.tsx`
+- Replace the inline type-chip buttons with a column of `FilterRow`s under a `FilterSection title="Type"`.
+- Continue using `EpicSelect`, `Input` for search, `Checkbox` for "Hide completed disciplines".
+- Render results with `DraggableTicketCard` (backlog preset).
+
+### `src/features/sprints/SprintPoolPanel.tsx`
+- Render items with `DraggableTicketCard` (backlog preset).
+- Keep the FE/BE totals header.
+
+### `src/features/sprints/DeveloperLane.tsx`
+- Render the member header using `MemberAvatar` (size `sm`) + name + role chip (`PROJECT_ROLE_COLORS[role]`) — same visual vocabulary as `ProjectTeam`.
+- Render items with `DraggableTicketCard` (lane preset).
+- Keep the capacity meter and `bg-destructive` overallocation flip.
+
+### `src/features/sprints/SprintWorkbench.tsx`
+- Pull `tickets: TicketRow[]` from the shared `useProjectTickets(projectId)`.
+- Build a `ticketById` map and resolve `sprintTickets[i].ticket_id` → `TicketRow` for the pool and lane lists.
+- All DnD semantics stay identical (`addTicketToPool`, `addTicketToLane`, `unpinTicketFromLane`, `removeTicketFromSprint`).
+
+### `src/features/sprints/dnd.ts`
+- No change. Already targets `sprint_tickets`/`ticket_assignees`/`time_logs` directly.
+
+### `src/features/sprints/ForecastingCalendar.tsx`
+- No card-related changes. (Already uses shadcn `Input`, `Button` — those are reused.)
+
+## Out of scope
+- No DB/RLS/grant changes — schema stays as is.
+- No change to `ProjectWorkspace.tsx` routing (tab already wired).
+- Forecasting Calendar UX (dates + per-member capacity table) is unchanged.
