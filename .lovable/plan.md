@@ -1,43 +1,45 @@
-## Diagnosis
+## Goal
 
-The main ticket list/board search (toolbar input on Project Tickets and Board) already uses **direct substring matching** — both server-side (`ILIKE '%q%'` on `title` and `formatted_id` inside the `list_project_tickets` RPC) and client-side (`title.toLowerCase().includes(q)`). Searching `Damin` there would NOT return `Admin`, and `504` would NOT return `405`.
+When a PMBA rejects an Estimate Revision in `ProjectChangeRequests`, require a rejection reason. Append that reason to the existing `reason` field on `ticket_estimate_changes` (so the original requester's reason is preserved with the rejection note appended). Also fix the toast wording to say "Estimate Revision".
 
-The fuzzy behavior the user is seeing comes from the **cmdk-powered combobox pickers** used inside ticket creation:
+## Changes
 
-- `src/features/epics/EpicSelect.tsx` — Epic picker (search/create)
-- `src/features/tickets/ParentTicketSelect.tsx` — Parent ticket picker
+### 1. New dialog: `src/features/estimates/RejectEstimateRevisionDialog.tsx`
 
-Both wrap shadcn `<Command>`, which by default uses cmdk's built-in fuzzy/score-based filter. That filter scores any item that shares characters with the query above zero, so:
+Small controlled `Dialog` component:
+- Props: `open`, `onOpenChange`, `originalReason` (string | null), `onConfirm(rejectionReason: string)`, `busy`.
+- Shows the original reason (read-only, dimmed) for context.
+- Textarea labeled "Rejection reason" — required, min 1 char after trim.
+- Buttons: "Cancel" and "Reject estimate revision" (destructive variant). Confirm disabled until reason is non-empty.
 
-- Typing `Damin` returns items containing `Admin` (4 shared chars, transposable distance).
-- Typing `504` returns items containing `405` (digit overlap scores > 0).
+### 2. `src/features/estimates/ProjectChangeRequests.tsx`
 
-## Fix
+- Add state: `rejectTarget: ChangeRow | null` and `rejectBusy: boolean`.
+- Replace `handleReject` so clicking Reject opens the dialog instead of immediately updating.
+- New `confirmReject(rejectionReason: string)` performs the existing update plus:
+  - Builds `combinedReason`:
+    ```ts
+    const base = (row.reason ?? "").trim();
+    const stamp = `Rejected by ${user.name}: ${rejectionReason.trim()}`;
+    const combinedReason = base ? `${base}\n\n— ${stamp}` : `— ${stamp}`;
+    ```
+  - Updates row with `{ status: "rejected", decided_by, decided_at, reason: combinedReason }`.
+- Change success toast from `"Change request rejected"` → `"Estimate revision rejected"`.
+- Change approval toast from `"Change request approved"` → `"Estimate revision approved"` for consistency with the user's terminology directive.
+- Render `<RejectEstimateRevisionDialog>` at the bottom of the component.
 
-Disable cmdk's fuzzy scorer on both pickers and replace it with a strict, case-insensitive substring filter.
+### 3. RLS / schema
 
-### Changes
-
-**1. `src/features/epics/EpicSelect.tsx`**
-- On `<Command>`, pass a `filter` prop:
-  ```ts
-  filter={(value, search) =>
-    value.toLowerCase().includes(search.trim().toLowerCase()) ? 1 : 0
-  }
-  ```
-- Keep the existing `value={e.epic_name ?? ""}` on each `CommandItem` so the filter matches against the epic name (and against `__create_<search>` for the create row, which always passes because it contains the query).
-
-**2. `src/features/tickets/ParentTicketSelect.tsx`**
-- Same `filter` prop on `<Command>`.
-- Each `CommandItem` already uses `value={`${opt.formatted_id} ${opt.title}`}`, so a substring search will correctly match either the ticket code (e.g. `504`) or the title — and will NOT match unrelated codes like `405`.
+`ticket_estimate_changes.reason` is already nullable text and editable by PMBAs (existing reject update already writes to that table). No migration needed.
 
 ### Out of scope
 
-- The Project Tickets toolbar search, Board search, and Projects list search are already direct substring matches — no changes needed.
-- No DB/RPC changes; no schema migration.
+- `src/features/change-requests/ProjectChangeRequestTickets.tsx` — that handles CR tickets (`cr_approval`), not estimate revisions. Untouched.
+- Portal view passes `hideReject` and a noop, so no change needed there.
 
-### Verification
+## Verification
 
-- Open the ticket creation row → Epic picker → type `Damin` → should show only epics containing `damin` (case-insensitive).
-- Same picker → type `504` → should show only items containing `504`, not `405`.
-- Parent ticket picker → repeat both checks against ticket codes and titles.
+- As a PMBA, open Project → Estimate Revisions → click Reject on a pending row.
+- Dialog opens showing the original reason; confirm button disabled until text is entered.
+- After confirm: row moves to Rejected, the appended `— Rejected by <name>: <text>` is visible in the row's reason field, toast reads "Estimate revision rejected".
+- Approve action toast reads "Estimate revision approved".
