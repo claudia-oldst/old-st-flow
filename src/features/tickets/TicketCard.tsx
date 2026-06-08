@@ -161,6 +161,12 @@ export function TicketCard({
           {ticket.ticket_type === "CR" && (
             <StatusBadge status={ticket.cr_approval} />
           )}
+          {prefs.status && projectStatus && (
+            <span className="inline-flex items-center gap-1 text-[10px] text-dim">
+              <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: projectStatus.color }} />
+              <span className="truncate">{projectStatus.name}</span>
+            </span>
+          )}
         </div>
       )}
       <Tooltip>
