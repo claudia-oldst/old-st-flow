@@ -10,6 +10,7 @@ import { LogTimeWithCapacityCheck } from "@/features/timelog/LogTimeWithCapacity
 import { useProjectRole } from "@/features/team/useProjectRole";
 import type { LogDiscipline } from "@/lib/types";
 import { StatusBadge } from "@/features/_shared/estimate-ui/StatusBadge";
+import { useStatuses } from "@/features/statuses/useStatuses";
 
 const HEALTH_BG: Record<string, string> = {
   good: "bg-health-good",
