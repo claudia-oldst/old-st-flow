@@ -28,6 +28,8 @@ import {
   removeTicketFromSprint,
 } from "./dnd";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CardDisplayMenu } from "@/features/tickets/CardDisplayMenu";
+import { useCardDisplayPrefs } from "@/features/tickets/useCardDisplayPrefs";
 import { format, parseISO } from "date-fns";
 
 interface Props {
@@ -40,6 +42,7 @@ export function SprintWorkbench({ projectId, sprints, isPMBA }: Props) {
   const [targetSprintId, setTargetSprintId] = useState<string>(sprints[0]?.id ?? "");
   const qc = useQueryClient();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+  const { prefs: cardPrefs, setPrefs: setCardPrefs, reset: resetCardPrefs } = useCardDisplayPrefs();
 
   const { tickets: allTickets } = useProjectTickets(projectId);
   const tickets = useMemo(
@@ -175,6 +178,7 @@ export function SprintWorkbench({ projectId, sprints, isPMBA }: Props) {
             {sprintTickets.length} tickets · {poolItems.length} unassigned
           </div>
         )}
+        <CardDisplayMenu prefs={cardPrefs} onChange={setCardPrefs} onReset={resetCardPrefs} />
       </div>
 
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
