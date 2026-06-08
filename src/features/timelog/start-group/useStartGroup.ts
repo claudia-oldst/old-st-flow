@@ -83,8 +83,15 @@ export function useStartGroup({
 
   const isOver = (id: string) => capacityFor(capMap[id], discipline).isOver;
 
+  const needsEstimate = (t: TicketRow) =>
+    discipline === "FE"
+      ? !t.has_original_fe_estimate
+      : discipline === "BE"
+        ? !t.has_original_be_estimate
+        : !t.has_original_project_estimate;
+
   const blockedSelectedTickets = useMemo(
-    () => visible.filter((t) => selected.has(t.id) && isOver(t.id)),
+    () => visible.filter((t) => selected.has(t.id) && (isOver(t.id) || needsEstimate(t))),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [visible, selected, capMap, discipline],
   );
