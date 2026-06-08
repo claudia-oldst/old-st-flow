@@ -103,6 +103,9 @@ export function TicketCard({
     setLogOpen(true);
   };
 
+  const { statuses } = useStatuses();
+  const projectStatus = ticket.status_id ? statuses.find((s) => s.id === ticket.status_id) : null;
+
   return (
     <>
     <div
