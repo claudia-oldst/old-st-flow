@@ -15,7 +15,7 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   originalReason: string | null;
   busy?: boolean;
-  onConfirm: (reason: string) => void | Promise<void>;
+  onConfirm: (reason: string) => unknown;
 }
 
 export function RejectEstimateRevisionDialog({
