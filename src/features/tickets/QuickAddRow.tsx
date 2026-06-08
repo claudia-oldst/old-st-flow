@@ -140,7 +140,14 @@ export function QuickAddRow({
         className="h-7 text-xs"
       />
       <div className="flex gap-1.5">
-        <Select value={type} onValueChange={(v) => setType(v as TicketType)}>
+        <Select value={type} onValueChange={(v) => {
+          const nt = v as TicketType;
+          setType(nt);
+          if (nt !== "Bug") {
+            setParentTicketId(null);
+            setParentTitle(null);
+          }
+        }}>
           <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="Standard">Standard</SelectItem>
@@ -149,6 +156,24 @@ export function QuickAddRow({
             <SelectItem value="Proj">Proj</SelectItem>
           </SelectContent>
         </Select>
+        {isBug && (
+          <div className="flex-1 min-w-0">
+            <ParentTicketSelect
+              projectId={projectId}
+              value={parentTicketId}
+              size="sm"
+              placeholder="Parent ticket (optional)…"
+              onChange={(id, parent) => {
+                const titleIsEmptyOrInherited =
+                  !title.trim() || (parentTitle !== null && title.trim() === parentTitle.trim());
+                setParentTicketId(id);
+                setParentTitle(parent?.title ?? null);
+                if (titleIsEmptyOrInherited) setTitle(parent?.title ?? "");
+                if (parent?.epic_id != null) setEpicId(parent.epic_id);
+              }}
+            />
+          </div>
+        )}
         {isProj ? (
           <Input value={proj} onChange={(e) => setProj(e.target.value)} placeholder="Project hrs" className="h-7 text-xs w-24" type="number" step="0.5" />
         ) : (
@@ -158,21 +183,8 @@ export function QuickAddRow({
           </>
         )}
       </div>
-      <EpicSelect projectId={projectId} value={epicId} onChange={setEpicId} size="sm" />
-      {isBug && (
-        <ParentTicketSelect
-          projectId={projectId}
-          value={parentTicketId}
-          size="sm"
-          placeholder="Parent ticket (optional)…"
-          onChange={(id, parent) => {
-            const titleIsEmptyOrInherited =
-              !title.trim() || (parentTitle !== null && title.trim() === parentTitle.trim());
-            setParentTicketId(id);
-            setParentTitle(parent?.title ?? null);
-            if (titleIsEmptyOrInherited) setTitle(parent?.title ?? "");
-          }}
-        />
+      {!(isBug && parentTicketId) && (
+        <EpicSelect projectId={projectId} value={epicId} onChange={setEpicId} size="sm" />
       )}
       <div className="flex justify-end gap-1">
         <Button size="sm" variant="ghost" onClick={() => setOpen(false)} className="h-6 text-xs px-2">Cancel</Button>
