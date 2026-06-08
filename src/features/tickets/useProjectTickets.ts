@@ -24,6 +24,9 @@ export interface TicketRow {
   current_be_estimate: number;
   original_project_estimate: number;
   current_project_estimate: number;
+  has_original_fe_estimate: boolean;
+  has_original_be_estimate: boolean;
+  has_original_project_estimate: boolean;
   actual_frontend_hours: number;
   actual_backend_hours: number;
   actual_project_hours: number;
@@ -74,12 +77,15 @@ function normalizeTicket(raw: any): TicketRow {
     epic_id: raw.epic_id ?? null,
     epic_name: raw.epic?.epic_name ?? null,
     version: raw.version ?? null,
-    original_fe_estimate: Number(raw.original_fe_estimate),
-    original_be_estimate: Number(raw.original_be_estimate),
-    current_fe_estimate: Number(raw.current_fe_estimate),
-    current_be_estimate: Number(raw.current_be_estimate),
+    original_fe_estimate: Number(raw.original_fe_estimate ?? 0),
+    original_be_estimate: Number(raw.original_be_estimate ?? 0),
+    current_fe_estimate: Number(raw.current_fe_estimate ?? 0),
+    current_be_estimate: Number(raw.current_be_estimate ?? 0),
     original_project_estimate: Number(raw.original_project_estimate ?? 0),
     current_project_estimate: Number(raw.current_project_estimate ?? 0),
+    has_original_fe_estimate: raw.original_fe_estimate !== null && raw.original_fe_estimate !== undefined,
+    has_original_be_estimate: raw.original_be_estimate !== null && raw.original_be_estimate !== undefined,
+    has_original_project_estimate: raw.original_project_estimate !== null && raw.original_project_estimate !== undefined,
     actual_frontend_hours: Number(raw.actual_frontend_hours),
     actual_backend_hours: Number(raw.actual_backend_hours),
     actual_project_hours: Number(raw.actual_project_hours ?? 0),

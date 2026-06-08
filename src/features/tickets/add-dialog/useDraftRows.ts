@@ -53,28 +53,34 @@ export function useDraftRows({
 
   const addAnother = () => setDrafts((prev) => [...prev, newDraft(defaultStatusId, defaultType)]);
 
-  const validDrafts = useMemo(() => drafts.filter((d) => d.title.trim().length > 0), [drafts]);
+  const validDrafts = useMemo(
+    () => drafts.filter((d) => d.title.trim().length > 0 && d.epicId !== null),
+    [drafts],
+  );
 
   const submit = async () => {
     if (validDrafts.length === 0) return;
     setBusy(true);
     const payload = validDrafts.map((d) => {
       const isProj = d.type === "Proj";
-      const fe = parseFloat(d.fe) || 0;
-      const be = parseFloat(d.be) || 0;
-      const proj = parseFloat(d.proj) || 0;
+      const feBlank = d.fe.trim() === "";
+      const beBlank = d.be.trim() === "";
+      const projBlank = d.proj.trim() === "";
+      const fe = feBlank ? null : (parseFloat(d.fe) || 0);
+      const be = beBlank ? null : (parseFloat(d.be) || 0);
+      const proj = projBlank ? null : (parseFloat(d.proj) || 0);
       return {
         project_id: projectId,
         title: d.title.trim(),
         ticket_type: d.type,
         status_id: d.statusId,
         epic_id: d.epicId,
-        original_fe_estimate: isProj ? 0 : fe,
-        original_be_estimate: isProj ? 0 : be,
-        current_fe_estimate: isProj ? 0 : fe,
-        current_be_estimate: isProj ? 0 : be,
-        original_project_estimate: isProj ? proj : 0,
-        current_project_estimate: isProj ? proj : 0,
+        original_fe_estimate: isProj ? null : fe,
+        original_be_estimate: isProj ? null : be,
+        current_fe_estimate: isProj ? null : fe,
+        current_be_estimate: isProj ? null : be,
+        original_project_estimate: isProj ? proj : null,
+        current_project_estimate: isProj ? proj : null,
         parent_ticket_id: d.type === "Bug" ? d.parentTicketId : null,
         ticket_number: 0,
         formatted_id: "",

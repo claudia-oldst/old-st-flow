@@ -40,17 +40,24 @@ export function QuickAddRow({
   const isBug = type === "Bug";
 
   const submit = async () => {
-    const projHrs = parseFloat(proj) || 0;
-    const feHrs = parseFloat(fe) || 0;
-    const beHrs = parseFloat(be) || 0;
+    if (epicId === null) {
+      toast.error("Epic is required");
+      return;
+    }
+    const projBlank = proj.trim() === "";
+    const feBlank = fe.trim() === "";
+    const beBlank = be.trim() === "";
+    const projHrs = projBlank ? null : (parseFloat(proj) || 0);
+    const feHrs = feBlank ? null : (parseFloat(fe) || 0);
+    const beHrs = beBlank ? null : (parseFloat(be) || 0);
 
     const parsed = ticketInputSchema.safeParse({
       title,
       ticket_type: type,
       epic_id: epicId,
-      fe_estimate: isProj ? 0 : feHrs,
-      be_estimate: isProj ? 0 : beHrs,
-      project_estimate: isProj ? projHrs : 0,
+      fe_estimate: isProj ? null : feHrs,
+      be_estimate: isProj ? null : beHrs,
+      project_estimate: isProj ? projHrs : null,
     });
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message ?? "Invalid ticket");
@@ -58,22 +65,21 @@ export function QuickAddRow({
     }
 
     setBusy(true);
-    const { data: inserted, error } = await supabase
+    const { error } = await supabase
       .from("tickets")
       .insert({
         project_id: projectId,
         title: parsed.data.title,
         ticket_type: parsed.data.ticket_type,
         status_id: statusId,
-        epic_id: parsed.data.epic_id ?? null,
-        original_fe_estimate: parsed.data.fe_estimate ?? 0,
-        original_be_estimate: parsed.data.be_estimate ?? 0,
-        current_fe_estimate: parsed.data.fe_estimate ?? 0,
-        current_be_estimate: parsed.data.be_estimate ?? 0,
-        original_project_estimate: parsed.data.project_estimate ?? 0,
-        current_project_estimate: parsed.data.project_estimate ?? 0,
+        epic_id: parsed.data.epic_id,
+        original_fe_estimate: isProj ? null : feHrs,
+        original_be_estimate: isProj ? null : beHrs,
+        current_fe_estimate: isProj ? null : feHrs,
+        current_be_estimate: isProj ? null : beHrs,
+        original_project_estimate: isProj ? projHrs : null,
+        current_project_estimate: isProj ? projHrs : null,
         parent_ticket_id: isBug ? parentTicketId : null,
-        // ticket_number + formatted_id are filled by the before-insert trigger
         ticket_number: 0,
         formatted_id: "",
       })
@@ -151,7 +157,7 @@ export function QuickAddRow({
       )}
       <div className="flex justify-end gap-1">
         <Button size="sm" variant="ghost" onClick={() => setOpen(false)} className="h-6 text-xs px-2">Cancel</Button>
-        <Button size="sm" onClick={submit} disabled={busy || !title.trim()} className="h-6 text-xs px-2">Add</Button>
+        <Button size="sm" onClick={submit} disabled={busy || !title.trim() || epicId === null} className="h-6 text-xs px-2">Add</Button>
       </div>
     </div>
   );

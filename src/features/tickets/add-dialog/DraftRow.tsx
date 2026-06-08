@@ -103,7 +103,11 @@ export function DraftRow({
             value={draft.epicId}
             onChange={(id) => onChange({ epicId: id })}
             size="sm"
+            className={cn(draft.title.trim() && draft.epicId === null && "ring-1 ring-primary/60")}
           />
+          {draft.title.trim() && draft.epicId === null && (
+            <div className="text-[10px] text-primary mt-1">Epic required</div>
+          )}
         </div>
 
         <div className="md:col-span-3">

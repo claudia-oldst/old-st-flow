@@ -577,18 +577,18 @@ export type Database = {
           cr_decided_at: string | null
           cr_decided_by: string | null
           created_at: string
-          current_be_estimate: number
-          current_fe_estimate: number
-          current_project_estimate: number
+          current_be_estimate: number | null
+          current_fe_estimate: number | null
+          current_project_estimate: number | null
           epic_id: number | null
           fe_status: Database["public"]["Enums"]["discipline_status"]
           formatted_id: string
           github_issue_node_id: string | null
           github_issue_number: number | null
           id: string
-          original_be_estimate: number
-          original_fe_estimate: number
-          original_project_estimate: number
+          original_be_estimate: number | null
+          original_fe_estimate: number | null
+          original_project_estimate: number | null
           parent_ticket_id: string | null
           position: number
           project_id: string
@@ -611,18 +611,18 @@ export type Database = {
           cr_decided_at?: string | null
           cr_decided_by?: string | null
           created_at?: string
-          current_be_estimate?: number
-          current_fe_estimate?: number
-          current_project_estimate?: number
+          current_be_estimate?: number | null
+          current_fe_estimate?: number | null
+          current_project_estimate?: number | null
           epic_id?: number | null
           fe_status?: Database["public"]["Enums"]["discipline_status"]
           formatted_id: string
           github_issue_node_id?: string | null
           github_issue_number?: number | null
           id?: string
-          original_be_estimate?: number
-          original_fe_estimate?: number
-          original_project_estimate?: number
+          original_be_estimate?: number | null
+          original_fe_estimate?: number | null
+          original_project_estimate?: number | null
           parent_ticket_id?: string | null
           position?: number
           project_id: string
@@ -645,18 +645,18 @@ export type Database = {
           cr_decided_at?: string | null
           cr_decided_by?: string | null
           created_at?: string
-          current_be_estimate?: number
-          current_fe_estimate?: number
-          current_project_estimate?: number
+          current_be_estimate?: number | null
+          current_fe_estimate?: number | null
+          current_project_estimate?: number | null
           epic_id?: number | null
           fe_status?: Database["public"]["Enums"]["discipline_status"]
           formatted_id?: string
           github_issue_node_id?: string | null
           github_issue_number?: number | null
           id?: string
-          original_be_estimate?: number
-          original_fe_estimate?: number
-          original_project_estimate?: number
+          original_be_estimate?: number | null
+          original_fe_estimate?: number | null
+          original_project_estimate?: number | null
           parent_ticket_id?: string | null
           position?: number
           project_id?: string
