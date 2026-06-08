@@ -14,6 +14,7 @@ import { ClientPortalEditor } from "@/features/client-portal/ClientPortalEditor"
 import { useProjectRole, isPMBA } from "@/features/team/useProjectRole";
 import { useProjectAccess } from "@/features/auth/useProjectAccess";
 import { VaultDashboard } from "@/features/vault/VaultDashboard";
+import { SprintsPage } from "@/features/sprints/SprintsPage";
 import { ArrowLeft, Download, Archive } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,7 @@ export default function ProjectWorkspace() {
         { to: "", label: "Tickets", end: true },
         { to: "change-requests-cr", label: "Change Requests" },
         canEdit ? { to: "change-requests", label: "Estimate Revisions" } : null,
+        { to: "sprints", label: "Sprints" },
         { to: "health", label: "Health" },
         canEdit ? { to: "client", label: "Client" } : null,
       ].filter(Boolean) as Array<{ to: string; label: string; end?: boolean }>,
@@ -152,6 +154,7 @@ export default function ProjectWorkspace() {
             <Route index element={<ProjectTickets projectId={id} />} />
             <Route path="change-requests-cr" element={<ProjectChangeRequestTickets projectId={id} />} />
             <Route path="change-requests" element={<ProjectChangeRequests projectId={id} />} />
+            <Route path="sprints" element={<SprintsPage projectId={id} />} />
             <Route path="health" element={<ProjectHealth projectId={id} />} />
             <Route path="client" element={<ClientPortalEditor />} />
           </Routes>
