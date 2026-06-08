@@ -215,7 +215,7 @@ export function CommentItem({ comment, projectId, ticketId, onReply, onChanged, 
         </div>
         {comment.body && (
           <div className="prose prose-invert prose-xs max-w-none mt-0.5 break-words text-xs leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:text-xs [&_li]:text-xs [&_code]:text-xs">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{comment.body}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{comment.body}</ReactMarkdown>
           </div>
         )}
         {comment.attachments.length > 0 && (
