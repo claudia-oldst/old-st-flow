@@ -163,13 +163,13 @@ export function useLogTime({
       toast.error("Enter an estimate (0 or more)");
       return false;
     }
-    const patch: Record<string, number> =
+    const patch =
       discipline === "FE"
         ? { original_fe_estimate: v, current_fe_estimate: v }
         : discipline === "BE"
           ? { original_be_estimate: v, current_be_estimate: v }
           : { original_project_estimate: v, current_project_estimate: v };
-    const { error } = await supabase.from("tickets").update(patch).eq("id", ticket.id);
+    const { error } = await supabase.from("tickets").update(patch as any).eq("id", ticket.id);
     if (error) {
       toast.error(error.message);
       return false;
