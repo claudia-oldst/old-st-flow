@@ -1,25 +1,57 @@
-# Fix: client portal URL resolves to "This portal isn't available"
+## Goal
 
-## Root cause
+1. Every new ticket must have an **Epic** selected (title is already required and acts as the description).
+2. An estimate is "set" when its value is filled in — **`0` counts as an estimate**; only **blank/NULL** means unestimated.
+3. Before an assignee can log time (or start a timer) on a ticket where their discipline has no estimate, they must first enter the **original estimate** for that discipline.
 
-`pgcrypto` lives in the `extensions` schema. The portal hash lookup functions were created with `SET search_path = public`, so the `digest(...)` call inside them fails with `function digest(unknown, unknown) does not exist`. The RPC throws, the public page shows the generic "This portal isn't available" fallback, even though the hash is valid and the project is published.
+## 1. Required Epic on creation
 
-Verified: the project row exists with `client_portal_hash = '345g6g466u0z0k0i'`, `client_portal_hash_sha` set, and `client_visibility_cutoff` populated — so data is fine; only the function resolution is broken.
+`EpicSelect` already supports inline creation (type a name → "Create '…'"), so no new UI is needed — we just make epic required.
 
-## Fix
+**Add Tickets dialog** (`useDraftRows` + `DraftRow`):
+- `validDrafts` now requires `title.trim()` AND `epicId !== null`.
+- Show the EpicSelect with an error ring + "Epic required" hint when the user tries to submit with it empty.
+- Update the Create button counter to reflect drafts that are fully valid.
 
-New migration that recreates the three affected functions with `SET search_path = public, extensions` (matches Supabase's recommended pattern and resolves `digest` / `gen_random_bytes` without dropping security_definer hardening):
+**Quick add row** (`QuickAddRow`):
+- Same rule — disable submit until epic is chosen; show "Epic required" hint.
 
-1. `public.rotate_client_portal_hash(uuid)`
-2. `public.get_client_portal(text)`
-3. `public.get_client_portal_change_requests(text)`
-4. `public.client_approve_cr(text, uuid)` — same pattern, same fix
+**Schema** (`src/lib/schemas/ticket.ts` + test): make `epic_id` required (non-null `number`). Update tests.
 
-Function bodies are unchanged apart from the `SET search_path` line. Existing `GRANT EXECUTE` on `anon` / `authenticated` is preserved (CREATE OR REPLACE keeps grants).
+## 2. Blank vs zero estimate
 
-No frontend changes. No data migration needed — `client_portal_hash_sha` was already backfilled at migration time when default search_path included extensions.
+Today the create paths coerce empty FE/BE/Project inputs to `0`, hiding "no estimate". To support the new rule we treat **blank input = NULL** and **`0` = a real estimate**.
 
-## Verification after deploy
+- **DB migration**: drop `NOT NULL` / `DEFAULT 0` on the six estimate columns on `public.tickets`
+  (`original_fe_estimate`, `original_be_estimate`, `original_project_estimate`,
+  `current_fe_estimate`, `current_be_estimate`, `current_project_estimate`).
+  Update `enforce_proj_ticket_zero_fe_be` so its checks use `IS NOT NULL` and it doesn't overwrite NULLs with 0.
+- **Create paths** (`useDraftRows`, `QuickAddRow`): if the user leaves an estimate field blank, insert `null` for both `original_*` and `current_*`. If they type `0`, insert `0`.
+- **Numeric reads**: audit aggregation/display call sites (`useTicketCapacity`, board/health/portal sums) to coalesce `NULL → 0` for math while keeping the raw value for the gating logic. Most call sites already use `?? 0`.
 
-- Reload `/h/345g6g466u0z0k0i` — should render the portal.
-- PMBA "Publish to client" rotates a fresh 64-hex token and the new URL also resolves.
+## 3. Gate time-logging on missing estimate
+
+For the assignee's chosen discipline (FE / BE / Project), if the ticket's `original_*_estimate IS NULL`, block normal logging and instead require them to set the original estimate first.
+
+- `useLogTime` / `LogTimeModal`: detect missing original estimate for the active `discipline`. Render a "Set original estimate" prompt (single hours input, `0` allowed) with a Save button that updates both `original_*_estimate` and `current_*_estimate` on the ticket, then transitions to the normal Start Timer / Manual Log UI.
+- `LogTimeWithCapacityCheck`: pass through the same gate.
+- `startTicketTimer` and `StartGroupTimerDialog`: before starting a timer, if the user's discipline has a NULL original estimate, open the same "Set estimate" prompt; on save, proceed to start the timer.
+- PMBA-initiated flows that don't go through the assignee log-time path aren't gated.
+
+## 4. Files to touch
+
+- `src/lib/schemas/ticket.ts` + `src/lib/schemas/ticket.test.ts`
+- `src/features/tickets/add-dialog/useDraftRows.ts`
+- `src/features/tickets/add-dialog/DraftRow.tsx`
+- `src/features/tickets/QuickAddRow.tsx`
+- `src/features/timelog/log-time/useLogTime.ts`
+- `src/features/timelog/LogTimeModal.tsx`
+- `src/features/timelog/LogTimeWithCapacityCheck.tsx`
+- `src/features/timelog/startTicketTimer.ts`
+- `src/features/timelog/StartGroupTimerDialog.tsx`
+- Supabase migration: drop NOT NULL / DEFAULT 0 on the six estimate columns and adjust `enforce_proj_ticket_zero_fe_be`.
+
+## Out of scope
+
+- Existing tickets keep their current values; the new "blank" state only arises from newly created tickets.
+- No change to the AI copy button on acceptance criteria, portal layout, or roles.
