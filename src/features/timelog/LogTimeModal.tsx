@@ -45,6 +45,8 @@ export function LogTimeModal({ open, onOpenChange, ticket, role, onLogged }: Pro
     capacity,
     refetchCapacity,
     wouldOverflowManual,
+    missingEstimate,
+    saveOriginalEstimate,
   } = useLogTime({
     open,
     ticket,
@@ -54,12 +56,16 @@ export function LogTimeModal({ open, onOpenChange, ticket, role, onLogged }: Pro
   });
 
   const [adjustOpen, setAdjustOpen] = useState(false);
+  const [estimateInput, setEstimateInput] = useState("");
+  const [savingEstimate, setSavingEstimate] = useState(false);
   const isMyTimerOnThisTicket = activeTimer?.ticket_id === ticket.id;
 
   const enteredHours = parseFloat(hours) || 0;
   const overflowsManual = enteredHours > 0 && wouldOverflowManual(enteredHours);
   const adjustSlot: AdjustSlot =
     discipline === "Project" ? "Proj" : (discipline as "FE" | "BE");
+
+  const disciplineLabel = discipline === "FE" ? "Frontend" : discipline === "BE" ? "Backend" : "Project";
 
   return (
     <>
