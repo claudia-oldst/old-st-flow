@@ -24,6 +24,9 @@ export interface TicketRow {
   current_be_estimate: number;
   original_project_estimate: number;
   current_project_estimate: number;
+  has_original_fe_estimate: boolean;
+  has_original_be_estimate: boolean;
+  has_original_project_estimate: boolean;
   actual_frontend_hours: number;
   actual_backend_hours: number;
   actual_project_hours: number;
