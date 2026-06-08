@@ -90,7 +90,7 @@ export function useDraftRows({
     const { data: created, error } = await supabase
       .from("tickets")
       .insert(payload as any)
-      .select("id");
+      .select("id, formatted_id, title");
 
     if (error || !created) {
       setBusy(false);
