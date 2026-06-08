@@ -24,6 +24,7 @@ export function useDraftRows({
   const [drafts, setDrafts] = useState<Draft[]>([newDraft(null, defaultType)]);
   const [members, setMembers] = useState<(ProjectMember & { member: TeamMember })[]>([]);
   const [busy, setBusy] = useState(false);
+  const userId = useCurrentUser((s) => s.user?.id);
 
   useEffect(() => {
     if (open) {
