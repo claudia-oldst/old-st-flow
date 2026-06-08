@@ -7,6 +7,7 @@ export interface CardDisplayPrefs {
   bars: boolean;
   assignees: boolean;
   projBadge: boolean;
+  status: boolean;
 }
 
 export const DEFAULT_CARD_PREFS: CardDisplayPrefs = {
@@ -16,6 +17,7 @@ export const DEFAULT_CARD_PREFS: CardDisplayPrefs = {
   bars: true,
   assignees: true,
   projBadge: true,
+  status: true,
 };
 
 const STORAGE_KEY = "card-display-prefs-v1";
