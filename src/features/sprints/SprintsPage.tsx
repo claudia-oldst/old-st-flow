@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useProjectRole, isPMBA as isPMBARole } from "@/features/team/useProjectRole";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSprints } from "./useSprintBoard";
 import { ForecastingCalendar } from "./ForecastingCalendar";
 import { SprintWorkbench } from "./SprintWorkbench";
-import { cn } from "@/lib/utils";
 
 export function SprintsPage({ projectId }: { projectId: string }) {
   const role = useProjectRole(projectId);
@@ -22,33 +22,18 @@ export function SprintsPage({ projectId }: { projectId: string }) {
           Read-only view — only PMBAs can edit sprints, capacities, or assignments.
         </div>
       )}
-      <div className="flex gap-1 hairline-b">
-        {(
-          [
-            { id: "forecast", label: "Forecasting Calendar" },
-            { id: "workbench", label: "Sprint Workbench" },
-          ] as const
-        ).map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => setTab(t.id)}
-            className={cn(
-              "px-3 py-2 text-xs transition relative",
-              tab === t.id ? "text-foreground" : "text-dim hover:text-foreground",
-            )}
-          >
-            {t.label}
-            {tab === t.id && <span className="absolute left-2 right-2 -bottom-px h-px bg-foreground" />}
-          </button>
-        ))}
-      </div>
-
-      {tab === "forecast" ? (
-        <ForecastingCalendar projectId={projectId} sprints={sprints} isPMBA={isPMBA} />
-      ) : (
-        <SprintWorkbench projectId={projectId} sprints={sprints} isPMBA={isPMBA} />
-      )}
+      <Tabs value={tab} onValueChange={(v) => setTab(v as "forecast" | "workbench")}>
+        <TabsList>
+          <TabsTrigger value="forecast">Forecasting Calendar</TabsTrigger>
+          <TabsTrigger value="workbench">Sprint Workbench</TabsTrigger>
+        </TabsList>
+        <TabsContent value="forecast" className="mt-4">
+          <ForecastingCalendar projectId={projectId} sprints={sprints} isPMBA={isPMBA} />
+        </TabsContent>
+        <TabsContent value="workbench" className="mt-4">
+          <SprintWorkbench projectId={projectId} sprints={sprints} isPMBA={isPMBA} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

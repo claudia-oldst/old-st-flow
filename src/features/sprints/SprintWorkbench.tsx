@@ -9,13 +9,13 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { AssigneeSlot } from "@/lib/types";
-import type { Sprint } from "./types";
+import type { Sprint, SprintTicket } from "./types";
 import { memberDisciplines } from "./types";
+import { useProjectTickets, type TicketRow } from "@/features/tickets/useProjectTickets";
 import {
   useSprintCapacities,
   useSprintTickets,
   useProjectMembers,
-  useProjectTickets,
   useProjectSprintTickets,
 } from "./useSprintBoard";
 import { BacklogPanel } from "./BacklogPanel";
@@ -41,7 +41,17 @@ export function SprintWorkbench({ projectId, sprints, isPMBA }: Props) {
   const qc = useQueryClient();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
-  const { data: tickets = [] } = useProjectTickets(projectId);
+  const { tickets: allTickets } = useProjectTickets(projectId);
+  const tickets = useMemo(
+    () => allTickets.filter((t) => t.ticket_type !== "Proj"),
+    [allTickets],
+  );
+  const ticketById = useMemo(() => {
+    const m = new Map<string, TicketRow>();
+    tickets.forEach((t) => m.set(t.id, t));
+    return m;
+  }, [tickets]);
+
   const { data: allSprintTickets = [] } = useProjectSprintTickets(projectId);
   const { data: capacities = [] } = useSprintCapacities(targetSprintId || undefined);
   const { data: sprintTickets = [] } = useSprintTickets(targetSprintId || undefined);
@@ -49,14 +59,22 @@ export function SprintWorkbench({ projectId, sprints, isPMBA }: Props) {
 
   const targetSprint = sprints.find((s) => s.id === targetSprintId);
 
-  // Lanes only for FE/BE/Fullstack members
   const devMembers = useMemo(
     () => members.filter((m) => memberDisciplines(m.role).length > 0),
     [members],
   );
 
-  const poolItems = sprintTickets.filter((st) => !st.assigned_user_id);
-  const itemsByUser = (uid: string) => sprintTickets.filter((st) => st.assigned_user_id === uid);
+  const resolveItems = (rows: SprintTicket[]) =>
+    rows
+      .map((link) => {
+        const t = ticketById.get(link.ticket_id);
+        return t ? { link, ticket: t } : null;
+      })
+      .filter((x): x is { link: SprintTicket; ticket: TicketRow } => !!x);
+
+  const poolItems = resolveItems(sprintTickets.filter((st) => !st.assigned_user_id));
+  const itemsByUser = (uid: string) =>
+    resolveItems(sprintTickets.filter((st) => st.assigned_user_id === uid));
 
   const handleDragEnd = async (e: DragEndEvent) => {
     if (!isPMBA || !targetSprintId) return;
@@ -69,7 +87,6 @@ export function SprintWorkbench({ projectId, sprints, isPMBA }: Props) {
     const [overKind, ...overRest] = overId.split(":");
 
     try {
-      // Source is BACKLOG -> Pool or Lane
       if (activeKind === "backlog") {
         const ticketId = activeRest[0];
         if (overId === "zone:pool") {
@@ -81,9 +98,7 @@ export function SprintWorkbench({ projectId, sprints, isPMBA }: Props) {
           const slot: AssigneeSlot = memberDisciplines(dev.role)[0] as AssigneeSlot;
           await addTicketToLane(targetSprintId, ticketId, userId, slot);
         }
-      }
-      // Source is POOL card -> Lane (or back to backlog)
-      else if (activeKind === "pool") {
+      } else if (activeKind === "pool") {
         const sprintTicketId = activeRest[0];
         const st = sprintTickets.find((s) => s.id === sprintTicketId);
         if (!st) return;
@@ -96,9 +111,7 @@ export function SprintWorkbench({ projectId, sprints, isPMBA }: Props) {
         } else if (overId === "zone:backlog") {
           await removeTicketFromSprint(st.id, st.ticket_id, null, null);
         }
-      }
-      // Source is LANE card -> Pool or Backlog or another Lane
-      else if (activeKind === "lane") {
+      } else if (activeKind === "lane") {
         const sprintTicketId = activeRest[0];
         const fromUserId = activeRest[1];
         const st = sprintTickets.find((s) => s.id === sprintTicketId);
@@ -115,7 +128,6 @@ export function SprintWorkbench({ projectId, sprints, isPMBA }: Props) {
         } else if (overKind === "zone" && overRest[0] === "lane") {
           const toUserId = overRest[1];
           if (toUserId === fromUserId) return;
-          // Unpin from old, then pin to new
           if (fromSlot) await unpinTicketFromLane(st.id, st.ticket_id, fromUserId, fromSlot);
           const toDev = devMembers.find((d) => d.user_id === toUserId);
           if (!toDev) return;

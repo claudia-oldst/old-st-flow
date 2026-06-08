@@ -1,12 +1,12 @@
 import { useDroppable } from "@dnd-kit/core";
-import type { Ticket } from "@/lib/types";
+import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import type { SprintTicket } from "./types";
 import { remainingHours, dndId } from "./types";
-import { TicketCard } from "./TicketCard";
+import { DraggableTicketCard } from "./DraggableTicketCard";
 import { cn } from "@/lib/utils";
 
 interface Props {
-  items: Array<SprintTicket & { ticket: Ticket }>;
+  items: Array<{ link: SprintTicket; ticket: TicketRow }>;
   disabled: boolean;
 }
 
@@ -48,10 +48,10 @@ export function SprintPoolPanel({ items, disabled }: Props) {
           <div className="text-[11px] text-dim text-center py-6">Drop tickets here</div>
         )}
         {items.map((it) => (
-          <TicketCard
-            key={it.id}
+          <DraggableTicketCard
+            key={it.link.id}
             ticket={it.ticket}
-            dndId={dndId.poolCard(it.id)}
+            dndId={dndId.poolCard(it.link.id)}
             disabled={disabled}
           />
         ))}
