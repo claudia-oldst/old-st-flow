@@ -6,6 +6,7 @@ import type { Status } from "@/lib/types";
 import { displayTitle } from "@/lib/utils";
 import { StatusBadge } from "@/features/_shared/estimate-ui/StatusBadge";
 import { GithubIssueBadge } from "@/features/github/GithubIssueBadge";
+import { emitOpenTicket } from "@/features/tickets/openTicketEvent";
 
 export function TicketDetailHeader({
   ticket,
