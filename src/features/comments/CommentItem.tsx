@@ -12,6 +12,35 @@ import { toast } from "sonner";
 import { CommentComposer } from "./CommentComposer";
 import { deleteAttachment, getAttachmentSignedUrl } from "./uploadCommentAttachment";
 import type { CommentRow, CommentAttachment } from "./types";
+import { emitOpenTicket } from "@/features/tickets/openTicketEvent";
+
+const OPEN_TICKET_HREF = /^#open-ticket:([0-9a-f-]{36})$/i;
+
+const markdownComponents = {
+  a: ({ href, children, ...rest }: any) => {
+    const m = typeof href === "string" ? href.match(OPEN_TICKET_HREF) : null;
+    if (m) {
+      const id = m[1];
+      return (
+        <button
+          type="button"
+          className="text-primary underline-offset-2 hover:underline font-mono"
+          onClick={(e) => {
+            e.preventDefault();
+            emitOpenTicket(id);
+          }}
+        >
+          {children}
+        </button>
+      );
+    }
+    return (
+      <a href={href} target="_blank" rel="noreferrer" {...rest}>
+        {children}
+      </a>
+    );
+  },
+};
 
 function relTime(iso: string) {
   const d = new Date(iso).getTime();
