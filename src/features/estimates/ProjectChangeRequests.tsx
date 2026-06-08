@@ -140,22 +140,43 @@ export function ProjectChangeRequests({ projectId }: { projectId: string }) {
       const { error: tErr } = await supabase.from("tickets").update(patch).eq("id", t.id);
       if (tErr) return toast.error(tErr.message);
     }
-    toast.success("Change request approved");
+    toast.success("Estimate revision approved");
     reload();
   };
 
-  const handleReject = async (row: ChangeRow) => {
+  const [rejectTarget, setRejectTarget] = useState<ChangeRow | null>(null);
+  const [rejectBusy, setRejectBusy] = useState(false);
+
+  const handleReject = (row: ChangeRow) => {
     if (!user) return toast.error("Sign in first");
     if (row.status !== "pending") return toast.message("Already decided");
+    setRejectTarget(row);
+  };
+
+  const confirmReject = async (rejectionReason: string) => {
+    const row = rejectTarget;
+    if (!row || !user) return;
+    setRejectBusy(true);
+    const base = (row.reason ?? "").trim();
+    const stamp = `Rejected by ${user.name}: ${rejectionReason}`;
+    const combinedReason = base ? `${base}\n\n— ${stamp}` : `— ${stamp}`;
     const { error } = await supabase
       .from("ticket_estimate_changes")
-      .update({ status: "rejected", decided_by: user.id, decided_at: new Date().toISOString() })
+      .update({
+        status: "rejected",
+        decided_by: user.id,
+        decided_at: new Date().toISOString(),
+        reason: combinedReason,
+      })
       .eq("id", row.id)
       .eq("status", "pending");
+    setRejectBusy(false);
     if (error) return toast.error(error.message);
-    toast.success("Change request rejected");
+    toast.success("Estimate revision rejected");
+    setRejectTarget(null);
     reload();
   };
+
 
   if (!canReview) {
     return (
