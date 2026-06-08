@@ -62,7 +62,7 @@ function withTimeout<T>(promise: PromiseLike<T>, ms: number, label: string): Pro
   ]);
 }
 
-function normalizeTicket(raw: any): TicketRow {
+export function normalizeTicket(raw: any): TicketRow {
   return {
     id: raw.id,
     project_id: raw.project_id,

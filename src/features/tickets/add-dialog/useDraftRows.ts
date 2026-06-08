@@ -3,6 +3,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { ProjectMember, TeamMember, TicketType } from "@/lib/types";
 import { Draft, Slot, newDraft } from "./types";
+import { useCurrentUser } from "@/store/currentUser";
+import { postBugLinkComment } from "@/features/tickets/postBugLinkComment";
 
 export function useDraftRows({
   open,
@@ -22,6 +24,7 @@ export function useDraftRows({
   const [drafts, setDrafts] = useState<Draft[]>([newDraft(null, defaultType)]);
   const [members, setMembers] = useState<(ProjectMember & { member: TeamMember })[]>([]);
   const [busy, setBusy] = useState(false);
+  const userId = useCurrentUser((s) => s.user?.id);
 
   useEffect(() => {
     if (open) {
@@ -90,7 +93,7 @@ export function useDraftRows({
     const { data: created, error } = await supabase
       .from("tickets")
       .insert(payload as any)
-      .select("id");
+      .select("id, formatted_id, title");
 
     if (error || !created) {
       setBusy(false);
@@ -125,6 +128,29 @@ export function useDraftRows({
         toast.error("Tickets created, but assignment failed: " + aErr.message);
       }
     }
+
+    // For each created Bug with a parent, drop a comment on the parent ticket
+    // pointing back to the new bug.
+    if (userId) {
+      await Promise.all(
+        created.map(async (row: any, idx: number) => {
+          const d = validDrafts[idx];
+          if (!d || d.type !== "Bug" || !d.parentTicketId) return;
+          try {
+            await postBugLinkComment({
+              parentTicketId: d.parentTicketId,
+              bugTicketId: row.id,
+              bugFormattedId: row.formatted_id,
+              bugTitle: row.title,
+              userId,
+            });
+          } catch {
+            /* non-blocking */
+          }
+        }),
+      );
+    }
+
 
     try {
       await onCreated();

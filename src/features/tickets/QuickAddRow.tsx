@@ -15,6 +15,8 @@ import { EpicSelect } from "@/features/epics/EpicSelect";
 import { ParentTicketSelect } from "@/features/tickets/ParentTicketSelect";
 import { ticketInputSchema } from "@/lib/schemas/ticket";
 import { toast } from "sonner";
+import { useCurrentUser } from "@/store/currentUser";
+import { postBugLinkComment } from "@/features/tickets/postBugLinkComment";
 
 export function QuickAddRow({
   projectId,
@@ -35,6 +37,7 @@ export function QuickAddRow({
   const [parentTicketId, setParentTicketId] = useState<string | null>(null);
   const [parentTitle, setParentTitle] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const userId = useCurrentUser((s) => s.user?.id);
 
   const isProj = type === "Proj";
   const isBug = type === "Bug";
@@ -65,7 +68,7 @@ export function QuickAddRow({
     }
 
     setBusy(true);
-    const { error } = await supabase
+    const { data: createdTicket, error } = await supabase
       .from("tickets")
       .insert({
         project_id: projectId,
@@ -83,10 +86,26 @@ export function QuickAddRow({
         ticket_number: 0,
         formatted_id: "",
       })
-      .select("id")
+      .select("id, formatted_id, title")
       .single();
+    if (error || !createdTicket) {
+      setBusy(false);
+      return toast.error(error?.message ?? "Failed to create ticket");
+    }
+    if (isBug && parentTicketId && userId) {
+      try {
+        await postBugLinkComment({
+          parentTicketId,
+          bugTicketId: createdTicket.id,
+          bugFormattedId: createdTicket.formatted_id,
+          bugTitle: createdTicket.title,
+          userId,
+        });
+      } catch {
+        /* non-blocking */
+      }
+    }
     setBusy(false);
-    if (error) return toast.error(error.message);
     setTitle("");
     setFe("");
     setBe("");
