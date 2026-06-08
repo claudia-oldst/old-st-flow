@@ -17,6 +17,7 @@ export interface ParentTicketOption {
   id: string;
   formatted_id: string;
   title: string;
+  epic_id: number | null;
 }
 
 interface Props {
