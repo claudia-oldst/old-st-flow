@@ -206,6 +206,21 @@ function SprintWorkbenchInner({ projectId, sprints, isPMBA }: Props) {
             {sprintTickets.length} tickets · {poolItems.length} unassigned
           </div>
         )}
+        {selected.size > 0 && (
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-mono text-primary">
+              {selected.size} selected
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-[11px]"
+              onClick={clear}
+            >
+              Clear
+            </Button>
+          </div>
+        )}
         <CardDisplayMenu prefs={cardPrefs} onChange={setCardPrefs} onReset={resetCardPrefs} />
       </div>
 
