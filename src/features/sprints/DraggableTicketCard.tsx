@@ -1,20 +1,9 @@
 import { useDraggable } from "@dnd-kit/core";
 import { TicketCard } from "@/features/tickets/TicketCard";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
-import { DEFAULT_CARD_PREFS, type CardDisplayPrefs } from "@/features/tickets/useCardDisplayPrefs";
+import { useCardDisplayPrefs } from "@/features/tickets/useCardDisplayPrefs";
 
 export type SprintCardVariant = "backlog" | "lane";
-
-const BACKLOG_PREFS: CardDisplayPrefs = {
-  ...DEFAULT_CARD_PREFS,
-  chips: false,
-};
-
-const LANE_PREFS: CardDisplayPrefs = {
-  ...DEFAULT_CARD_PREFS,
-  chips: false,
-  assignees: false,
-};
 
 interface Props {
   ticket: TicketRow;
@@ -36,7 +25,9 @@ export function DraggableTicketCard({
     disabled,
     data: { ticketId: ticket.id },
   });
-  const prefs = variant === "lane" ? LANE_PREFS : BACKLOG_PREFS;
+  const { prefs: userPrefs } = useCardDisplayPrefs();
+  const prefs =
+    variant === "lane" ? { ...userPrefs, assignees: false } : userPrefs;
   return (
     <div ref={setNodeRef} {...attributes} {...listeners}>
       <TicketCard
