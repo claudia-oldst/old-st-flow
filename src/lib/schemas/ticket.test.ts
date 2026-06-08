@@ -1,11 +1,17 @@
 import { describe, it, expect } from "vitest";
 import { ticketInputSchema, MAX_TICKET_TITLE, MAX_TICKET_HOURS } from "./ticket";
 
-const base = { title: "Fix bug", ticket_type: "Bug" as const };
+const base = { title: "Fix bug", ticket_type: "Bug" as const, epic_id: 1 };
 
 describe("ticketInputSchema", () => {
   it("accepts a minimal ticket", () => {
     expect(ticketInputSchema.safeParse(base).success).toBe(true);
+  });
+
+  it("rejects ticket without epic_id", () => {
+    expect(
+      ticketInputSchema.safeParse({ title: "x", ticket_type: "Bug" as const }).success,
+    ).toBe(false);
   });
 
   it("rejects empty title", () => {
