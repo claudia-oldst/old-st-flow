@@ -157,7 +157,7 @@ export function QuickAddRow({
       )}
       <div className="flex justify-end gap-1">
         <Button size="sm" variant="ghost" onClick={() => setOpen(false)} className="h-6 text-xs px-2">Cancel</Button>
-        <Button size="sm" onClick={submit} disabled={busy || !title.trim()} className="h-6 text-xs px-2">Add</Button>
+        <Button size="sm" onClick={submit} disabled={busy || !title.trim() || epicId === null} className="h-6 text-xs px-2">Add</Button>
       </div>
     </div>
   );
