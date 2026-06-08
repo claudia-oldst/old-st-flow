@@ -3,6 +3,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { ProjectMember, TeamMember, TicketType } from "@/lib/types";
 import { Draft, Slot, newDraft } from "./types";
+import { useCurrentUser } from "@/store/currentUser";
+import { postBugLinkComment } from "@/features/tickets/postBugLinkComment";
 
 export function useDraftRows({
   open,
