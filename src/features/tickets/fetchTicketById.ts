@@ -13,11 +13,20 @@ export async function fetchTicketById(id: string): Promise<TicketRow | null> {
     .select(
       `*,
        epic:project_epics(epic_name),
-       parent:tickets!tickets_parent_ticket_id_fkey(id, formatted_id, title),
        assignees:ticket_assignees(user_id, slot, created_at, member:team_members(*))`,
     )
     .eq("id", id)
     .maybeSingle();
   if (error || !data) return null;
-  return normalizeTicket(data);
+
+  let parent: TicketRow["parent"] = null;
+  if ((data as any).parent_ticket_id) {
+    const { data: p } = await supabase
+      .from("tickets")
+      .select("id, formatted_id, title")
+      .eq("id", (data as any).parent_ticket_id)
+      .maybeSingle();
+    if (p) parent = { id: p.id, formatted_id: p.formatted_id, title: p.title };
+  }
+  return normalizeTicket({ ...(data as any), parent });
 }
