@@ -37,6 +37,7 @@ export function QuickAddRow({
   const [parentTicketId, setParentTicketId] = useState<string | null>(null);
   const [parentTitle, setParentTitle] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const userId = useCurrentUser((s) => s.user?.id);
 
   const isProj = type === "Proj";
   const isBug = type === "Bug";
