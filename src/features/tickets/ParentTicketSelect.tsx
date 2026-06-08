@@ -45,7 +45,7 @@ export function ParentTicketSelect({
     let cancelled = false;
     supabase
       .from("tickets")
-      .select("id, formatted_id, title, ticket_type")
+      .select("id, formatted_id, title, ticket_type, epic_id")
       .eq("project_id", projectId)
       .in("ticket_type", ["Standard", "CR"])
       .order("ticket_number", { ascending: true })
@@ -54,7 +54,7 @@ export function ParentTicketSelect({
         if (cancelled) return;
         const opts = (data ?? [])
           .filter((t: any) => t.id !== excludeId)
-          .map((t: any) => ({ id: t.id, formatted_id: t.formatted_id, title: t.title }));
+          .map((t: any) => ({ id: t.id, formatted_id: t.formatted_id, title: t.title, epic_id: t.epic_id ?? null }));
         setOptions(opts);
       });
     return () => {
