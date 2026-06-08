@@ -55,6 +55,22 @@ export function TicketDetailSheet({ open, onOpenChange, ticket: ticketProp, proj
     };
   }, [ticketProp?.id]);
 
+  // In-app navigation: when something inside the sheet (parent badge, bug
+  // link in a comment, ...) requests opening another ticket, swap the
+  // live ticket without closing the sheet.
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: Event) => {
+      const id = (e as CustomEvent<string>).detail;
+      if (!id || id === liveTicket?.id) return;
+      fetchTicketById(id).then((t) => {
+        if (t) setLiveTicket(t);
+      });
+    };
+    window.addEventListener(OPEN_TICKET_EVENT, handler);
+    return () => window.removeEventListener(OPEN_TICKET_EVENT, handler);
+  }, [open, liveTicket?.id]);
+
   const ticket = liveTicket;
 
   const role = useProjectRole(projectId);
