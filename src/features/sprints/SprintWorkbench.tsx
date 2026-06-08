@@ -40,7 +40,15 @@ interface Props {
   isPMBA: boolean;
 }
 
-export function SprintWorkbench({ projectId, sprints, isPMBA }: Props) {
+export function SprintWorkbench(props: Props) {
+  return (
+    <SprintSelectionProvider>
+      <SprintWorkbenchInner {...props} />
+    </SprintSelectionProvider>
+  );
+}
+
+function SprintWorkbenchInner({ projectId, sprints, isPMBA }: Props) {
   const [targetSprintId, setTargetSprintId] = useState<string>(sprints[0]?.id ?? "");
   const qc = useQueryClient();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
