@@ -88,64 +88,72 @@ export function SprintWorkbench({ projectId, sprints, isPMBA }: Props) {
   const itemsByUser = (uid: string) =>
     resolveItems(sprintTickets.filter((st) => st.assigned_user_id === uid));
 
+  const { selected, clear } = useSprintSelection();
+
+  const moveTicketTo = async (
+    ticketId: string,
+    target: "pool" | "backlog" | { userId: string },
+  ) => {
+    const st = sprintTickets.find((s) => s.ticket_id === ticketId);
+    const fromUserId = st?.assigned_user_id ?? null;
+    const fromDev = fromUserId ? devMembers.find((d) => d.user_id === fromUserId) : null;
+    const fromSlot: AssigneeSlot | null = fromDev
+      ? (memberDisciplines(fromDev.role)[0] as AssigneeSlot)
+      : null;
+
+    if (target === "pool") {
+      if (!st) {
+        await addTicketToPool(targetSprintId, ticketId);
+      } else if (fromUserId && fromSlot) {
+        await unpinTicketFromLane(st.id, ticketId, fromUserId, fromSlot);
+      }
+      return;
+    }
+    if (target === "backlog") {
+      if (st) {
+        await removeTicketFromSprint(st.id, ticketId, fromUserId, fromSlot);
+      }
+      return;
+    }
+    // lane target
+    const toUserId = target.userId;
+    if (st && fromUserId === toUserId) return;
+    const toDev = devMembers.find((d) => d.user_id === toUserId);
+    if (!toDev) return;
+    const toSlot: AssigneeSlot = memberDisciplines(toDev.role)[0] as AssigneeSlot;
+    if (st && fromUserId && fromSlot) {
+      await unpinTicketFromLane(st.id, ticketId, fromUserId, fromSlot);
+    }
+    await addTicketToLane(targetSprintId, ticketId, toUserId, toSlot);
+  };
+
   const handleDragEnd = async (e: DragEndEvent) => {
     if (!isPMBA || !targetSprintId) return;
     const { active, over } = e;
     if (!over) return;
-    const activeId = String(active.id);
     const overId = String(over.id);
-
-    const [activeKind, ...activeRest] = activeId.split(":");
     const [overKind, ...overRest] = overId.split(":");
 
-    try {
-      if (activeKind === "backlog") {
-        const ticketId = activeRest[0];
-        if (overId === "zone:pool") {
-          await addTicketToPool(targetSprintId, ticketId);
-        } else if (overKind === "zone" && overRest[0] === "lane") {
-          const userId = overRest[1];
-          const dev = devMembers.find((d) => d.user_id === userId);
-          if (!dev) return;
-          const slot: AssigneeSlot = memberDisciplines(dev.role)[0] as AssigneeSlot;
-          await addTicketToLane(targetSprintId, ticketId, userId, slot);
-        }
-      } else if (activeKind === "pool") {
-        const sprintTicketId = activeRest[0];
-        const st = sprintTickets.find((s) => s.id === sprintTicketId);
-        if (!st) return;
-        if (overKind === "zone" && overRest[0] === "lane") {
-          const userId = overRest[1];
-          const dev = devMembers.find((d) => d.user_id === userId);
-          if (!dev) return;
-          const slot: AssigneeSlot = memberDisciplines(dev.role)[0] as AssigneeSlot;
-          await addTicketToLane(targetSprintId, st.ticket_id, userId, slot);
-        } else if (overId === "zone:backlog") {
-          await removeTicketFromSprint(st.id, st.ticket_id, null, null);
-        }
-      } else if (activeKind === "lane") {
-        const sprintTicketId = activeRest[0];
-        const fromUserId = activeRest[1];
-        const st = sprintTickets.find((s) => s.id === sprintTicketId);
-        if (!st) return;
-        const fromDev = devMembers.find((d) => d.user_id === fromUserId);
-        const fromSlot: AssigneeSlot | null = fromDev
-          ? (memberDisciplines(fromDev.role)[0] as AssigneeSlot)
-          : null;
+    const activeTicketId = (active.data.current as { ticketId?: string } | undefined)?.ticketId;
+    if (!activeTicketId) return;
 
-        if (overId === "zone:pool") {
-          if (fromSlot) await unpinTicketFromLane(st.id, st.ticket_id, fromUserId, fromSlot);
-        } else if (overId === "zone:backlog") {
-          await removeTicketFromSprint(st.id, st.ticket_id, fromUserId, fromSlot);
-        } else if (overKind === "zone" && overRest[0] === "lane") {
-          const toUserId = overRest[1];
-          if (toUserId === fromUserId) return;
-          if (fromSlot) await unpinTicketFromLane(st.id, st.ticket_id, fromUserId, fromSlot);
-          const toDev = devMembers.find((d) => d.user_id === toUserId);
-          if (!toDev) return;
-          const toSlot: AssigneeSlot = memberDisciplines(toDev.role)[0] as AssigneeSlot;
-          await addTicketToLane(targetSprintId, st.ticket_id, toUserId, toSlot);
-        }
+    const ticketIds = selected.has(activeTicketId)
+      ? Array.from(selected)
+      : [activeTicketId];
+
+    let target: "pool" | "backlog" | { userId: string } | null = null;
+    if (overId === "zone:pool") target = "pool";
+    else if (overId === "zone:backlog") target = "backlog";
+    else if (overKind === "zone" && overRest[0] === "lane") target = { userId: overRest[1] };
+    if (!target) return;
+
+    try {
+      for (const id of ticketIds) {
+        await moveTicketTo(id, target);
+      }
+      if (ticketIds.length > 1) {
+        toast.success(`Moved ${ticketIds.length} tickets`);
+        clear();
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -155,6 +163,7 @@ export function SprintWorkbench({ projectId, sprints, isPMBA }: Props) {
       qc.invalidateQueries({ queryKey: ["project_sprint_tickets"] });
     }
   };
+
 
   if (sprints.length === 0) {
     return (
