@@ -116,7 +116,8 @@ function SprintRow({
   };
 
   const updateDates = async (field: "start_date" | "end_date", val: string) => {
-    const { error } = await supabase.from("sprints").update({ [field]: val }).eq("id", sprint.id);
+    const update = field === "start_date" ? { start_date: val } : { end_date: val };
+    const { error } = await supabase.from("sprints").update(update).eq("id", sprint.id);
     if (error) toast.error(error.message);
     qc.invalidateQueries({ queryKey: ["sprints", sprint.project_id] });
   };
