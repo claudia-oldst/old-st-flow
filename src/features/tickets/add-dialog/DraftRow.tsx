@@ -83,7 +83,14 @@ export function DraftRow({
         <div className="md:col-span-2">
           <Select
             value={draft.type}
-            onValueChange={(v) => onChange({ type: v as TicketType })}
+            onValueChange={(v) => {
+              const nt = v as TicketType;
+              if (nt !== "Bug") {
+                onChange({ type: nt, parentTicketId: null, parentTitle: null });
+              } else {
+                onChange({ type: nt });
+              }
+            }}
           >
             <SelectTrigger className="h-8 text-xs">
               <SelectValue />
@@ -97,18 +104,50 @@ export function DraftRow({
           </Select>
         </div>
 
-        <div className="md:col-span-3">
-          <EpicSelect
-            projectId={projectId}
-            value={draft.epicId}
-            onChange={(id) => onChange({ epicId: id })}
-            size="sm"
-            className={cn(draft.title.trim() && draft.epicId === null && "ring-1 ring-primary/60")}
-          />
-          {draft.title.trim() && draft.epicId === null && (
-            <div className="text-[10px] text-primary mt-1">Epic required</div>
-          )}
-        </div>
+        {draft.type === "Bug" ? (
+          <div className="md:col-span-3">
+            <ParentTicketSelect
+              projectId={projectId}
+              value={draft.parentTicketId}
+              size="sm"
+              placeholder="Parent ticket (optional)…"
+              onChange={(id, parent) => {
+                const titleIsEmptyOrInherited =
+                  !draft.title.trim() ||
+                  (draft.parentTitle !== null && draft.title.trim() === draft.parentTitle.trim());
+                onChange({
+                  parentTicketId: id,
+                  parentTitle: parent?.title ?? null,
+                  title:
+                    parent && titleIsEmptyOrInherited
+                      ? parent.title
+                      : !parent && titleIsEmptyOrInherited
+                        ? ""
+                        : draft.title,
+                  epicId: parent?.epic_id != null ? parent.epic_id : draft.epicId,
+                });
+              }}
+            />
+            {draft.parentTicketId && (
+              <div className="text-[10px] text-dimmer mt-1">Epic inherited from parent</div>
+            )}
+          </div>
+        ) : null}
+
+        {!(draft.type === "Bug" && draft.parentTicketId) && (
+          <div className="md:col-span-3">
+            <EpicSelect
+              projectId={projectId}
+              value={draft.epicId}
+              onChange={(id) => onChange({ epicId: id })}
+              size="sm"
+              className={cn(draft.title.trim() && draft.epicId === null && "ring-1 ring-primary/60")}
+            />
+            {draft.title.trim() && draft.epicId === null && (
+              <div className="text-[10px] text-primary mt-1">Epic required</div>
+            )}
+          </div>
+        )}
 
         <div className="md:col-span-3">
           <Select
@@ -180,34 +219,7 @@ export function DraftRow({
           />
         </div>
       </div>
-
-      {draft.type === "Bug" && (
-        <div className="pl-8">
-          <div className="text-[10px] uppercase tracking-wider text-dimmer mb-1">
-            Parent ticket (optional)
-          </div>
-          <ParentTicketSelect
-            projectId={projectId}
-            value={draft.parentTicketId}
-            size="sm"
-            onChange={(id, parent) => {
-              const titleIsEmptyOrInherited =
-                !draft.title.trim() ||
-                (draft.parentTitle !== null && draft.title.trim() === draft.parentTitle.trim());
-              onChange({
-                parentTicketId: id,
-                parentTitle: parent?.title ?? null,
-                title:
-                  parent && titleIsEmptyOrInherited
-                    ? parent.title
-                    : !parent && titleIsEmptyOrInherited
-                      ? ""
-                      : draft.title,
-              });
-            }}
-          />
-        </div>
-      )}
     </div>
   );
 }
+
