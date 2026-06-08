@@ -37,7 +37,7 @@ export function useSprintSelection(): Ctx {
   if (!ctx) {
     // Safe fallback for cards rendered outside the workbench
     return {
-      selected: new Set(),
+      selected: new Set<string>(),
       toggle: () => {},
       clear: () => {},
       isSelected: () => false,
