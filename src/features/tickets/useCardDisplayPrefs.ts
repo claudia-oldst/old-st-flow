@@ -35,7 +35,7 @@ function read(): CardDisplayPrefs {
 }
 
 export function isAllOn(p: CardDisplayPrefs): boolean {
-  return p.id && p.type && p.chips && p.bars && p.assignees && p.projBadge;
+  return p.id && p.type && p.chips && p.bars && p.assignees && p.projBadge && p.status;
 }
 
 // Module-level shared state so every `useCardDisplayPrefs()` consumer in the
