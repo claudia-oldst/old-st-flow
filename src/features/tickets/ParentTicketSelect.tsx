@@ -74,11 +74,11 @@ export function ParentTicketSelect({
     }
     supabase
       .from("tickets")
-      .select("id, formatted_id, title")
+      .select("id, formatted_id, title, epic_id")
       .eq("id", value)
       .maybeSingle()
       .then(({ data }) => {
-        if (data) setSelected({ id: data.id, formatted_id: data.formatted_id, title: data.title });
+        if (data) setSelected({ id: data.id, formatted_id: data.formatted_id, title: data.title, epic_id: (data as any).epic_id ?? null });
       });
   }, [value, options]);
 
