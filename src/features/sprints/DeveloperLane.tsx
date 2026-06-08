@@ -1,13 +1,15 @@
 import { useDroppable } from "@dnd-kit/core";
-import type { Ticket } from "@/lib/types";
+import { MemberAvatar } from "@/components/MemberAvatar";
+import { PROJECT_ROLE_COLORS } from "@/lib/types";
+import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import type { SprintTicket, SprintMember, SprintCapacity, SprintDiscipline } from "./types";
 import { memberDisciplines, remainingHours, dndId } from "./types";
-import { TicketCard } from "./TicketCard";
+import { DraggableTicketCard } from "./DraggableTicketCard";
 import { cn } from "@/lib/utils";
 
 interface Props {
   member: SprintMember;
-  items: Array<SprintTicket & { ticket: Ticket }>;
+  items: Array<{ link: SprintTicket; ticket: TicketRow }>;
   capacities: SprintCapacity[];
   disabled: boolean;
 }
@@ -16,11 +18,9 @@ export function DeveloperLane({ member, items, capacities, disabled }: Props) {
   const { setNodeRef, isOver } = useDroppable({ id: dndId.laneZone(member.user_id) });
   const disciplines = memberDisciplines(member.role);
 
-  // Capacity by discipline for this user
   const capFor = (d: SprintDiscipline) =>
     Number(capacities.find((c) => c.user_id === member.user_id && c.discipline === d)?.hours ?? 0);
 
-  // Allocated remaining-hours by discipline (only across items assigned to this user)
   const allocated = items.reduce(
     (acc, it) => {
       const r = remainingHours(it.ticket);
@@ -39,10 +39,18 @@ export function DeveloperLane({ member, items, capacities, disabled }: Props) {
   return (
     <div className="w-72 shrink-0 flex flex-col rounded-md hairline bg-surface-1/40 overflow-hidden">
       <div className="p-2.5 hairline-b bg-surface-1/60">
-        <div className="flex items-center justify-between gap-2">
-          <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <MemberAvatar name={member.member.name} color={member.member.avatar_color ?? undefined} size="sm" />
+          <div className="min-w-0 flex-1">
             <div className="text-xs font-medium truncate">{member.member.name}</div>
-            <div className="text-[10px] text-dim uppercase tracking-wide">{member.role}</div>
+            <span
+              className={cn(
+                "inline-block text-[9px] px-1.5 py-px rounded ring-1 uppercase tracking-wide",
+                PROJECT_ROLE_COLORS[member.role],
+              )}
+            >
+              {member.role}
+            </span>
           </div>
           <div className="text-right font-mono text-[10px]">
             <div className={cn(overallocated && "text-destructive font-semibold")}>
@@ -67,27 +75,15 @@ export function DeveloperLane({ member, items, capacities, disabled }: Props) {
         {items.length === 0 && (
           <div className="text-[10px] text-dim text-center py-4">Drop here</div>
         )}
-        {items.map((it) => {
-          // pick the discipline to isolate — first of dev's disciplines that has remaining
-          const r = remainingHours(it.ticket);
-          let iso: SprintDiscipline | undefined;
-          for (const d of disciplines) {
-            if (r[d] > 0) {
-              iso = d;
-              break;
-            }
-          }
-          if (!iso) iso = disciplines[0];
-          return (
-            <TicketCard
-              key={it.id}
-              ticket={it.ticket}
-              dndId={dndId.laneCard(it.id, member.user_id)}
-              isolate={iso}
-              disabled={disabled}
-            />
-          );
-        })}
+        {items.map((it) => (
+          <DraggableTicketCard
+            key={it.link.id}
+            ticket={it.ticket}
+            dndId={dndId.laneCard(it.link.id, member.user_id)}
+            variant="lane"
+            disabled={disabled}
+          />
+        ))}
       </div>
     </div>
   );

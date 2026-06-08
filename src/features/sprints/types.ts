@@ -1,5 +1,6 @@
+import type { TeamMember, ProjectRole } from "@/lib/types";
 import type { Database } from "@/integrations/supabase/types";
-import type { Ticket, TeamMember, ProjectRole } from "@/lib/types";
+import type { TicketRow } from "@/features/tickets/useProjectTickets";
 
 export type Sprint = Database["public"]["Tables"]["sprints"]["Row"];
 export type SprintCapacity = Database["public"]["Tables"]["sprint_capacities"]["Row"];
@@ -22,10 +23,10 @@ export function memberDisciplines(role: ProjectRole): SprintDiscipline[] {
 }
 
 /** Remaining hours per discipline using max(0, current_est − actual). */
-export function remainingHours(t: Ticket): { FE: number; BE: number } {
+export function remainingHours(t: TicketRow): { FE: number; BE: number } {
   return {
-    FE: Math.max(0, (Number(t.current_fe_estimate) || 0) - (Number(t.actual_frontend_hours) || 0)),
-    BE: Math.max(0, (Number(t.current_be_estimate) || 0) - (Number(t.actual_backend_hours) || 0)),
+    FE: Math.max(0, (t.current_fe_estimate || 0) - (t.actual_frontend_hours || 0)),
+    BE: Math.max(0, (t.current_be_estimate || 0) - (t.actual_backend_hours || 0)),
   };
 }
 

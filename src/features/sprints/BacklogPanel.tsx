@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
-import type { Ticket, TicketType } from "@/lib/types";
+import type { TicketType } from "@/lib/types";
 import type { Sprint, SprintTicket } from "./types";
+import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { remainingHours, dndId } from "./types";
 import { EpicSelect } from "@/features/epics/EpicSelect";
-import { TicketCard } from "./TicketCard";
+import { DraggableTicketCard } from "./DraggableTicketCard";
+import { FilterSection, FilterRow } from "@/features/tickets/filters/FilterPrimitives";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -15,7 +17,7 @@ interface Props {
   projectId: string;
   targetSprintId: string;
   sprints: Sprint[];
-  tickets: Ticket[];
+  tickets: TicketRow[];
   allSprintTickets: SprintTicket[];
   disabled: boolean;
 }
@@ -30,7 +32,7 @@ export function BacklogPanel({
   allSprintTickets,
   disabled,
 }: Props) {
-  const [source, setSource] = useState<string>("unscheduled"); // "unscheduled" or a sprint_id
+  const [source, setSource] = useState<string>("unscheduled");
   const [search, setSearch] = useState("");
   const [epicId, setEpicId] = useState<number | null>(null);
   const [types, setTypes] = useState<TicketType[]>([...TYPE_OPTIONS]);
@@ -47,8 +49,9 @@ export function BacklogPanel({
     if (source === "unscheduled") {
       return tickets.filter((t) => !scheduledIds.has(t.id));
     }
-    const ids = new Set(allSprintTickets.filter((st) => st.sprint_id === source).map((st) => st.ticket_id));
-    // Exclude tickets already in target sprint
+    const ids = new Set(
+      allSprintTickets.filter((st) => st.sprint_id === source).map((st) => st.ticket_id),
+    );
     const targetIds = new Set(
       allSprintTickets.filter((st) => st.sprint_id === targetSprintId).map((st) => st.ticket_id),
     );
@@ -71,6 +74,9 @@ export function BacklogPanel({
 
   const otherSprints = sprints.filter((s) => s.id !== targetSprintId);
 
+  const toggleType = (tt: TicketType) =>
+    setTypes((prev) => (prev.includes(tt) ? prev.filter((x) => x !== tt) : [...prev, tt]));
+
   return (
     <div className="flex flex-col gap-3 h-full min-h-0">
       <div className="space-y-2">
@@ -86,8 +92,7 @@ export function BacklogPanel({
               {otherSprints.map((s) => (
                 <SelectItem key={s.id} value={s.id}>
                   Sprint {s.sprint_number}
-                  {s.name ? ` — ${s.name}` : ""} ·{" "}
-                  {format(parseISO(s.start_date), "MMM d")}
+                  {s.name ? ` — ${s.name}` : ""} · {format(parseISO(s.start_date), "MMM d")}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -100,29 +105,17 @@ export function BacklogPanel({
           className="h-8 text-xs"
         />
         <EpicSelect projectId={projectId} value={epicId} onChange={setEpicId} size="sm" />
-        <div className="flex flex-wrap gap-1.5">
-          {TYPE_OPTIONS.map((tt) => {
-            const active = types.includes(tt);
-            return (
-              <button
+        <div className="hairline rounded-md">
+          <FilterSection title="Type">
+            {TYPE_OPTIONS.map((tt) => (
+              <FilterRow
                 key={tt}
-                type="button"
-                onClick={() =>
-                  setTypes((prev) =>
-                    prev.includes(tt) ? prev.filter((x) => x !== tt) : [...prev, tt],
-                  )
-                }
-                className={cn(
-                  "text-[10px] px-2 py-0.5 rounded ring-1 transition",
-                  active
-                    ? "bg-primary/15 text-primary ring-primary/40"
-                    : "bg-white/5 text-dim ring-white/10 hover:text-foreground",
-                )}
-              >
-                {tt}
-              </button>
-            );
-          })}
+                label={tt}
+                selected={types.includes(tt)}
+                onClick={() => toggleType(tt)}
+              />
+            ))}
+          </FilterSection>
         </div>
         <label className="flex items-center gap-2 text-[11px] text-dim">
           <Checkbox
@@ -144,7 +137,7 @@ export function BacklogPanel({
           <div className="text-[11px] text-dim text-center py-6">No tickets match</div>
         )}
         {filtered.map((t) => (
-          <TicketCard
+          <DraggableTicketCard
             key={t.id}
             ticket={t}
             dndId={dndId.backlogCard(t.id)}
