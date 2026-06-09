@@ -50,6 +50,7 @@ export function SprintBoardColumn({
   toolbarExtras,
   disabled,
   emptyHint = "No tickets",
+  onOpenTicket,
 }: Props) {
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<TicketFilters>(EMPTY_FILTERS);
@@ -98,6 +99,7 @@ export function SprintBoardColumn({
             ticket={t}
             dndId={dragKey ? `${dragKey}:${t.id}` : null}
             disabled={disabled || !dragKey}
+            onOpenTicket={onOpenTicket}
           />
         ))}
       </div>
@@ -109,10 +111,12 @@ function ColumnCard({
   ticket,
   dndId,
   disabled,
+  onOpenTicket,
 }: {
   ticket: TicketRow;
   dndId: string | null;
   disabled?: boolean;
+  onOpenTicket?: (ticket: TicketRow) => void;
 }) {
   const { isSelected, toggle, selected } = useSprintSelection();
   const selectedHere = isSelected(ticket.id);
@@ -129,6 +133,12 @@ function ColumnCard({
     toggle(ticket.id);
   };
 
+  const onDoubleClick = (e: React.MouseEvent) => {
+    if (disabled) return;
+    e.stopPropagation();
+    onOpenTicket?.(ticket);
+  };
+
   return (
     <div className="flex items-start gap-1.5">
       <Checkbox
@@ -143,6 +153,7 @@ function ColumnCard({
         {...attributes}
         {...listeners}
         onClick={onClick}
+        onDoubleClick={onDoubleClick}
         className={cn(
           "relative rounded-md transition flex-1 min-w-0",
           selectedHere && "ring-2 ring-primary ring-offset-1 ring-offset-background",
