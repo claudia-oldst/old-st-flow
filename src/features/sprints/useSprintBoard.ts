@@ -83,7 +83,7 @@ export function useSprintCapacities(sprintId: string | undefined) {
   return query;
 }
 
-/** Sprint_tickets (raw link rows) for one sprint. */
+/** Sprint_tickets (per-dev commitments) for one sprint. */
 export function useSprintTickets(sprintId: string | undefined) {
   const queryKey = ["sprint_tickets", sprintId] as const;
   const query = useQuery({
@@ -106,7 +106,7 @@ export function useSprintTickets(sprintId: string | undefined) {
   return query;
 }
 
-/** All sprint_tickets for the whole project — used for cross-sprint backlog sourcing. */
+/** All sprint_tickets for the whole project — per-dev commitments only. */
 export function useProjectSprintTickets(projectId: string | undefined) {
   const queryKey = ["project_sprint_tickets", projectId] as const;
   const query = useQuery({
@@ -123,6 +123,39 @@ export function useProjectSprintTickets(projectId: string | undefined) {
   });
   useRealtimeInvalidate(
     projectId ? [{ table: "sprint_tickets" }] : null,
+    queryKey,
+    !!projectId,
+  );
+  return query;
+}
+
+export interface PlannedSprintAssignment {
+  ticket_id: string;
+  planned_sprint_fe_id: string | null;
+  planned_sprint_be_id: string | null;
+}
+
+/** Per-ticket pooling assignments (planned FE/BE sprint). */
+export function usePlannedSprintAssignments(projectId: string | undefined) {
+  const queryKey = ["planned_sprint_assignments", projectId] as const;
+  const query = useQuery({
+    queryKey,
+    enabled: !!projectId,
+    queryFn: async (): Promise<PlannedSprintAssignment[]> => {
+      const { data, error } = await supabase
+        .from("tickets")
+        .select("id, planned_sprint_fe_id, planned_sprint_be_id")
+        .eq("project_id", projectId!);
+      if (error) throw error;
+      return (data ?? []).map((r) => ({
+        ticket_id: r.id,
+        planned_sprint_fe_id: r.planned_sprint_fe_id,
+        planned_sprint_be_id: r.planned_sprint_be_id,
+      }));
+    },
+  });
+  useRealtimeInvalidate(
+    projectId ? [{ table: "tickets", filter: `project_id=eq.${projectId}` }] : null,
     queryKey,
     !!projectId,
   );
