@@ -166,6 +166,8 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
             onToggleSelectAll={v.toggleSelectAll}
             showQuickStart={v.filterMine}
             currentUserId={user?.id}
+            extraCols={["fe_pool", "be_pool"]}
+            poolData={poolData}
           />
           <div className="mt-4 flex items-center justify-between gap-3 flex-wrap">
             <div className="text-[11px] text-dimmer">
