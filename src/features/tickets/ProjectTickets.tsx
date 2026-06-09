@@ -66,6 +66,9 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
   const listVisible = paged.rows;
   const listLoading = v.view === "list" && paged.loading && listVisible.length === 0;
 
+  const { data: sprints = [] } = useSprints(v.view === "list" ? projectId : undefined);
+  const poolData = usePoolData(v.view === "list" ? projectId : undefined, sprints);
+
   return (
     <div>
       <ProjectTicketsToolbar
