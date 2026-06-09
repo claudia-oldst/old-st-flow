@@ -725,6 +725,8 @@ export type Database = {
           original_fe_estimate: number | null
           original_project_estimate: number | null
           parent_ticket_id: string | null
+          planned_sprint_be_id: string | null
+          planned_sprint_fe_id: string | null
           position: number
           project_id: string
           project_status_override: boolean
@@ -759,6 +761,8 @@ export type Database = {
           original_fe_estimate?: number | null
           original_project_estimate?: number | null
           parent_ticket_id?: string | null
+          planned_sprint_be_id?: string | null
+          planned_sprint_fe_id?: string | null
           position?: number
           project_id: string
           project_status_override?: boolean
@@ -793,6 +797,8 @@ export type Database = {
           original_fe_estimate?: number | null
           original_project_estimate?: number | null
           parent_ticket_id?: string | null
+          planned_sprint_be_id?: string | null
+          planned_sprint_fe_id?: string | null
           position?: number
           project_id?: string
           project_status_override?: boolean
@@ -809,6 +815,20 @@ export type Database = {
             columns: ["epic_id"]
             isOneToOne: false
             referencedRelation: "project_epics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_planned_sprint_be_id_fkey"
+            columns: ["planned_sprint_be_id"]
+            isOneToOne: false
+            referencedRelation: "sprints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_planned_sprint_fe_id_fkey"
+            columns: ["planned_sprint_fe_id"]
+            isOneToOne: false
+            referencedRelation: "sprints"
             referencedColumns: ["id"]
           },
           {
