@@ -32,6 +32,7 @@ import {
   useProjectSprintTickets,
   usePlannedSprintAssignments,
 } from "./useSprintBoard";
+import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
 import { addTicketToLane, removeTicketFromSprint } from "./dnd";
 import {
   SprintSelectionProvider,
@@ -54,6 +55,7 @@ export function SprintWorkbench(props: Props) {
 }
 
 const DROP_DEV = "zone:dev";
+const DROP_BACKLOG = "zone:backlog";
 
 function SprintWorkbenchInner({ projectId, sprints, isPMBA }: Props) {
   const qc = useQueryClient();
@@ -63,6 +65,7 @@ function SprintWorkbenchInner({ projectId, sprints, isPMBA }: Props) {
   const [targetSprintId, setTargetSprintId] = useState<string>(sprints[0]?.id ?? "");
   const [focusUserId, setFocusUserId] = useState<string>("");
   const [poolSource, setPoolSource] = useState<string>("__current__");
+  const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
 
   const { tickets: allTickets } = useProjectTickets(projectId);
   const tickets = useMemo(
@@ -245,7 +248,9 @@ function SprintWorkbenchInner({ projectId, sprints, isPMBA }: Props) {
   const handleDragEnd = async (e: DragEndEvent) => {
     if (!isPMBA || !targetSprintId || !focusDev) return;
     const { active, over } = e;
-    if (!over || String(over.id) !== DROP_DEV) return;
+    if (!over) return;
+    const overId = String(over.id);
+    if (overId !== DROP_DEV && overId !== DROP_BACKLOG) return;
     const activeTicketId = (active.data.current as { ticketId?: string } | undefined)?.ticketId;
     if (!activeTicketId) return;
 
@@ -256,11 +261,24 @@ function SprintWorkbenchInner({ projectId, sprints, isPMBA }: Props) {
     const toSlot: AssigneeSlot = focusDisciplines[0] as AssigneeSlot;
 
     try {
-      for (const id of ticketIds) {
-        await addTicketToLane(targetSprintId, id, focusDev.user_id, toSlot);
-      }
-      if (ticketIds.length > 1) {
-        toast.success(`Added ${ticketIds.length} tickets to ${focusDev.member.name}`);
+      if (overId === DROP_DEV) {
+        for (const id of ticketIds) {
+          await addTicketToLane(targetSprintId, id, focusDev.user_id, toSlot);
+        }
+        if (ticketIds.length > 1) {
+          toast.success(`Added ${ticketIds.length} tickets to ${focusDev.member.name}`);
+          clear();
+        }
+      } else if (overId === DROP_BACKLOG) {
+        for (const id of ticketIds) {
+          const link = sprintTickets.find(
+            (st) => st.ticket_id === id && st.assigned_user_id === focusDev.user_id,
+          );
+          if (link) {
+            await removeTicketFromSprint(link.id, id, focusDev.user_id, toSlot);
+          }
+        }
+        toast.success(`Removed ${ticketIds.length} ticket${ticketIds.length === 1 ? "" : "s"} from sprint`);
         clear();
       }
     } catch (err: unknown) {
@@ -376,9 +394,11 @@ function SprintWorkbenchInner({ projectId, sprints, isPMBA }: Props) {
               projectId={projectId}
               title="Backlog & Pool"
               tickets={backlogTickets}
+              dropZoneId={DROP_BACKLOG}
               dragKey="backlog"
               disabled={!isPMBA}
               emptyHint="No tickets in this pool"
+              onOpenTicket={setOpenTicket}
               toolbarExtras={
                 <Select value={poolSource} onValueChange={setPoolSource}>
                   <SelectTrigger className="h-8 w-40 text-xs">
@@ -407,6 +427,7 @@ function SprintWorkbenchInner({ projectId, sprints, isPMBA }: Props) {
               dragKey="carryover"
               disabled={!isPMBA}
               emptyHint="No carryover tickets"
+              onOpenTicket={setOpenTicket}
             />
             <SprintBoardColumn
               projectId={projectId}
@@ -416,6 +437,7 @@ function SprintWorkbenchInner({ projectId, sprints, isPMBA }: Props) {
               dragKey="dev"
               disabled={!isPMBA}
               emptyHint="Drop tickets here"
+              onOpenTicket={setOpenTicket}
             />
           </div>
         </DndContext>
@@ -443,6 +465,17 @@ function SprintWorkbenchInner({ projectId, sprints, isPMBA }: Props) {
           )}
         </>
       )}
+
+      <TicketDetailSheet
+        open={!!openTicket}
+        onOpenChange={(o) => !o && setOpenTicket(null)}
+        ticket={openTicket}
+        projectId={projectId}
+        onChange={() => {
+          qc.invalidateQueries({ queryKey: ["sprint_tickets"] });
+          qc.invalidateQueries({ queryKey: ["project_sprint_tickets"] });
+        }}
+      />
     </div>
   );
 }
