@@ -23,7 +23,7 @@ import { useCardDisplayPrefs } from "@/features/tickets/useCardDisplayPrefs";
 import { BulkActionsBar } from "@/features/tickets/BulkActionsBar";
 import { useProjectTickets, type TicketRow } from "@/features/tickets/useProjectTickets";
 import type { AssigneeSlot } from "@/lib/types";
-import type { Sprint, SprintMember, SprintDiscipline } from "./types";
+import type { Sprint } from "./types";
 import { memberDisciplines } from "./types";
 import {
   useSprintCapacities,
