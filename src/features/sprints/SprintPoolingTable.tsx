@@ -10,18 +10,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useCurrentUser } from "@/store/currentUser";
+import { useProjectRole } from "@/features/team/useProjectRole";
 import { useProjectTickets, type TicketRow } from "@/features/tickets/useProjectTickets";
-import {
-  EMPTY_FILTERS,
-  applyFilters,
-  type TicketFilters,
-} from "@/features/tickets/TicketsFilter";
+import { useProjectTicketsView } from "@/features/tickets/project-tickets/useProjectTicketsView";
+import { ProjectTicketsToolbar } from "@/features/tickets/project-tickets/ProjectTicketsToolbar";
 import { BulkActionsBar } from "@/features/tickets/BulkActionsBar";
 import { TicketsList } from "@/features/tickets/TicketsList";
 import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
 import type { Sprint } from "./types";
-import { usePlannedSprintAssignments } from "./useSprintBoard";
-import { SprintColumnToolbar, searchTickets } from "./SprintColumnToolbar";
+import { usePoolData } from "./usePoolData";
 
 type Discipline = "FE" | "BE";
 
@@ -33,21 +31,18 @@ interface Props {
 
 /**
  * Tab 1 — Ticket Pooling list.
- * Reuses the same TicketsList + TicketsFilter + BulkActionsBar used on the
- * Tickets tab so the look/behavior matches exactly. FE/BE pool assignment is
- * exposed via a thin extension to the bulk actions bar.
+ * Reuses ProjectTicketsToolbar + TicketsList so the look and behavior match the
+ * Tickets tab exactly. Adds FE Pool / BE Pool columns and filters, plus a bulk
+ * pool action bar that lets PMBAs assign tickets to a planned sprint pool.
+ * Pool assignment can only be changed here (Sprint tab) — the Tickets tab shows
+ * the same columns read-only.
  */
 export function SprintPoolingTable({ projectId, sprints, isPMBA }: Props) {
   const qc = useQueryClient();
+  const user = useCurrentUser((s) => s.user);
+  const role = useProjectRole(projectId);
   const { tickets } = useProjectTickets(projectId);
-  const { data: assignments = [] } = usePlannedSprintAssignments(projectId);
-
-  const [search, setSearch] = useState("");
-  const [filters, setFilters] = useState<TicketFilters>(EMPTY_FILTERS);
-  const [unpooledOnly, setUnpooledOnly] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
-  const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
+  const poolData = usePoolData(projectId, sprints);
 
   // Exclude Proj-type tickets — they don't go in sprints.
   const projectTickets = useMemo(
@@ -55,37 +50,18 @@ export function SprintPoolingTable({ projectId, sprints, isPMBA }: Props) {
     [tickets],
   );
 
-  const assignmentByTicket = useMemo(() => {
-    const m = new Map<string, { fe: string | null; be: string | null }>();
-    assignments.forEach((a) =>
-      m.set(a.ticket_id, {
-        fe: a.planned_sprint_fe_id,
-        be: a.planned_sprint_be_id,
-      }),
-    );
-    return m;
-  }, [assignments]);
+  const v = useProjectTicketsView({ tickets: projectTickets, user, role, projectId: `${projectId}:pool` });
 
-  const sprintsById = useMemo(() => {
-    const m = new Map<string, { sprint_number: number }>();
-    sprints.forEach((s) => m.set(s.id, { sprint_number: s.sprint_number }));
-    return m;
-  }, [sprints]);
-
-  const poolData = useMemo(
-    () => ({ byTicket: assignmentByTicket, sprintsById }),
-    [assignmentByTicket, sprintsById],
-  );
-
+  const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
+  const [unpooledOnly, setUnpooledOnly] = useState(false);
   const [fePoolFilter, setFePoolFilter] = useState<string>("__any__");
   const [bePoolFilter, setBePoolFilter] = useState<string>("__any__");
 
   const visibleTickets = useMemo(() => {
-    let rows = applyFilters(projectTickets, filters);
-    rows = searchTickets(rows, search);
+    let rows = v.visibleTickets;
     if (unpooledOnly) {
       rows = rows.filter((t) => {
-        const a = assignmentByTicket.get(t.id);
+        const a = poolData.byTicket.get(t.id);
         const hasFE = (t.current_fe_estimate || 0) > 0;
         const hasBE = (t.current_be_estimate || 0) > 0;
         const fePooled = hasFE && !!a?.fe;
@@ -101,62 +77,23 @@ export function SprintPoolingTable({ projectId, sprints, isPMBA }: Props) {
       return sid === val;
     };
     if (fePoolFilter !== "__any__") {
-      rows = rows.filter((t) => matchPool(fePoolFilter, assignmentByTicket.get(t.id)?.fe));
+      rows = rows.filter((t) => matchPool(fePoolFilter, poolData.byTicket.get(t.id)?.fe));
     }
     if (bePoolFilter !== "__any__") {
-      rows = rows.filter((t) => matchPool(bePoolFilter, assignmentByTicket.get(t.id)?.be));
+      rows = rows.filter((t) => matchPool(bePoolFilter, poolData.byTicket.get(t.id)?.be));
     }
     return rows;
-  }, [projectTickets, filters, search, unpooledOnly, assignmentByTicket, fePoolFilter, bePoolFilter]);
-
+  }, [v.visibleTickets, unpooledOnly, poolData, fePoolFilter, bePoolFilter]);
 
   // Prune selection to currently visible rows.
   useEffect(() => {
-    setSelectedIds((prev) => {
-      if (prev.size === 0) return prev;
-      const visible = new Set(visibleTickets.map((t) => t.id));
-      const next = new Set<string>();
-      prev.forEach((id) => visible.has(id) && next.add(id));
-      return next.size === prev.size ? prev : next;
-    });
+    const visible = new Set(visibleTickets.map((t) => t.id));
+    const current = v.selectedIds;
+    let needsPrune = false;
+    current.forEach((id) => { if (!visible.has(id)) needsPrune = true; });
+    if (needsPrune) v.clearSelection();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visibleTickets]);
-
-  const toggleSelect = (id: string, shiftKey: boolean) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (shiftKey && lastSelectedId && lastSelectedId !== id) {
-        const ids = visibleTickets.map((t) => t.id);
-        const a = ids.indexOf(lastSelectedId);
-        const b = ids.indexOf(id);
-        if (a !== -1 && b !== -1) {
-          const [from, to] = a < b ? [a, b] : [b, a];
-          const shouldSelect = !prev.has(id);
-          for (let i = from; i <= to; i++) {
-            if (shouldSelect) next.add(ids[i]);
-            else next.delete(ids[i]);
-          }
-          return next;
-        }
-      }
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-    setLastSelectedId(id);
-  };
-
-  const toggleSelectAll = (ids: string[], select: boolean) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      ids.forEach((id) => (select ? next.add(id) : next.delete(id)));
-      return next;
-    });
-  };
-
-  const clearSelection = () => {
-    setSelectedIds(new Set());
-    setLastSelectedId(null);
-  };
 
   const updatePool = async (
     ticketIds: string[],
@@ -182,17 +119,28 @@ export function SprintPoolingTable({ projectId, sprints, isPMBA }: Props) {
     );
   };
 
-  const selectedArr = useMemo(() => Array.from(selectedIds), [selectedIds]);
+  const selectedArr = useMemo(() => Array.from(v.selectedIds), [v.selectedIds]);
 
   return (
-    <div className="space-y-3">
-      <SprintColumnToolbar
+    <div>
+      <ProjectTicketsToolbar
         projectId={projectId}
         tickets={projectTickets}
-        filters={filters}
-        onChange={setFilters}
-        search={search}
-        onSearch={setSearch}
+        filters={v.filters}
+        setFilters={v.setFilters}
+        view="list"
+        filterMine={v.filterMine}
+        setFilterMine={v.setFilterMine}
+        setTouched={v.setTouched}
+        groupBy={v.groupBy}
+        setGroupBy={v.setGroupBy}
+        search={v.search}
+        setSearch={v.setSearch}
+        role={role}
+        user={user}
+        showViewToggle={false}
+        showAddButtons={false}
+        showGroupTimer={false}
         extras={
           <>
             <PoolFilterSelect
@@ -225,21 +173,20 @@ export function SprintPoolingTable({ projectId, sprints, isPMBA }: Props) {
       ) : (
         <TicketsList
           tickets={visibleTickets}
-          groupBy="none"
+          groupBy={v.groupBy}
           onOpen={setOpenTicket}
-          selectedIds={selectedIds}
-          onToggleSelect={toggleSelect}
-          onToggleSelectAll={toggleSelectAll}
+          selectedIds={v.selectedIds}
+          onToggleSelect={v.toggleSelect}
+          onToggleSelectAll={v.toggleSelectAll}
           extraCols={["fe_pool", "be_pool"]}
           poolData={poolData}
         />
       )}
 
-
       <BulkActionsBar
         projectId={projectId}
         selectedIds={selectedArr}
-        onClear={clearSelection}
+        onClear={v.clearSelection}
         canEdit={isPMBA}
       />
 
@@ -328,4 +275,3 @@ function PoolFilterSelect({
     </Select>
   );
 }
-

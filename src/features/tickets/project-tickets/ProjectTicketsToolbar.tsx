@@ -51,87 +51,105 @@ export function ProjectTicketsToolbar({
   onStartGroupTimer,
   onAdd,
   onImport,
+  showViewToggle = true,
+  showMineToggle = true,
+  showGroupBy = true,
+  showAddButtons = true,
+  showGroupTimer = true,
+  extras,
 }: {
   projectId: string;
   tickets: TicketRow[];
   filters: TicketFilters;
   setFilters: (f: TicketFilters) => void;
   view: ViewMode;
-  setView: (v: ViewMode) => void;
+  setView?: (v: ViewMode) => void;
   filterMine: boolean;
-  setFilterMine: (v: boolean) => void;
-  setTouched: (v: boolean) => void;
+  setFilterMine?: (v: boolean) => void;
+  setTouched?: (v: boolean) => void;
   groupBy: GroupBy;
-  setGroupBy: (g: GroupBy) => void;
-  cardPrefs: CardDisplayPrefs;
-  setCardPrefs: (p: CardDisplayPrefs) => void;
-  resetCardPrefs: () => void;
+  setGroupBy?: (g: GroupBy) => void;
+  cardPrefs?: CardDisplayPrefs;
+  setCardPrefs?: (p: CardDisplayPrefs) => void;
+  resetCardPrefs?: () => void;
   search: string;
   setSearch: (s: string) => void;
   role: ProjectRole | null;
   user: { id: string } | null;
-  activeTimer: unknown;
-  onStartGroupTimer: () => void;
-  onAdd: () => void;
-  onImport: () => void;
+  activeTimer?: unknown;
+  onStartGroupTimer?: () => void;
+  onAdd?: () => void;
+  onImport?: () => void;
+  showViewToggle?: boolean;
+  showMineToggle?: boolean;
+  showGroupBy?: boolean;
+  showAddButtons?: boolean;
+  showGroupTimer?: boolean;
+  extras?: React.ReactNode;
 }) {
   return (
     <div className="sticky top-14 z-30 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 mb-4 flex items-center gap-3 flex-wrap bg-background/85 backdrop-blur-md hairline-b">
-      <div className="flex gap-1 p-1 rounded-lg bg-white/5 hairline">
-        <button
-          onClick={() => setView("board")}
-          className={cn(
-            "px-3 py-1 text-xs rounded-md transition inline-flex items-center gap-1.5",
-            view === "board" ? "bg-foreground text-background" : "text-dim hover:text-foreground"
-          )}
-        >
-          <LayoutGrid className="h-3 w-3" /> Board
-        </button>
-        <button
-          onClick={() => setView("list")}
-          className={cn(
-            "px-3 py-1 text-xs rounded-md transition inline-flex items-center gap-1.5",
-            view === "list" ? "bg-foreground text-background" : "text-dim hover:text-foreground"
-          )}
-        >
-          <List className="h-3 w-3" /> List
-        </button>
-      </div>
+      {showViewToggle && setView && (
+        <div className="flex gap-1 p-1 rounded-lg bg-white/5 hairline">
+          <button
+            onClick={() => setView("board")}
+            className={cn(
+              "px-3 py-1 text-xs rounded-md transition inline-flex items-center gap-1.5",
+              view === "board" ? "bg-foreground text-background" : "text-dim hover:text-foreground"
+            )}
+          >
+            <LayoutGrid className="h-3 w-3" /> Board
+          </button>
+          <button
+            onClick={() => setView("list")}
+            className={cn(
+              "px-3 py-1 text-xs rounded-md transition inline-flex items-center gap-1.5",
+              view === "list" ? "bg-foreground text-background" : "text-dim hover:text-foreground"
+            )}
+          >
+            <List className="h-3 w-3" /> List
+          </button>
+        </div>
+      )}
 
-      {view === "list" && (
+      {view === "list" && (showMineToggle || showGroupBy) && (
         <>
-          <div className="flex gap-1 p-1 rounded-lg bg-white/5 hairline">
-            <button
-              onClick={() => { setTouched(true); setFilterMine(false); }}
-              className={cn("px-3 py-1 text-xs rounded-md transition", !filterMine ? "bg-foreground text-background" : "text-dim hover:text-foreground")}
-            >
-              All
-            </button>
-            <button
-              onClick={() => { setTouched(true); setFilterMine(true); }}
-              className={cn("px-3 py-1 text-xs rounded-md transition", filterMine ? "bg-foreground text-background" : "text-dim hover:text-foreground")}
-            >
-              My tickets
-            </button>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-dim">Group by</span>
-            <Select value={groupBy} onValueChange={(v) => setGroupBy(v as GroupBy)}>
-              <SelectTrigger className="h-8 w-[140px] text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">None</SelectItem>
-                <SelectItem value="status">Status</SelectItem>
-                <SelectItem value="assignee">Assignee</SelectItem>
-                <SelectItem value="type">Type</SelectItem>
-                <SelectItem value="epic">Epic</SelectItem>
-                <SelectItem value="version">Version</SelectItem>
-                <SelectItem value="fe_status">FE status</SelectItem>
-                <SelectItem value="be_status">BE status</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {showMineToggle && setFilterMine && (
+            <div className="flex gap-1 p-1 rounded-lg bg-white/5 hairline">
+              <button
+                onClick={() => { setTouched?.(true); setFilterMine(false); }}
+                className={cn("px-3 py-1 text-xs rounded-md transition", !filterMine ? "bg-foreground text-background" : "text-dim hover:text-foreground")}
+              >
+                All
+              </button>
+              <button
+                onClick={() => { setTouched?.(true); setFilterMine(true); }}
+                className={cn("px-3 py-1 text-xs rounded-md transition", filterMine ? "bg-foreground text-background" : "text-dim hover:text-foreground")}
+              >
+                My tickets
+              </button>
+            </div>
+          )}
+          {showGroupBy && setGroupBy && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-dim">Group by</span>
+              <Select value={groupBy} onValueChange={(v) => setGroupBy(v as GroupBy)}>
+                <SelectTrigger className="h-8 w-[140px] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  <SelectItem value="status">Status</SelectItem>
+                  <SelectItem value="assignee">Assignee</SelectItem>
+                  <SelectItem value="type">Type</SelectItem>
+                  <SelectItem value="epic">Epic</SelectItem>
+                  <SelectItem value="version">Version</SelectItem>
+                  <SelectItem value="fe_status">FE status</SelectItem>
+                  <SelectItem value="be_status">BE status</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </>
       )}
 
@@ -142,7 +160,9 @@ export function ProjectTicketsToolbar({
         onChange={setFilters}
       />
 
-      {view === "board" && (
+      {extras}
+
+      {view === "board" && cardPrefs && setCardPrefs && resetCardPrefs && (
         <CardDisplayMenu
           prefs={cardPrefs}
           onChange={setCardPrefs}
@@ -170,7 +190,7 @@ export function ProjectTicketsToolbar({
             </button>
           )}
         </div>
-        {filterMine && user && role && !activeTimer && (
+        {showGroupTimer && filterMine && user && role && !activeTimer && onStartGroupTimer && (
           <Button
             size="sm"
             onClick={onStartGroupTimer}
@@ -179,7 +199,7 @@ export function ProjectTicketsToolbar({
             <Clock className="h-4 w-4" /> Start group timer
           </Button>
         )}
-        {canManageTickets(role) && (
+        {showAddButtons && canManageTickets(role) && onAdd && (
           <div className="inline-flex rounded-md overflow-hidden">
             <Button
               size="sm"
@@ -188,22 +208,24 @@ export function ProjectTicketsToolbar({
             >
               <Plus className="h-4 w-4" /> Add ticket
             </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  size="sm"
-                  aria-label="More add options"
-                  className="rounded-l-none px-2 border-l border-primary-foreground/20"
-                >
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={onImport} className="gap-2">
-                  <Upload className="h-4 w-4" /> Import from CSV…
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {onImport && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="sm"
+                    aria-label="More add options"
+                    className="rounded-l-none px-2 border-l border-primary-foreground/20"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={onImport} className="gap-2">
+                    <Upload className="h-4 w-4" /> Import from CSV…
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         )}
       </div>

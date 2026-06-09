@@ -21,6 +21,8 @@ import { ListPagination } from "@/components/ListPagination";
 import { PAGE_SIZES } from "@/lib/pagination";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { useSprints } from "@/features/sprints/useSprintBoard";
+import { usePoolData } from "@/features/sprints/usePoolData";
 
 export function ProjectTickets({ projectId }: { projectId: string }) {
   const role = useProjectRole(projectId);
@@ -63,6 +65,9 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
 
   const listVisible = paged.rows;
   const listLoading = v.view === "list" && paged.loading && listVisible.length === 0;
+
+  const { data: sprints = [] } = useSprints(v.view === "list" ? projectId : undefined);
+  const poolData = usePoolData(v.view === "list" ? projectId : undefined, sprints);
 
   return (
     <div>
@@ -161,6 +166,8 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
             onToggleSelectAll={v.toggleSelectAll}
             showQuickStart={v.filterMine}
             currentUserId={user?.id}
+            extraCols={["fe_pool", "be_pool"]}
+            poolData={poolData}
           />
           <div className="mt-4 flex items-center justify-between gap-3 flex-wrap">
             <div className="text-[11px] text-dimmer">
