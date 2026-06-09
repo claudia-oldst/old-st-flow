@@ -73,7 +73,7 @@ export function useTicketsSort(statuses: Status[], poolData?: PoolData) {
             const n = sid ? poolData?.sprintsById.get(sid)?.sprint_number : undefined;
             return n ?? Number.MAX_SAFE_INTEGER;
           }
-
+        }
       };
       return [...arr].sort((a, b) => {
         const va = valFor(a);
@@ -82,8 +82,9 @@ export function useTicketsSort(statuses: Status[], poolData?: PoolData) {
         return cmpStr(String(va), String(vb)) * dir;
       });
     },
-    [sort, statusOrder]
+    [sort, statusOrder, poolData]
   );
+
 
   return { sort, toggleSort, sortTickets };
 }
