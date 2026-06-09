@@ -112,40 +112,44 @@ export function ProjectTicketsToolbar({
         </div>
       )}
 
-      {view === "list" && (
+      {view === "list" && (showMineToggle || showGroupBy) && (
         <>
-          <div className="flex gap-1 p-1 rounded-lg bg-white/5 hairline">
-            <button
-              onClick={() => { setTouched(true); setFilterMine(false); }}
-              className={cn("px-3 py-1 text-xs rounded-md transition", !filterMine ? "bg-foreground text-background" : "text-dim hover:text-foreground")}
-            >
-              All
-            </button>
-            <button
-              onClick={() => { setTouched(true); setFilterMine(true); }}
-              className={cn("px-3 py-1 text-xs rounded-md transition", filterMine ? "bg-foreground text-background" : "text-dim hover:text-foreground")}
-            >
-              My tickets
-            </button>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-dim">Group by</span>
-            <Select value={groupBy} onValueChange={(v) => setGroupBy(v as GroupBy)}>
-              <SelectTrigger className="h-8 w-[140px] text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">None</SelectItem>
-                <SelectItem value="status">Status</SelectItem>
-                <SelectItem value="assignee">Assignee</SelectItem>
-                <SelectItem value="type">Type</SelectItem>
-                <SelectItem value="epic">Epic</SelectItem>
-                <SelectItem value="version">Version</SelectItem>
-                <SelectItem value="fe_status">FE status</SelectItem>
-                <SelectItem value="be_status">BE status</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {showMineToggle && setFilterMine && (
+            <div className="flex gap-1 p-1 rounded-lg bg-white/5 hairline">
+              <button
+                onClick={() => { setTouched?.(true); setFilterMine(false); }}
+                className={cn("px-3 py-1 text-xs rounded-md transition", !filterMine ? "bg-foreground text-background" : "text-dim hover:text-foreground")}
+              >
+                All
+              </button>
+              <button
+                onClick={() => { setTouched?.(true); setFilterMine(true); }}
+                className={cn("px-3 py-1 text-xs rounded-md transition", filterMine ? "bg-foreground text-background" : "text-dim hover:text-foreground")}
+              >
+                My tickets
+              </button>
+            </div>
+          )}
+          {showGroupBy && setGroupBy && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-dim">Group by</span>
+              <Select value={groupBy} onValueChange={(v) => setGroupBy(v as GroupBy)}>
+                <SelectTrigger className="h-8 w-[140px] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  <SelectItem value="status">Status</SelectItem>
+                  <SelectItem value="assignee">Assignee</SelectItem>
+                  <SelectItem value="type">Type</SelectItem>
+                  <SelectItem value="epic">Epic</SelectItem>
+                  <SelectItem value="version">Version</SelectItem>
+                  <SelectItem value="fe_status">FE status</SelectItem>
+                  <SelectItem value="be_status">BE status</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </>
       )}
 
@@ -156,7 +160,9 @@ export function ProjectTicketsToolbar({
         onChange={setFilters}
       />
 
-      {view === "board" && (
+      {extras}
+
+      {view === "board" && cardPrefs && setCardPrefs && resetCardPrefs && (
         <CardDisplayMenu
           prefs={cardPrefs}
           onChange={setCardPrefs}
@@ -184,7 +190,7 @@ export function ProjectTicketsToolbar({
             </button>
           )}
         </div>
-        {filterMine && user && role && !activeTimer && (
+        {showGroupTimer && filterMine && user && role && !activeTimer && onStartGroupTimer && (
           <Button
             size="sm"
             onClick={onStartGroupTimer}
@@ -193,7 +199,7 @@ export function ProjectTicketsToolbar({
             <Clock className="h-4 w-4" /> Start group timer
           </Button>
         )}
-        {canManageTickets(role) && (
+        {showAddButtons && canManageTickets(role) && onAdd && (
           <div className="inline-flex rounded-md overflow-hidden">
             <Button
               size="sm"
@@ -202,22 +208,24 @@ export function ProjectTicketsToolbar({
             >
               <Plus className="h-4 w-4" /> Add ticket
             </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  size="sm"
-                  aria-label="More add options"
-                  className="rounded-l-none px-2 border-l border-primary-foreground/20"
-                >
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={onImport} className="gap-2">
-                  <Upload className="h-4 w-4" /> Import from CSV…
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {onImport && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="sm"
+                    aria-label="More add options"
+                    className="rounded-l-none px-2 border-l border-primary-foreground/20"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={onImport} className="gap-2">
+                    <Upload className="h-4 w-4" /> Import from CSV…
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         )}
       </div>
