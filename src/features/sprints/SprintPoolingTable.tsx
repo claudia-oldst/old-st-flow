@@ -194,13 +194,27 @@ export function SprintPoolingTable({ projectId, sprints, isPMBA }: Props) {
         search={search}
         onSearch={setSearch}
         extras={
-          <label className="flex items-center gap-1.5 text-[11px] text-dim">
-            <Checkbox
-              checked={unpooledOnly}
-              onCheckedChange={(c) => setUnpooledOnly(c === true)}
+          <>
+            <PoolFilterSelect
+              label="FE Pool"
+              value={fePoolFilter}
+              onChange={setFePoolFilter}
+              sprints={sprints}
             />
-            Unpooled only
-          </label>
+            <PoolFilterSelect
+              label="BE Pool"
+              value={bePoolFilter}
+              onChange={setBePoolFilter}
+              sprints={sprints}
+            />
+            <label className="flex items-center gap-1.5 text-[11px] text-dim">
+              <Checkbox
+                checked={unpooledOnly}
+                onCheckedChange={(c) => setUnpooledOnly(c === true)}
+              />
+              Unpooled only
+            </label>
+          </>
         }
       />
 
@@ -216,8 +230,11 @@ export function SprintPoolingTable({ projectId, sprints, isPMBA }: Props) {
           selectedIds={selectedIds}
           onToggleSelect={toggleSelect}
           onToggleSelectAll={toggleSelectAll}
+          extraCols={["fe_pool", "be_pool"]}
+          poolData={poolData}
         />
       )}
+
 
       <BulkActionsBar
         projectId={projectId}
