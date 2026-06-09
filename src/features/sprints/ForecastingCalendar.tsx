@@ -22,7 +22,13 @@ import {
 import { cn } from "@/lib/utils";
 import type { Sprint, SprintMember } from "./types";
 import { memberDisciplines } from "./types";
-import { useSprintCapacities, useProjectMembers } from "./useSprintBoard";
+import {
+  useSprintCapacities,
+  useProjectMembers,
+  usePlannedSprintAssignments,
+} from "./useSprintBoard";
+import { useProjectTickets } from "@/features/tickets/useProjectTickets";
+import { SprintPoolingTable } from "./SprintPoolingTable";
 import type { AssigneeSlot } from "@/lib/types";
 
 interface Props {
@@ -68,42 +74,60 @@ export function ForecastingCalendar({ projectId, sprints, isPMBA }: Props) {
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6">
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="font-display text-sm font-semibold tracking-tight">
+            Sprint Blocks
+          </h3>
+          {isPMBA && (
+            <Button onClick={appendNext} size="sm" variant="outline">
+              <Plus className="h-3.5 w-3.5 mr-1" /> Append next sprint block
+            </Button>
+          )}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+          {sprints.map((s) => (
+            <SprintBlockCard
+              key={s.id}
+              sprint={s}
+              devMembers={devMembers}
+              projectId={projectId}
+              isPMBA={isPMBA}
+            />
+          ))}
+        </div>
+      </section>
+
+      <section className="space-y-3">
         <h3 className="font-display text-sm font-semibold tracking-tight">
-          Forecasting Calendar
+          Ticket Pooling
         </h3>
-        {isPMBA && (
-          <Button onClick={appendNext} size="sm" variant="outline">
-            <Plus className="h-3.5 w-3.5 mr-1" /> Append next sprint block
-          </Button>
-        )}
-      </div>
-      <div className="space-y-2">
-        {sprints.map((s) => (
-          <SprintRow
-            key={s.id}
-            sprint={s}
-            devMembers={devMembers}
-            isPMBA={isPMBA}
-          />
-        ))}
-      </div>
+        <SprintPoolingTable
+          projectId={projectId}
+          sprints={sprints}
+          isPMBA={isPMBA}
+        />
+      </section>
     </div>
   );
 }
 
-function SprintRow({
+function SprintBlockCard({
   sprint,
   devMembers,
+  projectId,
   isPMBA,
 }: {
   sprint: Sprint;
   devMembers: SprintMember[];
+  projectId: string;
   isPMBA: boolean;
 }) {
   const qc = useQueryClient();
   const { data: capacities = [] } = useSprintCapacities(sprint.id);
+  const { data: assignments = [] } = usePlannedSprintAssignments(projectId);
+  const { tickets } = useProjectTickets(projectId);
 
   const capFor = (uid: string, d: AssigneeSlot) =>
     Number(capacities.find((c) => c.user_id === uid && c.discipline === d)?.hours ?? 0);
@@ -122,6 +146,23 @@ function SprintRow({
     () => devMembers.filter((m) => !addedUserIds.has(m.user_id)),
     [devMembers, addedUserIds],
   );
+
+  // Pooled hours: sum estimates for tickets assigned FE/BE planned sprint = sprint.id
+  const { pooledFE, pooledBE } = useMemo(() => {
+    let fe = 0;
+    let be = 0;
+    const ticketMap = new Map(tickets.map((t) => [t.id, t]));
+    assignments.forEach((a) => {
+      const t = ticketMap.get(a.ticket_id);
+      if (!t) return;
+      if (a.planned_sprint_fe_id === sprint.id) fe += t.current_fe_estimate || 0;
+      if (a.planned_sprint_be_id === sprint.id) be += t.current_be_estimate || 0;
+    });
+    return { pooledFE: fe, pooledBE: be };
+  }, [assignments, tickets, sprint.id]);
+
+  const capFE = capacities.filter((c) => c.discipline === "FE").reduce((s, c) => s + Number(c.hours), 0);
+  const capBE = capacities.filter((c) => c.discipline === "BE").reduce((s, c) => s + Number(c.hours), 0);
 
   const invalidate = () =>
     qc.invalidateQueries({ queryKey: ["sprint_capacities", sprint.id] });
@@ -182,11 +223,9 @@ function SprintRow({
     qc.invalidateQueries({ queryKey: ["sprints", sprint.project_id] });
   };
 
-  const totalCap = capacities.reduce((s, c) => s + Number(c.hours), 0);
-
   return (
-    <div className="hairline rounded-md p-3 bg-surface-1/40">
-      <div className="flex items-center gap-3 mb-2">
+    <div className="hairline rounded-md p-3 bg-surface-1/40 flex flex-col gap-2">
+      <div className="flex items-center gap-2">
         <div className="font-mono text-xs px-2 py-0.5 rounded bg-white/5">
           Sprint {sprint.sprint_number}
         </div>
@@ -195,7 +234,7 @@ function SprintRow({
           value={sprint.start_date}
           onChange={(e) => updateDates("start_date", e.target.value)}
           disabled={!isPMBA}
-          className="h-7 text-xs w-36"
+          className="h-7 text-xs w-32"
         />
         <span className="text-dim text-xs">→</span>
         <Input
@@ -203,25 +242,20 @@ function SprintRow({
           value={sprint.end_date}
           onChange={(e) => updateDates("end_date", e.target.value)}
           disabled={!isPMBA}
-          className="h-7 text-xs w-36"
+          className="h-7 text-xs w-32"
         />
-        <div className="ml-auto flex items-center gap-3">
-          <span className="font-mono text-[11px] text-dim">
-            Total: <span className="text-foreground">{totalCap}h</span>
-          </span>
-          {isPMBA && (
-            <Button variant="ghost" size="icon" onClick={remove} className="h-7 w-7">
-              <Trash2 className="h-3.5 w-3.5 text-dim" />
-            </Button>
-          )}
-        </div>
+        {isPMBA && (
+          <Button variant="ghost" size="icon" onClick={remove} className="h-7 w-7 ml-auto">
+            <Trash2 className="h-3.5 w-3.5 text-dim" />
+          </Button>
+        )}
       </div>
 
       {addedMembers.length > 0 ? (
         <div className="grid grid-cols-[1fr,auto,auto,auto] gap-x-3 gap-y-1 text-xs items-center">
           <div className="text-[10px] uppercase tracking-wide text-dim">Member</div>
-          <div className="text-[10px] uppercase tracking-wide text-dim text-right w-16">FE (h)</div>
-          <div className="text-[10px] uppercase tracking-wide text-dim text-right w-16">BE (h)</div>
+          <div className="text-[10px] uppercase tracking-wide text-dim text-right w-14">FE (h)</div>
+          <div className="text-[10px] uppercase tracking-wide text-dim text-right w-14">BE (h)</div>
           <div className="w-6" />
           {addedMembers.map((m) => {
             const ds = memberDisciplines(m.role);
@@ -245,13 +279,42 @@ function SprintRow({
       )}
 
       {isPMBA && (
-        <div className="mt-2">
-          <AddMemberPopover
-            available={availableMembers}
-            onPick={addMember}
-          />
-        </div>
+        <AddMemberPopover available={availableMembers} onPick={addMember} />
       )}
+
+      <div className="hairline-t pt-2 mt-1 space-y-1.5">
+        <UtilisationBar label="FE" pooled={pooledFE} capacity={capFE} />
+        <UtilisationBar label="BE" pooled={pooledBE} capacity={capBE} />
+      </div>
+    </div>
+  );
+}
+
+function UtilisationBar({
+  label,
+  pooled,
+  capacity,
+}: {
+  label: string;
+  pooled: number;
+  capacity: number;
+}) {
+  const over = capacity > 0 && pooled > capacity;
+  const pct = capacity > 0 ? Math.min(100, (pooled / capacity) * 100) : 0;
+  return (
+    <div className="space-y-0.5">
+      <div className="flex items-center justify-between text-[10px] font-mono">
+        <span className="text-dim uppercase tracking-wide">{label}</span>
+        <span className={cn(over && "text-primary font-semibold")}>
+          {pooled}h / {capacity}h
+        </span>
+      </div>
+      <div className="h-1 rounded-full bg-white/5 overflow-hidden">
+        <div
+          className={cn("h-full transition-all", over ? "bg-primary" : "bg-accent/70")}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
     </div>
   );
 }
@@ -270,10 +333,10 @@ function AddMemberPopover({
         <Button
           size="sm"
           variant="outline"
-          className="h-7 text-xs"
+          className="h-7 text-xs w-fit"
           disabled={available.length === 0}
         >
-          <Plus className="h-3.5 w-3.5 mr-1" /> Project Member
+          <Plus className="h-3.5 w-3.5 mr-1" /> Member
         </Button>
       </PopoverTrigger>
       <PopoverContent className="p-0 w-64" align="start">
@@ -357,7 +420,6 @@ function CapInput({
   onCommit: (v: number) => void;
 }) {
   const [local, setLocal] = useState(String(value));
-  // sync if external value changes
   useMemo(() => setLocal(String(value)), [value]);
   return (
     <Input
@@ -375,7 +437,7 @@ function CapInput({
         }
         if (n !== value) onCommit(n);
       }}
-      className={cn("h-7 text-xs text-right w-16 font-mono", disabled && "opacity-50")}
+      className={cn("h-7 text-xs text-right w-14 font-mono", disabled && "opacity-50")}
     />
   );
 }
