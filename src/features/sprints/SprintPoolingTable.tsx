@@ -112,10 +112,13 @@ export function SprintPoolingTable({ projectId, sprints, isPMBA }: Props) {
     sprintId: string | null,
   ) => {
     if (!isPMBA) return;
-    const col = discipline === "FE" ? "planned_sprint_fe_id" : "planned_sprint_be_id";
+    const patch =
+      discipline === "FE"
+        ? { planned_sprint_fe_id: sprintId }
+        : { planned_sprint_be_id: sprintId };
     const { error } = await supabase
       .from("tickets")
-      .update({ [col]: sprintId } as Record<string, string | null>)
+      .update(patch)
       .in("id", ticketIds);
     if (error) {
       toast.error(error.message);
