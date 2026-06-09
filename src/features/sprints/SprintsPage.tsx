@@ -24,7 +24,7 @@ export function SprintsPage({ projectId }: { projectId: string }) {
       )}
       <Tabs value={tab} onValueChange={(v) => setTab(v as "forecast" | "workbench")}>
         <TabsList>
-          <TabsTrigger value="forecast">Forecasting Calendar</TabsTrigger>
+          <TabsTrigger value="forecast">Sprint Forecasting & Pooling</TabsTrigger>
           <TabsTrigger value="workbench">Sprint Workbench</TabsTrigger>
         </TabsList>
         <TabsContent value="forecast" className="mt-4">
