@@ -109,19 +109,6 @@ export function SprintPoolingTable({ projectId, sprints, isPMBA }: Props) {
     return rows;
   }, [projectTickets, filters, search, unpooledOnly, assignmentByTicket, fePoolFilter, bePoolFilter]);
 
-      rows = rows.filter((t) => {
-        const a = assignmentByTicket.get(t.id);
-        const hasFE = (t.current_fe_estimate || 0) > 0;
-        const hasBE = (t.current_be_estimate || 0) > 0;
-        const fePooled = hasFE && !!a?.fe;
-        const bePooled = hasBE && !!a?.be;
-        const fullyPooled =
-          (!hasFE || fePooled) && (!hasBE || bePooled) && (hasFE || hasBE);
-        return !fullyPooled;
-      });
-    }
-    return rows;
-  }, [projectTickets, filters, search, unpooledOnly, assignmentByTicket]);
 
   // Prune selection to currently visible rows.
   useEffect(() => {
