@@ -55,6 +55,7 @@ export function SprintWorkbench(props: Props) {
 }
 
 const DROP_DEV = "zone:dev";
+const DROP_BACKLOG = "zone:backlog";
 
 function SprintWorkbenchInner({ projectId, sprints, isPMBA }: Props) {
   const qc = useQueryClient();
@@ -64,6 +65,7 @@ function SprintWorkbenchInner({ projectId, sprints, isPMBA }: Props) {
   const [targetSprintId, setTargetSprintId] = useState<string>(sprints[0]?.id ?? "");
   const [focusUserId, setFocusUserId] = useState<string>("");
   const [poolSource, setPoolSource] = useState<string>("__current__");
+  const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
 
   const { tickets: allTickets } = useProjectTickets(projectId);
   const tickets = useMemo(
