@@ -21,6 +21,8 @@ import { ListPagination } from "@/components/ListPagination";
 import { PAGE_SIZES } from "@/lib/pagination";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { useSprints } from "@/features/sprints/useSprintBoard";
+import { usePoolData } from "@/features/sprints/usePoolData";
 
 export function ProjectTickets({ projectId }: { projectId: string }) {
   const role = useProjectRole(projectId);
