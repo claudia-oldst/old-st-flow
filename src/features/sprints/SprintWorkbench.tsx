@@ -230,12 +230,17 @@ function SprintWorkbenchInner({ projectId, sprints, isPMBA }: Props) {
     () =>
       devTickets.reduce((s, t) => {
         let h = 0;
-        if (focusDisciplines.includes("FE")) h += t.current_fe_estimate || 0;
-        if (focusDisciplines.includes("BE")) h += t.current_be_estimate || 0;
+        if (focusDisciplines.includes("FE")) {
+          h += Math.max(0, (t.current_fe_estimate || 0) - (t.actual_frontend_hours || 0));
+        }
+        if (focusDisciplines.includes("BE")) {
+          h += Math.max(0, (t.current_be_estimate || 0) - (t.actual_backend_hours || 0));
+        }
         return s + h;
       }, 0),
     [devTickets, focusDisciplines],
   );
+
 
   const handleDragEnd = async (e: DragEndEvent) => {
     if (!isPMBA || !targetSprintId || !focusDev) return;
