@@ -31,6 +31,8 @@ interface Props {
   disabled?: boolean;
   /** Optional empty hint */
   emptyHint?: string;
+  /** Called on card double-click to open ticket details. */
+  onOpenTicket?: (ticket: TicketRow) => void;
 }
 
 /**
