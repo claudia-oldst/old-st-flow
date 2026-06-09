@@ -127,7 +127,9 @@ export function TicketsList({
                           currentUserId={currentUserId}
                           statuses={statuses}
                           groupKey={g.key}
+                          poolData={poolData}
                         />
+
                       ))}
                     </tbody>
                   </table>

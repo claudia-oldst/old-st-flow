@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { ColKey, DISC_ORDER, SORTABLE, SORT_STORAGE_KEY, SortState, loadSort } from "./columns";
 import type { Status } from "@/lib/types";
+import type { PoolData } from "./poolData";
 
-export function useTicketsSort(statuses: Status[]) {
+export function useTicketsSort(statuses: Status[], poolData?: PoolData) {
+
   const [sort, setSort] = useState<SortState | null>(() => loadSort());
 
   useEffect(() => {
@@ -61,7 +63,17 @@ export function useTicketsSort(statuses: Status[]) {
             return Number(t.actual_backend_hours ?? 0);
           case "assignees":
             return (t.assignees[0]?.member.name ?? "~").toLowerCase();
-        }
+          case "fe_pool": {
+            const sid = poolData?.byTicket.get(t.id)?.fe ?? null;
+            const n = sid ? poolData?.sprintsById.get(sid)?.sprint_number : undefined;
+            return n ?? Number.MAX_SAFE_INTEGER;
+          }
+          case "be_pool": {
+            const sid = poolData?.byTicket.get(t.id)?.be ?? null;
+            const n = sid ? poolData?.sprintsById.get(sid)?.sprint_number : undefined;
+            return n ?? Number.MAX_SAFE_INTEGER;
+          }
+
       };
       return [...arr].sort((a, b) => {
         const va = valFor(a);
