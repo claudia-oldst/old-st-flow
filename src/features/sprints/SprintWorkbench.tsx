@@ -32,6 +32,7 @@ import {
   useProjectSprintTickets,
   usePlannedSprintAssignments,
 } from "./useSprintBoard";
+import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
 import { addTicketToLane, removeTicketFromSprint } from "./dnd";
 import {
   SprintSelectionProvider,
