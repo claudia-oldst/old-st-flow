@@ -21,7 +21,10 @@ export type ColKey =
   | "dev_status"
   | "fe"
   | "be"
-  | "assignees";
+  | "assignees"
+  | "fe_pool"
+  | "be_pool";
+
 
 export interface ColDef {
   key: ColKey;
@@ -41,7 +44,10 @@ export const COLS: Record<ColKey, ColDef> = {
   fe: { key: "fe", label: "FE", default: 110, min: 80, align: "right" },
   be: { key: "be", label: "BE", default: 110, min: 80, align: "right" },
   assignees: { key: "assignees", label: "Assignees", default: 200, min: 120 },
+  fe_pool: { key: "fe_pool", label: "FE Pool", default: 120, min: 90 },
+  be_pool: { key: "be_pool", label: "BE Pool", default: 120, min: 90 },
 };
+
 
 export const STORAGE_KEY = "tickets-list-col-widths-v1";
 export const SORT_STORAGE_KEY = "tickets-list-sort-v1";
@@ -62,7 +68,10 @@ export const SORTABLE: Record<ColKey, boolean> = {
   fe: true,
   be: true,
   assignees: true,
+  fe_pool: true,
+  be_pool: true,
 };
+
 
 export const DISC_ORDER: Record<DisciplineStatus, number> = {
   todo: 0,
