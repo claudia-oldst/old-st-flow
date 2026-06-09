@@ -66,6 +66,20 @@ export function SprintPoolingTable({ projectId, sprints, isPMBA }: Props) {
     return m;
   }, [assignments]);
 
+  const sprintsById = useMemo(() => {
+    const m = new Map<string, { sprint_number: number }>();
+    sprints.forEach((s) => m.set(s.id, { sprint_number: s.sprint_number }));
+    return m;
+  }, [sprints]);
+
+  const poolData = useMemo(
+    () => ({ byTicket: assignmentByTicket, sprintsById }),
+    [assignmentByTicket, sprintsById],
+  );
+
+  const [fePoolFilter, setFePoolFilter] = useState<string>("__any__");
+  const [bePoolFilter, setBePoolFilter] = useState<string>("__any__");
+
   const visibleTickets = useMemo(() => {
     let rows = applyFilters(projectTickets, filters);
     rows = searchTickets(rows, search);
@@ -81,8 +95,20 @@ export function SprintPoolingTable({ projectId, sprints, isPMBA }: Props) {
         return !fullyPooled;
       });
     }
+    const matchPool = (val: string, sid: string | null | undefined) => {
+      if (val === "__any__") return true;
+      if (val === "__none__") return !sid;
+      return sid === val;
+    };
+    if (fePoolFilter !== "__any__") {
+      rows = rows.filter((t) => matchPool(fePoolFilter, assignmentByTicket.get(t.id)?.fe));
+    }
+    if (bePoolFilter !== "__any__") {
+      rows = rows.filter((t) => matchPool(bePoolFilter, assignmentByTicket.get(t.id)?.be));
+    }
     return rows;
-  }, [projectTickets, filters, search, unpooledOnly, assignmentByTicket]);
+  }, [projectTickets, filters, search, unpooledOnly, assignmentByTicket, fePoolFilter, bePoolFilter]);
+
 
   // Prune selection to currently visible rows.
   useEffect(() => {
@@ -168,13 +194,27 @@ export function SprintPoolingTable({ projectId, sprints, isPMBA }: Props) {
         search={search}
         onSearch={setSearch}
         extras={
-          <label className="flex items-center gap-1.5 text-[11px] text-dim">
-            <Checkbox
-              checked={unpooledOnly}
-              onCheckedChange={(c) => setUnpooledOnly(c === true)}
+          <>
+            <PoolFilterSelect
+              label="FE Pool"
+              value={fePoolFilter}
+              onChange={setFePoolFilter}
+              sprints={sprints}
             />
-            Unpooled only
-          </label>
+            <PoolFilterSelect
+              label="BE Pool"
+              value={bePoolFilter}
+              onChange={setBePoolFilter}
+              sprints={sprints}
+            />
+            <label className="flex items-center gap-1.5 text-[11px] text-dim">
+              <Checkbox
+                checked={unpooledOnly}
+                onCheckedChange={(c) => setUnpooledOnly(c === true)}
+              />
+              Unpooled only
+            </label>
+          </>
         }
       />
 
@@ -190,8 +230,11 @@ export function SprintPoolingTable({ projectId, sprints, isPMBA }: Props) {
           selectedIds={selectedIds}
           onToggleSelect={toggleSelect}
           onToggleSelectAll={toggleSelectAll}
+          extraCols={["fe_pool", "be_pool"]}
+          poolData={poolData}
         />
       )}
+
 
       <BulkActionsBar
         projectId={projectId}
@@ -256,3 +299,33 @@ function PoolBulkMenu({
     </Select>
   );
 }
+
+function PoolFilterSelect({
+  label,
+  value,
+  onChange,
+  sprints,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  sprints: Sprint[];
+}) {
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger className="h-8 w-32 text-xs">
+        <SelectValue placeholder={label} />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="__any__">{label}: Any</SelectItem>
+        <SelectItem value="__none__">{label}: Unpooled</SelectItem>
+        {sprints.map((s) => (
+          <SelectItem key={s.id} value={s.id}>
+            {label}: Sprint {s.sprint_number}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+

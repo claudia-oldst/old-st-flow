@@ -9,8 +9,10 @@ import { useColumnResize } from "./list/useColumnResize";
 import { useTicketsGrouping } from "./list/useTicketsGrouping";
 import { TicketsListHeader } from "./list/TicketsListHeader";
 import { TicketsListRow } from "./list/TicketsListRow";
+import type { PoolData } from "./list/poolData";
 
 export type { GroupBy } from "./list/columns";
+export type { PoolData } from "./list/poolData";
 
 export function TicketsList({
   tickets,
@@ -21,6 +23,8 @@ export function TicketsList({
   onToggleSelectAll,
   showQuickStart = false,
   currentUserId,
+  extraCols,
+  poolData,
 }: {
   tickets: TicketRow[];
   groupBy: GroupBy;
@@ -30,12 +34,15 @@ export function TicketsList({
   onToggleSelectAll?: (ids: string[], select: boolean) => void;
   showQuickStart?: boolean;
   currentUserId?: string;
+  extraCols?: ColKey[];
+  poolData?: PoolData;
 }) {
+
   const selectionEnabled = !!selectedIds && !!onToggleSelect;
   const { statuses } = useStatuses();
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
-  const { sort, toggleSort, sortTickets } = useTicketsSort(statuses);
+  const { sort, toggleSort, sortTickets } = useTicketsSort(statuses, poolData);
 
   const visibleCols: ColKey[] = useMemo(() => {
     const out: ColKey[] = ["id", "title"];
@@ -45,8 +52,10 @@ export function TicketsList({
     out.push("dev_status");
     out.push("fe", "be");
     if (groupBy !== "assignee") out.push("assignees");
+    if (extraCols) out.push(...extraCols);
     return out;
-  }, [groupBy]);
+  }, [groupBy, extraCols]);
+
 
   const { widthFor, totalWidth, onResizeStart } = useColumnResize(visibleCols);
 
@@ -118,7 +127,9 @@ export function TicketsList({
                           currentUserId={currentUserId}
                           statuses={statuses}
                           groupKey={g.key}
+                          poolData={poolData}
                         />
+
                       ))}
                     </tbody>
                   </table>
