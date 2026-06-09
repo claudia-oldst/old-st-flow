@@ -51,52 +51,66 @@ export function ProjectTicketsToolbar({
   onStartGroupTimer,
   onAdd,
   onImport,
+  showViewToggle = true,
+  showMineToggle = true,
+  showGroupBy = true,
+  showAddButtons = true,
+  showGroupTimer = true,
+  extras,
 }: {
   projectId: string;
   tickets: TicketRow[];
   filters: TicketFilters;
   setFilters: (f: TicketFilters) => void;
   view: ViewMode;
-  setView: (v: ViewMode) => void;
+  setView?: (v: ViewMode) => void;
   filterMine: boolean;
-  setFilterMine: (v: boolean) => void;
-  setTouched: (v: boolean) => void;
+  setFilterMine?: (v: boolean) => void;
+  setTouched?: (v: boolean) => void;
   groupBy: GroupBy;
-  setGroupBy: (g: GroupBy) => void;
-  cardPrefs: CardDisplayPrefs;
-  setCardPrefs: (p: CardDisplayPrefs) => void;
-  resetCardPrefs: () => void;
+  setGroupBy?: (g: GroupBy) => void;
+  cardPrefs?: CardDisplayPrefs;
+  setCardPrefs?: (p: CardDisplayPrefs) => void;
+  resetCardPrefs?: () => void;
   search: string;
   setSearch: (s: string) => void;
   role: ProjectRole | null;
   user: { id: string } | null;
-  activeTimer: unknown;
-  onStartGroupTimer: () => void;
-  onAdd: () => void;
-  onImport: () => void;
+  activeTimer?: unknown;
+  onStartGroupTimer?: () => void;
+  onAdd?: () => void;
+  onImport?: () => void;
+  showViewToggle?: boolean;
+  showMineToggle?: boolean;
+  showGroupBy?: boolean;
+  showAddButtons?: boolean;
+  showGroupTimer?: boolean;
+  extras?: React.ReactNode;
 }) {
   return (
     <div className="sticky top-14 z-30 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 mb-4 flex items-center gap-3 flex-wrap bg-background/85 backdrop-blur-md hairline-b">
-      <div className="flex gap-1 p-1 rounded-lg bg-white/5 hairline">
-        <button
-          onClick={() => setView("board")}
-          className={cn(
-            "px-3 py-1 text-xs rounded-md transition inline-flex items-center gap-1.5",
-            view === "board" ? "bg-foreground text-background" : "text-dim hover:text-foreground"
-          )}
-        >
-          <LayoutGrid className="h-3 w-3" /> Board
-        </button>
-        <button
-          onClick={() => setView("list")}
-          className={cn(
-            "px-3 py-1 text-xs rounded-md transition inline-flex items-center gap-1.5",
-            view === "list" ? "bg-foreground text-background" : "text-dim hover:text-foreground"
-          )}
-        >
-          <List className="h-3 w-3" /> List
-        </button>
-      </div>
+      {showViewToggle && setView && (
+        <div className="flex gap-1 p-1 rounded-lg bg-white/5 hairline">
+          <button
+            onClick={() => setView("board")}
+            className={cn(
+              "px-3 py-1 text-xs rounded-md transition inline-flex items-center gap-1.5",
+              view === "board" ? "bg-foreground text-background" : "text-dim hover:text-foreground"
+            )}
+          >
+            <LayoutGrid className="h-3 w-3" /> Board
+          </button>
+          <button
+            onClick={() => setView("list")}
+            className={cn(
+              "px-3 py-1 text-xs rounded-md transition inline-flex items-center gap-1.5",
+              view === "list" ? "bg-foreground text-background" : "text-dim hover:text-foreground"
+            )}
+          >
+            <List className="h-3 w-3" /> List
+          </button>
+        </div>
+      )}
 
       {view === "list" && (
         <>
