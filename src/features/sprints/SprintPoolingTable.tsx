@@ -66,10 +66,49 @@ export function SprintPoolingTable({ projectId, sprints, isPMBA }: Props) {
     return m;
   }, [assignments]);
 
+  const sprintsById = useMemo(() => {
+    const m = new Map<string, { sprint_number: number }>();
+    sprints.forEach((s) => m.set(s.id, { sprint_number: s.sprint_number }));
+    return m;
+  }, [sprints]);
+
+  const poolData = useMemo(
+    () => ({ byTicket: assignmentByTicket, sprintsById }),
+    [assignmentByTicket, sprintsById],
+  );
+
+  const [fePoolFilter, setFePoolFilter] = useState<string>("__any__");
+  const [bePoolFilter, setBePoolFilter] = useState<string>("__any__");
+
   const visibleTickets = useMemo(() => {
     let rows = applyFilters(projectTickets, filters);
     rows = searchTickets(rows, search);
     if (unpooledOnly) {
+      rows = rows.filter((t) => {
+        const a = assignmentByTicket.get(t.id);
+        const hasFE = (t.current_fe_estimate || 0) > 0;
+        const hasBE = (t.current_be_estimate || 0) > 0;
+        const fePooled = hasFE && !!a?.fe;
+        const bePooled = hasBE && !!a?.be;
+        const fullyPooled =
+          (!hasFE || fePooled) && (!hasBE || bePooled) && (hasFE || hasBE);
+        return !fullyPooled;
+      });
+    }
+    const matchPool = (val: string, sid: string | null | undefined) => {
+      if (val === "__any__") return true;
+      if (val === "__none__") return !sid;
+      return sid === val;
+    };
+    if (fePoolFilter !== "__any__") {
+      rows = rows.filter((t) => matchPool(fePoolFilter, assignmentByTicket.get(t.id)?.fe));
+    }
+    if (bePoolFilter !== "__any__") {
+      rows = rows.filter((t) => matchPool(bePoolFilter, assignmentByTicket.get(t.id)?.be));
+    }
+    return rows;
+  }, [projectTickets, filters, search, unpooledOnly, assignmentByTicket, fePoolFilter, bePoolFilter]);
+
       rows = rows.filter((t) => {
         const a = assignmentByTicket.get(t.id);
         const hasFE = (t.current_fe_estimate || 0) > 0;
