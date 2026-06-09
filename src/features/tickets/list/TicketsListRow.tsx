@@ -10,6 +10,7 @@ import { LogTimeWithCapacityCheck } from "@/features/timelog/LogTimeWithCapacity
 import { useProjectRole } from "@/features/team/useProjectRole";
 import { COLS, ColKey } from "./columns";
 import { GithubIssueBadge } from "@/features/github/GithubIssueBadge";
+import type { PoolData } from "./poolData";
 
 export function TicketsListRow({
   t,
@@ -22,6 +23,7 @@ export function TicketsListRow({
   currentUserId,
   statuses,
   groupKey,
+  poolData,
 }: {
   t: TicketRow;
   visibleCols: ColKey[];
@@ -33,7 +35,9 @@ export function TicketsListRow({
   currentUserId?: string;
   statuses: Status[];
   groupKey: string;
+  poolData?: PoolData;
 }) {
+
   // activeTimer no longer gates the play button — it now opens the Log Time modal.
   const role = useProjectRole(t.project_id);
   const [logOpen, setLogOpen] = useState(false);
@@ -149,7 +153,20 @@ export function TicketsListRow({
               : t.assignees.map((a) => a.member.name).join(", ")}
           </span>
         );
+      case "fe_pool":
+      case "be_pool": {
+        const slot = key === "fe_pool" ? "fe" : "be";
+        const sid = poolData?.byTicket.get(t.id)?.[slot] ?? null;
+        const num = sid ? poolData?.sprintsById.get(sid)?.sprint_number : undefined;
+        if (!num) return <span className="text-dimmer text-xs">—</span>;
+        return (
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono bg-white/5 hairline text-dim">
+            Sprint {num}
+          </span>
+        );
+      }
     }
+
   };
 
   return (
