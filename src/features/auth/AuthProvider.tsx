@@ -110,8 +110,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return true;
     };
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
+      // Token refreshes fire on every tab focus when autoRefreshToken is on.
+      // Identity hasn't changed, so don't re-resolve the team_member row —
+      // that would flip authLoading true and unmount the current route,
+      // causing a "Loading…" flash + scroll-to-top on every Alt+Tab.
+      if (event === "TOKEN_REFRESHED") return;
+      // For SIGNED_IN / INITIAL_SESSION, skip re-resolution when it's the
+      // same auth user we already have loaded.
+      const current = useCurrentUser.getState().user;
+      if (
+        (event === "SIGNED_IN" || event === "INITIAL_SESSION") &&
+        current &&
+        session?.user?.id &&
+        current.auth_user_id === session.user.id
+      ) {
+        return;
+      }
       // Defer Supabase calls per best practice
       setTimeout(() => {
         void resolveTeamMember(session).then((ok) => {
