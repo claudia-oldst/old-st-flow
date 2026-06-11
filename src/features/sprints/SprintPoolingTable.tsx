@@ -70,7 +70,7 @@ export function SprintPoolingTable({ projectId, sprints, isPMBA }: Props) {
       rows = rows.filter((t) => matchPool(bePoolFilter, poolData.byTicket.get(t.id)?.be));
     }
     return rows;
-  }, [v.visibleTickets, unpooledOnly, poolData, fePoolFilter, bePoolFilter]);
+  }, [v.visibleTickets, poolData, fePoolFilter, bePoolFilter]);
 
   // Prune selection to currently visible rows.
   useEffect(() => {
