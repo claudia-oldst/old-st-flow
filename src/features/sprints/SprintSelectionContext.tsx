@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 interface Ctx {
   selected: Set<string>;
   toggle: (ticketId: string) => void;
+  setMany: (ticketIds: string[], select: boolean) => void;
   clear: () => void;
   isSelected: (ticketId: string) => boolean;
 }
@@ -21,12 +22,20 @@ export function SprintSelectionProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const setMany = useCallback((ticketIds: string[], select: boolean) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      ticketIds.forEach((id) => (select ? next.add(id) : next.delete(id)));
+      return next;
+    });
+  }, []);
+
   const clear = useCallback(() => setSelected(new Set()), []);
   const isSelected = useCallback((id: string) => selected.has(id), [selected]);
 
   const value = useMemo<Ctx>(
-    () => ({ selected, toggle, clear, isSelected }),
-    [selected, toggle, clear, isSelected],
+    () => ({ selected, toggle, setMany, clear, isSelected }),
+    [selected, toggle, setMany, clear, isSelected],
   );
 
   return <SprintSelectionCtx.Provider value={value}>{children}</SprintSelectionCtx.Provider>;
@@ -35,10 +44,10 @@ export function SprintSelectionProvider({ children }: { children: ReactNode }) {
 export function useSprintSelection(): Ctx {
   const ctx = useContext(SprintSelectionCtx);
   if (!ctx) {
-    // Safe fallback for cards rendered outside the workbench
     return {
       selected: new Set<string>(),
       toggle: () => {},
+      setMany: () => {},
       clear: () => {},
       isSelected: () => false,
     };
