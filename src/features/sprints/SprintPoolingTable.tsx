@@ -53,24 +53,11 @@ export function SprintPoolingTable({ projectId, sprints, isPMBA }: Props) {
   const v = useProjectTicketsView({ tickets: projectTickets, user, role, projectId: `${projectId}:pool` });
 
   const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
-  const [unpooledOnly, setUnpooledOnly] = useState(false);
   const [fePoolFilter, setFePoolFilter] = useState<string>("__any__");
   const [bePoolFilter, setBePoolFilter] = useState<string>("__any__");
 
   const visibleTickets = useMemo(() => {
     let rows = v.visibleTickets;
-    if (unpooledOnly) {
-      rows = rows.filter((t) => {
-        const a = poolData.byTicket.get(t.id);
-        const hasFE = (t.current_fe_estimate || 0) > 0;
-        const hasBE = (t.current_be_estimate || 0) > 0;
-        const fePooled = hasFE && !!a?.fe;
-        const bePooled = hasBE && !!a?.be;
-        const fullyPooled =
-          (!hasFE || fePooled) && (!hasBE || bePooled) && (hasFE || hasBE);
-        return !fullyPooled;
-      });
-    }
     const matchPool = (val: string, sid: string | null | undefined) => {
       if (val === "__any__") return true;
       if (val === "__none__") return !sid;
