@@ -54,6 +54,7 @@ export function SprintBoardColumn({
 }: Props) {
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<TicketFilters>(EMPTY_FILTERS);
+  const { isSelected, setMany } = useSprintSelection();
 
   const filtered = useMemo(() => {
     return searchTickets(applyFilters(tickets, filters), search);
@@ -64,12 +65,27 @@ export function SprintBoardColumn({
     disabled: !dropZoneId,
   });
 
+  const allSelected = filtered.length > 0 && filtered.every((t) => isSelected(t.id));
+  const someSelected = !allSelected && filtered.some((t) => isSelected(t.id));
+  const toggleAll = () => {
+    if (disabled) return;
+    setMany(filtered.map((t) => t.id), !allSelected);
+  };
+
   return (
     <div className="flex flex-col gap-2 h-full min-h-0 rounded-md hairline bg-surface-1/40 overflow-hidden">
       <div className="p-2.5 hairline-b bg-surface-1/60 space-y-2">
-        <div className="flex items-center justify-between">
-          <h3 className="font-display text-sm font-semibold tracking-tight">{title}</h3>
-          <span className="text-[10px] font-mono text-dim">{filtered.length}</span>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Checkbox
+              checked={allSelected ? true : someSelected ? "indeterminate" : false}
+              onCheckedChange={toggleAll}
+              disabled={disabled || filtered.length === 0}
+              aria-label="Select all in column"
+            />
+            <h3 className="font-display text-sm font-semibold tracking-tight truncate">{title}</h3>
+          </div>
+          <span className="text-[10px] font-mono text-dim shrink-0">{filtered.length}</span>
         </div>
         {subtitle && <div className="text-[11px] text-dim">{subtitle}</div>}
         {header}
