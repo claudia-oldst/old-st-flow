@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import {
   Select,
   SelectContent,
@@ -53,24 +53,11 @@ export function SprintPoolingTable({ projectId, sprints, isPMBA }: Props) {
   const v = useProjectTicketsView({ tickets: projectTickets, user, role, projectId: `${projectId}:pool` });
 
   const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
-  const [unpooledOnly, setUnpooledOnly] = useState(false);
   const [fePoolFilter, setFePoolFilter] = useState<string>("__any__");
   const [bePoolFilter, setBePoolFilter] = useState<string>("__any__");
 
   const visibleTickets = useMemo(() => {
     let rows = v.visibleTickets;
-    if (unpooledOnly) {
-      rows = rows.filter((t) => {
-        const a = poolData.byTicket.get(t.id);
-        const hasFE = (t.current_fe_estimate || 0) > 0;
-        const hasBE = (t.current_be_estimate || 0) > 0;
-        const fePooled = hasFE && !!a?.fe;
-        const bePooled = hasBE && !!a?.be;
-        const fullyPooled =
-          (!hasFE || fePooled) && (!hasBE || bePooled) && (hasFE || hasBE);
-        return !fullyPooled;
-      });
-    }
     const matchPool = (val: string, sid: string | null | undefined) => {
       if (val === "__any__") return true;
       if (val === "__none__") return !sid;
@@ -83,7 +70,7 @@ export function SprintPoolingTable({ projectId, sprints, isPMBA }: Props) {
       rows = rows.filter((t) => matchPool(bePoolFilter, poolData.byTicket.get(t.id)?.be));
     }
     return rows;
-  }, [v.visibleTickets, unpooledOnly, poolData, fePoolFilter, bePoolFilter]);
+  }, [v.visibleTickets, poolData, fePoolFilter, bePoolFilter]);
 
   // Prune selection to currently visible rows.
   useEffect(() => {
@@ -155,13 +142,6 @@ export function SprintPoolingTable({ projectId, sprints, isPMBA }: Props) {
               onChange={setBePoolFilter}
               sprints={sprints}
             />
-            <label className="flex items-center gap-1.5 text-[11px] text-dim">
-              <Checkbox
-                checked={unpooledOnly}
-                onCheckedChange={(c) => setUnpooledOnly(c === true)}
-              />
-              Unpooled only
-            </label>
           </>
         }
       />
