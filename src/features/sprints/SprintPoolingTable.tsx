@@ -142,13 +142,6 @@ export function SprintPoolingTable({ projectId, sprints, isPMBA }: Props) {
               onChange={setBePoolFilter}
               sprints={sprints}
             />
-            <label className="flex items-center gap-1.5 text-[11px] text-dim">
-              <Checkbox
-                checked={unpooledOnly}
-                onCheckedChange={(c) => setUnpooledOnly(c === true)}
-              />
-              Unpooled only
-            </label>
           </>
         }
       />
