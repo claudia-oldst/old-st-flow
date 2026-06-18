@@ -38,10 +38,12 @@ export function EpicSummaryEditor({
   const [text, setText] = useState(initialText);
   const [included, setIncluded] = useState(initialIncluded);
   const [generating, setGenerating] = useState(false);
+  const [expanded, setExpanded] = useState(initialText.trim().length > 0);
 
   useEffect(() => {
     setText(initialText);
     setIncluded(initialIncluded);
+    setExpanded((prev) => prev || initialText.trim().length > 0);
   }, [initialText, initialIncluded]);
 
   async function persist(nextText: string, nextIncluded: boolean, opts?: { silent?: boolean }) {
