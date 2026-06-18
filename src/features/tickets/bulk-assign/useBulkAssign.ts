@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { ProjectMember, TeamMember } from "@/lib/types";
 import { toast } from "sonner";
 
-export type BulkAssignMode = "add" | "replace";
+type Slot = "FE" | "BE" | "OtherStd" | "Proj";
+
+const slotColumnFor = (s: Slot): "FE" | "BE" | "Project" =>
+  s === "FE" ? "FE" : s === "BE" ? "BE" : "Project";
 
 export function useBulkAssign({
   open,
@@ -23,10 +26,17 @@ export function useBulkAssign({
   const [beUserIds, setBeUserIds] = useState<Set<string>>(new Set());
   const [otherUserIds, setOtherUserIds] = useState<Set<string>>(new Set());
   const [projectUserIds, setProjectUserIds] = useState<Set<string>>(new Set());
-  const [mode, setMode] = useState<BulkAssignMode>("add");
   const [busy, setBusy] = useState(false);
   const [projTicketIds, setProjTicketIds] = useState<Set<string>>(new Set());
   const [standardTicketIds, setStandardTicketIds] = useState<Set<string>>(new Set());
+
+  // existing[slot][userId] = Set of ticketIds the user is currently assigned on (within applicable set)
+  const [existing, setExisting] = useState<Record<Slot, Map<string, Set<string>>>>({
+    FE: new Map(),
+    BE: new Map(),
+    OtherStd: new Map(),
+    Proj: new Map(),
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -34,7 +44,8 @@ export function useBulkAssign({
     setBeUserIds(new Set());
     setOtherUserIds(new Set());
     setProjectUserIds(new Set());
-    setMode("add");
+    setExisting({ FE: new Map(), BE: new Map(), OtherStd: new Map(), Proj: new Map() });
+
     supabase
       .from("project_members")
       .select("*, member:team_members(*)")
@@ -42,25 +53,59 @@ export function useBulkAssign({
       .then(({ data }) =>
         setMembers(((data ?? []) as unknown) as (ProjectMember & { member: TeamMember })[])
       );
-    if (ticketIds.length) {
-      supabase
-        .from("tickets")
-        .select("id, ticket_type")
-        .in("id", ticketIds)
-        .then(({ data }) => {
-          const proj = new Set<string>();
-          const std = new Set<string>();
-          (data ?? []).forEach((t: { id: string; ticket_type: string }) => {
-            if (t.ticket_type === "Proj") proj.add(t.id);
-            else std.add(t.id);
-          });
-          setProjTicketIds(proj);
-          setStandardTicketIds(std);
-        });
-    } else {
+
+    if (!ticketIds.length) {
       setProjTicketIds(new Set());
       setStandardTicketIds(new Set());
+      return;
     }
+
+    (async () => {
+      const { data: ticketRows } = await supabase
+        .from("tickets")
+        .select("id, ticket_type")
+        .in("id", ticketIds);
+
+      const proj = new Set<string>();
+      const std = new Set<string>();
+      (ticketRows ?? []).forEach((t: { id: string; ticket_type: string }) => {
+        if (t.ticket_type === "Proj") proj.add(t.id);
+        else std.add(t.id);
+      });
+      setProjTicketIds(proj);
+      setStandardTicketIds(std);
+
+      const { data: assigneeRows } = await supabase
+        .from("ticket_assignees")
+        .select("ticket_id, user_id, slot")
+        .in("ticket_id", ticketIds);
+
+      const next: Record<Slot, Map<string, Set<string>>> = {
+        FE: new Map(),
+        BE: new Map(),
+        OtherStd: new Map(),
+        Proj: new Map(),
+      };
+      (assigneeRows ?? []).forEach(
+        (r: { ticket_id: string; user_id: string; slot: "FE" | "BE" | "Project" }) => {
+          let bucket: Slot;
+          if (r.slot === "FE") bucket = "FE";
+          else if (r.slot === "BE") bucket = "BE";
+          else bucket = proj.has(r.ticket_id) ? "Proj" : "OtherStd";
+          const map = next[bucket];
+          const set = map.get(r.user_id) ?? new Set<string>();
+          set.add(r.ticket_id);
+          map.set(r.user_id, set);
+        }
+      );
+      setExisting(next);
+
+      // Pre-select any user already assigned on at least one applicable ticket.
+      setFeUserIds(new Set(next.FE.keys()));
+      setBeUserIds(new Set(next.BE.keys()));
+      setOtherUserIds(new Set(next.OtherStd.keys()));
+      setProjectUserIds(new Set(next.Proj.keys()));
+    })();
   }, [open, projectId, ticketIds]);
 
   const feEligible = members.filter((m) => m.role === "Frontend" || m.role === "Fullstack");
@@ -74,55 +119,98 @@ export function useBulkAssign({
     setter(next);
   };
 
-  const totalPicked = feUserIds.size + beUserIds.size + otherUserIds.size + projectUserIds.size;
   const hasProj = projTicketIds.size > 0;
   const hasStandard = standardTicketIds.size > 0;
 
+  // Helpers to compute partial / full for chip rendering.
+  const partialFor = (slot: Slot): Set<string> => {
+    const applicableSize =
+      slot === "Proj" ? projTicketIds.size : standardTicketIds.size;
+    const out = new Set<string>();
+    existing[slot].forEach((tids, uid) => {
+      if (tids.size > 0 && tids.size < applicableSize) out.add(uid);
+    });
+    return out;
+  };
+
+  const partial = useMemo(
+    () => ({
+      FE: partialFor("FE"),
+      BE: partialFor("BE"),
+      OtherStd: partialFor("OtherStd"),
+      Proj: partialFor("Proj"),
+    }),
+    [existing, projTicketIds, standardTicketIds]
+  );
+
+  // Diff summary
+  const diff = useMemo(() => {
+    let added = 0;
+    let removed = 0;
+    const slotsStd: { slot: Slot; selected: Set<string> }[] = [
+      { slot: "FE", selected: feUserIds },
+      { slot: "BE", selected: beUserIds },
+      { slot: "OtherStd", selected: otherUserIds },
+    ];
+    const slotsProj: { slot: Slot; selected: Set<string> }[] = [
+      { slot: "Proj", selected: projectUserIds },
+    ];
+    const all = [...slotsStd, ...slotsProj];
+    for (const { slot, selected } of all) {
+      const applicable = slot === "Proj" ? projTicketIds : standardTicketIds;
+      const existingMap = existing[slot];
+      // For each selected user → inserts for applicable - existing
+      selected.forEach((uid) => {
+        const have = existingMap.get(uid) ?? new Set<string>();
+        applicable.forEach((tid) => {
+          if (!have.has(tid)) added++;
+        });
+      });
+      // For each previously-assigned user not in selected → removals
+      existingMap.forEach((tids, uid) => {
+        if (!selected.has(uid)) removed += tids.size;
+      });
+    }
+    return { added, removed };
+  }, [feUserIds, beUserIds, otherUserIds, projectUserIds, existing, projTicketIds, standardTicketIds]);
+
   const handleSave = async () => {
     if (ticketIds.length === 0) return;
-    if (mode === "add" && totalPicked === 0) {
-      return toast.error("Pick at least one assignee");
+    if (diff.added === 0 && diff.removed === 0) {
+      return toast.info("No changes to save");
     }
     setBusy(true);
 
-    if (mode === "replace") {
-      const { error: delErr } = await supabase
-        .from("ticket_assignees")
-        .delete()
-        .in("ticket_id", ticketIds);
-      if (delErr) {
-        setBusy(false);
-        return toast.error(delErr.message);
-      }
+    const slotJobs: { slot: Slot; selected: Set<string>; applicable: Set<string> }[] = [
+      { slot: "FE", selected: feUserIds, applicable: standardTicketIds },
+      { slot: "BE", selected: beUserIds, applicable: standardTicketIds },
+      { slot: "OtherStd", selected: otherUserIds, applicable: standardTicketIds },
+      { slot: "Proj", selected: projectUserIds, applicable: projTicketIds },
+    ];
+
+    const inserts: { ticket_id: string; user_id: string; slot: "FE" | "BE" | "Project" }[] = [];
+    const deletes: { slot: Slot; user_id: string; ticket_ids: string[] }[] = [];
+
+    for (const { slot, selected, applicable } of slotJobs) {
+      const slotCol = slotColumnFor(slot);
+      const existingMap = existing[slot];
+
+      selected.forEach((uid) => {
+        const have = existingMap.get(uid) ?? new Set<string>();
+        applicable.forEach((tid) => {
+          if (!have.has(tid)) inserts.push({ ticket_id: tid, user_id: uid, slot: slotCol });
+        });
+      });
+
+      existingMap.forEach((tids, uid) => {
+        if (!selected.has(uid)) {
+          deletes.push({ slot, user_id: uid, ticket_ids: Array.from(tids) });
+        }
+      });
     }
 
-    let rows: { ticket_id: string; user_id: string; slot: "FE" | "BE" | "Project" }[] = [];
-    standardTicketIds.forEach((tid) => {
-      feUserIds.forEach((uid) => rows.push({ ticket_id: tid, user_id: uid, slot: "FE" }));
-      beUserIds.forEach((uid) => rows.push({ ticket_id: tid, user_id: uid, slot: "BE" }));
-      otherUserIds.forEach((uid) => rows.push({ ticket_id: tid, user_id: uid, slot: "Project" }));
-    });
-    projTicketIds.forEach((tid) => {
-      projectUserIds.forEach((uid) => rows.push({ ticket_id: tid, user_id: uid, slot: "Project" }));
-    });
-
-    if (mode === "add" && rows.length) {
-      const { data: existing, error: exErr } = await supabase
-        .from("ticket_assignees")
-        .select("ticket_id, user_id, slot")
-        .in("ticket_id", ticketIds);
-      if (exErr) {
-        setBusy(false);
-        return toast.error(exErr.message);
-      }
-      const seen = new Set(
-        (existing ?? []).map((e) => `${e.ticket_id}|${e.user_id}|${e.slot}`)
-      );
-      rows = rows.filter((r) => !seen.has(`${r.ticket_id}|${r.user_id}|${r.slot}`));
-    }
-
-    if (rows.length) {
-      const { error } = await supabase.from("ticket_assignees").insert(rows);
+    if (inserts.length) {
+      const { error } = await supabase.from("ticket_assignees").insert(inserts);
       if (error) {
         toast.error(error.message);
         setBusy(false);
@@ -130,6 +218,23 @@ export function useBulkAssign({
       }
     }
 
+    for (const d of deletes) {
+      if (!d.ticket_ids.length) continue;
+      const slotCol = slotColumnFor(d.slot);
+      const { error } = await supabase
+        .from("ticket_assignees")
+        .delete()
+        .eq("user_id", d.user_id)
+        .eq("slot", slotCol)
+        .in("ticket_id", d.ticket_ids);
+      if (error) {
+        toast.error(error.message);
+        setBusy(false);
+        return;
+      }
+    }
+
+    // Reset FE/BE status to "todo" on any ticket left without an assignee in that slot.
     const { data: finalAssignees } = await supabase
       .from("ticket_assignees")
       .select("ticket_id, slot")
@@ -140,8 +245,8 @@ export function useBulkAssign({
       if (a.slot === "FE") haveFE.add(a.ticket_id);
       else if (a.slot === "BE") haveBE.add(a.ticket_id);
     });
-    const resetFEIds = ticketIds.filter((id) => !haveFE.has(id));
-    const resetBEIds = ticketIds.filter((id) => !haveBE.has(id));
+    const resetFEIds = Array.from(standardTicketIds).filter((id) => !haveFE.has(id));
+    const resetBEIds = Array.from(standardTicketIds).filter((id) => !haveBE.has(id));
     if (resetFEIds.length) {
       await supabase.from("tickets").update({ fe_status: "todo" }).in("id", resetFEIds);
     }
@@ -151,9 +256,7 @@ export function useBulkAssign({
 
     setBusy(false);
     toast.success(
-      mode === "replace"
-        ? `Replaced assignees on ${ticketIds.length} ticket${ticketIds.length === 1 ? "" : "s"}`
-        : `Added assignees to ${ticketIds.length} ticket${ticketIds.length === 1 ? "" : "s"}`
+      `Updated assignees on ${ticketIds.length} ticket${ticketIds.length === 1 ? "" : "s"}`
     );
     onSaved();
     onClose();
@@ -172,12 +275,11 @@ export function useBulkAssign({
     projectUserIds,
     setProjectUserIds,
     toggle,
-    mode,
-    setMode,
     busy,
-    totalPicked,
     hasProj,
     hasStandard,
+    partial,
+    diff,
     handleSave,
   };
 }
