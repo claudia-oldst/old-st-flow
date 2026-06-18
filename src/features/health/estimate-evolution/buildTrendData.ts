@@ -1,13 +1,13 @@
 import { format } from "date-fns";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
-import type { ChangeRow } from "@/features/estimates/useAllEstimateChanges";
 import type { EpicDiscount } from "@/features/discounts/applyDiscounts";
 import { ALL_EPICS_KEY, NO_EPIC_KEY, endOfDay, startOfDay } from "./dateUtils";
 import { ticketEffectiveMs, type TimeLogLite } from "./ticketEffectiveMs";
+import type { ChangeLite } from "./buildEpicSnapshots";
 
 interface Params {
   tickets: TicketRow[];
-  changes: ChangeRow[];
+  changes: ChangeLite[];
   logs: TimeLogLite[];
   discounts: EpicDiscount[];
   ticketEpic: Map<string, number | null>;

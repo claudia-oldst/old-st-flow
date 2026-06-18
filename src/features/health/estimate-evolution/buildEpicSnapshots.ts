@@ -1,12 +1,18 @@
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
-import type { ChangeRow } from "@/features/estimates/useAllEstimateChanges";
 import type { EpicDiscount } from "@/features/discounts/applyDiscounts";
 import { NO_EPIC_KEY, endOfDay } from "./dateUtils";
 import { ticketEffectiveMs, type TimeLogLite } from "./ticketEffectiveMs";
 
+export interface ChangeLite {
+  ticket_id: string;
+  status: string;
+  delta: number;
+  created_at: string;
+}
+
 interface Params {
   tickets: TicketRow[];
-  changes: ChangeRow[];
+  changes: ChangeLite[];
   logs: TimeLogLite[];
   discounts: EpicDiscount[];
   epics: { id: number; epic_name: string | null }[];
