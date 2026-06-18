@@ -40,6 +40,7 @@ export function PlanningPoolPanel({
   projectId,
   sprintId,
   discipline,
+  sprints,
   allDevTicketIds,
   selectedIds,
   onToggleSelect,
@@ -50,6 +51,12 @@ export function PlanningPoolPanel({
   const { data: assignments = [] } = usePlannedSprintAssignments(projectId);
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<TicketFilters>(EMPTY_FILTERS);
+  const [roadmapIds, setRoadmapIds] = useState<Set<string>>(() => new Set([sprintId]));
+
+  // Reset roadmap selection to the current sprint whenever the planning sprint changes.
+  useEffect(() => {
+    setRoadmapIds(new Set([sprintId]));
+  }, [sprintId]);
 
   const planByTicket = useMemo(() => {
     const m = new Map<string, { fe: string | null; be: string | null }>();
@@ -69,10 +76,35 @@ export function PlanningPoolPanel({
           : (t.current_be_estimate || 0) > 0;
       if (!hasHours) return false;
       const plan = planByTicket.get(t.id);
-      const planned = discipline === "FE" ? plan?.fe : plan?.be;
-      return planned === sprintId;
+      const planned = discipline === "FE" ? plan?.fe ?? null : plan?.be ?? null;
+      const key = planned ?? UNPLANNED;
+      return roadmapIds.has(key);
     });
-  }, [allTickets, allDevTicketIds, discipline, sprintId, planByTicket]);
+  }, [allTickets, allDevTicketIds, discipline, roadmapIds, planByTicket]);
+
+  const sortedSprints = useMemo(
+    () => [...sprints].sort((a, b) => a.sprint_number - b.sprint_number),
+    [sprints],
+  );
+  const roadmapLabel = useMemo(() => {
+    if (roadmapIds.size === 0) return "No roadmap";
+    if (roadmapIds.size === 1) {
+      const only = [...roadmapIds][0];
+      if (only === UNPLANNED) return "Unplanned";
+      const s = sortedSprints.find((x) => x.id === only);
+      return s ? `Sprint ${s.sprint_number}` : "Roadmap";
+    }
+    return `${roadmapIds.size} roadmaps`;
+  }, [roadmapIds, sortedSprints]);
+
+  const toggleRoadmap = (id: string) => {
+    setRoadmapIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const filtered = useMemo(() => {
     const base = applyFilters(pool, filters);
