@@ -212,6 +212,7 @@ export function SprintBlockRow({ sprint, devMembers, projectId, isPMBA }: Props)
           {capFE > 0 && <ThinCapBar label="FE" pooled={pooledFE} cap={capFE} />}
           {capBE > 0 && <ThinCapBar label="BE" pooled={pooledBE} cap={capBE} />}
         </div>
+        {isPMBA && <EditSprintPopover sprint={sprint} />}
         {isPMBA && (
           <Button
             variant="ghost"
