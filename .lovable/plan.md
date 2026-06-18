@@ -1,137 +1,90 @@
-## Scope
+# Allow Standard/CR sub-tickets end-to-end (DB + CSV + in-app UI), add a real parent FK, fix child `formatted_id` formatting
 
-Fix audit findings High 1–3 and Medium 4, 6, 7, 8. Only correctness fixes (null-status handling, week-bucket boundary) touch business logic; the rest is refactor.
+One migration + frontend tweaks. UI widening is now in-scope (per request) so the full flow lands together.
 
----
+## 1. Fix `formatted_id` for child tickets (the dash)
 
-## High
+Children currently render as `COUT007:01` while parents render as `COUT-007`. The trigger already builds the child as `parent.formatted_id || ':NN'`, so this is purely legacy data from before parents had a dash. Backfill in the migration:
 
-### 1. `WeeklyBurnPanel` — fetch window matches render window
-**File:** `src/features/health/overview/WeeklyBurnPanel.tsx`
-
-Change `since` from `addWeeks(thisWeek, -10)` to `addWeeks(thisWeek, -8)` so the query range exactly matches the 9 rendered buckets (−8…0). No render changes.
-
-### 2. `ProjectHealth` — UTC ambiguity on `projectStart`
-**File:** `src/features/health/ProjectHealth.tsx` (line 53)
-
-Replace the UTC end-of-day with local end-of-day. Important: the literal must be `T00:00:00` with **no `Z` suffix** — bare ISO strings without timezone are parsed as local in all evergreen browsers, which is exactly what we want here.
-
-```ts
-const startMs = projectStart
-  ? (() => {
-      const d = new Date(`${projectStart}T00:00:00`); // local, no Z
-      d.setHours(23, 59, 59, 999);
-      return d.getTime();
-    })()
-  : null;
+```sql
+UPDATE public.tickets c
+   SET formatted_id = p.formatted_id || ':' || LPAD(c.bug_sub_number::text, 2, '0')
+  FROM public.tickets p
+ WHERE c.parent_ticket_id = p.id
+   AND c.bug_sub_number IS NOT NULL
+   AND c.formatted_id IS DISTINCT FROM p.formatted_id || ':' || LPAD(c.bug_sub_number::text, 2, '0');
 ```
 
-### 3. Deduplicate `SprintGantt + empty state`
-**New file:** `src/features/sprints/SprintGanttOrEmpty.tsx`
+## 2. Add a real FK on `tickets.parent_ticket_id`
 
-The component **must own the fetch** — otherwise nothing is deduplicated. Signature:
+Today the column is plain `uuid` — only the trigger blocks garbage IDs. Add:
 
-```ts
-export function SprintGanttOrEmpty({ projectId }: { projectId: string }) {
-  const { data: sprints = [] } = useSprints(projectId);
-  if (sprints.length === 0) {
-    return (
-      <div className="glass rounded-2xl p-12 text-center text-sm text-dim">
-        No sprint timeline available yet.
-      </div>
-    );
-  }
-  return <SprintGantt projectId={projectId} sprints={sprints} hideExport />;
-}
+```sql
+-- Defensive backfill before the FK
+UPDATE public.tickets t
+   SET parent_ticket_id = NULL, bug_sub_number = NULL
+ WHERE parent_ticket_id IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM public.tickets p WHERE p.id = t.parent_ticket_id);
+
+ALTER TABLE public.tickets
+  ADD CONSTRAINT tickets_parent_ticket_id_fkey
+  FOREIGN KEY (parent_ticket_id) REFERENCES public.tickets(id)
+  ON DELETE SET NULL;
 ```
 
-**Edits:**
-- `src/features/client-portal/ClientPortalEditor.tsx` — delete local `SprintGanttPreview`, drop `useSprints` + `SprintGantt` imports, render `<SprintGanttOrEmpty projectId={id} />`.
-- `src/pages/ClientPortalPublic.tsx` — replace inline ternary in the Timeline tab with `<SprintGanttOrEmpty projectId={data.project.id} />`; remove `useSprints` + `SprintGantt` imports and the now-unused `sprints` variable.
+`ON DELETE SET NULL` is a backstop — the existing `detach_bug_children_before_parent_delete` BEFORE-DELETE trigger runs first and rewrites each child's `formatted_id` back to `ACR-NNN`.
 
----
+## 3. Loosen the trigger so Standard / CR can also be sub-tickets
 
-## Medium
+Rewrite `enforce_bug_parent` (keep the name so the trigger binding stays intact):
 
-### 4. `EpicRiskTable` — explicit null-status handling
-**File:** `src/features/health/overview/EpicRiskTable.tsx`
+- Allow `Standard`, `CR`, and `Bug` as children.
+- Reject `Proj` as a child (`Proj tickets cannot have a parent`).
+- Parent must still be `Standard` or `CR` (unchanged).
+- `bug_sub_number` + `formatted_id := parent.formatted_id || ':' || LPAD(...)` logic unchanged — now produces correct dashed IDs for all child types.
 
-Track unknowns separately so they don't inflate backlog/risk. `total` for risk math excludes unknown; estimate/actual sums still include all epic tickets.
+## 4. CSV importer (`src/features/tickets/project-tickets/useTicketsCsvImport.ts`)
 
-```ts
-let unknown = 0;
-...
-const cat = t.status_id ? catById.get(t.status_id) : undefined;
-if (cat === "done") done++;
-else if (cat === "dev done") devDone++;
-else if (cat === "active") active++;
-else if (cat === "backlog") backlog++;
-else unknown++;
-```
+- Drop the "Parent only valid for Bug rows" guard.
+- Reject `Parent Ticket #` on `Proj` rows.
+- Validate resolved parent's `ticket_type` is `Standard` or `CR`.
+- Payload: `parent_ticket_id: r.type !== "Proj" && r.parent_ticket_number != null ? ... : null`.
+- Add a Standard sub-ticket example row to `downloadTicketsTemplate`.
 
-Set `total = done + devDone + active + backlog`. Skip-row guard becomes `if (total === 0 || currentEst === 0) continue;`.
+## 5. Import dialog hint (`ImportCsvDialog.tsx`)
 
-### 6. Extract a generic `SegmentedBar` primitive
-**New file:** `src/features/_shared/SegmentedBar.tsx`
+Update copy to: "Parent Ticket # links any Standard/CR/Bug row to a Standard or CR parent; not allowed on Proj rows."
 
-Must be N-segment generic (PortalView's `DisciplineRow` uses 2 segments, `EpicRiskTable` uses 4, `PortalEpicTable` uses 2). Implementation iterates over the `segments` array — no hardcoded slot count:
+## 6. In-app add-ticket UI — widen parent picker to Standard / CR / Bug
 
-```ts
-interface Props {
-  segments: { pct: number; className: string }[];
-  className?: string; // applied to track; defaults to "h-2 bg-white/5"
-}
+`ParentTicketSelect` already filters its options to Standard/CR parents (no change needed). The gates that currently hide the picker for non-Bug children are in four spots — widen each from `type === "Bug"` to `type !== "Proj"`:
 
-export function SegmentedBar({ segments, className }: Props) {
-  return (
-    <div className={cn("flex w-full rounded-full overflow-hidden", className ?? "h-2 bg-white/5")}>
-      {segments
-        .filter((s) => s.pct > 0)
-        .map((s, i) => (
-          <div key={i} className={cn("h-full", s.className)} style={{ width: `${s.pct}%` }} />
-        ))}
-    </div>
-  );
-}
-```
+- **`src/features/tickets/QuickAddRow.tsx`**
+  - Replace `const isBug = type === "Bug"` with `const canHaveParent = type !== "Proj"` and rename references (`isBug ? parentTicketId : null` → `canHaveParent ? parentTicketId : null`; render condition `{isBug && (...)}` → `{canHaveParent && (...)}`; `!(isBug && parentTicketId)` → `!(canHaveParent && parentTicketId)`).
+  - On line ~146 (`if (nt !== "Bug")` — currently clears the parent when switching away from Bug), change to `if (nt === "Proj")` so switching among Standard/CR/Bug preserves the picked parent, and switching to Proj clears it.
+  - `postBugLinkComment` call: keep firing for any child type (rename is cosmetic; out of scope here — the comment body still reads correctly for non-Bug children, since it just links parent ↔ child).
 
-Replace in-place usage and delete the local `Segment` helper in `EpicRiskTable.tsx`. Update `PortalView.DisciplineRow` and `PortalEpicTable` row bar to use it.
+- **`src/features/tickets/add-dialog/useDraftRows.ts`**
+  - Line 87: `parent_ticket_id: d.type === "Bug" ? d.parentTicketId : null` → `parent_ticket_id: d.type !== "Proj" ? d.parentTicketId : null`.
+  - Line 138: `if (!d || d.type !== "Bug" || !d.parentTicketId) return` → `if (!d || d.type === "Proj" || !d.parentTicketId) return` so the link-comment runs for any child type.
 
-### 7. Replace hardcoded `hsl(217 91% 60%)` with a token
-**Edit `src/index.css`:**
-```css
---chart-in-progress: 217 91% 60%;
-```
+- **`src/features/tickets/add-dialog/DraftRow.tsx`** — same gate-widening for showing the parent picker column (`type !== "Proj"` instead of `type === "Bug"`).
 
-**Edit `tailwind.config.ts`** `colors` extend:
-```ts
-"chart-in-progress": "hsl(var(--chart-in-progress))",
-```
+- **`src/features/tickets/detail/TicketDetailBody.tsx`** — lines 81 & 101: replace `ticket.ticket_type === "Bug"` with `ticket.ticket_type !== "Proj"` so PMBA can edit, and non-PMBA can view, the parent link for Standard/CR/Bug children.
 
-**Replace all 5 usages:**
-- `PortalEpicTable.tsx`, `PortalView.tsx` — drop `style={{ background: "hsl(217 91% 60%)" }}`, add `bg-chart-in-progress` className (or pass via `SegmentedBar` segment).
-- `EpicRow.tsx` — the prop is a color string passed to a styled `BarRow`, so use `"hsl(var(--chart-in-progress))"` (a literal CSS string, not a Tailwind class).
-- `PortalTrendChart.tsx`, `EstimateTrendChart.tsx` — Recharts ignores Tailwind classes on SVG. Use `stroke="hsl(var(--chart-in-progress))"` exactly (literal string).
-
-### 8. Move `DateRangeControl` out of `health/`
-**Move:** `src/features/health/DateRangeControl.tsx` → `src/features/_shared/DateRangeControl.tsx`.
-
-**Update imports in:**
-- `src/features/estimates/ProjectChangeRequests.tsx`
-- `src/features/change-requests/ProjectChangeRequestTickets.tsx`
-
-`ProjectHealth.tsx` already dropped its import in the prior refactor — verify after the move that no `DateRangeControl` import remains anywhere under `src/features/health/`.
-
----
+Copy tweaks (e.g. labels still saying "Bug parent") are intentionally minor — I'll update visible labels where they appear in the same JSX blocks I'm already editing, but won't do a project-wide string sweep in this pass.
 
 ## Verification
 
-After edits, rely on the auto-build, then visually re-check:
-- Project Health rings + weekly burn (bars unchanged).
-- Epic risk table (doneness segments, percentages, pills unchanged for healthy data).
-- Client portal preview + public portal Timeline tab (renders gantt or empty state identically).
-- In-progress blue bar/line color matches previous shade across portal + estimate evolution charts.
+- Existing legacy child rows (e.g. `COUT007:01`) now read `COUT-007:01`.
+- Inserting a Proj row with `parent_ticket_id` → trigger raises.
+- Inserting a row with a bogus UUID parent → FK violation (was silently allowed before).
+- CSV import with a Standard child of `#12` → lands as `ACR-012:01`.
+- In-app: create a Standard ticket via Quick Add and via the multi-row Add dialog, pick a Standard parent → child gets `ACR-NNN:01`, parent link is editable on the detail page.
+- Switching a draft row's type between Standard / CR / Bug preserves the chosen parent; switching to Proj clears it.
+- Deleting a parent still rewrites children's IDs back to `ACR-NNN` via the existing detach trigger.
 
-## Out of scope
+## Risks
 
-Mediums 5, 9 and all Lows — flagged in the prior audit but not addressed this round.
+- **GitHub sync** (`github-sync-ticket/index.ts`): each sub-ticket already syncs as its own issue; will grep before writing the migration to confirm nothing special-cases "Bugs are the only sub-tickets."
+- **Link comment wording** (`postBugLinkComment`): the helper still has "Bug" in its name and likely in the comment body. Functional, but a future rename pass is warranted.
