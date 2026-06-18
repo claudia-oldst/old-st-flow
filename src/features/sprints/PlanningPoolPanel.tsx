@@ -1,8 +1,6 @@
 import { useMemo, useState } from "react";
-import { Search, X, Layers } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import {
   TicketsFilter,
   EMPTY_FILTERS,
@@ -10,6 +8,7 @@ import {
   type TicketFilters,
 } from "@/features/tickets/TicketsFilter";
 import { TicketsList, type GroupBy } from "@/features/tickets/TicketsList";
+import { GroupBySelect } from "@/features/tickets/GroupBySelect";
 import { useProjectTickets, type TicketRow } from "@/features/tickets/useProjectTickets";
 import { usePlannedSprintAssignments } from "./useSprintBoard";
 import type { Sprint } from "./types";
@@ -114,18 +113,7 @@ export function PlanningPoolPanel({
             filters={filters}
             onChange={setFilters}
           />
-          <Button
-            size="sm"
-            variant="outline"
-            className={cn(
-              "h-8 gap-1.5 text-xs",
-              groupBy === "epic" && "border-accent/40 bg-accent/5 text-accent",
-            )}
-            onClick={() => setGroupBy((g) => (g === "epic" ? "none" : "epic"))}
-            title="Toggle group by epic"
-          >
-            <Layers className="h-3.5 w-3.5" /> Epic
-          </Button>
+          <GroupBySelect value={groupBy} onChange={setGroupBy} label={null} className="w-[120px]" />
         </div>
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto p-2">
