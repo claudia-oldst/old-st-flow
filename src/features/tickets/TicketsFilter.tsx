@@ -15,7 +15,28 @@ import {
   type TicketFilters,
 } from "./filters/applyFilters";
 import { DISC_OPTS, HEALTH_OPTS, TYPE_OPTS } from "./filters/constants";
-import { FilterRow, FilterSection } from "./filters/FilterPrimitives";
+import { FilterRow, FilterSection as FilterSectionPrimitive } from "./filters/FilterPrimitives";
+
+export type FilterSection =
+  | "type"
+  | "status"
+  | "fe_status"
+  | "be_status"
+  | "health"
+  | "epic"
+  | "assignee"
+  | "version";
+
+const ALL_SECTIONS: FilterSection[] = [
+  "type",
+  "status",
+  "fe_status",
+  "be_status",
+  "health",
+  "epic",
+  "assignee",
+  "version",
+];
 
 // Re-export public API at original module path for existing imports.
 export { EMPTY_FILTERS, activeFilterCount, applyFilters };
@@ -26,11 +47,13 @@ export function TicketsFilter({
   tickets,
   filters,
   onChange,
+  sections = ALL_SECTIONS,
 }: {
   projectId: string;
   tickets: TicketRow[];
   filters: TicketFilters;
   onChange: (f: TicketFilters) => void;
+  sections?: FilterSection[];
 }) {
   const { statuses } = useStatuses();
   const { epics } = useProjectEpics(projectId);
@@ -93,117 +116,133 @@ export function TicketsFilter({
           sideOffset={6}
         >
           <div className="max-h-[70vh] overflow-y-auto divide-y divide-white/5">
-            <FilterSection title="Type">
-              {TYPE_OPTS.map((tp) => (
-                <FilterRow
-                  key={tp}
-                  label={tp === "Proj" ? "Project" : tp}
-                  selected={filters.types.includes(tp)}
-                  onClick={() => toggle("types", tp)}
-                />
-              ))}
-            </FilterSection>
+            {sections.includes("type") && (
+              <FilterSectionPrimitive title="Type">
+                {TYPE_OPTS.map((tp) => (
+                  <FilterRow
+                    key={tp}
+                    label={tp === "Proj" ? "Project" : tp}
+                    selected={filters.types.includes(tp)}
+                    onClick={() => toggle("types", tp)}
+                  />
+                ))}
+              </FilterSectionPrimitive>
+            )}
 
-            <FilterSection title="Status">
-              {statuses.map((s) => (
-                <FilterRow
-                  key={s.id}
-                  label={s.name}
-                  dot={s.color}
-                  selected={filters.statusIds.includes(s.id)}
-                  onClick={() => toggle("statusIds", s.id)}
-                />
-              ))}
-            </FilterSection>
+            {sections.includes("status") && (
+              <FilterSectionPrimitive title="Status">
+                {statuses.map((s) => (
+                  <FilterRow
+                    key={s.id}
+                    label={s.name}
+                    dot={s.color}
+                    selected={filters.statusIds.includes(s.id)}
+                    onClick={() => toggle("statusIds", s.id)}
+                  />
+                ))}
+              </FilterSectionPrimitive>
+            )}
 
-            <FilterSection title="Dev status — Frontend">
-              {DISC_OPTS.map((s) => (
-                <FilterRow
-                  key={s}
-                  label={DISCIPLINE_STATUS_LABEL[s]}
-                  selected={filters.feStatuses.includes(s)}
-                  onClick={() => toggle("feStatuses", s)}
-                />
-              ))}
-            </FilterSection>
+            {sections.includes("fe_status") && (
+              <FilterSectionPrimitive title="Dev status — Frontend">
+                {DISC_OPTS.map((s) => (
+                  <FilterRow
+                    key={s}
+                    label={DISCIPLINE_STATUS_LABEL[s]}
+                    selected={filters.feStatuses.includes(s)}
+                    onClick={() => toggle("feStatuses", s)}
+                  />
+                ))}
+              </FilterSectionPrimitive>
+            )}
 
-            <FilterSection title="Dev status — Backend">
-              {DISC_OPTS.map((s) => (
-                <FilterRow
-                  key={s}
-                  label={DISCIPLINE_STATUS_LABEL[s]}
-                  selected={filters.beStatuses.includes(s)}
-                  onClick={() => toggle("beStatuses", s)}
-                />
-              ))}
-            </FilterSection>
+            {sections.includes("be_status") && (
+              <FilterSectionPrimitive title="Dev status — Backend">
+                {DISC_OPTS.map((s) => (
+                  <FilterRow
+                    key={s}
+                    label={DISCIPLINE_STATUS_LABEL[s]}
+                    selected={filters.beStatuses.includes(s)}
+                    onClick={() => toggle("beStatuses", s)}
+                  />
+                ))}
+              </FilterSectionPrimitive>
+            )}
 
-            <FilterSection title="Estimate vs actual">
-              {HEALTH_OPTS.map((h) => (
-                <FilterRow
-                  key={h.value}
-                  label={h.label}
-                  dot={h.dot}
-                  selected={filters.health.includes(h.value)}
-                  onClick={() => toggle("health", h.value)}
-                />
-              ))}
-            </FilterSection>
+            {sections.includes("health") && (
+              <FilterSectionPrimitive title="Estimate vs actual">
+                {HEALTH_OPTS.map((h) => (
+                  <FilterRow
+                    key={h.value}
+                    label={h.label}
+                    dot={h.dot}
+                    selected={filters.health.includes(h.value)}
+                    onClick={() => toggle("health", h.value)}
+                  />
+                ))}
+              </FilterSectionPrimitive>
+            )}
 
-            <FilterSection title="Epic">
-              {epics.map((e) => (
+            {sections.includes("epic") && (
+              <FilterSectionPrimitive title="Epic">
+                {epics.map((e) => (
+                  <FilterRow
+                    key={e.id}
+                    label={e.epic_name ?? "Epic"}
+                    selected={filters.epicIds.includes(String(e.id))}
+                    onClick={() => toggle("epicIds", String(e.id))}
+                  />
+                ))}
                 <FilterRow
-                  key={e.id}
-                  label={e.epic_name ?? "Epic"}
-                  selected={filters.epicIds.includes(String(e.id))}
-                  onClick={() => toggle("epicIds", String(e.id))}
+                  label="No epic"
+                  muted
+                  selected={filters.epicIds.includes("_none")}
+                  onClick={() => toggle("epicIds", "_none")}
                 />
-              ))}
-              <FilterRow
-                label="No epic"
-                muted
-                selected={filters.epicIds.includes("_none")}
-                onClick={() => toggle("epicIds", "_none")}
-              />
-            </FilterSection>
+              </FilterSectionPrimitive>
+            )}
 
-            <FilterSection title="Version">
-              {versionOptions.length === 0 && (
-                <div className="px-2 py-1.5 text-[11px] text-dimmer">No versions yet</div>
-              )}
-              {versionOptions.map((v) => (
+            {sections.includes("version") && (
+              <FilterSectionPrimitive title="Version">
+                {versionOptions.length === 0 && (
+                  <div className="px-2 py-1.5 text-[11px] text-dimmer">No versions yet</div>
+                )}
+                {versionOptions.map((v) => (
+                  <FilterRow
+                    key={v}
+                    label={v}
+                    selected={filters.versions.includes(v)}
+                    onClick={() => toggle("versions", v)}
+                  />
+                ))}
                 <FilterRow
-                  key={v}
-                  label={v}
-                  selected={filters.versions.includes(v)}
-                  onClick={() => toggle("versions", v)}
+                  label="No version"
+                  muted
+                  selected={filters.versions.includes("_none")}
+                  onClick={() => toggle("versions", "_none")}
                 />
-              ))}
-              <FilterRow
-                label="No version"
-                muted
-                selected={filters.versions.includes("_none")}
-                onClick={() => toggle("versions", "_none")}
-              />
-            </FilterSection>
+              </FilterSectionPrimitive>
+            )}
 
-            <FilterSection title="Assignee">
-              {assigneeOptions.map((a) => (
+            {sections.includes("assignee") && (
+              <FilterSectionPrimitive title="Assignee">
+                {assigneeOptions.map((a) => (
+                  <FilterRow
+                    key={a.id}
+                    label={a.name}
+                    dot={a.color}
+                    selected={filters.assigneeIds.includes(a.id)}
+                    onClick={() => toggle("assigneeIds", a.id)}
+                  />
+                ))}
                 <FilterRow
-                  key={a.id}
-                  label={a.name}
-                  dot={a.color}
-                  selected={filters.assigneeIds.includes(a.id)}
-                  onClick={() => toggle("assigneeIds", a.id)}
+                  label="Unassigned"
+                  muted
+                  selected={filters.assigneeIds.includes("_unassigned")}
+                  onClick={() => toggle("assigneeIds", "_unassigned")}
                 />
-              ))}
-              <FilterRow
-                label="Unassigned"
-                muted
-                selected={filters.assigneeIds.includes("_unassigned")}
-                onClick={() => toggle("assigneeIds", "_unassigned")}
-              />
-            </FilterSection>
+              </FilterSectionPrimitive>
+            )}
           </div>
 
           {count > 0 && (
