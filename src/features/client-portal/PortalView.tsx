@@ -1,12 +1,10 @@
 import { format } from "date-fns";
-import { formatHours } from "@/lib/utils";
 import { formatGBP, type PortalPayload } from "./types";
-import { PortalEpicTrend } from "./PortalEpicTrend";
+import { PortalEpicTable } from "./PortalEpicTable";
 import {
-  discountTotalsByEpic,
-  sumTotals,
   type EpicDiscount,
 } from "@/features/discounts/applyDiscounts";
+
 
 /**
  * Visual render of the client-facing portal payload.
