@@ -6,6 +6,8 @@ import { usePublicPortal } from "@/features/client-portal/usePortalData";
 import { PortalView } from "@/features/client-portal/PortalView";
 import { PortalChangeRequests } from "@/features/client-portal/PortalChangeRequests";
 import { useClientPortalCRsByHash } from "@/features/client-portal/useClientPortalCRs";
+import { SprintGantt } from "@/features/sprints/SprintGantt";
+import { useSprints } from "@/features/sprints/useSprintBoard";
 import oldStLogo from "@/assets/oldst-logo.png";
 import { useEpicDiscounts } from "@/features/discounts/useEpicDiscounts";
 
@@ -14,6 +16,7 @@ export default function ClientPortalPublic() {
   const { data, loading, error } = usePublicPortal(hash);
   const { data: crData, refresh: refreshCR } = useClientPortalCRsByHash(hash);
   const { discounts } = useEpicDiscounts(data?.project?.id);
+  const { data: sprints = [] } = useSprints(data?.project?.id);
 
   async function handleApprove(ticketId: string) {
     if (!hash) return;
@@ -52,9 +55,10 @@ export default function ClientPortalPublic() {
         )}
         {data && (
           <Tabs defaultValue="summary" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsList className="grid w-full grid-cols-3 mb-6">
               <TabsTrigger value="summary">Summary</TabsTrigger>
               <TabsTrigger value="change-requests">Change Requests</TabsTrigger>
+              <TabsTrigger value="timeline">Timeline</TabsTrigger>
             </TabsList>
             <TabsContent value="summary">
               <PortalView payload={data} showRate discounts={discounts} />
@@ -64,12 +68,26 @@ export default function ClientPortalPublic() {
                 <PortalChangeRequests
                   acronym={crData.project.acronym}
                   epics={crData.epics}
-                  baselineTickets={crData.baseline_tickets as any}
-                  crTickets={crData.cr_tickets as any}
+                  baselineTickets={crData.baseline_tickets as never}
+                  crTickets={crData.cr_tickets as never}
+                  ratePerHour={data.project.rate_per_hour}
                   onApprove={handleApprove}
                 />
               ) : (
                 <div className="text-sm text-dim text-center py-12">Loading…</div>
+              )}
+            </TabsContent>
+            <TabsContent value="timeline">
+              {sprints.length > 0 ? (
+                <SprintGantt
+                  projectId={data.project.id}
+                  sprints={sprints}
+                  hideExport
+                />
+              ) : (
+                <div className="glass rounded-2xl p-12 text-center text-sm text-dim">
+                  No sprint timeline available yet.
+                </div>
               )}
             </TabsContent>
           </Tabs>

@@ -12,6 +12,21 @@ import { PreviewChangeRequests } from "./editor/PreviewChangeRequests";
 import { PortalToolbar } from "./editor/PortalToolbar";
 import { useClientPortalEditor } from "./editor/useClientPortalEditor";
 import { useEpicDiscounts } from "@/features/discounts/useEpicDiscounts";
+import { SprintGantt } from "@/features/sprints/SprintGantt";
+import { useSprints } from "@/features/sprints/useSprintBoard";
+
+function SprintGanttPreview({ projectId }: { projectId: string }) {
+  const { data: sprints = [] } = useSprints(projectId);
+  if (sprints.length === 0) {
+    return (
+      <div className="glass rounded-2xl p-12 text-center text-sm text-dim">
+        No sprint timeline available yet.
+      </div>
+    );
+  }
+  return <SprintGantt projectId={projectId} sprints={sprints} hideExport />;
+}
+
 
 export function ClientPortalEditor() {
   const { id } = useParams<{ id: string }>();
