@@ -82,7 +82,7 @@ export function QuickAddRow({
         current_be_estimate: isProj ? null : beHrs,
         original_project_estimate: isProj ? projHrs : null,
         current_project_estimate: isProj ? projHrs : null,
-        parent_ticket_id: isBug ? parentTicketId : null,
+        parent_ticket_id: canHaveParent ? parentTicketId : null,
         ticket_number: 0,
         formatted_id: "",
       })
@@ -92,7 +92,7 @@ export function QuickAddRow({
       setBusy(false);
       return toast.error(error?.message ?? "Failed to create ticket");
     }
-    if (isBug && parentTicketId && userId) {
+    if (canHaveParent && parentTicketId && userId) {
       try {
         await postBugLinkComment({
           parentTicketId,
@@ -143,7 +143,7 @@ export function QuickAddRow({
         <Select value={type} onValueChange={(v) => {
           const nt = v as TicketType;
           setType(nt);
-          if (nt !== "Bug") {
+          if (nt === "Proj") {
             setParentTicketId(null);
             setParentTitle(null);
           }
@@ -156,7 +156,7 @@ export function QuickAddRow({
             <SelectItem value="Proj">Proj</SelectItem>
           </SelectContent>
         </Select>
-        {isBug && (
+        {canHaveParent && (
           <div className="flex-1 min-w-0">
             <ParentTicketSelect
               projectId={projectId}
@@ -183,7 +183,7 @@ export function QuickAddRow({
           </>
         )}
       </div>
-      {!(isBug && parentTicketId) && (
+      {!(canHaveParent && parentTicketId) && (
         <EpicSelect projectId={projectId} value={epicId} onChange={setEpicId} size="sm" />
       )}
       <div className="flex justify-end gap-1">

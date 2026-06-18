@@ -59,6 +59,8 @@ export function downloadTicketsTemplate() {
     `,Example: build login page,Standard,4,2,,Authentication,v1,todo,todo,,,jane@acme.com,john@acme.com,,"- User can log in with email\\n- Errors shown inline"`,
     // Bug linked to parent ticket #12
     `42,Example: fix header overflow,Bug,1,0,,UI polish,v1,in_progress,todo,,12,jane@acme.com,,,`,
+    // Standard sub-ticket of #12 (split work under a Standard/CR parent)
+    `,Example: auth API surface (sub-ticket),Standard,2,3,,Authentication,v1,todo,todo,,12,john@acme.com,,,`,
     // CR with BE work only, two BE assignees
     `,Example: add export endpoint,CR,0,3,,Reporting,v2,todo,done,,,,"john@acme.com,sara@acme.com",,`,
     // Proj-type ticket (uses Project Estimate, Project Status, Project Assignees; FE/BE blank)
@@ -187,10 +189,15 @@ export function useTicketsCsvImport(
                 parentError = `Invalid parent #: "${raw}"`;
               } else if (!ticketsByNum.has(n)) {
                 parentError = `Parent #${n} not found`;
-              } else if (type !== "Bug") {
-                parentError = `Parent only valid for Bug rows`;
+              } else if (type === "Proj") {
+                parentError = `Proj rows cannot have a parent`;
               } else {
-                parent_ticket_number = n;
+                const parent = ticketsByNum.get(n)!;
+                if (parent.ticket_type !== "Standard" && parent.ticket_type !== "CR") {
+                  parentError = `Parent must be Standard or CR (got ${parent.ticket_type})`;
+                } else {
+                  parent_ticket_number = n;
+                }
               }
             }
           }
@@ -346,7 +353,7 @@ export function useTicketsCsvImport(
         version: r.version.trim() || null,
         acceptance_criteria: r.acceptance_criteria.trim() || null,
         parent_ticket_id:
-          r.type === "Bug" && r.parent_ticket_number != null
+          r.type !== "Proj" && r.parent_ticket_number != null
             ? parentNumToId.get(r.parent_ticket_number) ?? null
             : null,
         ticket_number: r.ticket_number ?? nextFree(),

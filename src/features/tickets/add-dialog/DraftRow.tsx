@@ -85,7 +85,7 @@ export function DraftRow({
             value={draft.type}
             onValueChange={(v) => {
               const nt = v as TicketType;
-              if (nt !== "Bug") {
+              if (nt === "Proj") {
                 onChange({ type: nt, parentTicketId: null, parentTitle: null });
               } else {
                 onChange({ type: nt });
@@ -104,7 +104,7 @@ export function DraftRow({
           </Select>
         </div>
 
-        {draft.type === "Bug" ? (
+        {draft.type !== "Proj" ? (
           <div className="md:col-span-3">
             <ParentTicketSelect
               projectId={projectId}
@@ -134,7 +134,7 @@ export function DraftRow({
           </div>
         ) : null}
 
-        {!(draft.type === "Bug" && draft.parentTicketId) && (
+        {!(draft.type !== "Proj" && draft.parentTicketId) && (
           <div className="md:col-span-3">
             <EpicSelect
               projectId={projectId}
