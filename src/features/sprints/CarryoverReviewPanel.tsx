@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import type { AssigneeSlot } from "@/lib/types";
 import { addTicketToLane } from "./dnd";
+import { formatHours } from "./hours";
 
 interface Props {
   devName: string;
@@ -122,7 +123,7 @@ export function CarryoverReviewPanel({
                   {t.formatted_id}
                 </span>
                 <span className="text-xs truncate flex-1 min-w-0">{t.title}</span>
-                <span className="font-mono text-[10px] text-dim shrink-0">{h}h</span>
+                <span className="font-mono text-[10px] text-dim shrink-0">{formatHours(h)}</span>
               </div>
             );
           })}

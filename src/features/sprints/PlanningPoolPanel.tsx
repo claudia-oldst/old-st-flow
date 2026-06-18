@@ -1,16 +1,17 @@
 import { useMemo, useState } from "react";
 import { Search, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   TicketsFilter,
   EMPTY_FILTERS,
   applyFilters,
   type TicketFilters,
 } from "@/features/tickets/TicketsFilter";
-import { TicketsList, type GroupBy } from "@/features/tickets/TicketsList";
-import { GroupBySelect } from "@/features/tickets/GroupBySelect";
 import { useProjectTickets, type TicketRow } from "@/features/tickets/useProjectTickets";
 import { usePlannedSprintAssignments } from "./useSprintBoard";
+import { formatHours } from "./hours";
 import type { Sprint } from "./types";
 
 interface Props {
@@ -28,8 +29,8 @@ interface Props {
 
 /**
  * Planning tab left panel: tickets roadmapped to the selected sprint+discipline
- * that have not yet been assigned to any dev. Uses TicketsList with groupBy="none"
- * by default for a flat scannable list during planning calls.
+ * that have not yet been assigned to any dev. Tight div-based rows for fast
+ * scanning during planning calls.
  */
 export function PlanningPoolPanel({
   projectId,
@@ -45,7 +46,6 @@ export function PlanningPoolPanel({
   const { data: assignments = [] } = usePlannedSprintAssignments(projectId);
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<TicketFilters>(EMPTY_FILTERS);
-  const [groupBy, setGroupBy] = useState<GroupBy>("none");
 
   const planByTicket = useMemo(() => {
     const m = new Map<string, { fe: string | null; be: string | null }>();
@@ -79,8 +79,13 @@ export function PlanningPoolPanel({
     );
   }, [pool, filters, search]);
 
+  const filteredIds = useMemo(() => filtered.map((t) => t.id), [filtered]);
+  const allSelected =
+    filteredIds.length > 0 && filteredIds.every((id) => selectedIds.has(id));
+  const someSelected = !allSelected && filteredIds.some((id) => selectedIds.has(id));
+
   return (
-    <div className="flex flex-col gap-2 h-full min-h-0 rounded-md hairline bg-surface-1/40 w-72 shrink-0">
+    <div className="flex flex-col gap-2 h-full min-h-0 rounded-md hairline bg-surface-1/40 w-96 shrink-0">
       <div className="p-2.5 hairline-b bg-surface-1/60 space-y-2">
         <div className="flex items-center justify-between gap-2">
           <h3 className="font-display text-sm font-semibold tracking-tight">Pool</h3>
@@ -113,23 +118,67 @@ export function PlanningPoolPanel({
             filters={filters}
             onChange={setFilters}
           />
-          <GroupBySelect value={groupBy} onChange={setGroupBy} label={null} className="w-[120px]" />
         </div>
       </div>
-      <div className="flex-1 min-h-0 overflow-y-auto p-2">
+
+      <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1">
         {filtered.length === 0 ? (
           <div className="text-[11px] text-dim text-center py-6">
             No pooled tickets for this sprint
           </div>
         ) : (
-          <TicketsList
-            tickets={filtered}
-            groupBy={groupBy}
-            onOpen={onOpenTicket}
-            selectedIds={selectedIds}
-            onToggleSelect={onToggleSelect}
-            onToggleSelectAll={onToggleSelectAll}
-          />
+          <>
+            <div className="flex items-center gap-2 px-1.5 py-1">
+              <Checkbox
+                checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                onCheckedChange={(v) => onToggleSelectAll(filteredIds, !!v)}
+                aria-label="Select all pool tickets"
+              />
+              <span className="text-[10px] uppercase tracking-wide text-dimmer">
+                Select all
+              </span>
+            </div>
+            {filtered.map((t) => {
+              const selected = selectedIds.has(t.id);
+              const h =
+                discipline === "FE"
+                  ? t.current_fe_estimate || 0
+                  : t.current_be_estimate || 0;
+              return (
+                <div
+                  key={t.id}
+                  className={cn(
+                    "flex items-center gap-2 px-1.5 py-1.5 rounded hover:bg-white/[0.04] cursor-pointer",
+                    selected && "ring-1 ring-primary bg-primary/5",
+                  )}
+                  onClick={(e) => {
+                    if ((e.target as HTMLElement).closest("[data-checkbox]")) return;
+                    onOpenTicket(t);
+                  }}
+                >
+                  <div data-checkbox onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={selected}
+                      onCheckedChange={() => onToggleSelect(t.id, false)}
+                      aria-label="Select ticket"
+                    />
+                  </div>
+                  <span className="font-mono text-xs text-dimmer w-16 shrink-0">
+                    {t.formatted_id}
+                  </span>
+                  <span className="text-xs truncate flex-1 min-w-0">{t.title}</span>
+                  {t.epic_name && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-dim truncate max-w-20 shrink-0">
+                      {t.epic_name}
+                    </span>
+                  )}
+                  <span className="font-mono text-[10px] text-dim shrink-0 w-10 text-right">
+                    {formatHours(h)}
+                  </span>
+                </div>
+              );
+            })}
+          </>
         )}
       </div>
     </div>
