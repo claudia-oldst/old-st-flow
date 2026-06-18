@@ -43,6 +43,10 @@ For privileged ops (archive/rehydrate, AI calls, signed URLs) the SPA calls a **
 | -------------------------------------------- | ---------------------------------------------- |
 | Change ticket UI                             | `src/features/tickets/`                        |
 | Tweak the kanban board                       | `src/features/board/`                          |
+| Touch the bulk-assign dialog                 | `src/features/tickets/bulk-assign/` (+ `BulkAssignDialog.tsx`) |
+| Edit the sprint Roadmap / Gantt              | `src/features/sprints/SprintGantt.tsx`, `src/features/sprints/gantt/` |
+| Edit a sprint block (PMBA)                   | `src/features/sprints/sprint-block/EditSprintPopover.tsx`, `SprintBlockRow.tsx` |
+| Change the Planning Pool / filters           | `src/features/sprints/PlanningPoolPanel.tsx`, `src/features/sprints/planning-pool/` |
 | Touch estimate / CR math                     | `src/features/estimates/`, `src/features/change-requests/` |
 | Edit the client portal (PMBA view or public) | `src/features/client-portal/`, `src/pages/ClientPortalPublic.tsx` |
 | Add/change a database table                  | New migration via the Lovable agent (`supabase/migrations/`) |

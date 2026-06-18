@@ -27,9 +27,14 @@ Built for [old.st](https://old.st) and powered by [Lovable](https://lovable.dev)
 
 ## Features
 
-- **Projects & workspaces** — multi-project shell with per-project board, list, health, team, and settings views.
+- **Projects & workspaces** — multi-project shell with per-project board, list, sprints, health, team, and settings views.
 - **Tickets** — quick-add rows, bulk import from CSV/XLSX, detail sheet with markdown acceptance criteria, attachments, and comments.
+- **Bulk assignment** — diff-based bulk-assign dialog: chips show *assigned to all* / *partial (n/m)* / *unassigned* across the selected tickets, click to toggle, save applies a minimal insert/delete diff per FE/BE/Project slot.
 - **Two-tier status model** — per-discipline status (FE/BE/Project: `todo`, `in_progress`, `done`) automatically derives the overall ticket status. PMBAs can override at the project level.
+- **Sprints — Roadmap & Planning** — PMBAs author sprint blocks on the **Roadmap** (inline create/edit popover for name, dates, FE/BE capacity), drag tickets between the **Pool** and per-sprint **Dev columns** in the **Planning** workbench, and review carryover at sprint boundaries.
+  - **Gantt chart** lists *every* epic alphabetically (even with no plan), with a discipline filter that supports **FE**, **BE**, and **ALL** (merged FE+BE per epic per sprint).
+  - **Pool roadmap filter** has an **All** toggle to pull tickets from every sprint at once (alongside individual sprints and *Unplanned*).
+  - Roadmap and Planning are kept in sync via Supabase Realtime — sprint and ticket changes propagate without manual refresh.
 - **Estimates & change requests** — track original vs current vs actual hours per discipline, log every estimate change with a reason, and roll deltas up to epics. Dedicated CR tickets for client-approved scope changes.
 - **Discounts** — per-epic discount entries that flow into client-facing totals.
 - **Time tracking** — start/stop ticket timers (synced across tabs via Zustand), log time manually, and roll up actuals per discipline.
@@ -38,7 +43,7 @@ Built for [old.st](https://old.st) and powered by [Lovable](https://lovable.dev)
 - **Client portal** — PMBA editors compose an "as-of" snapshot (intro, per-epic narrative, included/excluded toggles) and publish to a hashed public URL (`/h/:hash`). Clients see a read-only dashboard and approve/reject change requests without signing in.
 - **Vault** — archive completed projects to cold storage (JSON + XLSX in `project-vault` bucket, SHA-256 verified) and rehydrate on demand. PMBA-only.
 - **Admin** — manage statuses, status-derivation rules, and team membership.
-- **Realtime** — Supabase Realtime keeps boards, tickets, and the client portal in sync without manual refresh.
+- **Realtime** — Supabase Realtime keeps boards, tickets, sprints, and the client portal in sync without manual refresh.
 - **AI assists** — generate acceptance criteria and epic summaries via the Lovable AI Gateway.
 
 ## Tech stack
@@ -159,9 +164,14 @@ src/
 │   ├── logoff/          # Daily log-off summary UI
 │   ├── project/         # Settings, export, links
 │   ├── projects/        # Project list + cards
+│   ├── sprints/         # Roadmap, Planning Pool, Gantt, Workbench, sprint blocks
+│   │   ├── gantt/             # SprintGantt data + grid (alphabetical, FE/BE/ALL filter)
+│   │   ├── planning-pool/     # Pool filters + grouping (incl. ALL roadmaps toggle)
+│   │   ├── sprint-block/      # EditSprintPopover (PMBA create/edit sprint blocks)
+│   │   └── workbench/         # Sprint workbench panels
 │   ├── statuses/        # Discipline status hooks
 │   ├── team/            # Membership + roles
-│   ├── tickets/         # List, detail sheet, quick-add, CSV import, bulk actions
+│   ├── tickets/         # List, detail sheet, quick-add, CSV import, bulk actions (diff-based bulk assign)
 │   ├── timelog/         # Timers + manual log
 │   └── vault/           # Archive / rehydrate UI
 ├── hooks/               # Cross-feature hooks (realtime, mobile, toast)

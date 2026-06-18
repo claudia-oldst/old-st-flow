@@ -46,6 +46,31 @@ Two automatic adjustments live in Postgres triggers:
 - `snap_estimates_on_dev_done` — when status moves to a `dev done` category, trim each `current_*_estimate` down to `actual_*_hours` (logs a change row attributed to the actor).
 - `trim_estimates_on_done` — same idea when status enters `done`.
 
+## Sprints — Roadmap, Planning Pool, Gantt
+
+The Sprints tab (`/projects/:id/sprints`) has two coordinated surfaces:
+
+- **Roadmap** (`SprintGantt` + `gantt/useGanttData.ts`) — a Gantt chart of epics × sprints.
+  - **Every epic** renders, sorted alphabetically by name, even when it has no segments. Empty epics fall back to the earliest sprint's date range so the row is still anchored. Tickets without an epic land in a `"none"` bucket.
+  - Discipline filter has three modes: **FE**, **BE**, and **ALL**. `ALL` merges FE and BE rows in-memory via `mergeGanttRows()` — keyed by `epicId` (or `epicName` for `"none"`), segments merged by `sprintId` summing `todo / in_progress / for_integration / done / total / committed / planned`, and `isCommitted` OR-ed across disciplines.
+  - PMBAs author and edit sprint blocks inline through `sprint-block/EditSprintPopover.tsx` (name, start/end dates, FE/BE capacity).
+
+- **Planning Pool + Dev columns** (`PlanningPoolPanel`, `PlanningDevColumn`) — drag tickets from the pool into per-sprint per-discipline columns.
+  - The pool's roadmap filter (`planning-pool/PoolFilterBar.tsx`) lists every sprint plus `UNPLANNED` and an **All** toggle (`ALL_ROADMAPS`). Selecting `ALL_ROADMAPS` skips roadmap filtering entirely; toggling an individual entry clears `ALL_ROADMAPS` and vice versa.
+  - Group/aggregate logic lives in `planning-pool/usePoolGroups.ts`.
+
+Both surfaces subscribe to Supabase Realtime on the `sprints`, `tickets`, and ticket-assignment tables via `useRealtimeInvalidate`, so sprint edits, ticket moves, and assignment changes propagate across users without a refresh.
+
+## Bulk assign (diff-based)
+
+`src/features/tickets/bulk-assign/useBulkAssign.ts` loads existing FE/BE/Project assignees for the selected tickets on open and pre-selects them. Each user chip in `BulkAssignSlot.tsx` renders one of three states:
+
+- **Assigned to all** selected tickets — fully highlighted.
+- **Partial** — highlighted with an `n/m` indicator (driven by a `partial: Set<string>` prop).
+- **Unassigned** — muted.
+
+Save computes, per slot, the desired `(ticket_id, user_id, slot)` set and applies a single insert (desired − existing) and a single delete (existing − desired) — no full wipe. Tickets that end with no FE/BE assignee have the corresponding discipline status reset (existing behavior).
+
 ## Client portal
 
 - The PMBA composes a snapshot in `src/features/client-portal/ClientPortalEditor.tsx`. It writes to `project_epic_summaries` and `projects.client_summary_*`.
