@@ -25,6 +25,16 @@ import type { Sprint } from "./types";
 
 const UNPLANNED = "__unplanned__";
 
+type PoolGroupBy = "none" | "epic" | "type" | "assignee" | "roadmap";
+
+const GROUP_BY_OPTIONS: Array<{ value: PoolGroupBy; label: string }> = [
+  { value: "none", label: "None" },
+  { value: "epic", label: "Epic" },
+  { value: "type", label: "Type" },
+  { value: "assignee", label: "Assignee" },
+  { value: "roadmap", label: "Roadmap" },
+];
+
 interface Props {
   projectId: string;
   sprintId: string;
