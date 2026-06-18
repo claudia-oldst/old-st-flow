@@ -5,7 +5,7 @@ import { memberDisciplines } from "../types";
 
 interface CapacityRow {
   user_id: string;
-  discipline: "FE" | "BE";
+  discipline: string;
   hours: number | string;
 }
 
