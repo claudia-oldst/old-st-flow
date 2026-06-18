@@ -1,48 +1,47 @@
-## Problem
+## What's happening
 
-When you try to assign COUT-012 to Lind for Sprint 2, the toast says "[object Object]" instead of the real reason. That means the actual DB error is being swallowed — we can't yet tell *why* the assign failed, only that the error reporting is broken.
+The duplicate-key error comes from `sprint_tickets_sprint_id_ticket_id_key` — a `UNIQUE (sprint_id, ticket_id)` constraint that forces one ticket per dev per sprint. You want a ticket to be assignable to multiple devs in the same sprint (e.g. one FE + one BE).
 
-### Why this happens
+## Fix
 
-`SprintWorkbench.assignToDev` (and a few sibling handlers — `moveToSprint`, `removeFromSprint`, `clearFromSprint`) catch errors with:
+### 1. Schema migration — drop the unique constraint, add a new one
 
-```ts
-toast.error(err instanceof Error ? err.message : String(err));
+In `supabase/migrations/`, new migration:
+
+```sql
+ALTER TABLE public.sprint_tickets
+  DROP CONSTRAINT IF EXISTS sprint_tickets_sprint_id_ticket_id_key;
+
+-- Prevent the same dev being added twice to the same (sprint, ticket).
+-- assigned_user_id is nullable, so use a partial unique index.
+CREATE UNIQUE INDEX IF NOT EXISTS sprint_tickets_sprint_ticket_user_uniq
+  ON public.sprint_tickets (sprint_id, ticket_id, assigned_user_id)
+  WHERE assigned_user_id IS NOT NULL;
 ```
 
-Supabase throws **PostgrestError-shaped plain objects** (`{ message, details, hint, code }`), which are *not* `Error` instances. `String(err)` on a plain object yields `"[object Object]"`. Same pattern exists in `CarryoverReviewPanel` and a few other places that call `addTicketToLane`.
+This keeps the data clean (no exact duplicates) while allowing multiple devs per ticket per sprint.
 
-I checked the DB state for COUT-012 / Sprint 2 / Lind and nothing obvious blocks the insert (no existing `sprint_tickets` row, Lind is a Frontend project member, no `Proj` type, unique `(sprint_id, ticket_id)` is free). The real error is being hidden behind the bad formatter, so step one is to surface it.
+### 2. Code — no logic change needed in `addTicketToLane`
 
-## Plan
+The existing check already filters by `(sprint_id, ticket_id, assigned_user_id)` and short-circuits when that exact row exists, so it's already correct under the new constraint. No edits to `dnd.ts`.
 
-### 1. Add a small error-formatting helper
+### 3. Quick audit for assumptions that "one row per (sprint, ticket)"
 
-New file `src/lib/formatSupabaseError.ts`:
+Grep `sprint_tickets` consumers (`useSprintBoard.ts`, `SprintWorkbench.tsx`, `PlanningPoolPanel.tsx`, `useGanttData.ts`, `usePoolData.ts`, `CarryoverReviewPanel.tsx`) and confirm none of them assume a single row per (sprint, ticket):
 
-- Accept `unknown`.
-- If `Error` → return `.message`.
-- If object with string `message` → return `message`, append `(code)` when `code` exists, and append `hint`/`details` on a second line when present.
-- Otherwise `JSON.stringify` (fallback) with a guard against circular refs, finally `String(err)`.
-- Always `console.error("[supabase]", err)` so the raw object is visible in devtools.
+- `SprintWorkbench` groups by `assigned_user_id` already — fine.
+- `removeTicketFromSprint` deletes by `sprint_tickets.id` — fine.
+- The carry-over loop uses `sprintTickets.find((st) => st.ticket_id === id)` to pick the current dev — this still finds the first one, which is acceptable. I'll flag if I find a place that *requires* uniqueness; only change what's actually broken.
 
-### 2. Use the helper everywhere errors from Supabase are toasted in the sprint flow
+This is exploration-only — I'll report any real issues before patching them, to keep the change minimal.
 
-Replace the `err instanceof Error ? err.message : String(err)` pattern in:
+## Verify
 
-- `src/features/sprints/SprintWorkbench.tsx` — `assignToDev`, `moveToSprint`, `clearFromSprint`, `removeFromSprint` (4 call sites).
-- `src/features/sprints/dnd.ts` — the `toast.error(\`Could not assign ${slot}: ${aerr.message}\`)` line: keep the prefix, but use the helper for the body so `hint`/`code` come through.
-- `src/features/sprints/CarryoverReviewPanel.tsx` — any `toast.error` in the addTicketToLane loop (same shape).
+- Migration applies cleanly.
+- Retry COUT-012 → Lind in the sprint that already has Gino. Both rows exist; toast says "Assigned 1 ticket"; the workbench shows the ticket in both Gino's and Lind's lanes.
+- Re-assigning the same dev a second time is a no-op (early return) and no longer hits the unique error.
 
-No other behaviour changes.
+## Out of scope
 
-### 3. Verify
-
-- `tsc --noEmit`.
-- Ask the user to retry the COUT-012 → Lind / Sprint 2 assignment. The toast will now show the real Postgres error (message + code + hint), and the raw error will be in the browser console. From that we can decide the real fix (likely a policy or trigger issue) in a follow-up.
-
-## Scope / non-goals
-
-- No DB migrations.
-- No change to the assign logic itself yet — first we need the real error message. Once you share what the new toast says, I'll fix the underlying cause as a separate small change.
-- No change to unrelated error toasts outside the sprint flow.
+- UI affordance to manage multiple devs per ticket beyond what already exists.
+- Backfill / dedup of historical rows — there are none to clean up (the old constraint prevented them).
