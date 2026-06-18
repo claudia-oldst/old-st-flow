@@ -69,6 +69,7 @@ export function PlanningPoolPanel({
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<TicketFilters>(EMPTY_FILTERS);
   const [roadmapIds, setRoadmapIds] = useState<Set<string>>(() => new Set([sprintId]));
+  const [groupBy, setGroupBy] = useState<PoolGroupBy>("none");
 
   // Reset roadmap selection to the current sprint whenever the planning sprint changes.
   useEffect(() => {
