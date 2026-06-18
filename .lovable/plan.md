@@ -1,44 +1,66 @@
-# Sprint columns: show active sprints over planned
+## Pool filters — multi-select with Planned / Committed sections
 
-Change the `fe_pool` / `be_pool` columns in the tickets list to display the sprint(s) where a ticket is actively being worked on (committed `sprint_tickets` rows). Fall back to the planned sprint when nothing is committed. Carryovers naturally surface as multiple sprint numbers.
+Replace the single-select FE/BE pool dropdowns in `SprintPoolingTable` with a new `SprintPoolFilter` that mirrors `MultiSelectFilter`'s visual pattern but exposes two grouped sections (Planned / Committed) with checkboxes.
 
-## Visual
+### Files
 
-- **Active sprint(s)** — lit accent badge: `bg-accent/15 text-accent`, label `S{n}`
-- **Planned sprint (fallback)** — ghost badge: `bg-white/5 text-dim`, label `S{n}` (matches existing version badge style)
-- Multiple active sprints render as a wrapping row of small chips in one cell
-- Column labels rename from `FE Pool` / `BE Pool` → `FE Sprint` / `BE Sprint`
+**New**
+- `src/features/sprints/SprintPoolFilter.tsx`
 
-## Files
+**Modified**
+- `src/features/sprints/SprintPoolingTable.tsx` — swap filter UI, expand filter state to four arrays, update `visibleTickets` filtering, delete the now-unused `PoolFilterSelect`
 
-### `src/features/tickets/list/poolData.ts`
-Extend `PoolData` additively:
+**Untouched**: `MultiSelectFilter.tsx`, `usePoolData.ts`, `poolData.ts`, `TicketsListRow.tsx`, everything in `src/features/tickets/`.
+
+### `SprintPoolFilter.tsx`
+
+Props:
 ```ts
-export interface PoolData {
-  byTicket: Map<string, { fe: string | null; be: string | null }>;
-  sprintsById: Map<string, { sprint_number: number }>;
-  activeByTicket: Map<string, { fe: number[]; be: number[] }>;
+interface SprintPoolFilterProps {
+  label: string;                  // "FE Sprint" | "BE Sprint"
+  sprints: Sprint[];
+  plannedSelected: string[];      // sprint ids
+  committedSelected: number[];    // sprint numbers
+  onPlannedChange: (ids: string[]) => void;
+  onCommittedChange: (nums: number[]) => void;
 }
 ```
 
-### `src/features/sprints/usePoolData.ts`
-Reuse already-cached `useProjectSprintTickets` and `useProjectMembers` (no new Supabase queries). Build `activeByTicket` by walking `sprint_tickets`, resolving the assigned dev's disciplines via `memberDisciplines(member.role)`, and pushing the sprint's `sprint_number` onto the relevant FE/BE list. Dedupe + sort ascending.
+Visual structure matches `MultiSelectFilter`:
+- Trigger: `<Button variant="ghost">{label}:{summary} <ChevronDown/></Button>`
+- Popover: `w-64 p-2 glass-strong`
+- Two sections separated by `border-t border-white/5`, each with a header row containing the section title and All / · / None mini-actions, followed by a scrollable checkbox list of `Sprint {n}` rows
+- Planned checkboxes use the primary token style (matches `MultiSelectFilter`); Committed checkboxes use `bg-accent/20 border-accent text-accent` to mirror the active-sprint badge in `TicketsListRow`
 
-### `src/features/tickets/list/TicketsListRow.tsx`
-Update the `fe_pool` / `be_pool` case in `renderCell`. Inline `<span>` only — no new component. If `activeNums.length > 0` render accent chips; otherwise fall back to planned-sprint ghost chip; otherwise em-dash.
+Summary label:
+- nothing selected → `Any`
+- only planned → `Planned: S{n}, S{n}`
+- only committed → `Active: S{n}, S{n}`
+- both → `{plannedCount + committedCount} filters`
 
-### `src/features/tickets/list/columns.ts`
-Rename labels:
-- `fe_pool.label` → `"FE Sprint"`
-- `be_pool.label` → `"BE Sprint"`
+Reused primitives only: `Popover`/`PopoverTrigger`/`PopoverContent`, `Button`, `Check`/`ChevronDown` from lucide, `cn`. No edits to `MultiSelectFilter`.
 
-### `src/features/tickets/list/useTicketsSort.ts`
-Sort `fe_pool` / `be_pool` by the **lowest active sprint number** when present, else the planned sprint number, else `MAX_SAFE_INTEGER`.
+### `SprintPoolingTable.tsx`
 
-## Out of scope
+Replace state:
+```ts
+const [fePlannedFilter, setFePlannedFilter] = useState<string[]>([]);
+const [feCommittedFilter, setFeCommittedFilter] = useState<number[]>([]);
+const [bePlannedFilter, setBePlannedFilter] = useState<string[]>([]);
+const [beCommittedFilter, setBeCommittedFilter] = useState<number[]>([]);
+```
+Empty array = no filter.
 
-- No new Supabase queries
-- No `SprintBadge` / `SprintChip` component — inline span pattern only
-- No changes to `SprintPoolingTable` filter selects (planned intent is still correct there)
-- No changes to `applyFilters.ts`, `TicketsList.tsx`, `ProjectTickets.tsx`, or sprint planning components
-- `activeByTicket` is additive; existing `PoolData` callers unaffected
+Update `visibleTickets` to AND the four filters:
+- planned FE/BE: match against `poolData.byTicket.get(t.id)?.fe|be`
+- committed FE/BE: match any of `poolData.activeByTicket.get(t.id)?.fe|be` against the selected sprint numbers
+
+Replace `extras` in `ProjectTicketsToolbar` with two `<SprintPoolFilter>` instances (FE + BE) wired to the four state pairs and the `sprints` list already available in the component.
+
+Delete `PoolFilterSelect` from this file (no other consumers).
+
+### Notes
+
+- Planned + Committed filters within a discipline are ANDed so users can find e.g. "planned for S2 but actively worked in S1".
+- `poolData.activeByTicket` already exists from the previous change — no data layer work needed.
+- No changes to bulk-assignment menus or anything outside the filter UI + filtering logic.
