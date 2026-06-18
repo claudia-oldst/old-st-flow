@@ -293,6 +293,19 @@ export function useTicketsCsvImport(
     const parentNumToId = new Map<number, string>();
     tickets.forEach((t) => parentNumToId.set(t.ticket_number, t.id));
 
+    // Status name → id (used only for Proj-type rows; FE/BE rows derive status automatically)
+    const statusNameToId = new Map<string, string>();
+    const needStatusLookup = valid.some(
+      (r) => r.type === "Proj" && r.project_status_name.trim(),
+    );
+    if (needStatusLookup) {
+      const { data: statuses } = await supabase.from("statuses").select("id, name");
+      (statuses ?? []).forEach((s: any) => {
+        if (s.name) statusNameToId.set(s.name.trim().toLowerCase(), s.id);
+      });
+    }
+    const unknownStatuses = new Set<string>();
+
     // Ticket numbers
     const taken = new Set<number>(tickets.map((t) => t.ticket_number));
     valid.forEach((r) => {
@@ -309,6 +322,13 @@ export function useTicketsCsvImport(
 
     const payload = valid.map((r) => {
       const isProj = r.type === "Proj";
+      let status_id: string | undefined;
+      if (isProj && r.project_status_name.trim()) {
+        const key = r.project_status_name.trim().toLowerCase();
+        const id = statusNameToId.get(key);
+        if (id) status_id = id;
+        else unknownStatuses.add(r.project_status_name.trim());
+      }
       return {
         project_id: projectId,
         title: r.title,
@@ -321,6 +341,7 @@ export function useTicketsCsvImport(
         current_project_estimate: isProj ? r.proj : null,
         fe_status: isProj ? "todo" : r.fe_status,
         be_status: isProj ? "todo" : r.be_status,
+        ...(status_id ? { status_id } : {}),
         epic_id: r.epic.trim() ? epicMap.get(r.epic.trim().toLowerCase()) ?? null : null,
         version: r.version.trim() || null,
         acceptance_criteria: r.acceptance_criteria.trim() || null,
@@ -332,6 +353,12 @@ export function useTicketsCsvImport(
         formatted_id: "",
       };
     });
+    if (unknownStatuses.size > 0) {
+      const list = Array.from(unknownStatuses).slice(0, 3).join(", ");
+      toast.warning(
+        `Unknown Project Status value${unknownStatuses.size === 1 ? "" : "s"}: ${list}${unknownStatuses.size > 3 ? "…" : ""} — defaulted`,
+      );
+    }
     const { data: createdTickets, error } = await supabase
       .from("tickets")
       .insert(payload as any)
