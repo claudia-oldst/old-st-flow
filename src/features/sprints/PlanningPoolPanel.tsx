@@ -61,10 +61,7 @@ export function PlanningPoolPanel({
     return m;
   }, [assignments]);
 
-  const allRoadmapKeys = useMemo(
-    () => new Set([...sortedSprints.map((s) => s.id), UNPLANNED]),
-    [sortedSprints],
-  );
+  // allRoadmapKeys moved below sortedSprints
 
   const pool = useMemo(() => {
     const allMode = roadmapIds.has(ALL_ROADMAPS);
