@@ -18,6 +18,8 @@ export interface GanttSegment {
   for_integration: number;
   done: number;
   total: number;
+  committed: number;
+  planned: number;
 }
 
 export interface GanttEpicRow {
@@ -73,7 +75,14 @@ export function useGanttData(
         epicName: string;
         bySprint: Map<
           string,
-          { todo: number; in_progress: number; for_integration: number; done: number }
+          {
+            todo: number;
+            in_progress: number;
+            for_integration: number;
+            done: number;
+            committed: number;
+            planned: number;
+          }
         >;
         anyCommitted: boolean;
       }
@@ -126,11 +135,20 @@ export function useGanttData(
 
       let seg = bucket.bySprint.get(res.sprintId);
       if (!seg) {
-        seg = { todo: 0, in_progress: 0, for_integration: 0, done: 0 };
+        seg = {
+          todo: 0,
+          in_progress: 0,
+          for_integration: 0,
+          done: 0,
+          committed: 0,
+          planned: 0,
+        };
         bucket.bySprint.set(res.sprintId, seg);
       }
       const status = discipline === "FE" ? t.fe_status : t.be_status;
       seg[status] = (seg[status] ?? 0) + 1;
+      if (res.committed) seg.committed += 1;
+      else seg.planned += 1;
     }
 
     const rows: GanttEpicRow[] = [];
@@ -150,6 +168,8 @@ export function useGanttData(
           for_integration: counts.for_integration,
           done: counts.done,
           total,
+          committed: counts.committed,
+          planned: counts.planned,
         });
       });
       if (segments.length === 0) return;
