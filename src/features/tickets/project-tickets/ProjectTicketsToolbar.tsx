@@ -22,6 +22,7 @@ import {
 } from "@/features/tickets/TicketsFilter";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import type { GroupBy } from "@/features/tickets/TicketsList";
+import { GroupBySelect } from "@/features/tickets/GroupBySelect";
 import type { ProjectRole } from "@/lib/types";
 import { canManageTickets } from "@/features/team/useProjectRole";
 import { cn } from "@/lib/utils";
