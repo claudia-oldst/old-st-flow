@@ -66,9 +66,9 @@ export function TicketsList({
 
   if (tickets.length === 0) return null;
 
-  const allCollapsed = groups.length > 0 && groups.every((g) => collapsed[g.key]);
+  const allCollapsed = groups.length > 0 && groups.every((g) => (collapsed[g.key] ?? true));
   const toggleAll = () =>
-    setCollapsed(allCollapsed ? {} : Object.fromEntries(groups.map((g) => [g.key, true])));
+    setCollapsed(allCollapsed ? Object.fromEntries(groups.map((g) => [g.key, false])) : {});
 
   return (
     <TooltipProvider>
@@ -95,13 +95,13 @@ export function TicketsList({
         )}
         {groups.map((rawGroup) => {
           const g = { ...rawGroup, tickets: sortTickets(rawGroup.tickets) };
-          const isCollapsed = collapsed[g.key];
+          const isCollapsed = collapsed[g.key] ?? true;
           const ids = g.tickets.map((t) => t.id);
           return (
             <div key={g.key} className="glass rounded-2xl overflow-hidden">
               {groupBy !== "none" && (
                 <button
-                  onClick={() => setCollapsed((c) => ({ ...c, [g.key]: !c[g.key] }))}
+                  onClick={() => setCollapsed((c) => ({ ...c, [g.key]: !(c[g.key] ?? true) }))}
                   className="w-full flex items-center gap-2 px-4 py-3 hairline-b hover:bg-white/[0.02] transition text-left"
                 >
                   {isCollapsed ? (
