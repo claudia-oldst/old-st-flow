@@ -1,15 +1,11 @@
 import { useMemo, useState } from "react";
-import { MultiSelectFilter } from "@/features/estimates/MultiSelectFilter";
+import { cn } from "@/lib/utils";
 import { EpicCRCard } from "@/features/change-requests/EpicCRCard";
 import { ClientTicketSheet } from "./ClientTicketSheet";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 
-const STATUS_OPTIONS = [
-  { value: "pending", label: "Pending" },
-  { value: "approved", label: "Approved" },
-  { value: "rejected", label: "Rejected" },
-];
 const NO_EPIC_KEY = "no-epic";
+
 
 export interface PortalCRViewTicket {
   id: string;
@@ -37,8 +33,10 @@ interface Props {
   epics: Array<{ id: number; epic_name: string | null }>;
   baselineTickets: PortalCRViewTicket[];
   crTickets: PortalCRViewTicket[];
+  ratePerHour: number;
   onApprove: (ticketId: string) => Promise<void>;
 }
+
 
 /** Pad a partial ticket up to a TicketRow so EpicCRCard can consume it directly. */
 function asTicketRow(t: PortalCRViewTicket): TicketRow {
