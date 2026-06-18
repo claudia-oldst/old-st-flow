@@ -29,13 +29,17 @@ interface Props {
   hideReject?: boolean;
   /** Total discount hours for this epic across all disciplines. */
   discountHours?: number;
+  /** When set, render a `Cost est.` column showing per-CR currency cost. */
+  ratePerHour?: number;
 }
 
 export function EpicCRCard({
   epicName, projectAcronym, baselineTickets, filteredCRs, allCRs,
   canReview, onApprove, onReject, onOpenTicket, defaultOpen, range, hideReject,
   discountHours = 0,
+  ratePerHour,
 }: Props) {
+
   const [open, setOpen] = useState(!!defaultOpen);
   const [page, setPage] = useState(1);
   useEffect(() => { setPage(1); }, [filteredCRs.length]);
