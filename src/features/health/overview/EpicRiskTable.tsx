@@ -152,6 +152,7 @@ export function EpicRiskTable({ tickets, statuses, epics }: Props) {
                 <Segment pct={(row.backlog / row.total) * 100} className="bg-white/10" />
               </div>
               <div className="mt-1 text-[10px] text-dimmer font-mono flex gap-2 flex-wrap">
+                <span className="text-dim font-medium">{Math.round(row.progressPct)}%</span>
                 <span>{row.done} done</span>
                 {row.devDone > 0 && <span>{row.devDone} dev done</span>}
                 {row.active > 0 && <span>{row.active} active</span>}
