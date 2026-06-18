@@ -8,6 +8,7 @@ import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import type { AssigneeSlot } from "@/lib/types";
 import { addTicketToLane } from "./dnd";
 import { formatHours } from "@/lib/utils";
+import { formatSupabaseError } from "@/lib/formatSupabaseError";
 
 interface Props {
   devName: string;
@@ -78,7 +79,7 @@ export function CarryoverReviewPanel({
       qc.invalidateQueries({ queryKey: ["project_sprint_tickets"] });
       onConfirmed();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(formatSupabaseError(err));
     } finally {
       setBusy(false);
     }

@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { AssigneeSlot } from "@/lib/types";
 import { toast } from "sonner";
+import { formatSupabaseError } from "@/lib/formatSupabaseError";
 
 /**
  * Add a ticket to a developer's lane in a sprint.
@@ -43,7 +44,7 @@ export async function addTicketToLane(
       .insert({ ticket_id: ticketId, user_id: userId, slot });
     if (aerr) {
       // Don't block — assignee insertion can fail validation (e.g. role mismatch).
-      toast.error(`Could not assign ${slot}: ${aerr.message}`);
+      toast.error(`Could not assign ${slot}: ${formatSupabaseError(aerr)}`);
     }
   }
 }

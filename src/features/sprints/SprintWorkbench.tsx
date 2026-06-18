@@ -33,6 +33,7 @@ import {
 import { CapacityIndicator } from "./CapacityIndicator";
 import { PlanningPoolPanel } from "./PlanningPoolPanel";
 import { PlanningDevColumn } from "./PlanningDevColumn";
+import { formatSupabaseError } from "@/lib/formatSupabaseError";
 
 interface Props {
   projectId: string;
@@ -159,7 +160,7 @@ function PlanningInner({ projectId, sprints, isPMBA }: Props) {
       toast.success(`Assigned ${selectedArr.length} ticket${selectedArr.length === 1 ? "" : "s"}`);
       clear();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(formatSupabaseError(err));
     } finally {
       invalidate();
     }
@@ -193,7 +194,7 @@ function PlanningInner({ projectId, sprints, isPMBA }: Props) {
       );
       clear();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(formatSupabaseError(err));
     } finally {
       invalidate();
     }
@@ -220,7 +221,7 @@ function PlanningInner({ projectId, sprints, isPMBA }: Props) {
       );
       clear();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(formatSupabaseError(err));
     } finally {
       invalidate();
     }
@@ -241,7 +242,7 @@ function PlanningInner({ projectId, sprints, isPMBA }: Props) {
       );
       clear();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(formatSupabaseError(err));
     } finally {
       invalidate();
     }
