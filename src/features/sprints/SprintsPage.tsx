@@ -9,7 +9,7 @@ export function SprintsPage({ projectId }: { projectId: string }) {
   const role = useProjectRole(projectId);
   const isPMBA = isPMBARole(role);
   const { data: sprints = [], isLoading } = useSprints(projectId);
-  const [tab, setTab] = useState<"forecast" | "workbench">("forecast");
+  const [tab, setTab] = useState<"roadmap" | "planning">("roadmap");
 
   if (isLoading) {
     return <div className="text-sm text-dim py-6">Loading sprints…</div>;
@@ -22,15 +22,15 @@ export function SprintsPage({ projectId }: { projectId: string }) {
           Read-only view — only PMBAs can edit sprints, capacities, or assignments.
         </div>
       )}
-      <Tabs value={tab} onValueChange={(v) => setTab(v as "forecast" | "workbench")}>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as "roadmap" | "planning")}>
         <TabsList>
-          <TabsTrigger value="forecast">Sprint Forecasting & Pooling</TabsTrigger>
-          <TabsTrigger value="workbench">Sprint Workbench</TabsTrigger>
+          <TabsTrigger value="roadmap">Roadmap</TabsTrigger>
+          <TabsTrigger value="planning">Planning</TabsTrigger>
         </TabsList>
-        <TabsContent value="forecast" className="mt-4">
+        <TabsContent value="roadmap" className="mt-4">
           <ForecastingCalendar projectId={projectId} sprints={sprints} isPMBA={isPMBA} />
         </TabsContent>
-        <TabsContent value="workbench" className="mt-4">
+        <TabsContent value="planning" className="mt-4">
           <SprintWorkbench projectId={projectId} sprints={sprints} isPMBA={isPMBA} />
         </TabsContent>
       </Tabs>
