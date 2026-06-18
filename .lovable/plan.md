@@ -1,30 +1,44 @@
-## Goal
+# Sprint columns: show active sprints over planned
 
-Make the Gantt bar tooltip reflect the actual committed/planned mix of tickets in **that specific segment**, instead of the epic-wide flag. Show a "mixed" label with counts when a segment contains both.
+Change the `fe_pool` / `be_pool` columns in the tickets list to display the sprint(s) where a ticket is actively being worked on (committed `sprint_tickets` rows). Fall back to the planned sprint when nothing is committed. Carryovers naturally surface as multiple sprint numbers.
 
-## Changes
+## Visual
 
-### 1. `src/features/sprints/gantt/useGanttData.ts`
+- **Active sprint(s)** — lit accent badge: `bg-accent/15 text-accent`, label `S{n}`
+- **Planned sprint (fallback)** — ghost badge: `bg-white/5 text-dim`, label `S{n}` (matches existing version badge style)
+- Multiple active sprints render as a wrapping row of small chips in one cell
+- Column labels rename from `FE Pool` / `BE Pool` → `FE Sprint` / `BE Sprint`
 
-Track committed vs planned counts per segment (and keep the epic-level `isCommitted` only for row-level styling like opacity, which is still useful as a row hint).
+## Files
 
-- Extend `GanttSegment` with `committed: number` and `planned: number`.
-- In the aggregation loop, when a ticket resolves, increment the new counter on the per-sprint segment based on `res.committed`.
-- Populate the new fields when pushing segments at the end.
+### `src/features/tickets/list/poolData.ts`
+Extend `PoolData` additively:
+```ts
+export interface PoolData {
+  byTicket: Map<string, { fe: string | null; be: string | null }>;
+  sprintsById: Map<string, { sprint_number: number }>;
+  activeByTicket: Map<string, { fe: number[]; be: number[] }>;
+}
+```
 
-### 2. `src/features/sprints/gantt/GanttBar.tsx`
+### `src/features/sprints/usePoolData.ts`
+Reuse already-cached `useProjectSprintTickets` and `useProjectMembers` (no new Supabase queries). Build `activeByTicket` by walking `sprint_tickets`, resolving the assigned dev's disciplines via `memberDisciplines(member.role)`, and pushing the sprint's `sprint_number` onto the relevant FE/BE list. Dedupe + sort ascending.
 
-- Drop reliance on `isCommitted` for the tooltip label (keep it only for the row opacity styling — or we can derive that per-segment too; see "Open detail" below).
-- Compute label from segment counts:
-  - `committed > 0 && planned === 0` → `committed`
-  - `committed === 0 && planned > 0` → `planned only`
-  - both > 0 → `mixed — {committed} committed, {planned} planned`
-- Render that label in the existing uppercase footer line of the tooltip.
+### `src/features/tickets/list/TicketsListRow.tsx`
+Update the `fe_pool` / `be_pool` case in `renderCell`. Inline `<span>` only — no new component. If `activeNums.length > 0` render accent chips; otherwise fall back to planned-sprint ghost chip; otherwise em-dash.
 
-### 3. Optional polish (same files)
+### `src/features/tickets/list/columns.ts`
+Rename labels:
+- `fe_pool.label` → `"FE Sprint"`
+- `be_pool.label` → `"BE Sprint"`
 
-Make the bar opacity per-segment too, so a fully-planned segment in a partly-committed epic looks dimmed even when the epic has other committed segments. Specifically: use `segment.committed > 0` instead of the row-level `isCommitted` for the `opacity-60` class. The row-level flag stays available for any future row-header styling but isn't used on bars.
+### `src/features/tickets/list/useTicketsSort.ts`
+Sort `fe_pool` / `be_pool` by the **lowest active sprint number** when present, else the planned sprint number, else `MAX_SAFE_INTEGER`.
 
 ## Out of scope
 
-No DB / RPC / schema changes. No visual redesign of the bars themselves — only the tooltip text and (optionally) per-segment opacity.
+- No new Supabase queries
+- No `SprintBadge` / `SprintChip` component — inline span pattern only
+- No changes to `SprintPoolingTable` filter selects (planned intent is still correct there)
+- No changes to `applyFilters.ts`, `TicketsList.tsx`, `ProjectTickets.tsx`, or sprint planning components
+- `activeByTicket` is additive; existing `PoolData` callers unaffected
