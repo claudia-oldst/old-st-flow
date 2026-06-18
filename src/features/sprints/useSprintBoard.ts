@@ -164,3 +164,67 @@ export function usePlannedSprintAssignments(projectId: string | undefined) {
   );
   return query;
 }
+
+/**
+ * Tickets that the given user has prior-sprint commitments on but no
+ * sprint_tickets row for the target sprint, AND whose FE/BE discipline
+ * status (matching the user's role) is not "done". Derived purely from
+ * existing query caches — no new Supabase calls.
+ */
+export function useCarryoverTickets(
+  projectId: string | undefined,
+  sprintId: string | undefined,
+  userId: string | undefined,
+  allSprints: Sprint[],
+  userRole: ProjectRole | undefined,
+): { data: TicketRow[] } {
+  const { tickets } = useProjectTickets(projectId);
+  const { data: allSprintTickets = [] } = useProjectSprintTickets(projectId);
+
+  const data = useMemo<TicketRow[]>(() => {
+    if (!sprintId || !userId || !userRole) return [];
+    const target = allSprints.find((s) => s.id === sprintId);
+    if (!target) return [];
+    const discs: SprintDiscipline[] = memberDisciplines(userRole);
+    if (discs.length === 0) return [];
+
+    const priorSprintIds = new Set(
+      allSprints
+        .filter((s) => s.start_date < target.start_date)
+        .map((s) => s.id),
+    );
+    if (priorSprintIds.size === 0) return [];
+
+    const inCurrentSprint = new Set(
+      allSprintTickets
+        .filter((st) => st.sprint_id === sprintId && st.assigned_user_id === userId)
+        .map((st) => st.ticket_id),
+    );
+
+    const priorTicketIds = new Set<string>();
+    allSprintTickets.forEach((st) => {
+      if (st.assigned_user_id === userId && priorSprintIds.has(st.sprint_id)) {
+        priorTicketIds.add(st.ticket_id);
+      }
+    });
+
+    const byId = new Map<string, TicketRow>();
+    tickets.forEach((t) => byId.set(t.id, t));
+
+    const out: TicketRow[] = [];
+    priorTicketIds.forEach((id) => {
+      if (inCurrentSprint.has(id)) return;
+      const t = byId.get(id);
+      if (!t) return;
+      const nonDone = discs.some((d) => {
+        const s = d === "FE" ? t.fe_status : t.be_status;
+        return s !== "done";
+      });
+      if (nonDone) out.push(t);
+    });
+    return out;
+  }, [sprintId, userId, userRole, allSprints, allSprintTickets, tickets]);
+
+  return { data };
+}
+
