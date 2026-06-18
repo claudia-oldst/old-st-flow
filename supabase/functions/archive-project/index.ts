@@ -238,10 +238,14 @@ Deno.serve(async (req) => {
       project_members: ((payload as any).project_members ?? []).length,
       project_epics: ((payload as any).project_epics ?? []).length,
       project_epic_summaries: ((payload as any).project_epic_summaries ?? []).length,
+      epic_discounts: ((payload as any).epic_discounts ?? []).length,
       ticket_assignees: ((payload as any).ticket_assignees ?? []).length,
       ticket_comments: ((payload as any).ticket_comments ?? []).length,
       ticket_estimate_changes: ((payload as any).ticket_estimate_changes ?? []).length,
       time_logs: logs.length,
+      sprints: ((payload as any).sprints ?? []).length,
+      sprint_capacities: ((payload as any).sprint_capacities ?? []).length,
+      sprint_tickets: ((payload as any).sprint_tickets ?? []).length,
     };
 
     const jsonText = JSON.stringify(payload);
