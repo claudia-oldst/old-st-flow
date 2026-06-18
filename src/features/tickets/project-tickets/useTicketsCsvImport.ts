@@ -52,16 +52,16 @@ function parseEmails(raw: string | undefined): string[] {
 
 export function downloadTicketsTemplate() {
   const header =
-    "Ticket #,Title,Type,FE Estimate,BE Estimate,Project Estimate,Epic,Version,FE Status,BE Status,Project Status,Parent Ticket #,FE Assignees,BE Assignees,Project Assignees,Description,Acceptance Criteria";
+    "Ticket #,Title,Type,FE Estimate,BE Estimate,Project Estimate,Epic,Version,FE Status,BE Status,Parent Ticket #,FE Assignees,BE Assignees,Project Assignees,Acceptance Criteria";
   const rows = [
     // Standard ticket with FE+BE, assignees, AC
-    `,Example: build login page,Standard,4,2,,Authentication,v1,todo,todo,,,jane@acme.com,john@acme.com,,"Email + password login screen.","- User can log in with email\\n- Errors shown inline"`,
+    `,Example: build login page,Standard,4,2,,Authentication,v1,todo,todo,,jane@acme.com,john@acme.com,,"- User can log in with email\\n- Errors shown inline"`,
     // Bug linked to parent ticket #12
-    `42,Example: fix header overflow,Bug,1,0,,UI polish,v1,in_progress,todo,,12,jane@acme.com,,,"Header wraps on <1024px viewports.",`,
-    // CR with BE work only
-    `,Example: add export endpoint,CR,0,3,,Reporting,v2,todo,done,,,,"john@acme.com,sara@acme.com",,"Adds /export.csv route.",`,
-    // Proj-type ticket (uses Project Estimate + Project Status + Project Assignees)
-    `,Example: client kickoff workshop,Proj,,,8,Discovery,v1,,,in_progress,,,,pm@acme.com,"Half-day onsite workshop.",`,
+    `42,Example: fix header overflow,Bug,1,0,,UI polish,v1,in_progress,todo,12,jane@acme.com,,,`,
+    // CR with BE work only, two BE assignees
+    `,Example: add export endpoint,CR,0,3,,Reporting,v2,todo,done,,,"john@acme.com,sara@acme.com",,`,
+    // Proj-type ticket (uses Project Estimate + Project Assignees; FE/BE blank)
+    `,Example: client kickoff workshop,Proj,,,8,Discovery,v1,,,,,,pm@acme.com,`,
   ];
   const csv = [header, ...rows].join("\n") + "\n";
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -114,9 +114,7 @@ export function useTicketsCsvImport(
         const versionCol = findCol("Version", "Phase");
         const feStatusCol = findCol("FE Status", "Frontend Status");
         const beStatusCol = findCol("BE Status", "Backend Status");
-        const projStatusCol = findCol("Project Status", "Proj Status");
         const acCol = findCol("Acceptance Criteria", "acceptance_criteria", "AC", "Acceptance");
-        const descCol = findCol("Description", "Notes", "Details");
         const feAssigneeCol = findCol("FE Assignees", "FE Assignee", "Frontend Assignees");
         const beAssigneeCol = findCol("BE Assignees", "BE Assignee", "Backend Assignees");
         const projAssigneeCol = findCol(
@@ -148,9 +146,7 @@ export function useTicketsCsvImport(
           const version = versionCol ? (r[versionCol] ?? "").trim() : "";
           const fe_status = parseDiscipline(feStatusCol ? r[feStatusCol] : undefined);
           const be_status = parseDiscipline(beStatusCol ? r[beStatusCol] : undefined);
-          const project_status = parseDiscipline(projStatusCol ? r[projStatusCol] : undefined);
           const acceptance_criteria = acCol ? (r[acCol] ?? "").trim() : "";
-          const description = descCol ? (r[descCol] ?? "").trim() : "";
           const fe_assignee_emails = parseEmails(feAssigneeCol ? r[feAssigneeCol] : undefined);
           const be_assignee_emails = parseEmails(beAssigneeCol ? r[beAssigneeCol] : undefined);
           const project_assignee_emails = parseEmails(
@@ -207,9 +203,7 @@ export function useTicketsCsvImport(
             version,
             fe_status,
             be_status,
-            project_status,
             acceptance_criteria,
-            description,
             fe_assignee_emails,
             be_assignee_emails,
             project_assignee_emails,
@@ -314,7 +308,6 @@ export function useTicketsCsvImport(
       return {
         project_id: projectId,
         title: r.title,
-        description: r.description || null,
         ticket_type: r.type,
         original_fe_estimate: isProj ? null : r.fe,
         original_be_estimate: isProj ? null : r.be,
@@ -324,7 +317,6 @@ export function useTicketsCsvImport(
         current_project_estimate: isProj ? r.proj : null,
         fe_status: isProj ? "todo" : r.fe_status,
         be_status: isProj ? "todo" : r.be_status,
-        project_status: isProj ? r.project_status : "todo",
         epic_id: r.epic.trim() ? epicMap.get(r.epic.trim().toLowerCase()) ?? null : null,
         version: r.version.trim() || null,
         acceptance_criteria: r.acceptance_criteria.trim() || null,

@@ -54,7 +54,7 @@ export function ImportCsvDialog({
           <DialogTitle>Import tickets from CSV</DialogTitle>
           <div className="text-xs text-dim mt-1">
             Columns:{" "}
-            <span className="font-mono text-foreground">Ticket #, Title, Type, FE Estimate, BE Estimate, Project Estimate, Epic, Version, FE Status, BE Status, Project Status, Parent Ticket #, FE Assignees, BE Assignees, Project Assignees, Description, Acceptance Criteria</span>
+            <span className="font-mono text-foreground">Ticket #, Title, Type, FE Estimate, BE Estimate, Project Estimate, Epic, Version, FE Status, BE Status, Parent Ticket #, FE Assignees, BE Assignees, Project Assignees, Acceptance Criteria</span>
             <div className="mt-1 text-dimmer">
               Only <span className="font-mono">Title</span> is required. Type = Standard / Bug / CR / Proj. Assignees are comma-separated emails of project members. Parent Ticket # only applies to Bug rows. Download the template for working examples.
             </div>
