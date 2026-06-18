@@ -40,7 +40,7 @@ export function QuickAddRow({
   const userId = useCurrentUser((s) => s.user?.id);
 
   const isProj = type === "Proj";
-  const isBug = type === "Bug";
+  const canHaveParent = type !== "Proj";
 
   const submit = async () => {
     if (epicId === null) {
