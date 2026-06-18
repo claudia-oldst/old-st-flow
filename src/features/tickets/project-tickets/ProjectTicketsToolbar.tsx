@@ -19,6 +19,7 @@ import type { CardDisplayPrefs } from "@/features/tickets/useCardDisplayPrefs";
 import {
   TicketsFilter,
   type TicketFilters,
+  type FilterSection,
 } from "@/features/tickets/TicketsFilter";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import type { GroupBy } from "@/features/tickets/TicketsList";
@@ -142,6 +143,7 @@ export function ProjectTicketsToolbar({
         tickets={tickets}
         filters={filters}
         onChange={setFilters}
+        sections={filterSections}
       />
 
       {extras}

@@ -15,6 +15,7 @@ import { useProjectRole } from "@/features/team/useProjectRole";
 import { useProjectTickets, type TicketRow } from "@/features/tickets/useProjectTickets";
 import { useProjectTicketsView } from "@/features/tickets/project-tickets/useProjectTicketsView";
 import { ProjectTicketsToolbar } from "@/features/tickets/project-tickets/ProjectTicketsToolbar";
+import type { FilterSection } from "@/features/tickets/TicketsFilter";
 import { BulkActionsBar } from "@/features/tickets/BulkActionsBar";
 import { TicketsList } from "@/features/tickets/TicketsList";
 import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
@@ -140,6 +141,7 @@ export function SprintPoolingTable({ projectId, sprints, isPMBA }: Props) {
         showGroupBy={true}
         showAddButtons={false}
         showGroupTimer={false}
+        filterSections={["epic", "assignOnly include sections that make sense for sprint pooling"]}
         extras={
           <>
             <PoolFilterSelect
