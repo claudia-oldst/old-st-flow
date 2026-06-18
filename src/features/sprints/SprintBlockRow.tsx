@@ -18,6 +18,7 @@ import { useProjectTickets } from "@/features/tickets/useProjectTickets";
 import { ThinCapBar } from "./sprint-block/ThinCapBar";
 import { DevDisciplineCell } from "./sprint-block/DevDisciplineCell";
 import { AddMemberInline } from "./sprint-block/AddMemberInline";
+import { EditSprintPopover } from "./sprint-block/EditSprintPopover";
 
 interface Props {
   sprint: Sprint;
