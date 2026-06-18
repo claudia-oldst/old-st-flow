@@ -318,8 +318,8 @@ export function PlanningPoolPanel({
                   const selected = selectedIds.has(t.id);
                   const h =
                     discipline === "FE"
-                      ? t.current_fe_estimate || 0
-                      : t.current_be_estimate || 0;
+                      ? Math.max(0, (t.current_fe_estimate || 0) - (t.actual_frontend_hours || 0))
+                      : Math.max(0, (t.current_be_estimate || 0) - (t.actual_backend_hours || 0));
                   return (
                     <div
                       key={t.id}
