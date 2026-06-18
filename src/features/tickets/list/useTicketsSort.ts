@@ -64,11 +64,15 @@ export function useTicketsSort(statuses: Status[], poolData?: PoolData) {
           case "assignees":
             return (t.assignees[0]?.member.name ?? "~").toLowerCase();
           case "fe_pool": {
+            const active = poolData?.activeByTicket.get(t.id)?.fe ?? [];
+            if (active.length > 0) return Math.min(...active);
             const sid = poolData?.byTicket.get(t.id)?.fe ?? null;
             const n = sid ? poolData?.sprintsById.get(sid)?.sprint_number : undefined;
             return n ?? Number.MAX_SAFE_INTEGER;
           }
           case "be_pool": {
+            const active = poolData?.activeByTicket.get(t.id)?.be ?? [];
+            if (active.length > 0) return Math.min(...active);
             const sid = poolData?.byTicket.get(t.id)?.be ?? null;
             const n = sid ? poolData?.sprintsById.get(sid)?.sprint_number : undefined;
             return n ?? Number.MAX_SAFE_INTEGER;
