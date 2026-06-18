@@ -148,6 +148,54 @@ export function PlanningPoolPanel({
           )}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 px-2 text-xs gap-1.5"
+              >
+                <MapIcon className="h-3 w-3" />
+                <span className="truncate max-w-[10rem]">{roadmapLabel}</span>
+                <ChevronDown className="h-3 w-3 opacity-60" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-56 p-1">
+              <div className="px-2 py-1.5 text-[10px] uppercase tracking-wide text-dimmer">
+                Sprint roadmaps
+              </div>
+              <div className="max-h-72 overflow-y-auto">
+                {sortedSprints.map((s) => {
+                  const checked = roadmapIds.has(s.id);
+                  const isCurrent = s.id === sprintId;
+                  return (
+                    <label
+                      key={s.id}
+                      className="flex items-center gap-2 px-2 py-1.5 rounded text-xs hover:bg-white/[0.04] cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={() => toggleRoadmap(s.id)}
+                      />
+                      <span className="flex-1">Sprint {s.sprint_number}</span>
+                      {isCurrent && (
+                        <span className="text-[9px] uppercase tracking-wide text-dimmer">
+                          current
+                        </span>
+                      )}
+                    </label>
+                  );
+                })}
+                <label className="flex items-center gap-2 px-2 py-1.5 rounded text-xs hover:bg-white/[0.04] cursor-pointer">
+                  <Checkbox
+                    checked={roadmapIds.has(UNPLANNED)}
+                    onCheckedChange={() => toggleRoadmap(UNPLANNED)}
+                  />
+                  <span className="flex-1">Unplanned</span>
+                </label>
+              </div>
+            </PopoverContent>
+          </Popover>
           <TicketsFilter
             projectId={projectId}
             tickets={pool}
