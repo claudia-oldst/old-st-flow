@@ -264,6 +264,21 @@ export function PlanningPoolPanel({
             filters={filters}
             onChange={setFilters}
           />
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] uppercase tracking-wide text-dimmer">Group</span>
+            <Select value={groupBy} onValueChange={(v) => setGroupBy(v as PoolGroupBy)}>
+              <SelectTrigger className="h-7 text-xs w-[110px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {GROUP_BY_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
