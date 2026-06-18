@@ -160,17 +160,21 @@ export function SprintPoolingTable({ projectId, sprints, isPMBA }: Props) {
         filterSections={["epic", "assignee", "type"]}
         extras={
           <>
-            <PoolFilterSelect
-              label="FE Pool"
-              value={fePoolFilter}
-              onChange={setFePoolFilter}
+            <SprintPoolFilter
+              label="FE Sprint"
               sprints={sprints}
+              plannedSelected={fePlannedFilter}
+              committedSelected={feCommittedFilter}
+              onPlannedChange={setFePlannedFilter}
+              onCommittedChange={setFeCommittedFilter}
             />
-            <PoolFilterSelect
-              label="BE Pool"
-              value={bePoolFilter}
-              onChange={setBePoolFilter}
+            <SprintPoolFilter
+              label="BE Sprint"
               sprints={sprints}
+              plannedSelected={bePlannedFilter}
+              committedSelected={beCommittedFilter}
+              onPlannedChange={setBePlannedFilter}
+              onCommittedChange={setBeCommittedFilter}
             />
           </>
         }
