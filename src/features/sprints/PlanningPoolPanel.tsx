@@ -61,7 +61,7 @@ export function PlanningPoolPanel({
     return m;
   }, [assignments]);
 
-  // allRoadmapKeys moved below sortedSprints
+  
 
   const pool = useMemo(() => {
     const allMode = roadmapIds.has(ALL_ROADMAPS);
@@ -85,7 +85,12 @@ export function PlanningPoolPanel({
     () => [...sprints].sort((a, b) => a.sprint_number - b.sprint_number),
     [sprints],
   );
+  const allRoadmapKeys = useMemo(
+    () => new Set([...sortedSprints.map((s) => s.id), UNPLANNED]),
+    [sortedSprints],
+  );
   const roadmapLabel = useMemo(() => {
+    if (roadmapIds.has(ALL_ROADMAPS)) return "All roadmaps";
     if (roadmapIds.size === 0) return "No roadmap";
     if (roadmapIds.size === 1) {
       const only = [...roadmapIds][0];
@@ -99,6 +104,16 @@ export function PlanningPoolPanel({
   const toggleRoadmap = (id: string) => {
     setRoadmapIds((prev) => {
       const next = new Set(prev);
+      if (id === ALL_ROADMAPS) {
+        if (next.has(ALL_ROADMAPS)) {
+          next.delete(ALL_ROADMAPS);
+        } else {
+          next.clear();
+          next.add(ALL_ROADMAPS);
+        }
+        return next;
+      }
+      next.delete(ALL_ROADMAPS);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
