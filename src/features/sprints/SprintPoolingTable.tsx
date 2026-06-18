@@ -21,6 +21,7 @@ import { TicketsList } from "@/features/tickets/TicketsList";
 import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
 import type { Sprint } from "./types";
 import { usePoolData } from "./usePoolData";
+import { SprintPoolFilter } from "./SprintPoolFilter";
 
 type Discipline = "FE" | "BE";
 
