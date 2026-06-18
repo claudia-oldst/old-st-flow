@@ -1,142 +1,77 @@
+# Sprint Planning Rework
 
-# Sprint Planning Rework — Full Plan
+## Scope
 
-## Goal
-Split the Sprints page into two tabs:
-1. **Sprint Forecasting & Pooling** — define sprint blocks (dates, devs, hours) and pool every project ticket into an FE sprint and/or BE sprint via a filterable list with per-row dropdowns.
-2. **Sprint Workbench** — execute one sprint for one focused dev: three columns (Backlog/Pool, Carryover, Dev lane) with drag-and-drop and bulk edit.
+Replace the current Sprints page's "Sprint Forecasting & Pooling" + "Sprint Workbench" tabs with **Roadmap** and **Planning**. Roadmap stays structurally identical (forecasting calendar + pooling table). Planning is a full rewrite: per-discipline (FE/BE) view, all devs visible at once as tight list columns, no DnD, no kanban cards, with carryover review and scoped bulk actions.
 
-## Cross-cutting UI principle — reuse existing ticket components
-Filter, search, sort, multi-select, bulk-edit, and card rendering must look and behave the same across **every** new column/table and match the existing Tickets tab. No new bespoke filter inputs.
+## Files
 
-Reuse these existing modules from `src/features/tickets/`:
-- `TicketsFilter.tsx` — full filter bar (search, epic, type, status, assignee, tags, sort) used by `TicketsList`.
-- `filters/FilterPrimitives.tsx` — shared chips, popovers, search input primitives.
-- `filters/applyFilters.ts` + `filters/constants.ts` — single source of truth for filtering/sorting logic.
-- `TicketCard.tsx` + `CardDisplayMenu.tsx` + `useCardDisplayPrefs.ts` — card rendering and display prefs (already wired into `DraggableTicketCard`).
-- `BulkActionsBar.tsx` + `bulk-actions/` + `bulk-assign/` — bulk Edit / Assign for selected tickets.
-- `TicketsList.tsx` as the table reference for Tab 1's pooling table styling.
-- `MultiSelectFilter` from `src/features/estimates/MultiSelectFilter.tsx` where `TicketsFilter` already uses it.
-- `SprintSelectionContext` for selection state across columns.
+### Delete
+- `src/features/sprints/SprintBoardColumn.tsx`
+- `src/features/sprints/SprintColumnToolbar.tsx`
+- `src/features/sprints/SprintBulkBar.tsx` (if present)
 
-Every new column wraps a local list with `<TicketsFilter />` (or a thin adapter exposing the same controls) bound to a column-scoped filter state, then applies `applyFilters` to the source rows. Sort options match `TicketsFilter`'s sort dropdown. Bulk bar uses `BulkActionsBar` directly.
+### New
+- `src/features/sprints/CapacityIndicator.tsx` — extracted from current `SprintWorkbench`. Signature `{ used, cap }`, red bar when over.
+- `src/features/sprints/CarryoverReviewPanel.tsx` — collapsible per-dev banner listing unfinished tickets from prior sprints; checkbox list; "Confirm carryover" calls `addTicketToLane` per checked ticket. Read-only for non-PMBA.
+- `src/features/sprints/PlanningPoolPanel.tsx` — fixed `w-72` left panel. **Do not import `SprintColumnToolbar`** (it's being deleted) — inline the search `Input` + `TicketsFilter` directly, same pattern as `SprintPoolingTable.tsx`. Uses `TicketsList` with `groupBy="none"` by default, plus a "Group by epic" toggle in the toolbar. Filtered to tickets roadmapped to the selected sprint+discipline, excluding any already assigned in any dev column.
+- `src/features/sprints/PlanningDevColumn.tsx` — one column per dev: header (name, role chip, `CapacityIndicator`, red overage when used > cap), `CarryoverReviewPanel` if any carryover, then tight `<div>` rows (checkbox, formatted_id, title, epic chip, remaining hours; `↩` prefix for carried-over). Row click opens ticket; checkbox toggles selection.
 
----
+### Modified
+- `src/features/sprints/SprintsPage.tsx` — rename tabs: `forecast`→`roadmap` ("Roadmap"), `workbench`→`planning` ("Planning"). No structural change.
+- `src/features/sprints/SprintPoolingTable.tsx` — add two `BulkMenu` entries to existing bulk bar: **Clear FE** → `updatePool(ids,"FE",null)` and **Clear BE** → `updatePool(ids,"BE",null)`. No other changes.
+- `src/features/sprints/SprintWorkbench.tsx` — full rewrite (see below).
+- `src/features/sprints/useSprintBoard.ts` — add `useCarryoverTickets(projectId, sprintId, userId, allSprints)` derived from existing `useProjectSprintTickets` + `useProjectTickets` query caches (no new Supabase calls).
+- `src/features/sprints/SprintSelectionContext.tsx` — extend state with `source: "pool" | "dev" | null`; selecting in one source clears the other.
 
-## Data Model Changes
+### Untouched (reused as-is)
+`ForecastingCalendar`, `dnd.ts`, `usePoolData`, `types`, `BulkActionsBar`, `BulkMenu`/`BulkMenuRow`, `TicketsList`, `TicketsListRow`, `TicketsListHeader`, `TicketsFilter`, `TicketDetailSheet`, everything in `src/features/tickets/`.
 
-Add two columns on `tickets`:
-- `planned_sprint_fe_id uuid NULL REFERENCES sprints(id) ON DELETE SET NULL`
-- `planned_sprint_be_id uuid NULL REFERENCES sprints(id) ON DELETE SET NULL`
-- Indexes on both columns.
+## Planning tab — `SprintWorkbench.tsx` rewrite
 
-Migrate existing pool rows:
-- For every `sprint_tickets` row where `assigned_user_id IS NULL`, copy `sprint_id` into `planned_sprint_fe_id` / `planned_sprint_be_id` on the ticket (only into the column where the ticket has hours for that discipline).
-- Delete those legacy rows so `sprint_tickets` only holds active per-dev commitments.
+### State
+- `targetSprintId` (default `sprints[0].id`)
+- `discipline: "FE" | "BE"` (default `"FE"`)
+- `openTicket: TicketRow | null`
+- Selection via `SprintSelectionProvider` with `source` field
 
-After migration:
-- `tickets.planned_sprint_fe_id/be_id` = pooling/planning intent.
-- `sprint_tickets` = active per-dev commitment.
-
----
-
-## Tab 1 — Sprint Forecasting & Pooling
-
-### A) Sprint Blocks (top)
-Compact card per sprint: dates, members + capacity, pooled totals, utilisation bar.
-
+### Top bar
 ```text
-┌─ Sprint 3   [Mar 4 – Mar 17]                                  ─┐
-│  Members          FE    BE                                    │
-│   Alice          40h     —    [✕]                             │
-│   Bob             —    40h    [✕]                             │
-│   Carol          20h   20h    [✕]                             │
-│   [+ Member]                                                  │
-│  Capacity:  FE 60h · BE 60h · Total 120h                      │
-│  Pooled:    FE 48h · BE 52h                                   │
-│  Utilisation:  FE ████████░░ 80%   BE ████████▌░ 87%          │
-│  [🗑 Delete sprint]                                            │
-└───────────────────────────────────────────────────────────────┘
-[+ Append next sprint block]
+[ Sprint N ▾ ]   [ FE | BE ]   Total: {pooled}h / {totalCap}h  [capacity bar]
+```
+`totalCap` = sum of dev capacities for discipline in this sprint. `pooled` = sum of remaining hours across all `sprint_tickets` for sprint+discipline.
+
+### Body
+```text
+flex flex-row gap-3 h-[calc(100vh-280px)] min-h-[560px]
+┌──────────┬───────────────────────────────────────┐
+│  Pool    │  Dev A   Dev B   Dev C   …            │
+│  w-72    │  flex-1 overflow-x-auto, min-w-56 ea. │
+└──────────┴───────────────────────────────────────┘
 ```
 
-- Pooled totals = sum of estimates for tickets where `planned_sprint_fe_id = sprint.id` / `planned_sprint_be_id = sprint.id`.
-- Bar turns coral when pooled > capacity.
+### Bulk action bar (when selection non-empty)
+Always render `BulkActionsBar` (canEdit={isPMBA}) + a second floating bar at `bottom-20` (`glass-strong`):
 
-### B) Ticket Pooling Table (below)
-Built on the same primitives as `TicketsList`:
-- Top toolbar = `<TicketsFilter />` (search, Epic, Type, Status, Assignee, Tags, Sort) + two extra chips: `FE Sprint`, `BE Sprint`, plus `Unpooled only` toggle.
-- Multi-select column matches `TicketsList`'s checkbox column.
-- Card column reuses `TicketCard` rendering (or list-row layout matching `TicketsList`).
-- Bulk bar = `BulkActionsBar` with two extra actions: `Set FE Sprint ▾`, `Set BE Sprint ▾`, `Clear FE`, `Clear BE`.
-- Per-row FE Sprint / BE Sprint dropdowns; disabled when the ticket has no hours for that discipline.
+- `source === "pool"`:
+  - **Assign to →** dev list → `addTicketToLane(sprintId, ticketId, dev.user_id, discipline)`
+  - **Move to Sprint →** other sprints → update `planned_sprint_{fe|be}_id`
+- `source === "dev"`:
+  - **Carry over** → `addTicketToLane` for the next-numbered sprint. If no next sprint exists, disable the button and show tooltip / on-click toast: `"No next sprint exists — create one in the Roadmap tab first."`
+  - **Move to Sprint →** updates `planned_sprint_*_id` and removes current `sprint_tickets` row
+  - **Remove** → `removeTicketFromSprint` per selected
 
-Read-only for non-PMBA.
+### Data hooks
+`useSprintCapacities`, `useSprintTickets`, `useProjectMembers`, `usePlannedSprintAssignments`, `useProjectTickets`, plus new `useCarryoverTickets` per dev column.
 
----
+### Invalidation
+After mutations: `["sprint_tickets"]`, `["project_sprint_tickets"]`, `["planned_sprint_assignments", projectId]`.
 
-## Tab 2 — Sprint Workbench
+### Remaining-hours formula
+- FE: `Math.max(0, current_fe_estimate - actual_frontend_hours)`
+- BE: `Math.max(0, current_be_estimate - actual_backend_hours)`
 
-Pick a sprint + a **Focus Dev** (from `sprint_capacities`). **Three-column layout.**
-
-```text
-Sprint 3 ▾   Focus Dev: Alice ▾   Capacity: 28 / 40h ████████░░   [Card display ▾]
-
-┌─ Backlog & Pool ───────┬─ Carryover ────────────┬─ Alice — Sprint 3 ──────┐
-│ Pool: [All ▾]          │ <TicketsFilter />      │ <TicketsFilter />       │
-│ <TicketsFilter />      │                        │                         │
-│                        │ [#188 Profile UI 4h]   │ [#214 Login form 5h]    │
-│ [#214 Login form 5h] ☑ │ [#192 Avatar upload 2h]│ [#230 Nav 8h]           │
-│ [#221 Settings 3h]   ☑ │ ...                    │ ...                     │
-│ [#240 Search bar 2h] ☐ │                        │                         │
-│                        │                        │                         │
-│ <BulkActionsBar />     │ <BulkActionsBar />     │ <BulkActionsBar />      │
-│ + Move FE/BE ▾         │ (Edit only)            │ + Remove                │
-└────────────────────────┴────────────────────────┴─────────────────────────┘
-```
-
-Each column instantiates its own `<TicketsFilter />` with column-scoped state. Card display prefs are shared via `useCardDisplayPrefs` (one global toggle at the page header).
-
-### Column 1 — Backlog & Pool
-- Extra **Pool source dropdown** above the filter bar: `Unassigned`, `Sprint <current> pool`, `Sprint N pool`, `Any sprint pool`.
-- Source filtered by the focused dev's discipline(s).
-- Excludes tickets shown in Carryover or Dev columns.
-- Multi-select + drag source. Bulk bar adds `Move ▾` (set/clear FE/BE pool sprint).
-
-### Column 2 — Carryover
-- Source: tickets where the focused dev is in `ticket_assignees`, has a `sprint_tickets` row in a **prior** sprint, **no** row in the current sprint, and is in a non-done state for their discipline.
-- Drag source only. Drop into Column 3 creates `sprint_tickets(sprint = current, ticket, assigned_user_id = focused dev)`.
-- Bulk bar = standard `BulkActionsBar` (Edit only — no Move, no Remove).
-- Nothing is auto-created on open.
-
-### Column 3 — Focused dev lane
-- Source: `sprint_tickets` for `(current sprint, focused dev)`.
-- Capacity bar reads `sprint_capacities` for `(sprint, focused dev)`; consumed = sum of estimates of cards in this column.
-- Drop target for Columns 1 and 2. Drop → insert/update `sprint_tickets` and add the dev to `ticket_assignees` (existing `addTicketToLane`).
-- Bulk bar adds `Remove` (deletes `sprint_tickets` rows for this sprint).
-
----
-
-## File Changes
-
-- `supabase/migrations/<new>.sql` — add columns, indexes, backfill, delete legacy pool rows.
-- `src/features/sprints/SprintsPage.tsx` — rename tabs.
-- `src/features/sprints/ForecastingCalendar.tsx` → `SprintForecastingTab.tsx`; add utilisation summary; render new pooling table below.
-- `src/features/sprints/SprintPoolingTable.tsx` (new) — Tab 1 table built on `TicketsFilter` + `TicketsList` layout + `BulkActionsBar` with FE/BE sprint dropdowns and extensions.
-- `src/features/sprints/SprintWorkbench.tsx` — replace layout with 3-column Focus Dev board.
-- `src/features/sprints/WorkbenchBacklogColumn.tsx` (new) — pool-source dropdown + `TicketsFilter` + draggable cards.
-- `src/features/sprints/WorkbenchCarryoverColumn.tsx` (new) — `TicketsFilter` + draggable cards.
-- `src/features/sprints/WorkbenchDevColumn.tsx` (new) — `TicketsFilter` + drop target + capacity bar.
-- `src/features/sprints/SprintBulkBar.tsx` (new, thin wrapper around `BulkActionsBar`) — exposes column-specific extras (Move / Remove) via slots.
-- `src/features/sprints/dnd.ts` — keep `addTicketToLane` / `removeTicketFromSprint`; remove unused pool writes.
-- `src/features/sprints/useSprintBoard.ts` — add queries: pooled tickets per sprint/discipline, carryover detection, per-sprint pooled-hour totals.
-
-No new filter, search, sort, or bulk components are created — all reuse `src/features/tickets/*`.
-
----
-
-## Out of Scope
-- No changes to the hours/capacity model.
-- No drag/drop on Tab 1.
-- No ticket card visual redesign.
-- No changes to the ticket detail page or to `TicketsFilter` / `BulkActionsBar` internals (only consumed).
+## Notes
+- No changes outside `src/features/sprints/`.
+- No DnD anywhere in Planning tab — purely checkbox + bulk action driven.
+- Pool panel hides tickets present in any dev column (`allDevTicketIds` union).
