@@ -166,11 +166,7 @@ export function EpicSummaryEditor({
             rows={3}
             className="text-sm"
           />
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <label className="flex items-center gap-2 text-xs text-dim">
-              <Switch checked={included} onCheckedChange={handleToggleIncluded} />
-              Show to client
-            </label>
+          <div className="flex items-center justify-end gap-2">
             <Button
               size="sm"
               variant="ghost"
