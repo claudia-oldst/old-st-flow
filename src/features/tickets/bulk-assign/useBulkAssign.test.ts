@@ -25,9 +25,8 @@ describe("useBulkAssign", () => {
     vi.clearAllMocks();
   });
 
-  function setupHappyPath() {
+  function setupHappyPath(existingAssignees: Array<{ ticket_id: string; user_id: string; slot: string }> = []) {
     setSupabaseHandler((ctx: ChainContext) => {
-      // initial loads when dialog opens
       if (ctx.table === "project_members" && ctx.ops[0]?.fn === "select") {
         return {
           data: [
@@ -49,15 +48,14 @@ describe("useBulkAssign", () => {
           error: null,
         };
       }
-      // existing assignees lookup before insert (mode=add) → none yet
       if (ctx.table === "ticket_assignees" && ctx.ops[0]?.fn === "select") {
-        return { data: [], error: null };
+        return { data: existingAssignees, error: null };
       }
       return { data: [], error: null };
     });
   }
 
-  it("rejects save when no assignees picked in add mode", async () => {
+  it("info-toasts save when no changes pending", async () => {
     setupHappyPath();
     const onSaved = vi.fn();
     const onClose = vi.fn();
@@ -70,11 +68,11 @@ describe("useBulkAssign", () => {
       await result.current.handleSave();
     });
 
-    expect(toast.error).toHaveBeenCalledWith("Pick at least one assignee");
+    expect(toast.info).toHaveBeenCalledWith("No changes to save");
     expect(onSaved).not.toHaveBeenCalled();
   });
 
-  it("inserts FE assignee rows for each standard ticket and resets BE statuses for un-staffed", async () => {
+  it("inserts FE assignee rows for each standard ticket when picked", async () => {
     setupHappyPath();
     const onSaved = vi.fn();
     const onClose = vi.fn();
@@ -91,7 +89,6 @@ describe("useBulkAssign", () => {
       await result.current.handleSave();
     });
 
-    // Find the insert into ticket_assignees
     const insertChain = recordedChains.find(
       (c) => c.table === "ticket_assignees" && c.ops[0]?.fn === "insert",
     );
@@ -110,8 +107,8 @@ describe("useBulkAssign", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it("computes totalPicked and ticket type buckets", async () => {
-    setupHappyPath();
+  it("pre-selects existing assignees and marks partial coverage", async () => {
+    setupHappyPath([{ ticket_id: "t-1", user_id: "u-fe", slot: "FE" }]);
     const { result } = renderHook(() =>
       useBulkAssign({
         open: true,
@@ -121,13 +118,34 @@ describe("useBulkAssign", () => {
         onClose: vi.fn(),
       }),
     );
-    await waitFor(() => expect(result.current.hasStandard).toBe(true));
+    await waitFor(() => expect(result.current.feUserIds.has("u-fe")).toBe(true));
+    expect(result.current.partial.FE.has("u-fe")).toBe(true);
+    // Keeping selection as-is = add to the missing ticket
+    expect(result.current.diff.added).toBe(1);
+    expect(result.current.diff.removed).toBe(0);
+  });
+
+  it("computes ticket type buckets and removal diff when toggling off", async () => {
+    setupHappyPath([
+      { ticket_id: "t-1", user_id: "u-be", slot: "BE" },
+      { ticket_id: "t-2", user_id: "u-be", slot: "BE" },
+    ]);
+    const { result } = renderHook(() =>
+      useBulkAssign({
+        open: true,
+        projectId: "p-1",
+        ticketIds: TICKET_IDS,
+        onSaved: vi.fn(),
+        onClose: vi.fn(),
+      }),
+    );
+    await waitFor(() => expect(result.current.beUserIds.has("u-be")).toBe(true));
+    expect(result.current.hasStandard).toBe(true);
     expect(result.current.hasProj).toBe(false);
-    expect(result.current.totalPicked).toBe(0);
     act(() => {
-      result.current.toggle(result.current.feUserIds, result.current.setFeUserIds, "u-fe");
       result.current.toggle(result.current.beUserIds, result.current.setBeUserIds, "u-be");
     });
-    expect(result.current.totalPicked).toBe(2);
+    expect(result.current.diff.added).toBe(0);
+    expect(result.current.diff.removed).toBe(2);
   });
 });
