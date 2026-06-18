@@ -106,10 +106,6 @@ export function SprintGantt({ projectId, sprints, hideExport }: Props) {
         <GanttGrid rows={rows} sprints={sprints} ganttRef={ganttRef} />
       )}
 
-      <div className="text-[11px] text-dimmer">
-        Bars use committed sprint assignments where available, falling back to
-        roadmap plan.
-      </div>
     </div>
   );
 }

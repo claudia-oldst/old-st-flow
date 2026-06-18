@@ -86,9 +86,6 @@ export function GanttBar({
             todo: {segment.todo} · in progress: {segment.in_progress} ·
             for integration: {segment.for_integration} · done: {segment.done}
           </div>
-          <div className="text-[10px] text-dimmer mt-1 uppercase tracking-wide">
-            {statusLabel}
-          </div>
         </TooltipContent>
       </Tooltip>
     </div>
