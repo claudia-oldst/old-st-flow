@@ -272,32 +272,3 @@ function PoolBulkMenu({
     </Select>
   );
 }
-
-function PoolFilterSelect({
-  label,
-  value,
-  onChange,
-  sprints,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  sprints: Sprint[];
-}) {
-  return (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="h-8 w-32 text-xs">
-        <SelectValue placeholder={label} />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="__any__">{label}: Any</SelectItem>
-        <SelectItem value="__none__">{label}: Unpooled</SelectItem>
-        {sprints.map((s) => (
-          <SelectItem key={s.id} value={s.id}>
-            {label}: Sprint {s.sprint_number}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-}
