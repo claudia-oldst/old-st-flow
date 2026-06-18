@@ -59,6 +59,7 @@ export function ProjectTicketsToolbar({
   showAddButtons = true,
   showGroupTimer = true,
   extras,
+  filterSections,
 }: {
   projectId: string;
   tickets: TicketRow[];
