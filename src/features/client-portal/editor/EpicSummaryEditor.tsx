@@ -131,16 +131,29 @@ export function EpicSummaryEditor({
             <span className="text-[10px] text-dimmer">No note</span>
           )}
         </div>
-        <div
-          className={cn(
-            "text-[10px] font-mono px-1.5 py-0.5 rounded-full ring-1",
-            delta > 0
-              ? "bg-health-warn/15 text-health-warn ring-health-warn/30"
-              : "bg-health-good/15 text-health-good ring-health-good/30",
-          )}
-        >
-          {delta > 0 ? "+" : ""}
-          {delta.toFixed(1)}h
+        <div className="flex items-center gap-2">
+          <label
+            className="flex items-center gap-1.5 text-[10px] text-dim"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Switch
+              checked={included}
+              onCheckedChange={handleToggleIncluded}
+              className="scale-75 origin-center"
+            />
+            Show to client
+          </label>
+          <div
+            className={cn(
+              "text-[10px] font-mono px-1.5 py-0.5 rounded-full ring-1",
+              delta > 0
+                ? "bg-health-warn/15 text-health-warn ring-health-warn/30"
+                : "bg-health-good/15 text-health-good ring-health-good/30",
+            )}
+          >
+            {delta > 0 ? "+" : ""}
+            {delta.toFixed(1)}h
+          </div>
         </div>
       </button>
       {expanded && (
@@ -153,11 +166,7 @@ export function EpicSummaryEditor({
             rows={3}
             className="text-sm"
           />
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <label className="flex items-center gap-2 text-xs text-dim">
-              <Switch checked={included} onCheckedChange={handleToggleIncluded} />
-              Show to client
-            </label>
+          <div className="flex items-center justify-end gap-2">
             <Button
               size="sm"
               variant="ghost"
