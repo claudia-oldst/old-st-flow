@@ -141,7 +141,7 @@ export function SprintPoolingTable({ projectId, sprints, isPMBA }: Props) {
         showGroupBy={true}
         showAddButtons={false}
         showGroupTimer={false}
-        filterSections={["epic", "assignOnly include sections that make sense for sprint pooling"]}
+        filterSections={["epic", "assignee", "type"]}
         extras={
           <>
             <PoolFilterSelect
