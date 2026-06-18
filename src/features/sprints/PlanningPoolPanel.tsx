@@ -136,6 +136,7 @@ export function PlanningPoolPanel({
   const filteredIds = useMemo(() => filtered.map((t) => t.id), [filtered]);
   const allSelected =
     filteredIds.length > 0 && filteredIds.every((id) => selectedIds.has(id));
+  const someSelected = !allSelected && filteredIds.some((id) => selectedIds.has(id));
   const sprintNumberById = useMemo(() => {
     const m = new Map<string, number>();
     sortedSprints.forEach((s) => m.set(s.id, s.sprint_number));
