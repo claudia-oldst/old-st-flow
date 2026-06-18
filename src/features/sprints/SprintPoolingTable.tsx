@@ -21,6 +21,7 @@ import { TicketsList } from "@/features/tickets/TicketsList";
 import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
 import type { Sprint } from "./types";
 import { usePoolData } from "./usePoolData";
+import { SprintPoolFilter } from "./SprintPoolFilter";
 
 type Discipline = "FE" | "BE";
 
@@ -65,24 +66,39 @@ export function SprintPoolingTable({ projectId, sprints, isPMBA }: Props) {
   }, [projectId]);
 
   const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
-  const [fePoolFilter, setFePoolFilter] = useState<string>("__any__");
-  const [bePoolFilter, setBePoolFilter] = useState<string>("__any__");
+  const [fePlannedFilter, setFePlannedFilter] = useState<string[]>([]);
+  const [feCommittedFilter, setFeCommittedFilter] = useState<number[]>([]);
+  const [bePlannedFilter, setBePlannedFilter] = useState<string[]>([]);
+  const [beCommittedFilter, setBeCommittedFilter] = useState<number[]>([]);
 
   const visibleTickets = useMemo(() => {
     let rows = v.visibleTickets;
-    const matchPool = (val: string, sid: string | null | undefined) => {
-      if (val === "__any__") return true;
-      if (val === "__none__") return !sid;
-      return sid === val;
-    };
-    if (fePoolFilter !== "__any__") {
-      rows = rows.filter((t) => matchPool(fePoolFilter, poolData.byTicket.get(t.id)?.fe));
+    if (fePlannedFilter.length > 0) {
+      rows = rows.filter((t) => {
+        const fe = poolData.byTicket.get(t.id)?.fe ?? null;
+        return fe ? fePlannedFilter.includes(fe) : false;
+      });
     }
-    if (bePoolFilter !== "__any__") {
-      rows = rows.filter((t) => matchPool(bePoolFilter, poolData.byTicket.get(t.id)?.be));
+    if (feCommittedFilter.length > 0) {
+      rows = rows.filter((t) => {
+        const active = poolData.activeByTicket.get(t.id)?.fe ?? [];
+        return active.some((n) => feCommittedFilter.includes(n));
+      });
+    }
+    if (bePlannedFilter.length > 0) {
+      rows = rows.filter((t) => {
+        const be = poolData.byTicket.get(t.id)?.be ?? null;
+        return be ? bePlannedFilter.includes(be) : false;
+      });
+    }
+    if (beCommittedFilter.length > 0) {
+      rows = rows.filter((t) => {
+        const active = poolData.activeByTicket.get(t.id)?.be ?? [];
+        return active.some((n) => beCommittedFilter.includes(n));
+      });
     }
     return rows;
-  }, [v.visibleTickets, poolData, fePoolFilter, bePoolFilter]);
+  }, [v.visibleTickets, poolData, fePlannedFilter, feCommittedFilter, bePlannedFilter, beCommittedFilter]);
 
   // Prune selection to currently visible rows.
   useEffect(() => {
@@ -144,17 +160,21 @@ export function SprintPoolingTable({ projectId, sprints, isPMBA }: Props) {
         filterSections={["epic", "assignee", "type"]}
         extras={
           <>
-            <PoolFilterSelect
-              label="FE Pool"
-              value={fePoolFilter}
-              onChange={setFePoolFilter}
+            <SprintPoolFilter
+              label="FE Sprint"
               sprints={sprints}
+              plannedSelected={fePlannedFilter}
+              committedSelected={feCommittedFilter}
+              onPlannedChange={setFePlannedFilter}
+              onCommittedChange={setFeCommittedFilter}
             />
-            <PoolFilterSelect
-              label="BE Pool"
-              value={bePoolFilter}
-              onChange={setBePoolFilter}
+            <SprintPoolFilter
+              label="BE Sprint"
               sprints={sprints}
+              plannedSelected={bePlannedFilter}
+              committedSelected={beCommittedFilter}
+              onPlannedChange={setBePlannedFilter}
+              onCommittedChange={setBeCommittedFilter}
             />
           </>
         }
@@ -246,35 +266,6 @@ function PoolBulkMenu({
         {sprints.map((s) => (
           <SelectItem key={s.id} value={s.id}>
             Sprint {s.sprint_number}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-}
-
-function PoolFilterSelect({
-  label,
-  value,
-  onChange,
-  sprints,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  sprints: Sprint[];
-}) {
-  return (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="h-8 w-32 text-xs">
-        <SelectValue placeholder={label} />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="__any__">{label}: Any</SelectItem>
-        <SelectItem value="__none__">{label}: Unpooled</SelectItem>
-        {sprints.map((s) => (
-          <SelectItem key={s.id} value={s.id}>
-            {label}: Sprint {s.sprint_number}
           </SelectItem>
         ))}
       </SelectContent>
