@@ -15,7 +15,28 @@ import {
   type TicketFilters,
 } from "./filters/applyFilters";
 import { DISC_OPTS, HEALTH_OPTS, TYPE_OPTS } from "./filters/constants";
-import { FilterRow, FilterSection } from "./filters/FilterPrimitives";
+import { FilterRow, FilterSection as FilterSectionPrimitive } from "./filters/FilterPrimitives";
+
+export type FilterSection =
+  | "type"
+  | "status"
+  | "fe_status"
+  | "be_status"
+  | "health"
+  | "epic"
+  | "assignee"
+  | "version";
+
+const ALL_SECTIONS: FilterSection[] = [
+  "type",
+  "status",
+  "fe_status",
+  "be_status",
+  "health",
+  "epic",
+  "assignee",
+  "version",
+];
 
 // Re-export public API at original module path for existing imports.
 export { EMPTY_FILTERS, activeFilterCount, applyFilters };
