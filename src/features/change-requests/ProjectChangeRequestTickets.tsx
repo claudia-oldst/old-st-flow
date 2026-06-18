@@ -10,7 +10,7 @@ import { useProjectEpics } from "@/features/epics/useProjectEpics";
 import { AddTicketsDialog } from "@/features/tickets/AddTicketsDialog";
 import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
 import { MultiSelectFilter } from "@/features/estimates/MultiSelectFilter";
-import { DateRangeControl, defaultRange, type DateRange } from "@/features/health/DateRangeControl";
+import { DateRangeControl, defaultRange, type DateRange } from "@/features/_shared/DateRangeControl";
 import { EpicCRCard } from "./EpicCRCard";
 import { useEpicDiscounts } from "@/features/discounts/useEpicDiscounts";
 import { discountTotalsByEpic, sumTotals } from "@/features/discounts/applyDiscounts";

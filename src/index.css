@@ -53,6 +53,9 @@
     --health-warn: 36 100% 65%;
     --health-bad:  5 85% 62%;
 
+    /* Chart accent — in-progress / current estimate line */
+    --chart-in-progress: 217 91% 60%;
+
     /* Borders / inputs */
     --border: 0 0% 100% / 0.10;
     --border-strong: 0 0% 100% / 0.18;

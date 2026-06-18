@@ -19,8 +19,8 @@ export function WeeklyBurnPanel({ projectId, tickets }: Props) {
     queryKey,
     enabled: ticketIds.length > 0,
     queryFn: async () => {
-      // Only fetch ~12 weeks of logs to keep the payload small.
-      const since = startOfISOWeek(addWeeks(new Date(), -10)).toISOString();
+      // Fetch range matches rendered range exactly (8 prior weeks + current).
+      const since = startOfISOWeek(addWeeks(new Date(), -8)).toISOString();
       const { data } = await supabase
         .from("time_logs")
         .select("logged_at, hours")
