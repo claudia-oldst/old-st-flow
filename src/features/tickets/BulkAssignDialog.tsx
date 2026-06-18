@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Users } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { BulkAssignSlot } from "./bulk-assign/BulkAssignSlot";
 import { useBulkAssign } from "./bulk-assign/useBulkAssign";
 
@@ -40,12 +39,11 @@ export function BulkAssignDialog({
     projectUserIds,
     setProjectUserIds,
     toggle,
-    mode,
-    setMode,
     busy,
-    totalPicked,
     hasProj,
     hasStandard,
+    partial,
+    diff,
     handleSave,
   } = useBulkAssign({
     open,
@@ -54,6 +52,8 @@ export function BulkAssignDialog({
     onSaved,
     onClose: () => onOpenChange(false),
   });
+
+  const noChanges = diff.added === 0 && diff.removed === 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -64,36 +64,9 @@ export function BulkAssignDialog({
             {ticketIds.length === 1 ? "" : "s"}
           </DialogTitle>
           <DialogDescription>
-            Pick developers and choose whether to add them to existing assignees or replace all current assignees.
+            Highlighted chips are currently assigned. Click to toggle on or off — changes apply to all selected tickets on save.
           </DialogDescription>
         </DialogHeader>
-
-        <div className="flex gap-1 p-1 rounded-lg bg-white/5 hairline w-fit">
-          <button
-            onClick={() => setMode("add")}
-            className={cn(
-              "px-3 py-1 text-xs rounded-md transition",
-              mode === "add" ? "bg-foreground text-background" : "text-dim hover:text-foreground"
-            )}
-          >
-            Add to existing
-          </button>
-          <button
-            onClick={() => setMode("replace")}
-            className={cn(
-              "px-3 py-1 text-xs rounded-md transition",
-              mode === "replace" ? "bg-foreground text-background" : "text-dim hover:text-foreground"
-            )}
-          >
-            Replace all
-          </button>
-        </div>
-
-        {mode === "replace" && totalPicked === 0 && (
-          <div className="text-xs text-amber-400/90 bg-amber-500/5 hairline rounded-lg px-3 py-2">
-            Saving with no one selected will clear all assignees on the selected tickets.
-          </div>
-        )}
 
         {hasProj && hasStandard && (
           <div className="text-xs text-dim bg-white/5 hairline rounded-lg px-3 py-2">
@@ -108,18 +81,21 @@ export function BulkAssignDialog({
                 label="Frontend"
                 members={feEligible}
                 selected={feUserIds}
+                partial={partial.FE}
                 onToggle={(id) => toggle(feUserIds, setFeUserIds, id)}
               />
               <BulkAssignSlot
                 label="Backend"
                 members={beEligible}
                 selected={beUserIds}
+                partial={partial.BE}
                 onToggle={(id) => toggle(beUserIds, setBeUserIds, id)}
               />
               <BulkAssignSlot
                 label="Project contributors"
                 members={otherEligible}
                 selected={otherUserIds}
+                partial={partial.OtherStd}
                 onToggle={(id) => toggle(otherUserIds, setOtherUserIds, id)}
               />
             </>
@@ -129,16 +105,30 @@ export function BulkAssignDialog({
               label={`Project team${hasStandard ? " (Proj tickets only)" : ""}`}
               members={otherEligible}
               selected={projectUserIds}
+              partial={partial.Proj}
               onToggle={(id) => toggle(projectUserIds, setProjectUserIds, id)}
             />
           )}
         </div>
 
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSave} disabled={busy}>
-            {mode === "replace" ? "Replace assignees" : "Add assignees"}
-          </Button>
+        <DialogFooter className="items-center sm:justify-between">
+          <div className="text-xs text-dim font-mono">
+            {noChanges ? (
+              "No changes"
+            ) : (
+              <>
+                {diff.added > 0 && <span className="text-emerald-400">+{diff.added} added</span>}
+                {diff.added > 0 && diff.removed > 0 && <span className="text-dim"> · </span>}
+                {diff.removed > 0 && <span className="text-rose-400">−{diff.removed} removed</span>}
+              </>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button onClick={handleSave} disabled={busy || noChanges}>
+              Save assignments
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
