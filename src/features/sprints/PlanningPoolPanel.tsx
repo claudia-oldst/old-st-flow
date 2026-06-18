@@ -1,8 +1,10 @@
-import { useMemo, useState } from "react";
-import { Search, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Search, X, Map as MapIcon, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   TicketsFilter,
   EMPTY_FILTERS,
@@ -13,6 +15,8 @@ import { useProjectTickets, type TicketRow } from "@/features/tickets/useProject
 import { usePlannedSprintAssignments } from "./useSprintBoard";
 import { formatHours } from "./hours";
 import type { Sprint } from "./types";
+
+const UNPLANNED = "__unplanned__";
 
 interface Props {
   projectId: string;
