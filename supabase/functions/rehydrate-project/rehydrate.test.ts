@@ -37,6 +37,15 @@ Deno.test("collectUserIds ignores non-string and missing values", () => {
   assertEquals(ids, []);
 });
 
+Deno.test("collectUserIds includes epic_discounts and sprint user fields", () => {
+  const ids = collectUserIds({
+    epic_discounts: [{ created_by: "u-9" }],
+    sprint_capacities: [{ user_id: "u-10" }],
+    sprint_tickets: [{ assigned_user_id: "u-11" }, { assigned_user_id: null }],
+  }).sort();
+  assertEquals(ids, ["u-10", "u-11", "u-9"]);
+});
+
 Deno.test("collectUserIds tolerates a fully empty payload", () => {
   assertEquals(collectUserIds({}), []);
   assertEquals(collectUserIds(null), []);
