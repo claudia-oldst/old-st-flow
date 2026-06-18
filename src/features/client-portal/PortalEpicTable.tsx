@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { ChevronRight, TrendingUp } from "lucide-react";
 import { cn, formatHours } from "@/lib/utils";
 import { formatGBP, type PortalPayload } from "./types";
+import { SegmentedBar } from "@/features/_shared/SegmentedBar";
 import {
   buildEpicTrendSeries,
   usePortalEpicTrendData,
@@ -176,19 +177,13 @@ export function PortalEpicTable({
                 </div>
 
                 <div className="min-w-0">
-                  <div className="h-1.5 rounded-full bg-white/5 overflow-hidden flex">
-                    <div
-                      className="h-full bg-health-good"
-                      style={{ width: `${donePct}%` }}
-                    />
-                    <div
-                      className="h-full"
-                      style={{
-                        width: `${ipPct}%`,
-                        background: "hsl(217 91% 60%)",
-                      }}
-                    />
-                  </div>
+                  <SegmentedBar
+                    className="h-1.5 bg-white/5"
+                    segments={[
+                      { pct: donePct, className: "bg-health-good" },
+                      { pct: ipPct, className: "bg-chart-in-progress" },
+                    ]}
+                  />
                   <div className="text-xs text-dimmer mt-1 truncate">
                     {e.done_tickets} done
                     {e.in_progress_tickets > 0 &&
