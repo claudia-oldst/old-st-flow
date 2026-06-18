@@ -9,14 +9,19 @@ export function PreviewChangeRequests({ projectId }: { projectId: string }) {
   const { tickets, reload } = useProjectTickets(projectId);
   const { epics } = useProjectEpics(projectId);
   const [acronym, setAcronym] = useState("?");
+  const [ratePerHour, setRatePerHour] = useState(0);
 
   useEffect(() => {
     supabase
       .from("projects")
-      .select("acronym")
+      .select("acronym, rate_per_hour")
       .eq("id", projectId)
       .maybeSingle()
-      .then(({ data }) => setAcronym(data?.acronym ?? "?"));
+      .then(({ data }) => {
+        setAcronym(data?.acronym ?? "?");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setRatePerHour(Number((data as any)?.rate_per_hour) || 0);
+      });
   }, [projectId]);
 
   const baseline = useMemo(() => tickets.filter((t) => t.ticket_type !== "CR"), [tickets]);
@@ -45,6 +50,7 @@ export function PreviewChangeRequests({ projectId }: { projectId: string }) {
       epics={epics.map((e) => ({ id: e.id, epic_name: e.epic_name }))}
       baselineTickets={baseline as never}
       crTickets={crs as never}
+      ratePerHour={ratePerHour}
       onApprove={handleApprove}
     />
   );

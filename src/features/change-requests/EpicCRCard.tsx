@@ -29,13 +29,17 @@ interface Props {
   hideReject?: boolean;
   /** Total discount hours for this epic across all disciplines. */
   discountHours?: number;
+  /** When set, render a `Cost est.` column showing per-CR currency cost. */
+  ratePerHour?: number;
 }
 
 export function EpicCRCard({
   epicName, projectAcronym, baselineTickets, filteredCRs, allCRs,
   canReview, onApprove, onReject, onOpenTicket, defaultOpen, range, hideReject,
   discountHours = 0,
+  ratePerHour,
 }: Props) {
+
   const [open, setOpen] = useState(!!defaultOpen);
   const [page, setPage] = useState(1);
   useEffect(() => { setPage(1); }, [filteredCRs.length]);
@@ -128,6 +132,9 @@ export function EpicCRCard({
                     <th className="text-left font-medium px-2 py-2">Ticket</th>
                     <th className="text-right font-medium px-2 py-2">FE</th>
                     <th className="text-right font-medium px-2 py-2">BE</th>
+                    {ratePerHour !== undefined && (
+                      <th className="text-right font-medium px-2 py-2">Cost est.</th>
+                    )}
                     <th className="text-left font-medium px-2 py-2">Created</th>
                     <th className="text-left font-medium px-2 py-2">Status</th>
                     <th className="text-left font-medium px-2 py-2">Approved</th>
@@ -137,7 +144,7 @@ export function EpicCRCard({
                 <tbody>
                   {filteredCRs.length === 0 && (
                     <tr>
-                      <td colSpan={8} className="px-3 py-6 text-center text-dimmer">
+                      <td colSpan={ratePerHour !== undefined ? 9 : 8} className="px-3 py-6 text-center text-dimmer">
                         No CRs match the current filters.
                       </td>
                     </tr>
@@ -149,12 +156,14 @@ export function EpicCRCard({
                       canReview={canReview}
                       hideReject={hideReject}
                       memberNames={memberNames}
+                      ratePerHour={ratePerHour}
                       onApprove={onApprove}
                       onReject={onReject}
                       onOpenTicket={onOpenTicket}
                     />
                   ))}
                 </tbody>
+
               </table>
               {filteredCRs.length > PAGE_SIZE && (
                 <div className="px-3 py-2 hairline-t flex items-center justify-between gap-3 flex-wrap">

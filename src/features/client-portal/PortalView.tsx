@@ -1,12 +1,10 @@
 import { format } from "date-fns";
-import { formatHours } from "@/lib/utils";
 import { formatGBP, type PortalPayload } from "./types";
-import { PortalEpicTrend } from "./PortalEpicTrend";
+import { PortalEpicTable } from "./PortalEpicTable";
 import {
-  discountTotalsByEpic,
-  sumTotals,
   type EpicDiscount,
 } from "@/features/discounts/applyDiscounts";
+
 
 /**
  * Visual render of the client-facing portal payload.
@@ -23,7 +21,6 @@ export function PortalView({
   discounts?: EpicDiscount[];
 }) {
   const { project, totals, epics } = payload;
-  const discountByEpic = discountTotalsByEpic(discounts);
   const totalDiscountedHours = discounts.reduce((s, d) => s + Number(d.hours), 0);
   const effectiveActualHours = Math.max(0, totals.actual_total - totalDiscountedHours);
   const effectiveCostActual = effectiveActualHours * project.rate_per_hour;
@@ -31,6 +28,7 @@ export function PortalView({
     totals.tickets_total > 0
       ? Math.round((totals.tickets_done / totals.tickets_total) * 100)
       : 0;
+
 
   return (
     <div className="space-y-8">
@@ -103,94 +101,16 @@ export function PortalView({
         />
       </div>
 
-      {/* Epic trend chart — always shows all epics with tickets, regardless of toggles. */}
-      {epics.some((e) => e.total_tickets > 0) && (
-        <div className="space-y-3">
-          <div className="text-xs uppercase tracking-wider text-dimmer px-1">
-            Epics
-          </div>
-          <PortalEpicTrend
-            projectId={project.id}
-            cutoff={project.cutoff}
-            includedEpics={epics
-              .filter((e) => e.total_tickets > 0)
-              .map((e) => ({ id: e.id, name: e.epic_name ?? "Untitled epic" }))}
-            discounts={discounts}
-          />
-        </div>
-      )}
+      {/* Unified epic table with trend chart + per-epic progress/change details. */}
+      <PortalEpicTable
+        epics={epics}
+        projectId={project.id}
+        cutoff={project.cutoff}
+        ratePerHour={project.rate_per_hour}
+        showRate={showRate}
+        discounts={discounts}
+      />
 
-      {/* Estimate Change Detail — only included epics with a delta and a PMBA narrative.
-          Combines per-epic progress, hours, and the change narrative in one card. */}
-      {(() => {
-        const detail = epics.filter(
-          (e) =>
-            e.included === true &&
-            e.total_tickets > 0 &&
-            e.current_estimate - e.original_estimate !== 0 &&
-            (e.pmba_text ?? "").trim().length > 0,
-        );
-        if (detail.length === 0) return null;
-        return (
-          <div className="space-y-3">
-            <div className="text-xs uppercase tracking-wider text-dimmer px-1">
-              Estimate Change Detail
-            </div>
-            {detail.map((e) => {
-              const delta = e.current_estimate - e.original_estimate;
-              const pct =
-                e.total_tickets > 0
-                  ? Math.round((e.done_tickets / e.total_tickets) * 100)
-                  : 0;
-              return (
-                <div key={e.id} className="glass rounded-2xl p-5 space-y-3">
-                  <div className="flex items-baseline justify-between gap-3 flex-wrap">
-                    <div className="font-medium">{e.epic_name ?? "Untitled epic"}</div>
-                    <div className="text-xs text-dim font-mono">{pct}% done</div>
-                  </div>
-                  <div className="text-xs text-dim">
-                    {e.done_tickets} done
-                    {e.in_progress_tickets > 0 && ` · ${e.in_progress_tickets} in progress`}
-                    {e.backlog_tickets > 0 && ` · ${e.backlog_tickets} to do`}
-                  </div>
-                  <div className="flex items-center gap-3 text-xs font-mono text-dim flex-wrap">
-                    <span>{formatHours(e.current_estimate)}</span>
-                    {e.original_estimate > 0 && (
-                      <>
-                        <span className="text-dimmer">
-                          (orig {formatHours(e.original_estimate)})
-                        </span>
-                        <span
-                          className={
-                            delta > 0 ? "text-health-warn" : "text-health-good"
-                          }
-                        >
-                          {delta > 0 ? "+" : ""}
-                          {formatHours(delta)}
-                        </span>
-                      </>
-                    )}
-                    {showRate && project.rate_per_hour > 0 && (() => {
-                      const epicDiscount = sumTotals(
-                        discountByEpic.get(e.id) ?? { FE: 0, BE: 0, Project: 0 },
-                      );
-                      const effActual = Math.max(0, e.actual_hours - epicDiscount);
-                      return (
-                        <span className="ml-auto">
-                          {formatGBP(effActual * project.rate_per_hour)}
-                        </span>
-                      );
-                    })()}
-                  </div>
-                  <div className="rounded-xl bg-white/[0.03] hairline p-3 text-sm leading-relaxed whitespace-pre-wrap">
-                    {e.pmba_text}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        );
-      })()}
 
       {project.summary_updated_at && (
         <div className="text-[10px] text-dimmer text-center pt-4">

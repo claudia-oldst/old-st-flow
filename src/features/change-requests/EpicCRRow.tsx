@@ -2,6 +2,7 @@ import { format } from "date-fns";
 import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatHours } from "@/lib/utils";
+import { formatGBP } from "@/features/client-portal/types";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { StatusBadge } from "@/features/_shared/estimate-ui/StatusBadge";
 
@@ -10,13 +11,14 @@ interface Props {
   canReview: boolean;
   hideReject?: boolean;
   memberNames: Record<string, string>;
+  ratePerHour?: number;
   onApprove: (t: TicketRow) => void;
   onReject: (t: TicketRow) => void;
   onOpenTicket?: (t: TicketRow) => void;
 }
 
 export function EpicCRRow({
-  ticket: t, canReview, hideReject, memberNames,
+  ticket: t, canReview, hideReject, memberNames, ratePerHour,
   onApprove, onReject, onOpenTicket,
 }: Props) {
   return (
@@ -35,9 +37,15 @@ export function EpicCRRow({
       </td>
       <td className="px-2 py-2 text-right font-mono text-dim">{formatHours(t.current_fe_estimate)}</td>
       <td className="px-2 py-2 text-right font-mono text-dim">{formatHours(t.current_be_estimate)}</td>
+      {ratePerHour !== undefined && (
+        <td className="px-2 py-2 text-right font-mono text-dim">
+          {formatGBP((Number(t.current_fe_estimate) + Number(t.current_be_estimate)) * ratePerHour)}
+        </td>
+      )}
       <td className="px-2 py-2 text-dimmer whitespace-nowrap">
         {format(new Date(t.created_at), "d MMM")}
       </td>
+
       <td className="px-2 py-2"><StatusBadge status={t.cr_approval} /></td>
       <td className="px-2 py-2 text-dimmer whitespace-nowrap">
         {t.cr_approval === "approved" && t.cr_decided_at ? (

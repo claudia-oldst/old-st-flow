@@ -12,6 +12,21 @@ import { PreviewChangeRequests } from "./editor/PreviewChangeRequests";
 import { PortalToolbar } from "./editor/PortalToolbar";
 import { useClientPortalEditor } from "./editor/useClientPortalEditor";
 import { useEpicDiscounts } from "@/features/discounts/useEpicDiscounts";
+import { SprintGantt } from "@/features/sprints/SprintGantt";
+import { useSprints } from "@/features/sprints/useSprintBoard";
+
+function SprintGanttPreview({ projectId }: { projectId: string }) {
+  const { data: sprints = [] } = useSprints(projectId);
+  if (sprints.length === 0) {
+    return (
+      <div className="glass rounded-2xl p-12 text-center text-sm text-dim">
+        No sprint timeline available yet.
+      </div>
+    );
+  }
+  return <SprintGantt projectId={projectId} sprints={sprints} hideExport />;
+}
+
 
 export function ClientPortalEditor() {
   const { id } = useParams<{ id: string }>();
@@ -126,9 +141,10 @@ export function ClientPortalEditor() {
           <div className="glass rounded-2xl p-6 lg:p-8">
             {payload ? (
               <Tabs defaultValue="summary" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-6">
+                <TabsList className="grid w-full grid-cols-3 mb-6">
                   <TabsTrigger value="summary">Summary</TabsTrigger>
                   <TabsTrigger value="change-requests">Change Requests</TabsTrigger>
+                  <TabsTrigger value="timeline">Timeline</TabsTrigger>
                 </TabsList>
                 <TabsContent value="summary">
                   <PortalView payload={payload} showRate discounts={discounts} />
@@ -136,7 +152,11 @@ export function ClientPortalEditor() {
                 <TabsContent value="change-requests">
                   <PreviewChangeRequests projectId={id} />
                 </TabsContent>
+                <TabsContent value="timeline">
+                  <SprintGanttPreview projectId={id} />
+                </TabsContent>
               </Tabs>
+
             ) : (
               <div className="text-sm text-dim text-center py-12">Loading preview…</div>
             )}

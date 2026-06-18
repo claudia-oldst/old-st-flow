@@ -12,6 +12,8 @@ import { GanttGrid } from "./gantt/GanttGrid";
 interface Props {
   projectId: string;
   sprints: Sprint[];
+  /** Hide the Export PNG button (e.g. on client portal). */
+  hideExport?: boolean;
 }
 
 const LEGEND = [
@@ -21,10 +23,11 @@ const LEGEND = [
   { label: "done", cls: "bg-emerald-500" },
 ];
 
-export function SprintGantt({ projectId, sprints }: Props) {
+export function SprintGantt({ projectId, sprints, hideExport }: Props) {
   const [discipline, setDiscipline] = useState<SprintDiscipline>("FE");
   const rows = useGanttData(projectId, sprints, discipline);
   const ganttRef = useRef<HTMLDivElement>(null);
+
 
   const onExport = async () => {
     if (!ganttRef.current) return;
@@ -82,12 +85,15 @@ export function SprintGantt({ projectId, sprints }: Props) {
           ))}
         </div>
 
-        <div className="ml-auto">
-          <Button variant="outline" size="sm" onClick={onExport} className="gap-1.5">
-            <Download className="h-3.5 w-3.5" />
-            Export PNG
-          </Button>
-        </div>
+        {!hideExport && (
+          <div className="ml-auto">
+            <Button variant="outline" size="sm" onClick={onExport} className="gap-1.5">
+              <Download className="h-3.5 w-3.5" />
+              Export PNG
+            </Button>
+          </div>
+        )}
+
       </div>
 
       {/* Body */}
