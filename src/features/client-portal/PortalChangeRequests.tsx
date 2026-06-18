@@ -85,10 +85,21 @@ export function PortalChangeRequests({
   epics,
   baselineTickets,
   crTickets,
+  ratePerHour,
   onApprove,
 }: Props) {
-  const [statusFilter, setStatusFilter] = useState<string[]>(["pending", "approved"]);
+  const [statusFilter, setStatusFilter] = useState<string[]>(["pending"]);
   const [openTicket, setOpenTicket] = useState<PortalCRViewTicket | null>(null);
+
+  const counts = useMemo(() => {
+    let pending = 0;
+    let approved = 0;
+    crTickets.forEach((t) => {
+      if (t.cr_approval === "pending") pending++;
+      else if (t.cr_approval === "approved") approved++;
+    });
+    return { pending, approved, total: crTickets.length };
+  }, [crTickets]);
 
   const range = useMemo(() => {
     const stamps = crTickets.map((t) => new Date(t.created_at).getTime());
@@ -142,15 +153,42 @@ export function PortalChangeRequests({
       .sort((a, b) => b.all.length - a.all.length);
   }, [crTickets, filteredCRs, baselineTickets, epics]);
 
+  const pillBase =
+    "px-3 py-1.5 rounded-lg text-xs transition hairline";
+  const pillActive = "bg-foreground text-background";
+  const pillInactive = "text-dim hover:text-foreground";
+  const onlyPending =
+    statusFilter.length === 1 && statusFilter[0] === "pending";
+  const onlyApproved =
+    statusFilter.length === 1 && statusFilter[0] === "approved";
+  const isAll = statusFilter.length === 3;
+
   return (
     <div className="space-y-4">
       <div className="glass rounded-2xl p-3 flex items-center gap-2 flex-wrap">
-        <MultiSelectFilter
-          label="Status"
-          options={STATUS_OPTIONS}
-          selected={statusFilter}
-          onChange={setStatusFilter}
-        />
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setStatusFilter(["pending"])}
+            className={cn(pillBase, onlyPending ? pillActive : pillInactive)}
+          >
+            Pending ({counts.pending})
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter(["approved"])}
+            className={cn(pillBase, onlyApproved ? pillActive : pillInactive)}
+          >
+            Approved ({counts.approved})
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter(["pending", "approved", "rejected"])}
+            className={cn(pillBase, isAll ? pillActive : pillInactive)}
+          >
+            All ({counts.total})
+          </button>
+        </div>
         <div className="ml-auto text-[11px] text-dimmer">
           {filteredCRs.length} CR{filteredCRs.length === 1 ? "" : "s"} · {groups.length} epic
           {groups.length === 1 ? "" : "s"}
@@ -163,27 +201,34 @@ export function PortalChangeRequests({
         </div>
       ) : (
         <div className="space-y-3">
-          {groups.map((g) => (
-            <EpicCRCard
-              key={g.key}
-              epicKey={g.key}
-              epicName={g.epicName}
-              projectAcronym={acronym}
-              baselineTickets={g.baseline.map(asTicketRow)}
-              filteredCRs={g.filtered.map(asTicketRow)}
-              allCRs={g.all.map(asTicketRow)}
-              canReview={true}
-              hideReject
-              onApprove={(t) => onApprove(t.id)}
-              onReject={() => {}}
-              onOpenTicket={(t) => {
-                const found = crTickets.find((c) => c.id === t.id) ?? null;
-                setOpenTicket(found);
-              }}
-              defaultOpen={g.filtered.length > 0 && g.filtered.length <= 8}
-              range={range}
-            />
-          ))}
+          {groups.map((g) => {
+            const allApproved =
+              g.filtered.length > 0 &&
+              g.filtered.every((t) => t.cr_approval === "approved");
+            return (
+              <div key={g.key} className={cn(allApproved && "opacity-60")}>
+                <EpicCRCard
+                  epicKey={g.key}
+                  epicName={g.epicName}
+                  projectAcronym={acronym}
+                  baselineTickets={g.baseline.map(asTicketRow)}
+                  filteredCRs={g.filtered.map(asTicketRow)}
+                  allCRs={g.all.map(asTicketRow)}
+                  canReview={true}
+                  hideReject
+                  ratePerHour={ratePerHour}
+                  onApprove={(t) => onApprove(t.id)}
+                  onReject={() => {}}
+                  onOpenTicket={(t) => {
+                    const found = crTickets.find((c) => c.id === t.id) ?? null;
+                    setOpenTicket(found);
+                  }}
+                  defaultOpen={g.filtered.length > 0 && g.filtered.length <= 8}
+                  range={range}
+                />
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -195,3 +240,4 @@ export function PortalChangeRequests({
     </div>
   );
 }
+
