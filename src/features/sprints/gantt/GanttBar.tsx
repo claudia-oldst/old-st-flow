@@ -24,6 +24,16 @@ export function GanttBar({
 }: GanttBarProps) {
   if (segment.total === 0) return null;
 
+  const segCommitted = segment.committed > 0;
+  const segPlanned = segment.planned > 0;
+  const isMixed = segCommitted && segPlanned;
+  const dim = !segCommitted; // planned-only segments dim
+  const statusLabel = isMixed
+    ? `mixed — ${segment.committed} committed, ${segment.planned} planned`
+    : segCommitted
+      ? "committed"
+      : "planned only";
+
   return (
     <div
       className="absolute top-1/2 -translate-y-1/2"
@@ -38,7 +48,7 @@ export function GanttBar({
           <div
             className={cn(
               "h-6 rounded-full overflow-hidden flex flex-row w-full cursor-default",
-              !isCommitted && "opacity-60",
+              dim && "opacity-60",
             )}
           >
             {segment.done > 0 && (
@@ -77,7 +87,7 @@ export function GanttBar({
             for integration: {segment.for_integration} · done: {segment.done}
           </div>
           <div className="text-[10px] text-dimmer mt-1 uppercase tracking-wide">
-            {isCommitted ? "committed" : "planned only"}
+            {statusLabel}
           </div>
         </TooltipContent>
       </Tooltip>
