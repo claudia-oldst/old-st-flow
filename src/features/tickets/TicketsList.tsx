@@ -49,10 +49,13 @@ export function TicketsList({
     if (groupBy !== "epic") out.push("epic");
     if (groupBy !== "version") out.push("version");
     if (groupBy !== "status") out.push("status");
-    out.push("dev_status");
-    out.push("fe", "be");
+    out.push("dev_status", "fe", "be");
+    if (extraCols?.includes("fe_pool")) out.push("fe_pool");
+    if (extraCols?.includes("be_pool")) out.push("be_pool");
     if (groupBy !== "assignee") out.push("assignees");
-    if (extraCols) out.push(...extraCols);
+    extraCols?.forEach((c) => {
+      if (!out.includes(c)) out.push(c);
+    });
     return out;
   }, [groupBy, extraCols]);
 

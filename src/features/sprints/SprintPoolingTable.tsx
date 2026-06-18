@@ -52,6 +52,17 @@ export function SprintPoolingTable({ projectId, sprints, isPMBA }: Props) {
 
   const v = useProjectTicketsView({ tickets: projectTickets, user, role, projectId: `${projectId}:pool` });
 
+  // Default this view's groupBy to "epic" on first open (no persisted value yet).
+  // User can still change it via the GroupBy selector.
+  useEffect(() => {
+    const key = `pt:${projectId}:pool:groupBy`;
+    if (typeof window === "undefined") return;
+    if (window.sessionStorage.getItem(key) === null) {
+      v.setGroupBy("epic");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
+
   const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
   const [fePoolFilter, setFePoolFilter] = useState<string>("__any__");
   const [bePoolFilter, setBePoolFilter] = useState<string>("__any__");
@@ -116,8 +127,7 @@ export function SprintPoolingTable({ projectId, sprints, isPMBA }: Props) {
         filters={v.filters}
         setFilters={v.setFilters}
         view="list"
-        filterMine={v.filterMine}
-        setFilterMine={v.setFilterMine}
+        filterMine={false}
         setTouched={v.setTouched}
         groupBy={v.groupBy}
         setGroupBy={v.setGroupBy}
@@ -126,6 +136,8 @@ export function SprintPoolingTable({ projectId, sprints, isPMBA }: Props) {
         role={role}
         user={user}
         showViewToggle={false}
+        showMineToggle={false}
+        showGroupBy={true}
         showAddButtons={false}
         showGroupTimer={false}
         extras={
