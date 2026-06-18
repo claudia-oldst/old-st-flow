@@ -1,73 +1,90 @@
-## Client portal improvements — epic table, CR tab, Timeline tab
+# Health tab redesign
 
-### Files
+Replace the member capacity table with a weekly burn rate sparkline and an epic risk table that visualizes doneness vs estimate burn.
 
-**New**
-- `src/features/client-portal/PortalEpicTable.tsx`
+## Files
 
-**Modified**
-- `src/features/client-portal/PortalView.tsx`
-- `src/features/client-portal/PortalChangeRequests.tsx`
-- `src/features/client-portal/editor/PreviewChangeRequests.tsx`
-- `src/pages/ClientPortalPublic.tsx`
-- `src/features/client-portal/ClientPortalEditor.tsx`
-- `src/features/sprints/SprintGantt.tsx` (add optional `hideExport?: boolean` only)
-- `src/features/change-requests/EpicCRCard.tsx` (add optional `ratePerHour?: number` — confirmed)
+**Delete**
+- `src/features/health/overview/HealthSummaryRow.tsx`
+- `src/features/health/overview/useProjectHealth.ts`
 
-**Untouched**
-- `GanttGrid.tsx`, `GanttBar.tsx`, `useGanttData.ts`, `useSprintBoard.ts`
-- `PortalEpicTrend.tsx` (left in repo but no longer rendered), `PortalTrendChart.tsx`
-- `EpicSummaryEditor.tsx`, `PortalToolbar.tsx`
-- Everything else in `src/features/sprints/`
+**Create**
+- `src/features/health/overview/WeeklyBurnPanel.tsx`
+- `src/features/health/overview/EpicRiskTable.tsx`
 
----
+**Modify**
+- `src/features/health/ProjectHealth.tsx`
 
-### Change 1 — PortalView + new PortalEpicTable
+`Ring`, `ProfitabilityPill`, `EstimateEvolution`, and everything under `estimate-evolution/` stay untouched.
 
-`PortalView.tsx`: remove the `<PortalEpicTrend …>` block (lines 106-121) and the entire "Estimate Change Detail" IIFE (lines 123-193). Replace with a single `<PortalEpicTable epics={epics} projectId={project.id} cutoff={project.cutoff} ratePerHour={project.rate_per_hour} showRate={showRate} discounts={discounts} />`.
+## `ProjectHealth.tsx` changes
 
-`PortalEpicTable.tsx`:
-1. **Call `usePortalEpicTrendData` exactly once at this component level.** Build `cutoffMs = new Date(cutoff).getTime()`. Memoize the aggregate series via `buildEpicTrendSeries({ tickets, changes, logs, projectStart, cutoffMs, ticketFilter: () => true, discounts })`. Per-row expanded panels receive `tickets/changes/logs/projectStart/ticketEpic` through the parent closure (not as a child hook call) and compute their own filtered series via `buildEpicTrendSeries({ …, ticketFilter: (tid) => ticketEpic.get(tid) === e.id, discounts: discounts.filter(d => d.epic_id === e.id) })`. No row-level Supabase calls.
-2. Top: aggregate `<PortalTrendChart data={aggregated} />` in a `glass rounded-2xl p-5` card with the existing "Estimate trend over time" header.
-3. Epic progress table — `glass rounded-2xl overflow-hidden`, header `Epic · Progress · Hours (cur/orig) · Change · ▸`. For each `e.total_tickets > 0`:
-   - left dot `w-1.5 h-1.5 rounded-full`: `bg-health-warn` (+delta), `bg-health-good` (−delta), empty spacer (no delta)
-   - epic name `text-sm font-medium truncate` (dim if no delta)
-   - segmented progress bar `h-1.5 rounded-full` (done green + in_progress blue) + `text-xs text-dimmer` counts subtitle
-   - hours `text-xs font-mono text-dim`: `{formatHours(current)} / {formatHours(original)}`
-   - change badge: `badge-warn` +, `badge-good` −, `—` dimmer otherwise
-   - chevron only when delta ≠ 0; rows with delta are clickable to toggle expansion; no-delta rows are inert
-   - expanded panel: `border-l-2` (amber+/green−), `pl-4 pr-3 py-3 border-b border-white/5`:
-     - if `pmba_text` non-empty: `rounded-xl bg-white/[0.03] hairline p-3 text-sm leading-relaxed whitespace-pre-wrap`
-     - mini `PortalTrendChart` for this epic (uses shared data from parent closure)
-     - if `showRate && ratePerHour > 0`: cost line using `e.actual_hours` minus the discount sum for that epic (same math as the removed block)
-4. Empty state: centered "No epics yet." when no epic has tickets.
+Remove:
+- `useProjectHealth` import + call (members/weekHours/ticketsByMember/remainingByMember)
+- `range`/`setRange` state, `DateRange` type, `defaultRange` import
+- `HealthSummaryRow` import + render
+- `DateRangeControl` import (only used by the deleted row)
 
----
+Keep as-is: `useProjectTickets`, `useStatuses`, `useProjectRole`, `useProjectEpics`, `useEpicDiscounts`, `projectStart` query, `totals`, `discountTotals`, three `Ring`s, discounts block, `EstimateEvolution`, profitability + unassigned calcs.
 
-### Change 2 — PortalChangeRequests
+Add imports: `ProfitabilityPill` from `./overview/ProfitabilityPill`, `AlertTriangle` from `lucide-react`, the two new panels.
 
-- Replace the `MultiSelectFilter` (line 150) with three inline pills: **Pending (n)** / **Approved (n)** / **All (n)**. Counts derived from `crTickets`. Active pill `bg-foreground text-background`; inactive `text-dim hover:text-foreground hairline px-3 py-1.5 rounded-lg text-xs`. Clicking sets `statusFilter` to `["pending"]`, `["approved"]`, or `["pending","approved","rejected"]`. Default changes from `["pending","approved"]` to `["pending"]`.
-- Add `ratePerHour: number` prop. Plumb through:
-  - `ClientPortalPublic.tsx` passes `data.project.rate_per_hour`.
-  - `PreviewChangeRequests.tsx` extends the existing `select("acronym")` to **`select("acronym, rate_per_hour")`** (one query, not two) and passes the value through.
-- Pass `ratePerHour` to each `<EpicCRCard>`. `EpicCRCard` gains the **optional** `ratePerHour?: number` prop and, when defined, renders a `Cost est.` column showing `formatGBP((current_fe_estimate + current_be_estimate) * ratePerHour)`. Internal CR pages don't pass it, so the column is absent there — additive, zero touch to existing call sites.
-- Dim approved-only groups: when `g.filtered.length > 0 && g.filtered.every(t => t.cr_approval === "approved")`, wrap `<EpicCRCard>` in a div with `opacity-60`.
+New layout order:
+1. Hour burn header + Create discount button (unchanged)
+2. 4-col grid: 3 `Ring`s + `<WeeklyBurnPanel projectId tickets />`
+3. Discounts block (conditional, unchanged)
+4. 2-col grid: profitability block + unassigned block, inlined (markup lifted verbatim from `HealthSummaryRow`, using `ProfitabilityPill state={overall}`, `formatHours`, `AlertTriangle`)
+5. `<EpicRiskTable projectId tickets statuses epics />`
+6. `EstimateEvolution` (unchanged)
 
----
+## `WeeklyBurnPanel.tsx`
 
-### Change 3 — Timeline (Gantt) tab
+Props: `{ projectId: string; tickets: TicketRow[] }`.
 
-`SprintGantt.tsx`: add `hideExport?: boolean` to `Props`. When true, skip the Export PNG `<Button>`. Nothing else changes.
+TanStack Query, key `["weeklyBurn", projectId]`: select `logged_at, hours` from `time_logs` where `ticket_id IN tickets.map(t=>t.id)`. Skip when no tickets.
 
-`ClientPortalPublic.tsx`:
-- Import `useSprints` from `@/features/sprints/useSprintBoard`, `SprintGantt` from `@/features/sprints/SprintGantt`.
-- `const { data: sprints = [] } = useSprints(data?.project?.id);`
-- `TabsList` becomes `grid-cols-3`; add `<TabsTrigger value="timeline">Timeline</TabsTrigger>`.
-- `<TabsContent value="timeline">`: render `<SprintGantt projectId={data.project.id} sprints={sprints} hideExport />` when `sprints.length > 0`, else centered "No sprint timeline available yet."
-- Pass `ratePerHour={data.project.rate_per_hour}` to `<PortalChangeRequests>`.
+`useRealtimeInvalidate([{ table: "time_logs" }], queryKey)` for liveness.
 
-`ClientPortalEditor.tsx`:
-- `TabsList` becomes `grid-cols-3`; add `<TabsTrigger value="timeline">Timeline</TabsTrigger>`.
-- Add `<TabsContent value="timeline">` rendering a small inline `SprintGanttPreview` component (defined in the same file) that calls `useSprints(id)` and returns `<SprintGantt projectId={id} sprints={sprints} hideExport />`.
+`useMemo`: bucket logs by Monday of week (`date-fns` `startOfISOWeek`), produce last 8 complete ISO weeks + current partial week (9 bars). Compute `maxHours`, `currentWeekHours`, and `trend = round((currentWeek - priorWeek) / priorWeek * 100)` (0 when prior is 0).
 
-RLS on `sprints` already allows anon read for published portals — no migration needed.
+Render: panel matching `Ring` card height with header "Weekly burn rate", trend badge (green `health-good` when ≥0, amber `health-warn` otherwise, `↑`/`↓`), row of 9 bars (`flex items-end gap-1 h-16`), each bar `height: max(4%, hours/max*100%)`, current week tinted `bg-primary`, others `bg-primary/40`. Footer: "8 wks ago" left, `formatHours(currentWeekHours) + " this week"` right.
+
+## `EpicRiskTable.tsx`
+
+Props: `{ projectId: string; tickets: TicketRow[]; statuses: Status[]; epics: { id: number; epic_name: string | null }[] }`. No new Supabase calls.
+
+Build `Map<statusId, category>` from `statuses` (categories: `backlog`, `active`, `dev done`, `done`).
+
+For each epic, filter tickets where `t.epic_id === e.id` AND not (CR ticket with `cr_approval !== "approved"`). Compute counts per category, `currentEst = sum(current_fe_estimate + current_be_estimate + current_project_estimate)`, `actualHours = sum(actual_frontend_hours + actual_backend_hours + actual_project_hours)`, `burnPct = min(150, actualHours/currentEst*100)`, `progressPct = (done+devDone)/total*100`.
+
+Risk:
+```ts
+const effectiveProgress = ((done + devDone + active * 0.3) / total) * 100;
+const burnAhead = burnPct - effectiveProgress;
+if (burnAhead > 35) return "at_risk";
+if (burnAhead > 15 || (backlog/total > 0.7 && burnPct > 25)) return "watch";
+return "healthy";
+```
+
+Keep rows with `total > 0 && currentEst > 0`. Sort: `at_risk` → `watch` → `healthy`, then `burnPct` desc.
+
+Render:
+- Header row: title "Epic risk — doneness vs estimate burn" + legend swatches. Legend colour mapping (so primary doesn't clash with the gold/coral accent):
+  - Done → `bg-health-good`
+  - Dev done → `bg-health-good/50` (lighter shade of the "finished" hue so it reads as "nearly done")
+  - Active → `bg-health-warn`
+  - Backlog → `bg-dimmer`
+  - separator
+  - Burned → `bg-health-bad`
+- Column header grid `[2fr,3fr,3fr,auto]`: Epic / Doneness / Estimate burn / Risk
+- Per row:
+  - Epic name (truncate)
+  - Doneness: stacked 4-segment horizontal bar using the same tokens as the legend (done/devDone/active widths as % of total; backlog fills remainder), captions below with counts
+  - Burn: full-width track with inner bar width `min(100, burnPct)%`, color = `health-bad` if `burnPct > 100`, `health-warn` if `> 80`, else `health-good`; caption `"{round(burnPct)}% burned · {formatHours(actual)} / {formatHours(est)}"`
+  - Risk pill: inlined `<span>` badge (not `ProfitabilityPill`, which only accepts health state strings and would not render the right labels). Tokens: `at_risk` → `bg-health-bad/15 text-health-bad`, `watch` → `bg-health-warn/15 text-health-warn`, `healthy` → `bg-health-good/15 text-health-good`. Labels: "At risk" / "Watch" / "Healthy".
+
+## Constraints recap
+
+- One new fetch only (`time_logs` in `WeeklyBurnPanel`).
+- Reuse `formatHours`, `healthRatio`, semantic tokens; no hardcoded colors.
+- `useEstimateEvolution` and `estimate-evolution/` untouched.
