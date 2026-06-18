@@ -18,6 +18,7 @@ export interface ParsedRow {
   version: string;
   fe_status: DisciplineStatus;
   be_status: DisciplineStatus;
+  project_status_name: string;
   acceptance_criteria: string;
   fe_assignee_emails: string[];
   be_assignee_emails: string[];
@@ -52,16 +53,16 @@ function parseEmails(raw: string | undefined): string[] {
 
 export function downloadTicketsTemplate() {
   const header =
-    "Ticket #,Title,Type,FE Estimate,BE Estimate,Project Estimate,Epic,Version,FE Status,BE Status,Parent Ticket #,FE Assignees,BE Assignees,Project Assignees,Acceptance Criteria";
+    "Ticket #,Title,Type,FE Estimate,BE Estimate,Project Estimate,Epic,Version,FE Status,BE Status,Project Status,Parent Ticket #,FE Assignees,BE Assignees,Project Assignees,Acceptance Criteria";
   const rows = [
     // Standard ticket with FE+BE, assignees, AC
-    `,Example: build login page,Standard,4,2,,Authentication,v1,todo,todo,,jane@acme.com,john@acme.com,,"- User can log in with email\\n- Errors shown inline"`,
+    `,Example: build login page,Standard,4,2,,Authentication,v1,todo,todo,,,jane@acme.com,john@acme.com,,"- User can log in with email\\n- Errors shown inline"`,
     // Bug linked to parent ticket #12
-    `42,Example: fix header overflow,Bug,1,0,,UI polish,v1,in_progress,todo,12,jane@acme.com,,,`,
+    `42,Example: fix header overflow,Bug,1,0,,UI polish,v1,in_progress,todo,,12,jane@acme.com,,,`,
     // CR with BE work only, two BE assignees
-    `,Example: add export endpoint,CR,0,3,,Reporting,v2,todo,done,,,"john@acme.com,sara@acme.com",,`,
-    // Proj-type ticket (uses Project Estimate + Project Assignees; FE/BE blank)
-    `,Example: client kickoff workshop,Proj,,,8,Discovery,v1,,,,,,pm@acme.com,`,
+    `,Example: add export endpoint,CR,0,3,,Reporting,v2,todo,done,,,,"john@acme.com,sara@acme.com",,`,
+    // Proj-type ticket (uses Project Estimate, Project Status, Project Assignees; FE/BE blank)
+    `,Example: client kickoff workshop,Proj,,,8,Discovery,v1,,,In Progress,,,,pm@acme.com,`,
   ];
   const csv = [header, ...rows].join("\n") + "\n";
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -114,6 +115,7 @@ export function useTicketsCsvImport(
         const versionCol = findCol("Version", "Phase");
         const feStatusCol = findCol("FE Status", "Frontend Status");
         const beStatusCol = findCol("BE Status", "Backend Status");
+        const projStatusCol = findCol("Project Status", "Proj Status", "Status");
         const acCol = findCol("Acceptance Criteria", "acceptance_criteria", "AC", "Acceptance");
         const feAssigneeCol = findCol("FE Assignees", "FE Assignee", "Frontend Assignees");
         const beAssigneeCol = findCol("BE Assignees", "BE Assignee", "Backend Assignees");
@@ -146,6 +148,7 @@ export function useTicketsCsvImport(
           const version = versionCol ? (r[versionCol] ?? "").trim() : "";
           const fe_status = parseDiscipline(feStatusCol ? r[feStatusCol] : undefined);
           const be_status = parseDiscipline(beStatusCol ? r[beStatusCol] : undefined);
+          const project_status_name = projStatusCol ? (r[projStatusCol] ?? "").trim() : "";
           const acceptance_criteria = acCol ? (r[acCol] ?? "").trim() : "";
           const fe_assignee_emails = parseEmails(feAssigneeCol ? r[feAssigneeCol] : undefined);
           const be_assignee_emails = parseEmails(beAssigneeCol ? r[beAssigneeCol] : undefined);
@@ -203,6 +206,7 @@ export function useTicketsCsvImport(
             version,
             fe_status,
             be_status,
+            project_status_name,
             acceptance_criteria,
             fe_assignee_emails,
             be_assignee_emails,
@@ -289,6 +293,19 @@ export function useTicketsCsvImport(
     const parentNumToId = new Map<number, string>();
     tickets.forEach((t) => parentNumToId.set(t.ticket_number, t.id));
 
+    // Status name → id (used only for Proj-type rows; FE/BE rows derive status automatically)
+    const statusNameToId = new Map<string, string>();
+    const needStatusLookup = valid.some(
+      (r) => r.type === "Proj" && r.project_status_name.trim(),
+    );
+    if (needStatusLookup) {
+      const { data: statuses } = await supabase.from("statuses").select("id, name");
+      (statuses ?? []).forEach((s: any) => {
+        if (s.name) statusNameToId.set(s.name.trim().toLowerCase(), s.id);
+      });
+    }
+    const unknownStatuses = new Set<string>();
+
     // Ticket numbers
     const taken = new Set<number>(tickets.map((t) => t.ticket_number));
     valid.forEach((r) => {
@@ -305,6 +322,13 @@ export function useTicketsCsvImport(
 
     const payload = valid.map((r) => {
       const isProj = r.type === "Proj";
+      let status_id: string | undefined;
+      if (isProj && r.project_status_name.trim()) {
+        const key = r.project_status_name.trim().toLowerCase();
+        const id = statusNameToId.get(key);
+        if (id) status_id = id;
+        else unknownStatuses.add(r.project_status_name.trim());
+      }
       return {
         project_id: projectId,
         title: r.title,
@@ -317,6 +341,7 @@ export function useTicketsCsvImport(
         current_project_estimate: isProj ? r.proj : null,
         fe_status: isProj ? "todo" : r.fe_status,
         be_status: isProj ? "todo" : r.be_status,
+        ...(status_id ? { status_id } : {}),
         epic_id: r.epic.trim() ? epicMap.get(r.epic.trim().toLowerCase()) ?? null : null,
         version: r.version.trim() || null,
         acceptance_criteria: r.acceptance_criteria.trim() || null,
@@ -328,6 +353,12 @@ export function useTicketsCsvImport(
         formatted_id: "",
       };
     });
+    if (unknownStatuses.size > 0) {
+      const list = Array.from(unknownStatuses).slice(0, 3).join(", ");
+      toast.warning(
+        `Unknown Project Status value${unknownStatuses.size === 1 ? "" : "s"}: ${list}${unknownStatuses.size > 3 ? "…" : ""} — defaulted`,
+      );
+    }
     const { data: createdTickets, error } = await supabase
       .from("tickets")
       .insert(payload as any)
