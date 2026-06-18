@@ -18,6 +18,7 @@ export interface ParsedRow {
   version: string;
   fe_status: DisciplineStatus;
   be_status: DisciplineStatus;
+  project_status_name: string;
   acceptance_criteria: string;
   fe_assignee_emails: string[];
   be_assignee_emails: string[];
