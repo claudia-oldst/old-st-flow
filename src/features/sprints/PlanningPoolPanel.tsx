@@ -136,7 +136,50 @@ export function PlanningPoolPanel({
   const filteredIds = useMemo(() => filtered.map((t) => t.id), [filtered]);
   const allSelected =
     filteredIds.length > 0 && filteredIds.every((id) => selectedIds.has(id));
-  const someSelected = !allSelected && filteredIds.some((id) => selectedIds.has(id));
+  const sprintNumberById = useMemo(() => {
+    const m = new Map<string, number>();
+    sortedSprints.forEach((s) => m.set(s.id, s.sprint_number));
+    return m;
+  }, [sortedSprints]);
+
+  const groups = useMemo(() => {
+    if (groupBy === "none") {
+      return [{ key: "all", label: "", tickets: filtered }];
+    }
+    const map = new Map<string, { label: string; tickets: TicketRow[]; order: number }>();
+    const push = (key: string, label: string, order: number, t: TicketRow) => {
+      const g = map.get(key);
+      if (g) g.tickets.push(t);
+      else map.set(key, { label, tickets: [t], order });
+    };
+    filtered.forEach((t) => {
+      if (groupBy === "epic") {
+        const key = t.epic_name ?? "__no_epic__";
+        push(key, t.epic_name ?? "No epic", t.epic_name ? 0 : 1, t);
+      } else if (groupBy === "type") {
+        push(t.ticket_type, t.ticket_type, 0, t);
+      } else if (groupBy === "assignee") {
+        const slot = discipline === "FE" ? "FE" : "BE";
+        const a = t.assignees.find((x) => x.slot === slot);
+        if (a) push(a.user_id, a.member.name || "Unknown", 0, t);
+        else push("__unassigned__", "Unassigned", 1, t);
+      } else if (groupBy === "roadmap") {
+        const plan = planByTicket.get(t.id);
+        const planned = discipline === "FE" ? plan?.fe ?? null : plan?.be ?? null;
+        if (planned) {
+          const n = sprintNumberById.get(planned);
+          push(planned, n ? `Sprint ${n}` : "Roadmap", n ?? 0, t);
+        } else {
+          push(UNPLANNED, "Unplanned", 9999, t);
+        }
+      }
+    });
+    return [...map.entries()]
+      .map(([key, v]) => ({ key, label: v.label, tickets: v.tickets, order: v.order }))
+      .sort((a, b) => a.order - b.order || a.label.localeCompare(b.label));
+  }, [filtered, groupBy, discipline, planByTicket, sprintNumberById]);
+
+
 
   return (
     <div className="flex flex-col gap-2 h-full min-h-0 rounded-md hairline bg-surface-1/40 w-96 shrink-0">
