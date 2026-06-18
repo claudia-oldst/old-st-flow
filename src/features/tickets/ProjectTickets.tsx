@@ -127,6 +127,28 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
         onStartGroupTimer={() => setGroupTimerOpen(true)}
         onAdd={() => setAddOpen(true)}
         onImport={() => setImportOpen(true)}
+        extras={
+          v.view === "list" ? (
+            <>
+              <SprintPoolFilter
+                label="FE Sprint"
+                sprints={sprints}
+                plannedSelected={fePlannedFilter}
+                committedSelected={feCommittedFilter}
+                onPlannedChange={setFePlannedFilter}
+                onCommittedChange={setFeCommittedFilter}
+              />
+              <SprintPoolFilter
+                label="BE Sprint"
+                sprints={sprints}
+                plannedSelected={bePlannedFilter}
+                committedSelected={beCommittedFilter}
+                onPlannedChange={setBePlannedFilter}
+                onCommittedChange={setBeCommittedFilter}
+              />
+            </>
+          ) : undefined
+        }
       />
 
       {error ? (
