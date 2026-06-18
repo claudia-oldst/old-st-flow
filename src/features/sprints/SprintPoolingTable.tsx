@@ -185,6 +185,18 @@ export function SprintPoolingTable({ projectId, sprints, isPMBA }: Props) {
             sprints={sprints}
             onPick={(sid) => updatePool(selectedArr, "BE", sid)}
           />
+          <button
+            onClick={() => updatePool(selectedArr, "FE", null)}
+            className="px-3 py-1.5 rounded-lg text-xs hover:bg-white/5 transition text-dim hover:text-foreground"
+          >
+            Clear FE
+          </button>
+          <button
+            onClick={() => updatePool(selectedArr, "BE", null)}
+            className="px-3 py-1.5 rounded-lg text-xs hover:bg-white/5 transition text-dim hover:text-foreground"
+          >
+            Clear BE
+          </button>
         </div>
       )}
 
