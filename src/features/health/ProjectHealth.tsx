@@ -49,8 +49,14 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
   }, [tickets, statuses]);
 
   const totals = useMemo(() => {
+    // Parse as local time (no Z suffix) so the boundary aligns with how
+    // created_at is compared elsewhere in the app.
     const startMs = projectStart
-      ? new Date(`${projectStart}T23:59:59.999Z`).getTime()
+      ? (() => {
+          const d = new Date(`${projectStart}T00:00:00`);
+          d.setHours(23, 59, 59, 999);
+          return d.getTime();
+        })()
       : null;
     return tickets.reduce(
       (acc, t) => {

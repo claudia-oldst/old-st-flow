@@ -97,7 +97,7 @@ export function EstimateTrendChart({
                 type="monotone"
                 dataKey="current"
                 name="Current estimate"
-                stroke="hsl(217 91% 60%)"
+                stroke="hsl(var(--chart-in-progress))"
                 dot={false}
                 strokeWidth={2}
               />

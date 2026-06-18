@@ -1,90 +1,137 @@
-# Health tab redesign
+## Scope
 
-Replace the member capacity table with a weekly burn rate sparkline and an epic risk table that visualizes doneness vs estimate burn.
+Fix audit findings High 1–3 and Medium 4, 6, 7, 8. Only correctness fixes (null-status handling, week-bucket boundary) touch business logic; the rest is refactor.
 
-## Files
+---
 
-**Delete**
-- `src/features/health/overview/HealthSummaryRow.tsx`
-- `src/features/health/overview/useProjectHealth.ts`
+## High
 
-**Create**
-- `src/features/health/overview/WeeklyBurnPanel.tsx`
-- `src/features/health/overview/EpicRiskTable.tsx`
+### 1. `WeeklyBurnPanel` — fetch window matches render window
+**File:** `src/features/health/overview/WeeklyBurnPanel.tsx`
 
-**Modify**
-- `src/features/health/ProjectHealth.tsx`
+Change `since` from `addWeeks(thisWeek, -10)` to `addWeeks(thisWeek, -8)` so the query range exactly matches the 9 rendered buckets (−8…0). No render changes.
 
-`Ring`, `ProfitabilityPill`, `EstimateEvolution`, and everything under `estimate-evolution/` stay untouched.
+### 2. `ProjectHealth` — UTC ambiguity on `projectStart`
+**File:** `src/features/health/ProjectHealth.tsx` (line 53)
 
-## `ProjectHealth.tsx` changes
+Replace the UTC end-of-day with local end-of-day. Important: the literal must be `T00:00:00` with **no `Z` suffix** — bare ISO strings without timezone are parsed as local in all evergreen browsers, which is exactly what we want here.
 
-Remove:
-- `useProjectHealth` import + call (members/weekHours/ticketsByMember/remainingByMember)
-- `range`/`setRange` state, `DateRange` type, `defaultRange` import
-- `HealthSummaryRow` import + render
-- `DateRangeControl` import (only used by the deleted row)
-
-Keep as-is: `useProjectTickets`, `useStatuses`, `useProjectRole`, `useProjectEpics`, `useEpicDiscounts`, `projectStart` query, `totals`, `discountTotals`, three `Ring`s, discounts block, `EstimateEvolution`, profitability + unassigned calcs.
-
-Add imports: `ProfitabilityPill` from `./overview/ProfitabilityPill`, `AlertTriangle` from `lucide-react`, the two new panels.
-
-New layout order:
-1. Hour burn header + Create discount button (unchanged)
-2. 4-col grid: 3 `Ring`s + `<WeeklyBurnPanel projectId tickets />`
-3. Discounts block (conditional, unchanged)
-4. 2-col grid: profitability block + unassigned block, inlined (markup lifted verbatim from `HealthSummaryRow`, using `ProfitabilityPill state={overall}`, `formatHours`, `AlertTriangle`)
-5. `<EpicRiskTable projectId tickets statuses epics />`
-6. `EstimateEvolution` (unchanged)
-
-## `WeeklyBurnPanel.tsx`
-
-Props: `{ projectId: string; tickets: TicketRow[] }`.
-
-TanStack Query, key `["weeklyBurn", projectId]`: select `logged_at, hours` from `time_logs` where `ticket_id IN tickets.map(t=>t.id)`. Skip when no tickets.
-
-`useRealtimeInvalidate([{ table: "time_logs" }], queryKey)` for liveness.
-
-`useMemo`: bucket logs by Monday of week (`date-fns` `startOfISOWeek`), produce last 8 complete ISO weeks + current partial week (9 bars). Compute `maxHours`, `currentWeekHours`, and `trend = round((currentWeek - priorWeek) / priorWeek * 100)` (0 when prior is 0).
-
-Render: panel matching `Ring` card height with header "Weekly burn rate", trend badge (green `health-good` when ≥0, amber `health-warn` otherwise, `↑`/`↓`), row of 9 bars (`flex items-end gap-1 h-16`), each bar `height: max(4%, hours/max*100%)`, current week tinted `bg-primary`, others `bg-primary/40`. Footer: "8 wks ago" left, `formatHours(currentWeekHours) + " this week"` right.
-
-## `EpicRiskTable.tsx`
-
-Props: `{ projectId: string; tickets: TicketRow[]; statuses: Status[]; epics: { id: number; epic_name: string | null }[] }`. No new Supabase calls.
-
-Build `Map<statusId, category>` from `statuses` (categories: `backlog`, `active`, `dev done`, `done`).
-
-For each epic, filter tickets where `t.epic_id === e.id` AND not (CR ticket with `cr_approval !== "approved"`). Compute counts per category, `currentEst = sum(current_fe_estimate + current_be_estimate + current_project_estimate)`, `actualHours = sum(actual_frontend_hours + actual_backend_hours + actual_project_hours)`, `burnPct = min(150, actualHours/currentEst*100)`, `progressPct = (done+devDone)/total*100`.
-
-Risk:
 ```ts
-const effectiveProgress = ((done + devDone + active * 0.3) / total) * 100;
-const burnAhead = burnPct - effectiveProgress;
-if (burnAhead > 35) return "at_risk";
-if (burnAhead > 15 || (backlog/total > 0.7 && burnPct > 25)) return "watch";
-return "healthy";
+const startMs = projectStart
+  ? (() => {
+      const d = new Date(`${projectStart}T00:00:00`); // local, no Z
+      d.setHours(23, 59, 59, 999);
+      return d.getTime();
+    })()
+  : null;
 ```
 
-Keep rows with `total > 0 && currentEst > 0`. Sort: `at_risk` → `watch` → `healthy`, then `burnPct` desc.
+### 3. Deduplicate `SprintGantt + empty state`
+**New file:** `src/features/sprints/SprintGanttOrEmpty.tsx`
 
-Render:
-- Header row: title "Epic risk — doneness vs estimate burn" + legend swatches. Legend colour mapping (so primary doesn't clash with the gold/coral accent):
-  - Done → `bg-health-good`
-  - Dev done → `bg-health-good/50` (lighter shade of the "finished" hue so it reads as "nearly done")
-  - Active → `bg-health-warn`
-  - Backlog → `bg-dimmer`
-  - separator
-  - Burned → `bg-health-bad`
-- Column header grid `[2fr,3fr,3fr,auto]`: Epic / Doneness / Estimate burn / Risk
-- Per row:
-  - Epic name (truncate)
-  - Doneness: stacked 4-segment horizontal bar using the same tokens as the legend (done/devDone/active widths as % of total; backlog fills remainder), captions below with counts
-  - Burn: full-width track with inner bar width `min(100, burnPct)%`, color = `health-bad` if `burnPct > 100`, `health-warn` if `> 80`, else `health-good`; caption `"{round(burnPct)}% burned · {formatHours(actual)} / {formatHours(est)}"`
-  - Risk pill: inlined `<span>` badge (not `ProfitabilityPill`, which only accepts health state strings and would not render the right labels). Tokens: `at_risk` → `bg-health-bad/15 text-health-bad`, `watch` → `bg-health-warn/15 text-health-warn`, `healthy` → `bg-health-good/15 text-health-good`. Labels: "At risk" / "Watch" / "Healthy".
+The component **must own the fetch** — otherwise nothing is deduplicated. Signature:
 
-## Constraints recap
+```ts
+export function SprintGanttOrEmpty({ projectId }: { projectId: string }) {
+  const { data: sprints = [] } = useSprints(projectId);
+  if (sprints.length === 0) {
+    return (
+      <div className="glass rounded-2xl p-12 text-center text-sm text-dim">
+        No sprint timeline available yet.
+      </div>
+    );
+  }
+  return <SprintGantt projectId={projectId} sprints={sprints} hideExport />;
+}
+```
 
-- One new fetch only (`time_logs` in `WeeklyBurnPanel`).
-- Reuse `formatHours`, `healthRatio`, semantic tokens; no hardcoded colors.
-- `useEstimateEvolution` and `estimate-evolution/` untouched.
+**Edits:**
+- `src/features/client-portal/ClientPortalEditor.tsx` — delete local `SprintGanttPreview`, drop `useSprints` + `SprintGantt` imports, render `<SprintGanttOrEmpty projectId={id} />`.
+- `src/pages/ClientPortalPublic.tsx` — replace inline ternary in the Timeline tab with `<SprintGanttOrEmpty projectId={data.project.id} />`; remove `useSprints` + `SprintGantt` imports and the now-unused `sprints` variable.
+
+---
+
+## Medium
+
+### 4. `EpicRiskTable` — explicit null-status handling
+**File:** `src/features/health/overview/EpicRiskTable.tsx`
+
+Track unknowns separately so they don't inflate backlog/risk. `total` for risk math excludes unknown; estimate/actual sums still include all epic tickets.
+
+```ts
+let unknown = 0;
+...
+const cat = t.status_id ? catById.get(t.status_id) : undefined;
+if (cat === "done") done++;
+else if (cat === "dev done") devDone++;
+else if (cat === "active") active++;
+else if (cat === "backlog") backlog++;
+else unknown++;
+```
+
+Set `total = done + devDone + active + backlog`. Skip-row guard becomes `if (total === 0 || currentEst === 0) continue;`.
+
+### 6. Extract a generic `SegmentedBar` primitive
+**New file:** `src/features/_shared/SegmentedBar.tsx`
+
+Must be N-segment generic (PortalView's `DisciplineRow` uses 2 segments, `EpicRiskTable` uses 4, `PortalEpicTable` uses 2). Implementation iterates over the `segments` array — no hardcoded slot count:
+
+```ts
+interface Props {
+  segments: { pct: number; className: string }[];
+  className?: string; // applied to track; defaults to "h-2 bg-white/5"
+}
+
+export function SegmentedBar({ segments, className }: Props) {
+  return (
+    <div className={cn("flex w-full rounded-full overflow-hidden", className ?? "h-2 bg-white/5")}>
+      {segments
+        .filter((s) => s.pct > 0)
+        .map((s, i) => (
+          <div key={i} className={cn("h-full", s.className)} style={{ width: `${s.pct}%` }} />
+        ))}
+    </div>
+  );
+}
+```
+
+Replace in-place usage and delete the local `Segment` helper in `EpicRiskTable.tsx`. Update `PortalView.DisciplineRow` and `PortalEpicTable` row bar to use it.
+
+### 7. Replace hardcoded `hsl(217 91% 60%)` with a token
+**Edit `src/index.css`:**
+```css
+--chart-in-progress: 217 91% 60%;
+```
+
+**Edit `tailwind.config.ts`** `colors` extend:
+```ts
+"chart-in-progress": "hsl(var(--chart-in-progress))",
+```
+
+**Replace all 5 usages:**
+- `PortalEpicTable.tsx`, `PortalView.tsx` — drop `style={{ background: "hsl(217 91% 60%)" }}`, add `bg-chart-in-progress` className (or pass via `SegmentedBar` segment).
+- `EpicRow.tsx` — the prop is a color string passed to a styled `BarRow`, so use `"hsl(var(--chart-in-progress))"` (a literal CSS string, not a Tailwind class).
+- `PortalTrendChart.tsx`, `EstimateTrendChart.tsx` — Recharts ignores Tailwind classes on SVG. Use `stroke="hsl(var(--chart-in-progress))"` exactly (literal string).
+
+### 8. Move `DateRangeControl` out of `health/`
+**Move:** `src/features/health/DateRangeControl.tsx` → `src/features/_shared/DateRangeControl.tsx`.
+
+**Update imports in:**
+- `src/features/estimates/ProjectChangeRequests.tsx`
+- `src/features/change-requests/ProjectChangeRequestTickets.tsx`
+
+`ProjectHealth.tsx` already dropped its import in the prior refactor — verify after the move that no `DateRangeControl` import remains anywhere under `src/features/health/`.
+
+---
+
+## Verification
+
+After edits, rely on the auto-build, then visually re-check:
+- Project Health rings + weekly burn (bars unchanged).
+- Epic risk table (doneness segments, percentages, pills unchanged for healthy data).
+- Client portal preview + public portal Timeline tab (renders gantt or empty state identically).
+- In-progress blue bar/line color matches previous shade across portal + estimate evolution charts.
+
+## Out of scope
+
+Mediums 5, 9 and all Lows — flagged in the prior audit but not addressed this round.

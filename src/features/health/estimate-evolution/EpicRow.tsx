@@ -39,7 +39,7 @@ export function EpicRow({
       </div>
       <div className="space-y-1.5">
         <BarRow label="Original" value={original} max={max} color="hsl(0 0% 60%)" />
-        <BarRow label="Current" value={current} max={max} color="hsl(217 91% 60%)" />
+        <BarRow label="Current" value={current} max={max} color="hsl(var(--chart-in-progress))" />
         <BarRow label="Actual" value={actual} max={max} color="hsl(38 92% 50%)" />
       </div>
     </div>

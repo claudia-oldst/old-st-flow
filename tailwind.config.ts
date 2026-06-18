@@ -60,6 +60,7 @@ export default {
           warn: "hsl(var(--health-warn))",
           bad:  "hsl(var(--health-bad))",
         },
+        "chart-in-progress": "hsl(var(--chart-in-progress))",
         brand: {
           navy: "hsl(var(--brand-navy))",
           coral: "hsl(var(--brand-coral))",

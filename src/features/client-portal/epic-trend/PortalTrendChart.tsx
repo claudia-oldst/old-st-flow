@@ -42,7 +42,7 @@ export function PortalTrendChart({
         />
         {!compact && <Legend wrapperStyle={{ fontSize: 11 }} />}
         <Line type="monotone" dataKey="original" name="Original" stroke="hsl(0 0% 60%)" strokeDasharray="4 4" dot={false} strokeWidth={1.5} />
-        <Line type="monotone" dataKey="current" name="Current" stroke="hsl(217 91% 60%)" dot={false} strokeWidth={2} />
+        <Line type="monotone" dataKey="current" name="Current" stroke="hsl(var(--chart-in-progress))" dot={false} strokeWidth={2} />
         <Line type="monotone" dataKey="actual" name="Actual" stroke="hsl(38 92% 50%)" dot={false} strokeWidth={2} />
       </LineChart>
     </ResponsiveContainer>

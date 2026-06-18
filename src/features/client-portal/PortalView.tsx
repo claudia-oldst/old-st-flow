@@ -1,9 +1,11 @@
 import { format } from "date-fns";
 import { formatGBP, type PortalPayload } from "./types";
 import { PortalEpicTable } from "./PortalEpicTable";
+import { SegmentedBar } from "@/features/_shared/SegmentedBar";
 import {
   type EpicDiscount,
 } from "@/features/discounts/applyDiscounts";
+
 
 
 /**
@@ -163,13 +165,12 @@ function DisciplineRow({
           {done} done · {inProgress} in progress · {todo} to do
         </span>
       </div>
-      <div className="h-2 rounded-full bg-white/5 overflow-hidden flex">
-        <div className="h-full bg-health-good" style={{ width: `${donePct}%` }} />
-        <div
-          className="h-full"
-          style={{ width: `${ipPct}%`, background: "hsl(217 91% 60%)" }}
-        />
-      </div>
+      <SegmentedBar
+        segments={[
+          { pct: donePct, className: "bg-health-good" },
+          { pct: ipPct, className: "bg-chart-in-progress" },
+        ]}
+      />
     </div>
   );
 }
