@@ -148,6 +148,7 @@ export function useTicketsCsvImport(
           const version = versionCol ? (r[versionCol] ?? "").trim() : "";
           const fe_status = parseDiscipline(feStatusCol ? r[feStatusCol] : undefined);
           const be_status = parseDiscipline(beStatusCol ? r[beStatusCol] : undefined);
+          const project_status_name = projStatusCol ? (r[projStatusCol] ?? "").trim() : "";
           const acceptance_criteria = acCol ? (r[acCol] ?? "").trim() : "";
           const fe_assignee_emails = parseEmails(feAssigneeCol ? r[feAssigneeCol] : undefined);
           const be_assignee_emails = parseEmails(beAssigneeCol ? r[beAssigneeCol] : undefined);
