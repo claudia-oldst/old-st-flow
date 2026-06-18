@@ -132,6 +132,9 @@ export function EpicCRCard({
                     <th className="text-left font-medium px-2 py-2">Ticket</th>
                     <th className="text-right font-medium px-2 py-2">FE</th>
                     <th className="text-right font-medium px-2 py-2">BE</th>
+                    {ratePerHour !== undefined && (
+                      <th className="text-right font-medium px-2 py-2">Cost est.</th>
+                    )}
                     <th className="text-left font-medium px-2 py-2">Created</th>
                     <th className="text-left font-medium px-2 py-2">Status</th>
                     <th className="text-left font-medium px-2 py-2">Approved</th>
@@ -141,7 +144,7 @@ export function EpicCRCard({
                 <tbody>
                   {filteredCRs.length === 0 && (
                     <tr>
-                      <td colSpan={8} className="px-3 py-6 text-center text-dimmer">
+                      <td colSpan={ratePerHour !== undefined ? 9 : 8} className="px-3 py-6 text-center text-dimmer">
                         No CRs match the current filters.
                       </td>
                     </tr>
@@ -153,12 +156,14 @@ export function EpicCRCard({
                       canReview={canReview}
                       hideReject={hideReject}
                       memberNames={memberNames}
+                      ratePerHour={ratePerHour}
                       onApprove={onApprove}
                       onReject={onReject}
                       onOpenTicket={onOpenTicket}
                     />
                   ))}
                 </tbody>
+
               </table>
               {filteredCRs.length > PAGE_SIZE && (
                 <div className="px-3 py-2 hairline-t flex items-center justify-between gap-3 flex-wrap">
