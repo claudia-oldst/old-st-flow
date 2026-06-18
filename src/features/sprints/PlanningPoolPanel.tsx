@@ -6,6 +6,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   TicketsFilter,
   EMPTY_FILTERS,
   applyFilters,
@@ -17,6 +24,16 @@ import { formatHours } from "./hours";
 import type { Sprint } from "./types";
 
 const UNPLANNED = "__unplanned__";
+
+type PoolGroupBy = "none" | "epic" | "type" | "assignee" | "roadmap";
+
+const GROUP_BY_OPTIONS: Array<{ value: PoolGroupBy; label: string }> = [
+  { value: "none", label: "None" },
+  { value: "epic", label: "Epic" },
+  { value: "type", label: "Type" },
+  { value: "assignee", label: "Assignee" },
+  { value: "roadmap", label: "Roadmap" },
+];
 
 interface Props {
   projectId: string;
@@ -52,6 +69,7 @@ export function PlanningPoolPanel({
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<TicketFilters>(EMPTY_FILTERS);
   const [roadmapIds, setRoadmapIds] = useState<Set<string>>(() => new Set([sprintId]));
+  const [groupBy, setGroupBy] = useState<PoolGroupBy>("none");
 
   // Reset roadmap selection to the current sprint whenever the planning sprint changes.
   useEffect(() => {
@@ -119,6 +137,50 @@ export function PlanningPoolPanel({
   const allSelected =
     filteredIds.length > 0 && filteredIds.every((id) => selectedIds.has(id));
   const someSelected = !allSelected && filteredIds.some((id) => selectedIds.has(id));
+  const sprintNumberById = useMemo(() => {
+    const m = new Map<string, number>();
+    sortedSprints.forEach((s) => m.set(s.id, s.sprint_number));
+    return m;
+  }, [sortedSprints]);
+
+  const groups = useMemo(() => {
+    if (groupBy === "none") {
+      return [{ key: "all", label: "", tickets: filtered }];
+    }
+    const map = new Map<string, { label: string; tickets: TicketRow[]; order: number }>();
+    const push = (key: string, label: string, order: number, t: TicketRow) => {
+      const g = map.get(key);
+      if (g) g.tickets.push(t);
+      else map.set(key, { label, tickets: [t], order });
+    };
+    filtered.forEach((t) => {
+      if (groupBy === "epic") {
+        const key = t.epic_name ?? "__no_epic__";
+        push(key, t.epic_name ?? "No epic", t.epic_name ? 0 : 1, t);
+      } else if (groupBy === "type") {
+        push(t.ticket_type, t.ticket_type, 0, t);
+      } else if (groupBy === "assignee") {
+        const slot = discipline === "FE" ? "FE" : "BE";
+        const a = t.assignees.find((x) => x.slot === slot);
+        if (a) push(a.user_id, a.member.name || "Unknown", 0, t);
+        else push("__unassigned__", "Unassigned", 1, t);
+      } else if (groupBy === "roadmap") {
+        const plan = planByTicket.get(t.id);
+        const planned = discipline === "FE" ? plan?.fe ?? null : plan?.be ?? null;
+        if (planned) {
+          const n = sprintNumberById.get(planned);
+          push(planned, n ? `Sprint ${n}` : "Roadmap", n ?? 0, t);
+        } else {
+          push(UNPLANNED, "Unplanned", 9999, t);
+        }
+      }
+    });
+    return [...map.entries()]
+      .map(([key, v]) => ({ key, label: v.label, tickets: v.tickets, order: v.order }))
+      .sort((a, b) => a.order - b.order || a.label.localeCompare(b.label));
+  }, [filtered, groupBy, discipline, planByTicket, sprintNumberById]);
+
+
 
   return (
     <div className="flex flex-col gap-2 h-full min-h-0 rounded-md hairline bg-surface-1/40 w-96 shrink-0">
@@ -202,6 +264,21 @@ export function PlanningPoolPanel({
             filters={filters}
             onChange={setFilters}
           />
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] uppercase tracking-wide text-dimmer">Group</span>
+            <Select value={groupBy} onValueChange={(v) => setGroupBy(v as PoolGroupBy)}>
+              <SelectTrigger className="h-7 text-xs w-[110px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {GROUP_BY_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -222,46 +299,61 @@ export function PlanningPoolPanel({
                 Select all
               </span>
             </div>
-            {filtered.map((t) => {
-              const selected = selectedIds.has(t.id);
-              const h =
-                discipline === "FE"
-                  ? t.current_fe_estimate || 0
-                  : t.current_be_estimate || 0;
-              return (
-                <div
-                  key={t.id}
-                  className={cn(
-                    "flex items-center gap-2 px-1.5 py-1.5 rounded hover:bg-white/[0.04] cursor-pointer",
-                    selected && "ring-1 ring-primary bg-primary/5",
-                  )}
-                  onClick={(e) => {
-                    if ((e.target as HTMLElement).closest("[data-checkbox]")) return;
-                    onOpenTicket(t);
-                  }}
-                >
-                  <div data-checkbox onClick={(e) => e.stopPropagation()}>
-                    <Checkbox
-                      checked={selected}
-                      onCheckedChange={() => onToggleSelect(t.id, false)}
-                      aria-label="Select ticket"
-                    />
-                  </div>
-                  <span className="font-mono text-xs text-dimmer w-16 shrink-0">
-                    {t.formatted_id}
-                  </span>
-                  <span className="text-xs truncate flex-1 min-w-0">{t.title}</span>
-                  {t.epic_name && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-dim truncate max-w-20 shrink-0">
-                      {t.epic_name}
+            {groups.map((g) => (
+              <div key={g.key} className="space-y-1">
+                {groupBy !== "none" && (
+                  <div className="flex items-center gap-2 px-1.5 pt-2 pb-1">
+                    <span className="text-[10px] uppercase tracking-wide text-dim font-semibold">
+                      {g.label}
                     </span>
-                  )}
-                  <span className="font-mono text-[10px] text-dim shrink-0 w-10 text-right">
-                    {formatHours(h)}
-                  </span>
-                </div>
-              );
-            })}
+                    <span className="text-[10px] font-mono text-dimmer">
+                      {g.tickets.length}
+                    </span>
+                    <div className="flex-1 h-px bg-white/5" />
+                  </div>
+                )}
+                {g.tickets.map((t) => {
+                  const selected = selectedIds.has(t.id);
+                  const h =
+                    discipline === "FE"
+                      ? t.current_fe_estimate || 0
+                      : t.current_be_estimate || 0;
+                  return (
+                    <div
+                      key={t.id}
+                      className={cn(
+                        "flex items-center gap-2 px-1.5 py-1.5 rounded hover:bg-white/[0.04] cursor-pointer",
+                        selected && "ring-1 ring-primary bg-primary/5",
+                      )}
+                      onClick={(e) => {
+                        if ((e.target as HTMLElement).closest("[data-checkbox]")) return;
+                        onOpenTicket(t);
+                      }}
+                    >
+                      <div data-checkbox onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={selected}
+                          onCheckedChange={() => onToggleSelect(t.id, false)}
+                          aria-label="Select ticket"
+                        />
+                      </div>
+                      <span className="font-mono text-xs text-dimmer w-16 shrink-0">
+                        {t.formatted_id}
+                      </span>
+                      <span className="text-xs truncate flex-1 min-w-0">{t.title}</span>
+                      {t.epic_name && groupBy !== "epic" && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-dim truncate max-w-20 shrink-0">
+                          {t.epic_name}
+                        </span>
+                      )}
+                      <span className="font-mono text-[10px] text-dim shrink-0 w-10 text-right">
+                        {formatHours(h)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
           </>
         )}
       </div>
