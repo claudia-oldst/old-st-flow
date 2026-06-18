@@ -21,6 +21,9 @@ export function collectUserIds(payload: any): string[] {
   }
   for (const r of payload?.time_logs ?? []) push(r.user_id);
   for (const r of payload?.tickets ?? []) push(r.cr_decided_by);
+  for (const r of payload?.epic_discounts ?? []) push(r.created_by);
+  for (const r of payload?.sprint_capacities ?? []) push(r.user_id);
+  for (const r of payload?.sprint_tickets ?? []) push(r.assigned_user_id);
   return [...ids];
 }
 

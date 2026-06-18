@@ -30,6 +30,12 @@ function buildXlsx(payload: any): Uint8Array {
   const logs: any[] = payload.time_logs ?? [];
   const changes: any[] = payload.ticket_estimate_changes ?? [];
   const comments: any[] = payload.ticket_comments ?? [];
+  const discounts: any[] = payload.epic_discounts ?? [];
+  const sprints: any[] = payload.sprints ?? [];
+  const sprintCaps: any[] = payload.sprint_capacities ?? [];
+  const sprintTks: any[] = payload.sprint_tickets ?? [];
+  const epics: any[] = payload.project_epics ?? [];
+  const epicById = new Map(epics.map((e) => [e.id, e.epic_name]));
 
   const totalHours = logs.reduce((s, l) => s + Number(l.hours ?? 0), 0);
   const totalCost = totalHours * Number(proj.rate_per_hour ?? 0);
@@ -44,28 +50,39 @@ function buildXlsx(payload: any): Uint8Array {
     ["Time logs", logs.length],
     ["Estimate changes", changes.length],
     ["Comments", comments.length],
+    ["Epic discounts", discounts.length],
+    ["Sprints", sprints.length],
     ["Total hours", totalHours],
     ["Total cost", totalCost],
   ];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summary), "Summary");
 
+  const ticketById = new Map(tickets.map((t) => [t.id, t.formatted_id]));
   const ticketRows = tickets.map((t) => ({
     formatted_id: t.formatted_id,
     title: t.title,
     type: t.ticket_type,
+    epic: t.epic_id != null ? epicById.get(t.epic_id) ?? "" : "",
+    version: t.version ?? "",
+    status_id: t.status_id ?? "",
     fe_status: t.fe_status,
     be_status: t.be_status,
+    parent: t.parent_ticket_id ? ticketById.get(t.parent_ticket_id) ?? t.parent_ticket_id : "",
+    original_fe: t.original_fe_estimate,
+    original_be: t.original_be_estimate,
+    original_proj: t.original_project_estimate,
     fe_estimate: t.current_fe_estimate,
     be_estimate: t.current_be_estimate,
     proj_estimate: t.current_project_estimate,
     fe_actual: t.actual_frontend_hours,
     be_actual: t.actual_backend_hours,
     proj_actual: t.actual_project_hours,
+    cr_approval: t.cr_approval ?? "",
+    acceptance_criteria: t.acceptance_criteria ?? "",
     created_at: t.created_at,
   }));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(ticketRows), "Tickets");
 
-  const ticketById = new Map(tickets.map((t) => [t.id, t.formatted_id]));
   const logRows = logs.map((l) => ({
     ticket: ticketById.get(l.ticket_id) ?? l.ticket_id,
     discipline: l.discipline,
@@ -103,6 +120,56 @@ function buildXlsx(payload: any): Uint8Array {
     wb,
     XLSX.utils.json_to_sheet(commentRows.length ? commentRows : [{ note: "No comments" }]),
     "Comments",
+  );
+
+  const sprintById = new Map(sprints.map((s) => [s.id, s.name ?? `Sprint ${s.sprint_number}`]));
+  const sprintRows = sprints.map((s) => ({
+    sprint_number: s.sprint_number,
+    name: s.name,
+    start_date: s.start_date,
+    end_date: s.end_date,
+  }));
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.json_to_sheet(sprintRows.length ? sprintRows : [{ note: "No sprints" }]),
+    "Sprints",
+  );
+
+  const capRows = sprintCaps.map((c) => ({
+    sprint: sprintById.get(c.sprint_id) ?? c.sprint_id,
+    user_id: c.user_id,
+    discipline: c.discipline,
+    hours: c.hours,
+  }));
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.json_to_sheet(capRows.length ? capRows : [{ note: "No sprint capacities" }]),
+    "Sprint Capacities",
+  );
+
+  const stRows = sprintTks.map((s) => ({
+    sprint: sprintById.get(s.sprint_id) ?? s.sprint_id,
+    ticket: ticketById.get(s.ticket_id) ?? s.ticket_id,
+    assigned_user_id: s.assigned_user_id ?? "",
+  }));
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.json_to_sheet(stRows.length ? stRows : [{ note: "No sprint tickets" }]),
+    "Sprint Tickets",
+  );
+
+  const discRows = discounts.map((d) => ({
+    epic: d.epic_id != null ? epicById.get(d.epic_id) ?? d.epic_id : "",
+    discipline: d.discipline,
+    hours: d.hours,
+    reason: d.reason,
+    created_by: d.created_by ?? "",
+    created_at: d.created_at,
+  }));
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.json_to_sheet(discRows.length ? discRows : [{ note: "No epic discounts" }]),
+    "Epic Discounts",
   );
 
   const out = XLSX.write(wb, { type: "array", bookType: "xlsx" });
@@ -171,10 +238,14 @@ Deno.serve(async (req) => {
       project_members: ((payload as any).project_members ?? []).length,
       project_epics: ((payload as any).project_epics ?? []).length,
       project_epic_summaries: ((payload as any).project_epic_summaries ?? []).length,
+      epic_discounts: ((payload as any).epic_discounts ?? []).length,
       ticket_assignees: ((payload as any).ticket_assignees ?? []).length,
       ticket_comments: ((payload as any).ticket_comments ?? []).length,
       ticket_estimate_changes: ((payload as any).ticket_estimate_changes ?? []).length,
       time_logs: logs.length,
+      sprints: ((payload as any).sprints ?? []).length,
+      sprint_capacities: ((payload as any).sprint_capacities ?? []).length,
+      sprint_tickets: ((payload as any).sprint_tickets ?? []).length,
     };
 
     const jsonText = JSON.stringify(payload);
