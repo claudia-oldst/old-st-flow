@@ -64,11 +64,43 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
     if (ok) setImportOpen(false);
   };
 
-  const listVisible = paged.rows;
-  const listLoading = v.view === "list" && paged.loading && listVisible.length === 0;
-
   const { data: sprints = [] } = useSprints(v.view === "list" ? projectId : undefined);
   const poolData = usePoolData(v.view === "list" ? projectId : undefined, sprints);
+
+  const [fePlannedFilter, setFePlannedFilter] = useState<string[]>([]);
+  const [feCommittedFilter, setFeCommittedFilter] = useState<number[]>([]);
+  const [bePlannedFilter, setBePlannedFilter] = useState<string[]>([]);
+  const [beCommittedFilter, setBeCommittedFilter] = useState<number[]>([]);
+
+  const listVisible = useMemo(() => {
+    let rows = paged.rows;
+    if (fePlannedFilter.length > 0) {
+      rows = rows.filter((t) => {
+        const fe = poolData.byTicket.get(t.id)?.fe ?? null;
+        return fe ? fePlannedFilter.includes(fe) : false;
+      });
+    }
+    if (feCommittedFilter.length > 0) {
+      rows = rows.filter((t) => {
+        const active = poolData.activeByTicket.get(t.id)?.fe ?? [];
+        return active.some((n) => feCommittedFilter.includes(n));
+      });
+    }
+    if (bePlannedFilter.length > 0) {
+      rows = rows.filter((t) => {
+        const be = poolData.byTicket.get(t.id)?.be ?? null;
+        return be ? bePlannedFilter.includes(be) : false;
+      });
+    }
+    if (beCommittedFilter.length > 0) {
+      rows = rows.filter((t) => {
+        const active = poolData.activeByTicket.get(t.id)?.be ?? [];
+        return active.some((n) => beCommittedFilter.includes(n));
+      });
+    }
+    return rows;
+  }, [paged.rows, poolData, fePlannedFilter, feCommittedFilter, bePlannedFilter, beCommittedFilter]);
+  const listLoading = v.view === "list" && paged.loading && listVisible.length === 0;
 
   return (
     <div>
