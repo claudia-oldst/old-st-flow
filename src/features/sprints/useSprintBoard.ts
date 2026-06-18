@@ -1,7 +1,10 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
-import type { Sprint, SprintCapacity, SprintTicket, SprintMember } from "./types";
+import { useProjectTickets, type TicketRow } from "@/features/tickets/useProjectTickets";
+import type { Sprint, SprintCapacity, SprintTicket, SprintMember, SprintDiscipline } from "./types";
+import { memberDisciplines } from "./types";
 import type { TeamMember, ProjectRole } from "@/lib/types";
 
 /** All sprints for a project, ordered by sprint_number. */
