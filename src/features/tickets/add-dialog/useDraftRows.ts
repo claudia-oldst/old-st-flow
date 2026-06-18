@@ -84,7 +84,7 @@ export function useDraftRows({
         current_be_estimate: isProj ? null : be,
         original_project_estimate: isProj ? proj : null,
         current_project_estimate: isProj ? proj : null,
-        parent_ticket_id: d.type === "Bug" ? d.parentTicketId : null,
+        parent_ticket_id: d.type !== "Proj" ? d.parentTicketId : null,
         ticket_number: 0,
         formatted_id: "",
       };
@@ -135,7 +135,7 @@ export function useDraftRows({
       await Promise.all(
         created.map(async (row: any, idx: number) => {
           const d = validDrafts[idx];
-          if (!d || d.type !== "Bug" || !d.parentTicketId) return;
+          if (!d || d.type === "Proj" || !d.parentTicketId) return;
           try {
             await postBugLinkComment({
               parentTicketId: d.parentTicketId,

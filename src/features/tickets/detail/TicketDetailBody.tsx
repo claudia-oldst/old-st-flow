@@ -78,7 +78,7 @@ export function TicketDetailBody({
         </div>
       )}
 
-      {ticket.ticket_type === "Bug" && isPMBARole && (
+      {ticket.ticket_type !== "Proj" && isPMBARole && (
         <div>
           <div className="text-xs uppercase tracking-wider text-dimmer mb-2">Parent ticket</div>
           <ParentTicketSelect
@@ -98,7 +98,7 @@ export function TicketDetailBody({
         </div>
       )}
 
-      {ticket.ticket_type === "Bug" && !isPMBARole && ticket.parent && (
+      {ticket.ticket_type !== "Proj" && !isPMBARole && ticket.parent && (
         <div>
           <div className="text-xs uppercase tracking-wider text-dimmer mb-2">Parent ticket</div>
           <div className="text-sm">

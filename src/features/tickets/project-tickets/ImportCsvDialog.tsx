@@ -56,7 +56,7 @@ export function ImportCsvDialog({
             Columns:{" "}
             <span className="font-mono text-foreground">Ticket #, Title, Type, FE Estimate, BE Estimate, Project Estimate, Epic, Version, FE Status, BE Status, Project Status, Parent Ticket #, FE Assignees, BE Assignees, Project Assignees, Acceptance Criteria</span>
             <div className="mt-1 text-dimmer">
-              Only <span className="font-mono">Title</span> is required. Type = Standard / Bug / CR / Proj. Assignees are comma-separated emails of project members. <span className="font-mono">Project Status</span> applies to Proj rows only (use a status name from the project, e.g. "In Progress"). <span className="font-mono">Parent Ticket #</span> applies to Bug rows only. Download the template for working examples.
+              Only <span className="font-mono">Title</span> is required. Type = Standard / Bug / CR / Proj. Assignees are comma-separated emails of project members. <span className="font-mono">Project Status</span> applies to Proj rows only (use a status name from the project, e.g. "In Progress"). <span className="font-mono">Parent Ticket #</span> links any Standard / CR / Bug row to a Standard or CR parent (not allowed on Proj rows). Download the template for working examples.
             </div>
           </div>
         </DialogHeader>
