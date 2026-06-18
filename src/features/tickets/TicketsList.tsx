@@ -66,9 +66,33 @@ export function TicketsList({
 
   if (tickets.length === 0) return null;
 
+  const allCollapsed = groups.length > 0 && groups.every((g) => collapsed[g.key]);
+  const toggleAll = () =>
+    setCollapsed(allCollapsed ? {} : Object.fromEntries(groups.map((g) => [g.key, true])));
+
   return (
     <TooltipProvider>
       <div className="flex flex-col gap-3">
+        {groupBy !== "none" && groups.length > 1 && (
+          <div className="flex justify-end -mb-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={toggleAll}
+                  className="h-7 w-7 rounded-md flex items-center justify-center text-dimmer hover:bg-white/[0.04] transition"
+                  aria-label={allCollapsed ? "Expand all groups" : "Collapse all groups"}
+                >
+                  {allCollapsed ? (
+                    <ChevronsUpDown className="h-3.5 w-3.5" />
+                  ) : (
+                    <ChevronsDownUp className="h-3.5 w-3.5" />
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>{allCollapsed ? "Expand all groups" : "Collapse all groups"}</TooltipContent>
+            </Tooltip>
+          </div>
+        )}
         {groups.map((rawGroup) => {
           const g = { ...rawGroup, tickets: sortTickets(rawGroup.tickets) };
           const isCollapsed = collapsed[g.key];
