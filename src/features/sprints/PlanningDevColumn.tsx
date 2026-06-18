@@ -127,7 +127,11 @@ export function PlanningDevColumn({
 
         {assignedTickets.map((t) => {
           const selected = selectedIds.has(t.id);
-          const h = remaining(t, discipline);
+          const rem = remaining(t, discipline);
+          const est =
+            discipline === "FE"
+              ? t.current_fe_estimate || 0
+              : t.current_be_estimate || 0;
           const carried = carriedOverIds.has(t.id);
           return (
             <div
@@ -160,8 +164,8 @@ export function PlanningDevColumn({
                   {t.epic_name}
                 </span>
               )}
-              <span className="font-mono text-[10px] text-dim shrink-0 w-8 text-right">
-                {formatHours(h)}
+              <span className="font-mono text-[10px] text-dim shrink-0 w-16 text-right">
+                {formatHours(rem)} / {formatHours(est)}
               </span>
             </div>
           );
