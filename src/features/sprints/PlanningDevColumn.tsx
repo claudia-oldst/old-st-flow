@@ -9,7 +9,7 @@ import { CapacityIndicator } from "./CapacityIndicator";
 import { CarryoverReviewPanel } from "./CarryoverReviewPanel";
 import { useCarryoverTickets } from "./useSprintBoard";
 import type { Sprint } from "./types";
-import { formatHours } from "./hours";
+import { formatHours } from "@/lib/utils";
 
 interface Props {
   projectId: string;

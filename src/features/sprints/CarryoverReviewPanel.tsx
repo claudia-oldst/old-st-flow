@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import type { AssigneeSlot } from "@/lib/types";
 import { addTicketToLane } from "./dnd";
-import { formatHours } from "./hours";
+import { formatHours } from "@/lib/utils";
 
 interface Props {
   devName: string;

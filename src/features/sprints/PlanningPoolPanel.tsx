@@ -20,7 +20,7 @@ import {
 } from "@/features/tickets/TicketsFilter";
 import { useProjectTickets, type TicketRow } from "@/features/tickets/useProjectTickets";
 import { usePlannedSprintAssignments } from "./useSprintBoard";
-import { formatHours } from "./hours";
+import { formatHours } from "@/lib/utils";
 import type { Sprint } from "./types";
 
 const UNPLANNED = "__unplanned__";
