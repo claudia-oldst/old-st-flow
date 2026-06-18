@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { formatHours } from "./hours";
 
 /**
  * Shared capacity bar used in the Planning tab — header and per-dev columns.
@@ -23,7 +24,7 @@ export function CapacityIndicator({
           over && "text-primary font-semibold",
         )}
       >
-        {used}h / {cap}h
+        {formatHours(used)} / {formatHours(cap)}
       </span>
       <div className="flex-1 h-1 rounded-full bg-white/5 overflow-hidden min-w-12">
         <div

@@ -9,6 +9,7 @@ import { CapacityIndicator } from "./CapacityIndicator";
 import { CarryoverReviewPanel } from "./CarryoverReviewPanel";
 import { useCarryoverTickets } from "./useSprintBoard";
 import type { Sprint } from "./types";
+import { formatHours } from "./hours";
 
 interface Props {
   projectId: string;
@@ -98,7 +99,7 @@ export function PlanningDevColumn({
           </div>
           {over && (
             <span className="font-mono text-[11px] text-primary font-semibold shrink-0">
-              +{overage}h
+              +{formatHours(overage)}
             </span>
           )}
         </div>
@@ -160,7 +161,7 @@ export function PlanningDevColumn({
                 </span>
               )}
               <span className="font-mono text-[10px] text-dim shrink-0 w-8 text-right">
-                {h}h
+                {formatHours(h)}
               </span>
             </div>
           );
