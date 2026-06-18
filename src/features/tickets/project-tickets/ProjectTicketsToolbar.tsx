@@ -131,24 +131,7 @@ export function ProjectTicketsToolbar({
             </div>
           )}
           {showGroupBy && setGroupBy && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-dim">Group by</span>
-              <Select value={groupBy} onValueChange={(v) => setGroupBy(v as GroupBy)}>
-                <SelectTrigger className="h-8 w-[140px] text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  <SelectItem value="status">Status</SelectItem>
-                  <SelectItem value="assignee">Assignee</SelectItem>
-                  <SelectItem value="type">Type</SelectItem>
-                  <SelectItem value="epic">Epic</SelectItem>
-                  <SelectItem value="version">Version</SelectItem>
-                  <SelectItem value="fe_status">FE status</SelectItem>
-                  <SelectItem value="be_status">BE status</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <GroupBySelect value={groupBy} onChange={setGroupBy} />
           )}
         </>
       )}
