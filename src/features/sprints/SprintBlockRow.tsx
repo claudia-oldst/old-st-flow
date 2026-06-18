@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { ChevronRight, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
@@ -174,9 +174,8 @@ export function SprintBlockRow({ sprint, devMembers, projectId, isPMBA }: Props)
   const end = parseISO(sprint.end_date);
   const isActive = today >= start && today <= end;
 
-  // Silence "useEffect imported but unused" — not used here directly but
-  // children rely on lib/utils.cn import staying in tree.
-  useEffect(() => undefined, []);
+
+
 
   return (
     <div className="hairline rounded-md bg-surface-1/40">
