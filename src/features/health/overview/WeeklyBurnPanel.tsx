@@ -4,7 +4,7 @@ import { startOfISOWeek, addWeeks, format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
 import { formatHours, cn } from "@/lib/utils";
-import type { TicketRow } from "@/types/domain";
+import type { TicketRow } from "@/features/tickets/useProjectTickets";
 
 interface Props {
   projectId: string;

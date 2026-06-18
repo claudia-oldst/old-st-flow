@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { formatHours, cn } from "@/lib/utils";
-import type { TicketRow } from "@/types/domain";
+import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import type { Status } from "@/lib/types";
 
 interface EpicLite {
