@@ -1,8 +1,6 @@
 import { useMemo, useState } from "react";
-import { Search, X, Layers } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import {
   TicketsFilter,
   EMPTY_FILTERS,
@@ -10,6 +8,7 @@ import {
   type TicketFilters,
 } from "@/features/tickets/TicketsFilter";
 import { TicketsList, type GroupBy } from "@/features/tickets/TicketsList";
+import { GroupBySelect } from "@/features/tickets/GroupBySelect";
 import { useProjectTickets, type TicketRow } from "@/features/tickets/useProjectTickets";
 import { usePlannedSprintAssignments } from "./useSprintBoard";
 import type { Sprint } from "./types";
