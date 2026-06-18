@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { formatHours } from "./hours";
+import { formatHours } from "@/lib/utils";
 
 /**
  * Shared capacity bar used in the Planning tab — header and per-dev columns.
