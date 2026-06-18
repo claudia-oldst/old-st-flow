@@ -115,6 +115,7 @@ export function useTicketsCsvImport(
         const versionCol = findCol("Version", "Phase");
         const feStatusCol = findCol("FE Status", "Frontend Status");
         const beStatusCol = findCol("BE Status", "Backend Status");
+        const projStatusCol = findCol("Project Status", "Proj Status", "Status");
         const acCol = findCol("Acceptance Criteria", "acceptance_criteria", "AC", "Acceptance");
         const feAssigneeCol = findCol("FE Assignees", "FE Assignee", "Frontend Assignees");
         const beAssigneeCol = findCol("BE Assignees", "BE Assignee", "Backend Assignees");
