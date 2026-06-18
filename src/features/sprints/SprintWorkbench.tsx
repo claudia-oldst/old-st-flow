@@ -33,6 +33,7 @@ import {
 import { CapacityIndicator } from "./CapacityIndicator";
 import { PlanningPoolPanel } from "./PlanningPoolPanel";
 import { PlanningDevColumn } from "./PlanningDevColumn";
+import { formatSupabaseError } from "@/lib/formatSupabaseError";
 
 interface Props {
   projectId: string;
