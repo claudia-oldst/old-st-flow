@@ -66,24 +66,39 @@ export function SprintPoolingTable({ projectId, sprints, isPMBA }: Props) {
   }, [projectId]);
 
   const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
-  const [fePoolFilter, setFePoolFilter] = useState<string>("__any__");
-  const [bePoolFilter, setBePoolFilter] = useState<string>("__any__");
+  const [fePlannedFilter, setFePlannedFilter] = useState<string[]>([]);
+  const [feCommittedFilter, setFeCommittedFilter] = useState<number[]>([]);
+  const [bePlannedFilter, setBePlannedFilter] = useState<string[]>([]);
+  const [beCommittedFilter, setBeCommittedFilter] = useState<number[]>([]);
 
   const visibleTickets = useMemo(() => {
     let rows = v.visibleTickets;
-    const matchPool = (val: string, sid: string | null | undefined) => {
-      if (val === "__any__") return true;
-      if (val === "__none__") return !sid;
-      return sid === val;
-    };
-    if (fePoolFilter !== "__any__") {
-      rows = rows.filter((t) => matchPool(fePoolFilter, poolData.byTicket.get(t.id)?.fe));
+    if (fePlannedFilter.length > 0) {
+      rows = rows.filter((t) => {
+        const fe = poolData.byTicket.get(t.id)?.fe ?? null;
+        return fe ? fePlannedFilter.includes(fe) : false;
+      });
     }
-    if (bePoolFilter !== "__any__") {
-      rows = rows.filter((t) => matchPool(bePoolFilter, poolData.byTicket.get(t.id)?.be));
+    if (feCommittedFilter.length > 0) {
+      rows = rows.filter((t) => {
+        const active = poolData.activeByTicket.get(t.id)?.fe ?? [];
+        return active.some((n) => feCommittedFilter.includes(n));
+      });
+    }
+    if (bePlannedFilter.length > 0) {
+      rows = rows.filter((t) => {
+        const be = poolData.byTicket.get(t.id)?.be ?? null;
+        return be ? bePlannedFilter.includes(be) : false;
+      });
+    }
+    if (beCommittedFilter.length > 0) {
+      rows = rows.filter((t) => {
+        const active = poolData.activeByTicket.get(t.id)?.be ?? [];
+        return active.some((n) => beCommittedFilter.includes(n));
+      });
     }
     return rows;
-  }, [v.visibleTickets, poolData, fePoolFilter, bePoolFilter]);
+  }, [v.visibleTickets, poolData, fePlannedFilter, feCommittedFilter, bePlannedFilter, beCommittedFilter]);
 
   // Prune selection to currently visible rows.
   useEffect(() => {
