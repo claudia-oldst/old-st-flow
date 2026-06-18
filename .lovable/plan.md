@@ -1,66 +1,73 @@
-## Pool filters — multi-select with Planned / Committed sections
-
-Replace the single-select FE/BE pool dropdowns in `SprintPoolingTable` with a new `SprintPoolFilter` that mirrors `MultiSelectFilter`'s visual pattern but exposes two grouped sections (Planned / Committed) with checkboxes.
+## Client portal improvements — epic table, CR tab, Timeline tab
 
 ### Files
 
 **New**
-- `src/features/sprints/SprintPoolFilter.tsx`
+- `src/features/client-portal/PortalEpicTable.tsx`
 
 **Modified**
-- `src/features/sprints/SprintPoolingTable.tsx` — swap filter UI, expand filter state to four arrays, update `visibleTickets` filtering, delete the now-unused `PoolFilterSelect`
+- `src/features/client-portal/PortalView.tsx`
+- `src/features/client-portal/PortalChangeRequests.tsx`
+- `src/features/client-portal/editor/PreviewChangeRequests.tsx`
+- `src/pages/ClientPortalPublic.tsx`
+- `src/features/client-portal/ClientPortalEditor.tsx`
+- `src/features/sprints/SprintGantt.tsx` (add optional `hideExport?: boolean` only)
+- `src/features/change-requests/EpicCRCard.tsx` (add optional `ratePerHour?: number` — confirmed)
 
-**Untouched**: `MultiSelectFilter.tsx`, `usePoolData.ts`, `poolData.ts`, `TicketsListRow.tsx`, everything in `src/features/tickets/`.
+**Untouched**
+- `GanttGrid.tsx`, `GanttBar.tsx`, `useGanttData.ts`, `useSprintBoard.ts`
+- `PortalEpicTrend.tsx` (left in repo but no longer rendered), `PortalTrendChart.tsx`
+- `EpicSummaryEditor.tsx`, `PortalToolbar.tsx`
+- Everything else in `src/features/sprints/`
 
-### `SprintPoolFilter.tsx`
+---
 
-Props:
-```ts
-interface SprintPoolFilterProps {
-  label: string;                  // "FE Sprint" | "BE Sprint"
-  sprints: Sprint[];
-  plannedSelected: string[];      // sprint ids
-  committedSelected: number[];    // sprint numbers
-  onPlannedChange: (ids: string[]) => void;
-  onCommittedChange: (nums: number[]) => void;
-}
-```
+### Change 1 — PortalView + new PortalEpicTable
 
-Visual structure matches `MultiSelectFilter`:
-- Trigger: `<Button variant="ghost">{label}:{summary} <ChevronDown/></Button>`
-- Popover: `w-64 p-2 glass-strong`
-- Two sections separated by `border-t border-white/5`, each with a header row containing the section title and All / · / None mini-actions, followed by a scrollable checkbox list of `Sprint {n}` rows
-- Planned checkboxes use the primary token style (matches `MultiSelectFilter`); Committed checkboxes use `bg-accent/20 border-accent text-accent` to mirror the active-sprint badge in `TicketsListRow`
+`PortalView.tsx`: remove the `<PortalEpicTrend …>` block (lines 106-121) and the entire "Estimate Change Detail" IIFE (lines 123-193). Replace with a single `<PortalEpicTable epics={epics} projectId={project.id} cutoff={project.cutoff} ratePerHour={project.rate_per_hour} showRate={showRate} discounts={discounts} />`.
 
-Summary label:
-- nothing selected → `Any`
-- only planned → `Planned: S{n}, S{n}`
-- only committed → `Active: S{n}, S{n}`
-- both → `{plannedCount + committedCount} filters`
+`PortalEpicTable.tsx`:
+1. **Call `usePortalEpicTrendData` exactly once at this component level.** Build `cutoffMs = new Date(cutoff).getTime()`. Memoize the aggregate series via `buildEpicTrendSeries({ tickets, changes, logs, projectStart, cutoffMs, ticketFilter: () => true, discounts })`. Per-row expanded panels receive `tickets/changes/logs/projectStart/ticketEpic` through the parent closure (not as a child hook call) and compute their own filtered series via `buildEpicTrendSeries({ …, ticketFilter: (tid) => ticketEpic.get(tid) === e.id, discounts: discounts.filter(d => d.epic_id === e.id) })`. No row-level Supabase calls.
+2. Top: aggregate `<PortalTrendChart data={aggregated} />` in a `glass rounded-2xl p-5` card with the existing "Estimate trend over time" header.
+3. Epic progress table — `glass rounded-2xl overflow-hidden`, header `Epic · Progress · Hours (cur/orig) · Change · ▸`. For each `e.total_tickets > 0`:
+   - left dot `w-1.5 h-1.5 rounded-full`: `bg-health-warn` (+delta), `bg-health-good` (−delta), empty spacer (no delta)
+   - epic name `text-sm font-medium truncate` (dim if no delta)
+   - segmented progress bar `h-1.5 rounded-full` (done green + in_progress blue) + `text-xs text-dimmer` counts subtitle
+   - hours `text-xs font-mono text-dim`: `{formatHours(current)} / {formatHours(original)}`
+   - change badge: `badge-warn` +, `badge-good` −, `—` dimmer otherwise
+   - chevron only when delta ≠ 0; rows with delta are clickable to toggle expansion; no-delta rows are inert
+   - expanded panel: `border-l-2` (amber+/green−), `pl-4 pr-3 py-3 border-b border-white/5`:
+     - if `pmba_text` non-empty: `rounded-xl bg-white/[0.03] hairline p-3 text-sm leading-relaxed whitespace-pre-wrap`
+     - mini `PortalTrendChart` for this epic (uses shared data from parent closure)
+     - if `showRate && ratePerHour > 0`: cost line using `e.actual_hours` minus the discount sum for that epic (same math as the removed block)
+4. Empty state: centered "No epics yet." when no epic has tickets.
 
-Reused primitives only: `Popover`/`PopoverTrigger`/`PopoverContent`, `Button`, `Check`/`ChevronDown` from lucide, `cn`. No edits to `MultiSelectFilter`.
+---
 
-### `SprintPoolingTable.tsx`
+### Change 2 — PortalChangeRequests
 
-Replace state:
-```ts
-const [fePlannedFilter, setFePlannedFilter] = useState<string[]>([]);
-const [feCommittedFilter, setFeCommittedFilter] = useState<number[]>([]);
-const [bePlannedFilter, setBePlannedFilter] = useState<string[]>([]);
-const [beCommittedFilter, setBeCommittedFilter] = useState<number[]>([]);
-```
-Empty array = no filter.
+- Replace the `MultiSelectFilter` (line 150) with three inline pills: **Pending (n)** / **Approved (n)** / **All (n)**. Counts derived from `crTickets`. Active pill `bg-foreground text-background`; inactive `text-dim hover:text-foreground hairline px-3 py-1.5 rounded-lg text-xs`. Clicking sets `statusFilter` to `["pending"]`, `["approved"]`, or `["pending","approved","rejected"]`. Default changes from `["pending","approved"]` to `["pending"]`.
+- Add `ratePerHour: number` prop. Plumb through:
+  - `ClientPortalPublic.tsx` passes `data.project.rate_per_hour`.
+  - `PreviewChangeRequests.tsx` extends the existing `select("acronym")` to **`select("acronym, rate_per_hour")`** (one query, not two) and passes the value through.
+- Pass `ratePerHour` to each `<EpicCRCard>`. `EpicCRCard` gains the **optional** `ratePerHour?: number` prop and, when defined, renders a `Cost est.` column showing `formatGBP((current_fe_estimate + current_be_estimate) * ratePerHour)`. Internal CR pages don't pass it, so the column is absent there — additive, zero touch to existing call sites.
+- Dim approved-only groups: when `g.filtered.length > 0 && g.filtered.every(t => t.cr_approval === "approved")`, wrap `<EpicCRCard>` in a div with `opacity-60`.
 
-Update `visibleTickets` to AND the four filters:
-- planned FE/BE: match against `poolData.byTicket.get(t.id)?.fe|be`
-- committed FE/BE: match any of `poolData.activeByTicket.get(t.id)?.fe|be` against the selected sprint numbers
+---
 
-Replace `extras` in `ProjectTicketsToolbar` with two `<SprintPoolFilter>` instances (FE + BE) wired to the four state pairs and the `sprints` list already available in the component.
+### Change 3 — Timeline (Gantt) tab
 
-Delete `PoolFilterSelect` from this file (no other consumers).
+`SprintGantt.tsx`: add `hideExport?: boolean` to `Props`. When true, skip the Export PNG `<Button>`. Nothing else changes.
 
-### Notes
+`ClientPortalPublic.tsx`:
+- Import `useSprints` from `@/features/sprints/useSprintBoard`, `SprintGantt` from `@/features/sprints/SprintGantt`.
+- `const { data: sprints = [] } = useSprints(data?.project?.id);`
+- `TabsList` becomes `grid-cols-3`; add `<TabsTrigger value="timeline">Timeline</TabsTrigger>`.
+- `<TabsContent value="timeline">`: render `<SprintGantt projectId={data.project.id} sprints={sprints} hideExport />` when `sprints.length > 0`, else centered "No sprint timeline available yet."
+- Pass `ratePerHour={data.project.rate_per_hour}` to `<PortalChangeRequests>`.
 
-- Planned + Committed filters within a discipline are ANDed so users can find e.g. "planned for S2 but actively worked in S1".
-- `poolData.activeByTicket` already exists from the previous change — no data layer work needed.
-- No changes to bulk-assignment menus or anything outside the filter UI + filtering logic.
+`ClientPortalEditor.tsx`:
+- `TabsList` becomes `grid-cols-3`; add `<TabsTrigger value="timeline">Timeline</TabsTrigger>`.
+- Add `<TabsContent value="timeline">` rendering a small inline `SprintGanttPreview` component (defined in the same file) that calls `useSprints(id)` and returns `<SprintGantt projectId={id} sprints={sprints} hideExport />`.
+
+RLS on `sprints` already allows anon read for published portals — no migration needed.
