@@ -264,6 +264,7 @@ export function PlanningPoolPanel({
             tickets={pool}
             filters={filters}
             onChange={setFilters}
+            sections={["epic"]}
           />
           <div className="flex items-center gap-1.5">
             <span className="text-[10px] uppercase tracking-wide text-dimmer">Group</span>
