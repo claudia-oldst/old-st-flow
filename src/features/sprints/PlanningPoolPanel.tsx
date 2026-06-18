@@ -1,8 +1,10 @@
-import { useMemo, useState } from "react";
-import { Search, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Search, X, Map as MapIcon, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   TicketsFilter,
   EMPTY_FILTERS,
@@ -13,6 +15,8 @@ import { useProjectTickets, type TicketRow } from "@/features/tickets/useProject
 import { usePlannedSprintAssignments } from "./useSprintBoard";
 import { formatHours } from "./hours";
 import type { Sprint } from "./types";
+
+const UNPLANNED = "__unplanned__";
 
 interface Props {
   projectId: string;
@@ -36,6 +40,7 @@ export function PlanningPoolPanel({
   projectId,
   sprintId,
   discipline,
+  sprints,
   allDevTicketIds,
   selectedIds,
   onToggleSelect,
@@ -46,6 +51,12 @@ export function PlanningPoolPanel({
   const { data: assignments = [] } = usePlannedSprintAssignments(projectId);
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<TicketFilters>(EMPTY_FILTERS);
+  const [roadmapIds, setRoadmapIds] = useState<Set<string>>(() => new Set([sprintId]));
+
+  // Reset roadmap selection to the current sprint whenever the planning sprint changes.
+  useEffect(() => {
+    setRoadmapIds(new Set([sprintId]));
+  }, [sprintId]);
 
   const planByTicket = useMemo(() => {
     const m = new Map<string, { fe: string | null; be: string | null }>();
@@ -65,10 +76,35 @@ export function PlanningPoolPanel({
           : (t.current_be_estimate || 0) > 0;
       if (!hasHours) return false;
       const plan = planByTicket.get(t.id);
-      const planned = discipline === "FE" ? plan?.fe : plan?.be;
-      return planned === sprintId;
+      const planned = discipline === "FE" ? plan?.fe ?? null : plan?.be ?? null;
+      const key = planned ?? UNPLANNED;
+      return roadmapIds.has(key);
     });
-  }, [allTickets, allDevTicketIds, discipline, sprintId, planByTicket]);
+  }, [allTickets, allDevTicketIds, discipline, roadmapIds, planByTicket]);
+
+  const sortedSprints = useMemo(
+    () => [...sprints].sort((a, b) => a.sprint_number - b.sprint_number),
+    [sprints],
+  );
+  const roadmapLabel = useMemo(() => {
+    if (roadmapIds.size === 0) return "No roadmap";
+    if (roadmapIds.size === 1) {
+      const only = [...roadmapIds][0];
+      if (only === UNPLANNED) return "Unplanned";
+      const s = sortedSprints.find((x) => x.id === only);
+      return s ? `Sprint ${s.sprint_number}` : "Roadmap";
+    }
+    return `${roadmapIds.size} roadmaps`;
+  }, [roadmapIds, sortedSprints]);
+
+  const toggleRoadmap = (id: string) => {
+    setRoadmapIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const filtered = useMemo(() => {
     const base = applyFilters(pool, filters);
@@ -112,6 +148,54 @@ export function PlanningPoolPanel({
           )}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 px-2 text-xs gap-1.5"
+              >
+                <MapIcon className="h-3 w-3" />
+                <span className="truncate max-w-[10rem]">{roadmapLabel}</span>
+                <ChevronDown className="h-3 w-3 opacity-60" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-56 p-1">
+              <div className="px-2 py-1.5 text-[10px] uppercase tracking-wide text-dimmer">
+                Sprint roadmaps
+              </div>
+              <div className="max-h-72 overflow-y-auto">
+                {sortedSprints.map((s) => {
+                  const checked = roadmapIds.has(s.id);
+                  const isCurrent = s.id === sprintId;
+                  return (
+                    <label
+                      key={s.id}
+                      className="flex items-center gap-2 px-2 py-1.5 rounded text-xs hover:bg-white/[0.04] cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={() => toggleRoadmap(s.id)}
+                      />
+                      <span className="flex-1">Sprint {s.sprint_number}</span>
+                      {isCurrent && (
+                        <span className="text-[9px] uppercase tracking-wide text-dimmer">
+                          current
+                        </span>
+                      )}
+                    </label>
+                  );
+                })}
+                <label className="flex items-center gap-2 px-2 py-1.5 rounded text-xs hover:bg-white/[0.04] cursor-pointer">
+                  <Checkbox
+                    checked={roadmapIds.has(UNPLANNED)}
+                    onCheckedChange={() => toggleRoadmap(UNPLANNED)}
+                  />
+                  <span className="flex-1">Unplanned</span>
+                </label>
+              </div>
+            </PopoverContent>
+          </Popover>
           <TicketsFilter
             projectId={projectId}
             tickets={pool}
