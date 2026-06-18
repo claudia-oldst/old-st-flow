@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { formatHours, cn } from "@/lib/utils";
+import { SegmentedBar } from "@/features/_shared/SegmentedBar";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import type { Status } from "@/lib/types";
 
@@ -59,21 +60,24 @@ export function EpicRiskTable({ tickets, statuses, epics }: Props) {
       let done = 0,
         devDone = 0,
         active = 0,
-        backlog = 0;
+        backlog = 0,
+        unknown = 0;
       let currentEst = 0;
       let actualHours = 0;
       for (const t of epicTickets) {
-        const cat = catById.get(t.status_id ?? "");
+        const cat = t.status_id ? catById.get(t.status_id) : undefined;
         if (cat === "done") done++;
         else if (cat === "dev done") devDone++;
         else if (cat === "active") active++;
-        else backlog++;
+        else if (cat === "backlog") backlog++;
+        else unknown++;
         currentEst +=
           t.current_fe_estimate + t.current_be_estimate + t.current_project_estimate;
         actualHours +=
           t.actual_frontend_hours + t.actual_backend_hours + t.actual_project_hours;
       }
-      const total = epicTickets.length;
+      // Exclude unknown-status tickets from totals used for risk math.
+      const total = done + devDone + active + backlog;
       if (total === 0 || currentEst === 0) continue;
       const burnPct = Math.min(150, (actualHours / currentEst) * 100);
       const progressPct = ((done + devDone) / total) * 100;
@@ -145,12 +149,14 @@ export function EpicRiskTable({ tickets, statuses, epics }: Props) {
             </div>
 
             <div>
-              <div className="flex h-2 w-full rounded-full overflow-hidden bg-white/5">
-                <Segment pct={(row.done / row.total) * 100} className="bg-health-good" />
-                <Segment pct={(row.devDone / row.total) * 100} className="bg-health-good/50" />
-                <Segment pct={(row.active / row.total) * 100} className="bg-health-warn" />
-                <Segment pct={(row.backlog / row.total) * 100} className="bg-white/10" />
-              </div>
+              <SegmentedBar
+                segments={[
+                  { pct: (row.done / row.total) * 100, className: "bg-health-good" },
+                  { pct: (row.devDone / row.total) * 100, className: "bg-health-good/50" },
+                  { pct: (row.active / row.total) * 100, className: "bg-health-warn" },
+                  { pct: (row.backlog / row.total) * 100, className: "bg-white/10" },
+                ]}
+              />
               <div className="mt-1 text-[10px] text-dimmer font-mono flex gap-2 flex-wrap">
                 <span className="text-dim font-medium">{Math.round(row.progressPct)}%</span>
                 <span>{row.done} done</span>
