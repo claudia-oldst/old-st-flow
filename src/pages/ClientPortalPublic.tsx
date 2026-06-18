@@ -6,8 +6,7 @@ import { usePublicPortal } from "@/features/client-portal/usePortalData";
 import { PortalView } from "@/features/client-portal/PortalView";
 import { PortalChangeRequests } from "@/features/client-portal/PortalChangeRequests";
 import { useClientPortalCRsByHash } from "@/features/client-portal/useClientPortalCRs";
-import { SprintGantt } from "@/features/sprints/SprintGantt";
-import { useSprints } from "@/features/sprints/useSprintBoard";
+import { SprintGanttOrEmpty } from "@/features/sprints/SprintGanttOrEmpty";
 import oldStLogo from "@/assets/oldst-logo.png";
 import { useEpicDiscounts } from "@/features/discounts/useEpicDiscounts";
 
@@ -16,7 +15,6 @@ export default function ClientPortalPublic() {
   const { data, loading, error } = usePublicPortal(hash);
   const { data: crData, refresh: refreshCR } = useClientPortalCRsByHash(hash);
   const { discounts } = useEpicDiscounts(data?.project?.id);
-  const { data: sprints = [] } = useSprints(data?.project?.id);
 
   async function handleApprove(ticketId: string) {
     if (!hash) return;

@@ -194,10 +194,6 @@ export function EpicRiskTable({ tickets, statuses, epics }: Props) {
   );
 }
 
-function Segment({ pct, className }: { pct: number; className: string }) {
-  if (pct <= 0) return null;
-  return <div className={cn("h-full", className)} style={{ width: `${pct}%` }} />;
-}
 
 function LegendDot({ className, label }: { className: string; label: string }) {
   return (
