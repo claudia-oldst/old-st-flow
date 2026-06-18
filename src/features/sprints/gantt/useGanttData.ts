@@ -43,7 +43,7 @@ export function useGanttData(
   const { epics } = useProjectEpics(projectId);
 
   return useMemo<GanttEpicRow[]>(() => {
-    if (!tickets.length || !sprints.length) return [];
+    if (!sprints.length) return [];
 
     const sprintById = new Map(sprints.map((s) => [s.id, s]));
     const memberDiscMap = new Map<string, SprintDiscipline[]>();
@@ -53,6 +53,13 @@ export function useGanttData(
     epics.forEach((e) => {
       if (e.epic_name) epicNameById.set(e.id, e.epic_name);
     });
+
+    // Fallback range for epics with no segments — use the earliest sprint.
+    const sortedSprints = [...sprints].sort(
+      (a, b) => parseISO(a.start_date).getTime() - parseISO(b.start_date).getTime(),
+    );
+    const fallbackStart = parseISO(sortedSprints[0].start_date);
+    const fallbackEnd = parseISO(sortedSprints[0].end_date);
 
     // Group commitments by ticket for fast lookup.
     const commitmentsByTicket = new Map<string, typeof sprintTickets>();
@@ -87,6 +94,17 @@ export function useGanttData(
         anyCommitted: boolean;
       }
     >();
+
+    // Seed buckets for every known epic so they render even without tickets/plans.
+    epics.forEach((e) => {
+      if (!e.epic_name) return;
+      epicSegments.set(`e:${e.id}`, {
+        epicId: e.id,
+        epicName: e.epic_name,
+        bySprint: new Map(),
+        anyCommitted: false,
+      });
+    });
 
     for (const t of tickets) {
       const hasHours =
@@ -172,24 +190,22 @@ export function useGanttData(
           planned: counts.planned,
         });
       });
-      if (segments.length === 0) return;
       segments.sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
       rows.push({
         epicId: bucket.epicId,
         epicName: bucket.epicName,
         segments,
         isCommitted: bucket.anyCommitted,
-        startDate: segments[0].startDate,
-        endDate: segments[segments.length - 1].endDate,
+        startDate: segments[0]?.startDate ?? fallbackStart,
+        endDate: segments[segments.length - 1]?.endDate ?? fallbackEnd,
       });
     });
 
-    rows.sort((a, b) => {
-      const d = a.startDate.getTime() - b.startDate.getTime();
-      if (d !== 0) return d;
-      return a.epicName.localeCompare(b.epicName);
-    });
+    rows.sort((a, b) =>
+      a.epicName.localeCompare(b.epicName, undefined, { sensitivity: "base" }),
+    );
 
     return rows;
   }, [tickets, sprintTickets, members, planned, epics, sprints, discipline]);
 }
+
