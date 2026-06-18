@@ -10,7 +10,7 @@ import { usePlannedSprintAssignments } from "./useSprintBoard";
 import type { Sprint } from "./types";
 import { PoolFilterBar } from "./planning-pool/PoolFilterBar";
 import { PoolRow } from "./planning-pool/PoolRow";
-import { UNPLANNED, usePoolGroups, type PoolGroupBy } from "./planning-pool/usePoolGroups";
+import { UNPLANNED, ALL_ROADMAPS, usePoolGroups, type PoolGroupBy } from "./planning-pool/usePoolGroups";
 
 interface Props {
   projectId: string;
@@ -61,7 +61,10 @@ export function PlanningPoolPanel({
     return m;
   }, [assignments]);
 
+  
+
   const pool = useMemo(() => {
+    const allMode = roadmapIds.has(ALL_ROADMAPS);
     return allTickets.filter((t) => {
       if (t.ticket_type === "Proj") return false;
       if (allDevTicketIds.has(t.id)) return false;
@@ -70,6 +73,7 @@ export function PlanningPoolPanel({
           ? (t.current_fe_estimate || 0) > 0
           : (t.current_be_estimate || 0) > 0;
       if (!hasHours) return false;
+      if (allMode) return true;
       const plan = planByTicket.get(t.id);
       const planned = discipline === "FE" ? plan?.fe ?? null : plan?.be ?? null;
       const key = planned ?? UNPLANNED;
@@ -81,7 +85,12 @@ export function PlanningPoolPanel({
     () => [...sprints].sort((a, b) => a.sprint_number - b.sprint_number),
     [sprints],
   );
+  const allRoadmapKeys = useMemo(
+    () => new Set([...sortedSprints.map((s) => s.id), UNPLANNED]),
+    [sortedSprints],
+  );
   const roadmapLabel = useMemo(() => {
+    if (roadmapIds.has(ALL_ROADMAPS)) return "All roadmaps";
     if (roadmapIds.size === 0) return "No roadmap";
     if (roadmapIds.size === 1) {
       const only = [...roadmapIds][0];
@@ -95,6 +104,16 @@ export function PlanningPoolPanel({
   const toggleRoadmap = (id: string) => {
     setRoadmapIds((prev) => {
       const next = new Set(prev);
+      if (id === ALL_ROADMAPS) {
+        if (next.has(ALL_ROADMAPS)) {
+          next.delete(ALL_ROADMAPS);
+        } else {
+          next.clear();
+          next.add(ALL_ROADMAPS);
+        }
+        return next;
+      }
+      next.delete(ALL_ROADMAPS);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;

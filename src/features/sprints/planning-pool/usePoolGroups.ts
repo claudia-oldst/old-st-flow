@@ -3,6 +3,7 @@ import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import type { Sprint } from "../types";
 
 export const UNPLANNED = "__unplanned__";
+export const ALL_ROADMAPS = "__all__";
 
 export type PoolGroupBy = "none" | "epic" | "type" | "assignee" | "roadmap";
 

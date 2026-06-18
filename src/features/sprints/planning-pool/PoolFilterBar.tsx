@@ -19,6 +19,7 @@ import type { Sprint } from "../types";
 import {
   GROUP_BY_OPTIONS,
   UNPLANNED,
+  ALL_ROADMAPS,
   type PoolGroupBy,
 } from "./usePoolGroups";
 
@@ -89,8 +90,16 @@ export function PoolFilterBar({
               Sprint roadmaps
             </div>
             <div className="max-h-72 overflow-y-auto">
+              <label className="flex items-center gap-2 px-2 py-1.5 rounded text-xs hover:bg-white/[0.04] cursor-pointer font-medium">
+                <Checkbox
+                  checked={roadmapIds.has(ALL_ROADMAPS)}
+                  onCheckedChange={() => toggleRoadmap(ALL_ROADMAPS)}
+                />
+                <span className="flex-1">All</span>
+              </label>
+              <div className="h-px bg-white/5 my-1" />
               {sortedSprints.map((s) => {
-                const checked = roadmapIds.has(s.id);
+                const checked = roadmapIds.has(s.id) || roadmapIds.has(ALL_ROADMAPS);
                 const isCurrent = s.id === sprintId;
                 return (
                   <label
@@ -112,7 +121,7 @@ export function PoolFilterBar({
               })}
               <label className="flex items-center gap-2 px-2 py-1.5 rounded text-xs hover:bg-white/[0.04] cursor-pointer">
                 <Checkbox
-                  checked={roadmapIds.has(UNPLANNED)}
+                  checked={roadmapIds.has(UNPLANNED) || roadmapIds.has(ALL_ROADMAPS)}
                   onCheckedChange={() => toggleRoadmap(UNPLANNED)}
                 />
                 <span className="flex-1">Unplanned</span>
