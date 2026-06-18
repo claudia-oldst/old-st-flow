@@ -59,17 +59,7 @@ export default function ClientPortalPublic() {
               <TabsTrigger value="change-requests">Change Requests</TabsTrigger>
             </TabsList>
             <TabsContent value="timeline">
-              {sprints.length > 0 ? (
-                <SprintGantt
-                  projectId={data.project.id}
-                  sprints={sprints}
-                  hideExport
-                />
-              ) : (
-                <div className="glass rounded-2xl p-12 text-center text-sm text-dim">
-                  No sprint timeline available yet.
-                </div>
-              )}
+              <SprintGanttOrEmpty projectId={data.project.id} />
             </TabsContent>
             <TabsContent value="summary">
               <PortalView payload={data} showRate discounts={discounts} />
