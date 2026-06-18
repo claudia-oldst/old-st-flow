@@ -23,6 +23,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useSprints } from "@/features/sprints/useSprintBoard";
 import { usePoolData } from "@/features/sprints/usePoolData";
+import { SprintPoolFilter } from "@/features/sprints/SprintPoolFilter";
 
 export function ProjectTickets({ projectId }: { projectId: string }) {
   const role = useProjectRole(projectId);
