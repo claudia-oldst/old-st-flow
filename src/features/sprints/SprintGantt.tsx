@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { toPng } from "html-to-image";
 import { Download } from "lucide-react";
@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import type { Sprint, SprintDiscipline } from "./types";
-import { useGanttData } from "./gantt/useGanttData";
+import { useGanttData, type GanttEpicRow, type GanttSegment } from "./gantt/useGanttData";
 import { GanttGrid } from "./gantt/GanttGrid";
 
 interface Props {
@@ -16,6 +16,8 @@ interface Props {
   hideExport?: boolean;
 }
 
+type DisciplineFilter = SprintDiscipline | "ALL";
+
 const LEGEND = [
   { label: "todo", cls: "bg-white/10" },
   { label: "in progress", cls: "bg-amber-400" },
@@ -23,9 +25,61 @@ const LEGEND = [
   { label: "done", cls: "bg-emerald-500" },
 ];
 
+function mergeGanttRows(feRows: GanttEpicRow[], beRows: GanttEpicRow[]): GanttEpicRow[] {
+  const merged = new Map<string, GanttEpicRow>();
+  const addRows = (rows: GanttEpicRow[]) => {
+    for (const r of rows) {
+      const key = r.epicId !== null ? `e:${r.epicId}` : `n:${r.epicName}`;
+      const existing = merged.get(key);
+      if (!existing) {
+        merged.set(key, {
+          ...r,
+          segments: r.segments.map((s) => ({ ...s })),
+        });
+        continue;
+      }
+      const segBySprint = new Map<string, GanttSegment>();
+      existing.segments.forEach((s) => segBySprint.set(s.sprintId, s));
+      for (const s of r.segments) {
+        const cur = segBySprint.get(s.sprintId);
+        if (!cur) {
+          const copy = { ...s };
+          existing.segments.push(copy);
+          segBySprint.set(s.sprintId, copy);
+        } else {
+          cur.todo += s.todo;
+          cur.in_progress += s.in_progress;
+          cur.for_integration += s.for_integration;
+          cur.done += s.done;
+          cur.total += s.total;
+          cur.committed += s.committed;
+          cur.planned += s.planned;
+        }
+      }
+      existing.isCommitted = existing.isCommitted || r.isCommitted;
+      existing.segments.sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
+      existing.startDate =
+        existing.segments[0]?.startDate ?? existing.startDate;
+      existing.endDate =
+        existing.segments[existing.segments.length - 1]?.endDate ?? existing.endDate;
+    }
+  };
+  addRows(feRows);
+  addRows(beRows);
+  return Array.from(merged.values()).sort((a, b) =>
+    a.epicName.localeCompare(b.epicName, undefined, { sensitivity: "base" }),
+  );
+}
+
 export function SprintGantt({ projectId, sprints, hideExport }: Props) {
-  const [discipline, setDiscipline] = useState<SprintDiscipline>("FE");
-  const rows = useGanttData(projectId, sprints, discipline);
+  const [discipline, setDiscipline] = useState<DisciplineFilter>("FE");
+  const feRows = useGanttData(projectId, sprints, "FE");
+  const beRows = useGanttData(projectId, sprints, "BE");
+  const rows = useMemo(() => {
+    if (discipline === "FE") return feRows;
+    if (discipline === "BE") return beRows;
+    return mergeGanttRows(feRows, beRows);
+  }, [discipline, feRows, beRows]);
   const ganttRef = useRef<HTMLDivElement>(null);
 
 
@@ -58,7 +112,7 @@ export function SprintGantt({ projectId, sprints, hideExport }: Props) {
       {/* Top bar */}
       <div className="flex items-center gap-4 flex-wrap">
         <div className="inline-flex rounded-md border border-white/10 overflow-hidden">
-          {(["FE", "BE"] as const).map((d) => (
+          {(["FE", "BE", "ALL"] as const).map((d) => (
             <button
               key={d}
               onClick={() => setDiscipline(d)}
@@ -109,3 +163,4 @@ export function SprintGantt({ projectId, sprints, hideExport }: Props) {
     </div>
   );
 }
+
