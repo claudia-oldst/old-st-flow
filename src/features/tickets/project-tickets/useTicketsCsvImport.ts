@@ -206,6 +206,7 @@ export function useTicketsCsvImport(
             version,
             fe_status,
             be_status,
+            project_status_name,
             acceptance_criteria,
             fe_assignee_emails,
             be_assignee_emails,
