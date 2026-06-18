@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { AssigneeSlot } from "@/lib/types";
 import { toast } from "sonner";
+import { formatSupabaseError } from "@/lib/formatSupabaseError";
 
 /**
  * Add a ticket to a developer's lane in a sprint.
