@@ -1,26 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
-import { ChevronRight, Plus, Trash2, X } from "lucide-react";
+import { ChevronRight, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
 import { MemberAvatar, MemberAvatarStack } from "@/components/MemberAvatar";
-import { cn, formatHours } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import type { AssigneeSlot } from "@/lib/types";
 import type { Sprint, SprintMember } from "./types";
 import { memberDisciplines } from "./types";
@@ -29,7 +15,9 @@ import {
   usePlannedSprintAssignments,
 } from "./useSprintBoard";
 import { useProjectTickets } from "@/features/tickets/useProjectTickets";
-import { CapacityIndicator } from "./CapacityIndicator";
+import { ThinCapBar } from "./sprint-block/ThinCapBar";
+import { DevDisciplineCell } from "./sprint-block/DevDisciplineCell";
+import { AddMemberInline } from "./sprint-block/AddMemberInline";
 
 interface Props {
   sprint: Sprint;
@@ -77,9 +65,9 @@ export function SprintBlockRow({ sprint, devMembers, projectId, isPMBA }: Props)
     return { pooledFE: fe, pooledBE: be };
   }, [assignments, tickets, sprint.id]);
 
-  // Per-dev pooled hours — NEW. For each (userId, discipline), sum estimates
-  // for tickets whose planned_sprint_{disc}_id matches this sprint AND who
-  // has an assignee row with slot=disc and user_id=userId.
+  // Per-dev pooled hours. For each (userId, discipline), sum estimates for
+  // tickets whose planned_sprint_{disc}_id matches this sprint AND who has
+  // an assignee row with slot=disc and user_id=userId.
   const pooledPerDev = useMemo(() => {
     const map = new Map<string, { FE: number; BE: number }>();
     const ticketMap = new Map(tickets.map((t) => [t.id, t]));
@@ -186,6 +174,9 @@ export function SprintBlockRow({ sprint, devMembers, projectId, isPMBA }: Props)
   const end = parseISO(sprint.end_date);
   const isActive = today >= start && today <= end;
 
+
+
+
   return (
     <div className="hairline rounded-md bg-surface-1/40">
       <div className="h-12 flex items-center gap-3 px-3">
@@ -217,12 +208,8 @@ export function SprintBlockRow({ sprint, devMembers, projectId, isPMBA }: Props)
           <MemberAvatarStack members={stackMembers} size="xs" max={4} />
         )}
         <div className="flex-1 flex items-center gap-4 min-w-0">
-          {capFE > 0 && (
-            <ThinCapBar label="FE" pooled={pooledFE} cap={capFE} />
-          )}
-          {capBE > 0 && (
-            <ThinCapBar label="BE" pooled={pooledBE} cap={capBE} />
-          )}
+          {capFE > 0 && <ThinCapBar label="FE" pooled={pooledFE} cap={capFE} />}
+          {capBE > 0 && <ThinCapBar label="BE" pooled={pooledBE} cap={capBE} />}
         </div>
         {isPMBA && (
           <Button
@@ -288,143 +275,5 @@ export function SprintBlockRow({ sprint, devMembers, projectId, isPMBA }: Props)
         </div>
       )}
     </div>
-  );
-}
-
-function ThinCapBar({
-  label,
-  pooled,
-  cap,
-}: {
-  label: string;
-  pooled: number;
-  cap: number;
-}) {
-  const over = pooled > cap;
-  const pct = cap > 0 ? Math.min(100, (pooled / cap) * 100) : 0;
-  return (
-    <div className="flex items-center gap-1.5 min-w-0">
-      <span className="text-[10px] text-dimmer w-6">{label}</span>
-      <div className="flex-1 min-w-[60px] h-1 rounded-full bg-white/5 overflow-hidden">
-        <div
-          className={cn("h-full transition-all", over ? "bg-primary" : "bg-accent/70")}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <span
-        className={cn(
-          "text-[10px] font-mono text-dimmer whitespace-nowrap",
-          over && "text-primary font-semibold",
-        )}
-      >
-        {formatHours(pooled)}/{formatHours(cap)}h
-      </span>
-    </div>
-  );
-}
-
-function DevDisciplineCell({
-  discipline,
-  pooled,
-  cap,
-  isPMBA,
-  onCommit,
-}: {
-  discipline: AssigneeSlot;
-  pooled: number;
-  cap: number;
-  isPMBA: boolean;
-  onCommit: (hours: number) => void;
-}) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-[10px] px-1.5 py-0.5 rounded border border-white/10 text-dim">
-        {discipline}
-      </span>
-      <div className="w-32">
-        <CapacityIndicator used={pooled} cap={cap} />
-      </div>
-      {isPMBA && (
-        <CapInput value={cap} onCommit={onCommit} />
-      )}
-    </div>
-  );
-}
-
-function CapInput({
-  value,
-  onCommit,
-}: {
-  value: number;
-  onCommit: (v: number) => void;
-}) {
-  const [local, setLocal] = useState(String(value));
-  useEffect(() => {
-    setLocal(String(value));
-  }, [value]);
-  return (
-    <Input
-      type="number"
-      min={0}
-      step={1}
-      value={local}
-      onChange={(e) => setLocal(e.target.value)}
-      onBlur={() => {
-        const n = Number(local);
-        if (!Number.isFinite(n) || n < 0) {
-          setLocal(String(value));
-          return;
-        }
-        if (n !== value) onCommit(n);
-      }}
-      className="h-6 w-16 text-xs text-right font-mono"
-    />
-  );
-}
-
-function AddMemberInline({
-  available,
-  onPick,
-}: {
-  available: SprintMember[];
-  onPick: (m: SprintMember) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-7 text-xs w-fit"
-          disabled={available.length === 0}
-        >
-          <Plus className="h-3.5 w-3.5 mr-1" /> Member
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="p-0 w-64" align="start">
-        <Command>
-          <CommandInput placeholder="Find member…" className="h-8" />
-          <CommandList>
-            <CommandEmpty>No members</CommandEmpty>
-            <CommandGroup>
-              {available.map((m) => (
-                <CommandItem
-                  key={m.user_id}
-                  value={`${m.member.name} ${m.role}`}
-                  onSelect={() => {
-                    onPick(m);
-                    setOpen(false);
-                  }}
-                >
-                  <span className="truncate">{m.member.name}</span>
-                  <span className="ml-auto text-[10px] text-dim">{m.role}</span>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
   );
 }

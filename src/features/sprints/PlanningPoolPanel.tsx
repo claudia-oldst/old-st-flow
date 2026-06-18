@@ -1,41 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, X, Map as MapIcon, ChevronDown } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  TicketsFilter,
   EMPTY_FILTERS,
   applyFilters,
   type TicketFilters,
-  type FilterSection,
 } from "@/features/tickets/TicketsFilter";
 import { useProjectTickets, type TicketRow } from "@/features/tickets/useProjectTickets";
 import { usePlannedSprintAssignments } from "./useSprintBoard";
-import { formatHours } from "@/lib/utils";
 import type { Sprint } from "./types";
-import { PlanningRowTooltip } from "./PlanningRowTooltip";
-
-const UNPLANNED = "__unplanned__";
-
-type PoolGroupBy = "none" | "epic" | "type" | "assignee" | "roadmap";
-
-const GROUP_BY_OPTIONS: Array<{ value: PoolGroupBy; label: string }> = [
-  { value: "none", label: "None" },
-  { value: "epic", label: "Epic" },
-  { value: "type", label: "Type" },
-  { value: "assignee", label: "Assignee" },
-  { value: "roadmap", label: "Roadmap" },
-];
+import { PoolFilterBar } from "./planning-pool/PoolFilterBar";
+import { PoolRow } from "./planning-pool/PoolRow";
+import { UNPLANNED, usePoolGroups, type PoolGroupBy } from "./planning-pool/usePoolGroups";
 
 interface Props {
   projectId: string;
@@ -139,50 +114,14 @@ export function PlanningPoolPanel({
   const allSelected =
     filteredIds.length > 0 && filteredIds.every((id) => selectedIds.has(id));
   const someSelected = !allSelected && filteredIds.some((id) => selectedIds.has(id));
-  const sprintNumberById = useMemo(() => {
-    const m = new Map<string, number>();
-    sortedSprints.forEach((s) => m.set(s.id, s.sprint_number));
-    return m;
-  }, [sortedSprints]);
 
-  const groups = useMemo(() => {
-    if (groupBy === "none") {
-      return [{ key: "all", label: "", tickets: filtered }];
-    }
-    const map = new Map<string, { label: string; tickets: TicketRow[]; order: number }>();
-    const push = (key: string, label: string, order: number, t: TicketRow) => {
-      const g = map.get(key);
-      if (g) g.tickets.push(t);
-      else map.set(key, { label, tickets: [t], order });
-    };
-    filtered.forEach((t) => {
-      if (groupBy === "epic") {
-        const key = t.epic_name ?? "__no_epic__";
-        push(key, t.epic_name ?? "No epic", t.epic_name ? 0 : 1, t);
-      } else if (groupBy === "type") {
-        push(t.ticket_type, t.ticket_type, 0, t);
-      } else if (groupBy === "assignee") {
-        const slot = discipline === "FE" ? "FE" : "BE";
-        const a = t.assignees.find((x) => x.slot === slot);
-        if (a) push(a.user_id, a.member.name || "Unknown", 0, t);
-        else push("__unassigned__", "Unassigned", 1, t);
-      } else if (groupBy === "roadmap") {
-        const plan = planByTicket.get(t.id);
-        const planned = discipline === "FE" ? plan?.fe ?? null : plan?.be ?? null;
-        if (planned) {
-          const n = sprintNumberById.get(planned);
-          push(planned, n ? `Sprint ${n}` : "Roadmap", n ?? 0, t);
-        } else {
-          push(UNPLANNED, "Unplanned", 9999, t);
-        }
-      }
-    });
-    return [...map.entries()]
-      .map(([key, v]) => ({ key, label: v.label, tickets: v.tickets, order: v.order }))
-      .sort((a, b) => a.order - b.order || a.label.localeCompare(b.label));
-  }, [filtered, groupBy, discipline, planByTicket, sprintNumberById]);
-
-
+  const groups = usePoolGroups({
+    filtered,
+    groupBy,
+    discipline,
+    planByTicket,
+    sortedSprints,
+  });
 
   return (
     <div className="flex flex-col gap-2 h-full min-h-0 rounded-md hairline bg-surface-1/40 w-96 shrink-0">
@@ -191,98 +130,21 @@ export function PlanningPoolPanel({
           <h3 className="font-display text-sm font-semibold tracking-tight">Pool</h3>
           <span className="text-[10px] font-mono text-dim">{filtered.length}</span>
         </div>
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-dimmer pointer-events-none" />
-          <Input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search ID or title…"
-            className="h-8 pl-8 pr-7 text-xs"
-          />
-          {search && (
-            <button
-              type="button"
-              onClick={() => setSearch("")}
-              aria-label="Clear search"
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-dimmer hover:text-foreground"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 px-2 text-xs gap-1.5"
-              >
-                <MapIcon className="h-3 w-3" />
-                <span className="truncate max-w-[10rem]">{roadmapLabel}</span>
-                <ChevronDown className="h-3 w-3 opacity-60" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="start" className="w-56 p-1">
-              <div className="px-2 py-1.5 text-[10px] uppercase tracking-wide text-dimmer">
-                Sprint roadmaps
-              </div>
-              <div className="max-h-72 overflow-y-auto">
-                {sortedSprints.map((s) => {
-                  const checked = roadmapIds.has(s.id);
-                  const isCurrent = s.id === sprintId;
-                  return (
-                    <label
-                      key={s.id}
-                      className="flex items-center gap-2 px-2 py-1.5 rounded text-xs hover:bg-white/[0.04] cursor-pointer"
-                    >
-                      <Checkbox
-                        checked={checked}
-                        onCheckedChange={() => toggleRoadmap(s.id)}
-                      />
-                      <span className="flex-1">Sprint {s.sprint_number}</span>
-                      {isCurrent && (
-                        <span className="text-[9px] uppercase tracking-wide text-dimmer">
-                          current
-                        </span>
-                      )}
-                    </label>
-                  );
-                })}
-                <label className="flex items-center gap-2 px-2 py-1.5 rounded text-xs hover:bg-white/[0.04] cursor-pointer">
-                  <Checkbox
-                    checked={roadmapIds.has(UNPLANNED)}
-                    onCheckedChange={() => toggleRoadmap(UNPLANNED)}
-                  />
-                  <span className="flex-1">Unplanned</span>
-                </label>
-              </div>
-            </PopoverContent>
-          </Popover>
-          <TicketsFilter
-            projectId={projectId}
-            tickets={pool}
-            filters={filters}
-            onChange={setFilters}
-            sections={["epic"]}
-          />
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] uppercase tracking-wide text-dimmer">Group</span>
-            <Select value={groupBy} onValueChange={(v) => setGroupBy(v as PoolGroupBy)}>
-              <SelectTrigger className="h-7 text-xs w-[110px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {GROUP_BY_OPTIONS.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
-                    {o.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+        <PoolFilterBar
+          projectId={projectId}
+          pool={pool}
+          search={search}
+          setSearch={setSearch}
+          filters={filters}
+          setFilters={setFilters}
+          groupBy={groupBy}
+          setGroupBy={setGroupBy}
+          sortedSprints={sortedSprints}
+          sprintId={sprintId}
+          roadmapIds={roadmapIds}
+          toggleRoadmap={toggleRoadmap}
+          roadmapLabel={roadmapLabel}
+        />
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1">
@@ -315,47 +177,17 @@ export function PlanningPoolPanel({
                     <div className="flex-1 h-px bg-white/5" />
                   </div>
                 )}
-                {g.tickets.map((t) => {
-                  const selected = selectedIds.has(t.id);
-                  const h =
-                    discipline === "FE"
-                      ? Math.max(0, (t.current_fe_estimate || 0) - (t.actual_frontend_hours || 0))
-                      : Math.max(0, (t.current_be_estimate || 0) - (t.actual_backend_hours || 0));
-                  return (
-                    <PlanningRowTooltip key={t.id} ticket={t}>
-                      <div
-                        className={cn(
-                          "flex items-center gap-2 px-1.5 py-1.5 rounded hover:bg-white/[0.04] cursor-pointer",
-                          selected && "ring-1 ring-primary bg-primary/5",
-                        )}
-                        onClick={(e) => {
-                          if ((e.target as HTMLElement).closest("[data-checkbox]")) return;
-                          onOpenTicket(t);
-                        }}
-                      >
-                        <div data-checkbox onClick={(e) => e.stopPropagation()}>
-                          <Checkbox
-                            checked={selected}
-                            onCheckedChange={() => onToggleSelect(t.id, false)}
-                            aria-label="Select ticket"
-                          />
-                        </div>
-                        <span className="font-mono text-xs text-dimmer w-16 shrink-0">
-                          {t.formatted_id}
-                        </span>
-                        <span className="text-xs truncate flex-1 min-w-0">{t.title}</span>
-                        {t.epic_name && groupBy !== "epic" && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-dim truncate max-w-20 shrink-0">
-                            {t.epic_name}
-                          </span>
-                        )}
-                        <span className="font-mono text-[10px] text-dim shrink-0 w-10 text-right">
-                          {formatHours(h)}
-                        </span>
-                      </div>
-                    </PlanningRowTooltip>
-                  );
-                })}
+                {g.tickets.map((t) => (
+                  <PoolRow
+                    key={t.id}
+                    ticket={t}
+                    selected={selectedIds.has(t.id)}
+                    discipline={discipline}
+                    groupBy={groupBy}
+                    onToggleSelect={onToggleSelect}
+                    onOpenTicket={onOpenTicket}
+                  />
+                ))}
               </div>
             ))}
           </>

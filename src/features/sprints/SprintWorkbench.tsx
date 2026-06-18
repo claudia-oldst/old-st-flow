@@ -1,8 +1,5 @@
 import { useMemo, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
-import { ArrowRight, ArrowRightCircle, Trash2, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Select,
@@ -11,21 +8,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
 import { BulkActionsBar } from "@/features/tickets/BulkActionsBar";
-import { BulkMenu, BulkMenuRow } from "@/features/tickets/bulk-actions/BulkMenu";
 import { useProjectTickets, type TicketRow } from "@/features/tickets/useProjectTickets";
 import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
-import type { AssigneeSlot } from "@/lib/types";
-import type { Sprint, SprintMember } from "./types";
-import { memberDisciplines } from "./types";
+import type { Sprint } from "./types";
 import {
   useSprintCapacities,
   useSprintTickets,
   useProjectMembers,
 } from "./useSprintBoard";
-import { addTicketToLane, removeTicketFromSprint } from "./dnd";
 import {
   SprintSelectionProvider,
   useSprintSelection,
@@ -33,7 +24,9 @@ import {
 import { CapacityIndicator } from "./CapacityIndicator";
 import { PlanningPoolPanel } from "./PlanningPoolPanel";
 import { PlanningDevColumn } from "./PlanningDevColumn";
-import { formatSupabaseError } from "@/lib/formatSupabaseError";
+import { useWorkbenchData } from "./workbench/useWorkbenchData";
+import { useWorkbenchBulkActions } from "./workbench/useWorkbenchBulkActions";
+import { WorkbenchBulkBar } from "./workbench/WorkbenchBulkBar";
 
 interface Props {
   projectId: string;
@@ -50,7 +43,6 @@ export function SprintWorkbench(props: Props) {
 }
 
 function PlanningInner({ projectId, sprints, isPMBA }: Props) {
-  const qc = useQueryClient();
   const [targetSprintId, setTargetSprintId] = useState<string>(sprints[0]?.id ?? "");
   const [discipline, setDiscipline] = useState<"FE" | "BE">("FE");
   const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
@@ -68,71 +60,14 @@ function PlanningInner({ projectId, sprints, isPMBA }: Props) {
 
   const targetSprint = sprints.find((s) => s.id === targetSprintId);
 
-  // Devs with capacity for this sprint+discipline.
-  const sprintDevs = useMemo<SprintMember[]>(() => {
-    const idsForDisc = new Set(
-      capacities.filter((c) => c.discipline === discipline).map((c) => c.user_id),
-    );
-    return members.filter(
-      (m) =>
-        idsForDisc.has(m.user_id) &&
-        memberDisciplines(m.role).includes(discipline),
-    );
-  }, [capacities, members, discipline]);
-
-  // Assignments per dev for this sprint, scoped to current discipline.
-  // sprint_tickets links a ticket+user; we filter to tickets that have hours
-  // in the selected discipline so we don't show FE-only tickets in BE view.
-  const devAssignments = useMemo(() => {
-    const m = new Map<string, TicketRow[]>();
-    sprintDevs.forEach((d) => m.set(d.user_id, []));
-    sprintTickets.forEach((st) => {
-      if (!st.assigned_user_id) return;
-      const list = m.get(st.assigned_user_id);
-      if (!list) return;
-      const t = ticketById.get(st.ticket_id);
-      if (!t) return;
-      const hasHours =
-        discipline === "FE"
-          ? (t.current_fe_estimate || 0) > 0
-          : (t.current_be_estimate || 0) > 0;
-      if (!hasHours) return;
-      list.push(t);
+  const { sprintDevs, devAssignments, allDevTicketIds, capByDev, totalCap, pooledHours } =
+    useWorkbenchData({
+      capacities,
+      members,
+      sprintTickets,
+      ticketById,
+      discipline,
     });
-    return m;
-  }, [sprintDevs, sprintTickets, ticketById, discipline]);
-
-  const allDevTicketIds = useMemo(() => {
-    const s = new Set<string>();
-    devAssignments.forEach((rows) => rows.forEach((t) => s.add(t.id)));
-    return s;
-  }, [devAssignments]);
-
-  const capByDev = useMemo(() => {
-    const m = new Map<string, number>();
-    capacities
-      .filter((c) => c.discipline === discipline)
-      .forEach((c) => m.set(c.user_id, Number(c.hours ?? 0)));
-    return m;
-  }, [capacities, discipline]);
-
-  const totalCap = useMemo(
-    () => sprintDevs.reduce((s, d) => s + (capByDev.get(d.user_id) ?? 0), 0),
-    [sprintDevs, capByDev],
-  );
-
-  const pooledHours = useMemo(() => {
-    let total = 0;
-    devAssignments.forEach((rows) =>
-      rows.forEach((t) => {
-        total +=
-          discipline === "FE"
-            ? Math.max(0, (t.current_fe_estimate || 0) - (t.actual_frontend_hours || 0))
-            : Math.max(0, (t.current_be_estimate || 0) - (t.actual_backend_hours || 0));
-      }),
-    );
-    return total;
-  }, [devAssignments, discipline]);
 
   const { selected, source, toggle, setMany, clear } = useSprintSelection();
 
@@ -143,110 +78,19 @@ function PlanningInner({ projectId, sprints, isPMBA }: Props) {
 
   const selectedArr = useMemo(() => Array.from(selected), [selected]);
 
-  const invalidate = () => {
-    qc.invalidateQueries({ queryKey: ["sprint_tickets"] });
-    qc.invalidateQueries({ queryKey: ["project_sprint_tickets"] });
-    qc.invalidateQueries({ queryKey: ["planned_sprint_assignments", projectId] });
-  };
-
-  // -------- Bulk actions ----------
-  const assignToDev = async (userId: string) => {
-    if (!isPMBA || !targetSprintId) return;
-    const slot: AssigneeSlot = discipline;
-    try {
-      for (const id of selectedArr) {
-        await addTicketToLane(targetSprintId, id, userId, slot);
-      }
-      toast.success(`Assigned ${selectedArr.length} ticket${selectedArr.length === 1 ? "" : "s"}`);
-      clear();
-    } catch (err: unknown) {
-      toast.error(formatSupabaseError(err));
-    } finally {
-      invalidate();
-    }
-  };
-
-  const moveToSprint = async (toSprintId: string) => {
-    if (!isPMBA) return;
-    const patch =
-      discipline === "FE"
-        ? { planned_sprint_fe_id: toSprintId }
-        : { planned_sprint_be_id: toSprintId };
-    try {
-      // If selection is from dev columns, also remove their current sprint_tickets row.
-      if (source === "dev" && targetSprintId) {
-        for (const id of selectedArr) {
-          const links = sprintTickets.filter((st) => st.ticket_id === id);
-          for (const link of links) {
-            if (link.assigned_user_id) {
-              await removeTicketFromSprint(link.id, id, link.assigned_user_id, discipline);
-            }
-          }
-        }
-      }
-      const { error } = await supabase
-        .from("tickets")
-        .update(patch)
-        .in("id", selectedArr);
-      if (error) throw error;
-      toast.success(
-        `Moved ${selectedArr.length} ticket${selectedArr.length === 1 ? "" : "s"} to sprint`,
-      );
-      clear();
-    } catch (err: unknown) {
-      toast.error(formatSupabaseError(err));
-    } finally {
-      invalidate();
-    }
-  };
-
-  const carryOver = async () => {
-    if (!isPMBA || !targetSprint) return;
-    const next = sprints.find((s) => s.sprint_number === targetSprint.sprint_number + 1);
-    if (!next) {
-      toast.error("No next sprint exists — create one in the Roadmap tab first.");
-      return;
-    }
-    const slot: AssigneeSlot = discipline;
-    try {
-      for (const id of selectedArr) {
-        // Use the same dev who owns the current sprint_tickets row.
-        const link = sprintTickets.find((st) => st.ticket_id === id);
-        const userId = link?.assigned_user_id ?? null;
-        if (!userId) continue;
-        await addTicketToLane(next.id, id, userId, slot);
-      }
-      toast.success(
-        `Carried over ${selectedArr.length} ticket${selectedArr.length === 1 ? "" : "s"} to Sprint ${next.sprint_number}`,
-      );
-      clear();
-    } catch (err: unknown) {
-      toast.error(formatSupabaseError(err));
-    } finally {
-      invalidate();
-    }
-  };
-
-  const removeFromSprint = async () => {
-    if (!isPMBA) return;
-    try {
-      for (const id of selectedArr) {
-        const links = sprintTickets.filter((st) => st.ticket_id === id);
-        for (const link of links) {
-          if (!link.assigned_user_id) continue;
-          await removeTicketFromSprint(link.id, id, link.assigned_user_id, discipline);
-        }
-      }
-      toast.success(
-        `Removed ${selectedArr.length} ticket${selectedArr.length === 1 ? "" : "s"} from sprint`,
-      );
-      clear();
-    } catch (err: unknown) {
-      toast.error(formatSupabaseError(err));
-    } finally {
-      invalidate();
-    }
-  };
+  const { assignToDev, moveToSprint, carryOver, removeFromSprint, invalidate } =
+    useWorkbenchBulkActions({
+      projectId,
+      isPMBA,
+      targetSprintId,
+      targetSprint,
+      sprints,
+      sprintTickets,
+      discipline,
+      selectedArr,
+      source,
+      clear,
+    });
 
   if (sprints.length === 0) {
     return (
@@ -356,79 +200,17 @@ function PlanningInner({ projectId, sprints, isPMBA }: Props) {
             onClear={clear}
             canEdit={isPMBA}
           />
-
           {isPMBA && (
-            <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 glass-strong hairline rounded-2xl shadow-2xl px-2 py-1.5 flex items-center gap-1 animate-in fade-in slide-in-from-bottom-2 duration-200">
-              <span className="text-[10px] uppercase tracking-wider text-dim px-2">
-                {source === "pool" ? "Pool" : "Sprint"}
-              </span>
-
-              {source === "pool" && (
-                <>
-                  <BulkMenu icon={UserPlus} label="Assign to" title="Assign to dev" width="w-56">
-                    {sprintDevs.length === 0 ? (
-                      <div className="text-xs text-dim px-2 py-2">No devs available</div>
-                    ) : (
-                      sprintDevs.map((d) => (
-                        <BulkMenuRow key={d.user_id} onClick={() => assignToDev(d.user_id)}>
-                          <span className="truncate">{d.member.name}</span>
-                          <span className="text-[10px] text-dimmer ml-auto">{d.role}</span>
-                        </BulkMenuRow>
-                      ))
-                    )}
-                  </BulkMenu>
-                  <BulkMenu icon={ArrowRight} label="Move to Sprint" title="Move to sprint" width="w-56">
-                    {otherSprints.length === 0 ? (
-                      <div className="text-xs text-dim px-2 py-2">No other sprints</div>
-                    ) : (
-                      otherSprints.map((s) => (
-                        <BulkMenuRow key={s.id} onClick={() => moveToSprint(s.id)}>
-                          Sprint {s.sprint_number}
-                        </BulkMenuRow>
-                      ))
-                    )}
-                  </BulkMenu>
-                </>
-              )}
-
-              {source === "dev" && (
-                <>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-8 text-xs text-dim hover:text-foreground gap-1.5"
-                    onClick={carryOver}
-                    disabled={!nextSprint}
-                    title={
-                      nextSprint
-                        ? `Carry over to Sprint ${nextSprint.sprint_number}`
-                        : "No next sprint exists — create one in the Roadmap tab first."
-                    }
-                  >
-                    <ArrowRightCircle className="h-3.5 w-3.5" /> Carry over
-                  </Button>
-                  <BulkMenu icon={ArrowRight} label="Move to Sprint" title="Move to sprint" width="w-56">
-                    {otherSprints.length === 0 ? (
-                      <div className="text-xs text-dim px-2 py-2">No other sprints</div>
-                    ) : (
-                      otherSprints.map((s) => (
-                        <BulkMenuRow key={s.id} onClick={() => moveToSprint(s.id)}>
-                          Sprint {s.sprint_number}
-                        </BulkMenuRow>
-                      ))
-                    )}
-                  </BulkMenu>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-8 text-xs text-dim hover:text-destructive gap-1.5"
-                    onClick={removeFromSprint}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" /> Remove
-                  </Button>
-                </>
-              )}
-            </div>
+            <WorkbenchBulkBar
+              source={source}
+              sprintDevs={sprintDevs}
+              otherSprints={otherSprints}
+              nextSprint={nextSprint}
+              onAssignToDev={assignToDev}
+              onMoveToSprint={moveToSprint}
+              onCarryOver={carryOver}
+              onRemoveFromSprint={removeFromSprint}
+            />
           )}
         </>
       )}
