@@ -140,20 +140,20 @@ export function ClientPortalEditor() {
           </div>
           <div className="glass rounded-2xl p-6 lg:p-8">
             {payload ? (
-              <Tabs defaultValue="summary" className="w-full">
+              <Tabs defaultValue="timeline" className="w-full">
                 <TabsList className="grid w-full grid-cols-3 mb-6">
+                  <TabsTrigger value="timeline">Timeline</TabsTrigger>
                   <TabsTrigger value="summary">Summary</TabsTrigger>
                   <TabsTrigger value="change-requests">Change Requests</TabsTrigger>
-                  <TabsTrigger value="timeline">Timeline</TabsTrigger>
                 </TabsList>
+                <TabsContent value="timeline">
+                  <SprintGanttPreview projectId={id} />
+                </TabsContent>
                 <TabsContent value="summary">
                   <PortalView payload={payload} showRate discounts={discounts} />
                 </TabsContent>
                 <TabsContent value="change-requests">
                   <PreviewChangeRequests projectId={id} />
-                </TabsContent>
-                <TabsContent value="timeline">
-                  <SprintGanttPreview projectId={id} />
                 </TabsContent>
               </Tabs>
 

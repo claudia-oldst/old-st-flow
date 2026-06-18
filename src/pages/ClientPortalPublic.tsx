@@ -54,12 +54,25 @@ export default function ClientPortalPublic() {
           </div>
         )}
         {data && (
-          <Tabs defaultValue="summary" className="w-full">
+          <Tabs defaultValue="timeline" className="w-full">
             <TabsList className="grid w-full grid-cols-3 mb-6">
+              <TabsTrigger value="timeline">Timeline</TabsTrigger>
               <TabsTrigger value="summary">Summary</TabsTrigger>
               <TabsTrigger value="change-requests">Change Requests</TabsTrigger>
-              <TabsTrigger value="timeline">Timeline</TabsTrigger>
             </TabsList>
+            <TabsContent value="timeline">
+              {sprints.length > 0 ? (
+                <SprintGantt
+                  projectId={data.project.id}
+                  sprints={sprints}
+                  hideExport
+                />
+              ) : (
+                <div className="glass rounded-2xl p-12 text-center text-sm text-dim">
+                  No sprint timeline available yet.
+                </div>
+              )}
+            </TabsContent>
             <TabsContent value="summary">
               <PortalView payload={data} showRate discounts={discounts} />
             </TabsContent>
@@ -75,19 +88,6 @@ export default function ClientPortalPublic() {
                 />
               ) : (
                 <div className="text-sm text-dim text-center py-12">Loading…</div>
-              )}
-            </TabsContent>
-            <TabsContent value="timeline">
-              {sprints.length > 0 ? (
-                <SprintGantt
-                  projectId={data.project.id}
-                  sprints={sprints}
-                  hideExport
-                />
-              ) : (
-                <div className="glass rounded-2xl p-12 text-center text-sm text-dim">
-                  No sprint timeline available yet.
-                </div>
               )}
             </TabsContent>
           </Tabs>
