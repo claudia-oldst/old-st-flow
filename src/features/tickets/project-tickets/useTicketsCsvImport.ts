@@ -53,16 +53,16 @@ function parseEmails(raw: string | undefined): string[] {
 
 export function downloadTicketsTemplate() {
   const header =
-    "Ticket #,Title,Type,FE Estimate,BE Estimate,Project Estimate,Epic,Version,FE Status,BE Status,Parent Ticket #,FE Assignees,BE Assignees,Project Assignees,Acceptance Criteria";
+    "Ticket #,Title,Type,FE Estimate,BE Estimate,Project Estimate,Epic,Version,FE Status,BE Status,Project Status,Parent Ticket #,FE Assignees,BE Assignees,Project Assignees,Acceptance Criteria";
   const rows = [
     // Standard ticket with FE+BE, assignees, AC
-    `,Example: build login page,Standard,4,2,,Authentication,v1,todo,todo,,jane@acme.com,john@acme.com,,"- User can log in with email\\n- Errors shown inline"`,
+    `,Example: build login page,Standard,4,2,,Authentication,v1,todo,todo,,,jane@acme.com,john@acme.com,,"- User can log in with email\\n- Errors shown inline"`,
     // Bug linked to parent ticket #12
-    `42,Example: fix header overflow,Bug,1,0,,UI polish,v1,in_progress,todo,12,jane@acme.com,,,`,
+    `42,Example: fix header overflow,Bug,1,0,,UI polish,v1,in_progress,todo,,12,jane@acme.com,,,`,
     // CR with BE work only, two BE assignees
-    `,Example: add export endpoint,CR,0,3,,Reporting,v2,todo,done,,,"john@acme.com,sara@acme.com",,`,
-    // Proj-type ticket (uses Project Estimate + Project Assignees; FE/BE blank)
-    `,Example: client kickoff workshop,Proj,,,8,Discovery,v1,,,,,,pm@acme.com,`,
+    `,Example: add export endpoint,CR,0,3,,Reporting,v2,todo,done,,,,"john@acme.com,sara@acme.com",,`,
+    // Proj-type ticket (uses Project Estimate, Project Status, Project Assignees; FE/BE blank)
+    `,Example: client kickoff workshop,Proj,,,8,Discovery,v1,,,In Progress,,,,pm@acme.com,`,
   ];
   const csv = [header, ...rows].join("\n") + "\n";
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
