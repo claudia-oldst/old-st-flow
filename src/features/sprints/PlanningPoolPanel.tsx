@@ -10,7 +10,7 @@ import { usePlannedSprintAssignments } from "./useSprintBoard";
 import type { Sprint } from "./types";
 import { PoolFilterBar } from "./planning-pool/PoolFilterBar";
 import { PoolRow } from "./planning-pool/PoolRow";
-import { UNPLANNED, usePoolGroups, type PoolGroupBy } from "./planning-pool/usePoolGroups";
+import { UNPLANNED, ALL_ROADMAPS, usePoolGroups, type PoolGroupBy } from "./planning-pool/usePoolGroups";
 
 interface Props {
   projectId: string;
