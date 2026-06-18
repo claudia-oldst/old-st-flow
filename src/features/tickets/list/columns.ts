@@ -44,8 +44,8 @@ export const COLS: Record<ColKey, ColDef> = {
   fe: { key: "fe", label: "FE", default: 110, min: 80, align: "right" },
   be: { key: "be", label: "BE", default: 110, min: 80, align: "right" },
   assignees: { key: "assignees", label: "Assignees", default: 200, min: 120 },
-  fe_pool: { key: "fe_pool", label: "FE Pool", default: 120, min: 90 },
-  be_pool: { key: "be_pool", label: "BE Pool", default: 120, min: 90 },
+  fe_pool: { key: "fe_pool", label: "FE Sprint", default: 120, min: 90 },
+  be_pool: { key: "be_pool", label: "BE Sprint", default: 120, min: 90 },
 };
 
 

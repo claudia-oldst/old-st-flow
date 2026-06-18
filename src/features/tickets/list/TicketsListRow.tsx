@@ -155,13 +155,28 @@ export function TicketsListRow({
         );
       case "fe_pool":
       case "be_pool": {
-        const slot = key === "fe_pool" ? "fe" : "be";
-        const sid = poolData?.byTicket.get(t.id)?.[slot] ?? null;
+        const disc = key === "fe_pool" ? "fe" : "be";
+        const activeNums = poolData?.activeByTicket.get(t.id)?.[disc] ?? [];
+        if (activeNums.length > 0) {
+          return (
+            <span className="inline-flex items-center gap-1 flex-wrap">
+              {activeNums.map((n) => (
+                <span
+                  key={n}
+                  className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono bg-accent/15 text-accent hairline"
+                >
+                  S{n}
+                </span>
+              ))}
+            </span>
+          );
+        }
+        const sid = poolData?.byTicket.get(t.id)?.[disc] ?? null;
         const num = sid ? poolData?.sprintsById.get(sid)?.sprint_number : undefined;
         if (!num) return <span className="text-dimmer text-xs">—</span>;
         return (
           <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono bg-white/5 hairline text-dim">
-            Sprint {num}
+            S{num}
           </span>
         );
       }
