@@ -93,12 +93,14 @@ export function EstimatesPanel({
             actual={ticket.actual_frontend_hours}
             estimate={ticket.current_fe_estimate}
             original={ticket.original_fe_estimate}
+            onClick={!editing && canEditFE ? () => onAdjustEstimate("FE") : undefined}
           />
           <Stat
             label="Backend"
             actual={ticket.actual_backend_hours}
             estimate={ticket.current_be_estimate}
             original={ticket.original_be_estimate}
+            onClick={!editing && canEditBE ? () => onAdjustEstimate("BE") : undefined}
           />
         </div>
       )}
