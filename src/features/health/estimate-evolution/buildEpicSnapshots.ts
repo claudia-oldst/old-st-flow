@@ -1,19 +1,15 @@
-import type { TicketRow } from "@/features/tickets/useProjectTickets";
+import type {
+  ChangeLite,
+  LogLite,
+  TicketLite,
+} from "@/features/_shared/estimate-trend/types";
 import type { EpicDiscount } from "@/features/discounts/applyDiscounts";
 import { NO_EPIC_KEY, endOfDay } from "./dateUtils";
-import { ticketEffectiveMs, type TimeLogLite } from "./ticketEffectiveMs";
-
-export interface ChangeLite {
-  ticket_id: string;
-  status: string;
-  delta: number;
-  created_at: string;
-}
 
 interface Params {
-  tickets: TicketRow[];
+  tickets: TicketLite[];
   changes: ChangeLite[];
-  logs: TimeLogLite[];
+  logs: LogLite[];
   discounts: EpicDiscount[];
   epics: { id: number; epic_name: string | null }[];
   ticketEpic: Map<string, number | null>;
@@ -27,6 +23,14 @@ export interface EpicSnapshot {
   current: number;
   actual: number;
   ticketIds: Set<string>;
+}
+
+function ticketEffectiveMs(t: TicketLite): number {
+  if (t.is_cr) {
+    const src = t.cr_effective_at ?? t.created_at;
+    return new Date(src).getTime();
+  }
+  return new Date(t.created_at).getTime();
 }
 
 export function buildEpicSnapshots({
@@ -46,7 +50,6 @@ export function buildEpicSnapshots({
   >();
 
   tickets.forEach((t) => {
-    if (t.ticket_type === "CR" && t.cr_approval !== "approved") return;
     const effMs = ticketEffectiveMs(t);
     const key = t.epic_id != null ? `e:${t.epic_id}` : NO_EPIC_KEY;
     const name =
@@ -65,7 +68,6 @@ export function buildEpicSnapshots({
   const ticketEff = new Map<string, number>();
   tickets.forEach((t) => ticketEff.set(t.id, ticketEffectiveMs(t)));
   changes.forEach((c) => {
-    if (c.status !== "approved") return;
     const tkEff = ticketEff.get(c.ticket_id);
     if (tkEff == null || !isFinite(tkEff)) return;
     const deltaEff = Math.max(new Date(c.created_at).getTime(), tkEff);
