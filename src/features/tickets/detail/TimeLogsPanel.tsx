@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Clock, Pencil } from "lucide-react";
 import { MemberAvatar } from "@/components/MemberAvatar";
@@ -15,11 +15,13 @@ export function TimeLogsPanel({
   canLog,
   onOpenLog,
   reloadKey,
+  onLogCount,
 }: {
   ticket: TicketRow;
   canLog: boolean;
   onOpenLog: () => void;
   reloadKey: number;
+  onLogCount?: (n: number) => void;
 }) {
   const { logs, reload } = useTicketTimeLogs(ticket.id);
   const user = useCurrentUser((s) => s.user);
@@ -27,6 +29,17 @@ export function TimeLogsPanel({
   const [editLog, setEditLog] = useState<TicketLogEntry | null>(null);
   useEffect(() => { setLogPage(0); }, [ticket.id, logs.length]);
   useEffect(() => { reload(); }, [reloadKey, reload]);
+  useEffect(() => { onLogCount?.(logs.length); }, [logs.length, onLogCount]);
+
+  const perPerson = useMemo(() => {
+    const map = new Map<string, { name: string; color: string; hours: number }>();
+    logs.forEach((l) => {
+      const existing = map.get(l.user_id);
+      if (existing) existing.hours += l.hours;
+      else map.set(l.user_id, { name: l.user.name, color: l.user.avatar_color, hours: l.hours });
+    });
+    return Array.from(map.values()).sort((a, b) => b.hours - a.hours);
+  }, [logs]);
 
   return (
     <div>
