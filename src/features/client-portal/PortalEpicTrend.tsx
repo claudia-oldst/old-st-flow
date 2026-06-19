@@ -2,11 +2,9 @@ import { useMemo, useState } from "react";
 import { ChevronDown, TrendingUp } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
-import {
-  buildEpicTrendSeries,
-  usePortalEpicTrendData,
-} from "./epic-trend/usePortalEpicTrendData";
-import { PortalTrendChart } from "./epic-trend/PortalTrendChart";
+import { TrendChart } from "@/features/_shared/estimate-trend/TrendChart";
+import { buildTrendSeries } from "@/features/_shared/estimate-trend/buildTrendSeries";
+import { useTrendData } from "@/features/_shared/estimate-trend/useTrendData";
 
 import type { EpicDiscount } from "@/features/discounts/applyDiscounts";
 
@@ -22,20 +20,30 @@ export function PortalEpicTrend({
   discounts?: EpicDiscount[];
 }) {
   const [open, setOpen] = useState(false);
-  const { tickets, changes, logs, projectStart, ticketEpic } = usePortalEpicTrendData(
-    projectId,
-    includedEpics,
-  );
+  const { dataset } = useTrendData(projectId);
+  const { tickets, changes, logs, projectStart, ticketEpic } = dataset;
   const cutoffMs = new Date(cutoff).getTime();
+
+  const includedIds = useMemo(
+    () => new Set(includedEpics.map((e) => e.id)),
+    [includedEpics],
+  );
 
   const aggregated = useMemo(
     () =>
-      buildEpicTrendSeries({
-        tickets, changes, logs, projectStart, cutoffMs,
-        ticketFilter: () => true,
+      buildTrendSeries({
+        tickets,
+        changes,
+        logs,
+        projectStart: projectStart ? new Date(projectStart) : null,
+        cutoffMs,
+        ticketFilter: (tid) => {
+          const eid = ticketEpic.get(tid);
+          return eid != null && includedIds.has(eid);
+        },
         discounts,
       }),
-    [tickets, changes, logs, projectStart, cutoffMs, discounts],
+    [tickets, changes, logs, projectStart, cutoffMs, ticketEpic, includedIds, discounts],
   );
 
   if (includedEpics.length === 0 || tickets.length === 0) return null;
@@ -49,13 +57,7 @@ export function PortalEpicTrend({
         </div>
       </div>
       <div className="h-56">
-        {aggregated.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-sm text-dim">
-            No trend data yet.
-          </div>
-        ) : (
-          <PortalTrendChart data={aggregated} />
-        )}
+        <TrendChart data={aggregated} />
       </div>
 
       <Collapsible open={open} onOpenChange={setOpen}>
@@ -70,8 +72,12 @@ export function PortalEpicTrend({
         <CollapsibleContent className="data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up overflow-hidden">
           <div className="space-y-3 pt-3">
             {includedEpics.map((e) => {
-              const series = buildEpicTrendSeries({
-                tickets, changes, logs, projectStart, cutoffMs,
+              const series = buildTrendSeries({
+                tickets,
+                changes,
+                logs,
+                projectStart: projectStart ? new Date(projectStart) : null,
+                cutoffMs,
                 ticketFilter: (tid) => ticketEpic.get(tid) === e.id,
                 discounts: discounts.filter((d) => d.epic_id === e.id),
               });
@@ -79,13 +85,7 @@ export function PortalEpicTrend({
                 <div key={e.id} className="rounded-xl bg-white/[0.02] hairline p-3">
                   <div className="text-sm font-medium mb-2">{e.name}</div>
                   <div className="h-40">
-                    {series.length === 0 ? (
-                      <div className="h-full flex items-center justify-center text-xs text-dim">
-                        No data
-                      </div>
-                    ) : (
-                      <PortalTrendChart data={series} compact />
-                    )}
+                    <TrendChart data={series} compact emptyLabel="No data" />
                   </div>
                 </div>
               );

@@ -1,11 +1,13 @@
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { formatGBP } from "../types";
-import { PortalTrendChart } from "../epic-trend/PortalTrendChart";
-import {
-  buildEpicTrendSeries,
-  usePortalEpicTrendData,
-} from "../epic-trend/usePortalEpicTrendData";
+import { TrendChart } from "@/features/_shared/estimate-trend/TrendChart";
+import { buildTrendSeries } from "@/features/_shared/estimate-trend/buildTrendSeries";
+import type {
+  ChangeLite,
+  LogLite,
+  TicketLite,
+} from "@/features/_shared/estimate-trend/types";
 import type { EpicDiscount } from "@/features/discounts/applyDiscounts";
 
 export function PortalEpicExpandedPanel({
@@ -31,18 +33,18 @@ export function PortalEpicExpandedPanel({
   actualHours: number;
   ratePerHour: number;
   showRate: boolean;
-  tickets: ReturnType<typeof usePortalEpicTrendData>["tickets"];
-  changes: ReturnType<typeof usePortalEpicTrendData>["changes"];
-  logs: ReturnType<typeof usePortalEpicTrendData>["logs"];
-  projectStart: string | null;
-  ticketEpic: Map<string, number>;
+  tickets: TicketLite[];
+  changes: ChangeLite[];
+  logs: LogLite[];
+  projectStart: Date | null;
+  ticketEpic: Map<string, number | null>;
   cutoffMs: number;
   discounts: EpicDiscount[];
   discountSumForEpic: number;
 }) {
   const series = useMemo(
     () =>
-      buildEpicTrendSeries({
+      buildTrendSeries({
         tickets,
         changes,
         logs,
@@ -84,13 +86,7 @@ export function PortalEpicExpandedPanel({
 
       <div className="rounded-xl bg-white/[0.02] hairline p-3">
         <div className="h-40">
-          {series.length === 0 ? (
-            <div className="h-full flex items-center justify-center text-xs text-dim">
-              No data
-            </div>
-          ) : (
-            <PortalTrendChart data={series} compact />
-          )}
+          <TrendChart data={series} compact emptyLabel="No data" />
         </div>
       </div>
 
