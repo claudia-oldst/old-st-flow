@@ -13,11 +13,11 @@
     /* ---- Brand surfaces (Old.St navy family) ----
        Hero on old.st sits around #2C3357 (227 33% 26%).
        Body card around #3B446B (227 30% 33%). */
-    --background: 227 33% 16%;          /* deeper than hero for app shell */
+    --background: 227 33% 16%; /* deeper than hero for app shell */
     --foreground: 0 0% 98%;
     --surface-1: 227 33% 19%;
-    --surface-2: 227 30% 23%;           /* hero navy */
-    --surface-3: 227 28% 28%;           /* card navy */
+    --surface-2: 227 30% 23%; /* hero navy */
+    --surface-3: 227 28% 28%; /* card navy */
 
     --card: 227 30% 22%;
     --card-foreground: 0 0% 98%;
@@ -26,10 +26,10 @@
     --popover-foreground: 0 0% 98%;
 
     /* Brand colours */
-    --brand-navy: 227 30% 33%;          /* #3B446B */
-    --brand-coral: 5 90% 67%;           /* #F76C5E – primary CTA */
+    --brand-navy: 227 30% 33%; /* #3B446B */
+    --brand-coral: 5 90% 67%; /* #F76C5E – primary CTA */
     --brand-coral-strong: 5 80% 60%;
-    --brand-gold: 36 100% 72%;          /* #FFCD71 – logo + sparkle */
+    --brand-gold: 36 100% 72%; /* #FFCD71 – logo + sparkle */
     --brand-gold-soft: 36 100% 85%;
 
     /* Primary = coral CTA on dark navy */
@@ -42,7 +42,7 @@
     --muted: 227 25% 26%;
     --muted-foreground: 227 15% 72%;
 
-    --accent: 36 100% 72%;              /* gold accent (logo) */
+    --accent: 36 100% 72%; /* gold accent (logo) */
     --accent-foreground: 227 40% 14%;
 
     --destructive: 5 80% 58%;
@@ -51,18 +51,18 @@
     /* Health colors — kept distinct, slightly tuned to fit navy ground */
     --health-good: 152 60% 50%;
     --health-warn: 36 100% 65%;
-    --health-bad:  5 85% 62%;
+    --health-bad: 5 85% 62%;
 
     /* Chart accent — in-progress / current estimate line */
     --chart-in-progress: 217 91% 60%;
 
     /* Borders / inputs */
-    --border: 0 0% 100% / 0.10;
+    --border: 0 0% 100% / 0.1;
     --border-strong: 0 0% 100% / 0.18;
-    --input: 0 0% 100% / 0.10;
+    --input: 0 0% 100% / 0.1;
     --ring: 5 90% 67%;
 
-    --radius: 0.5rem;                   /* old.st uses crisper corners */
+    --radius: 0.5rem; /* old.st uses crisper corners */
 
     /* Glass */
     --glass-bg: 0 0% 100% / 0.04;
@@ -94,19 +94,27 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
-    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    font-family:
+      "Inter",
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
     background:
       radial-gradient(1200px 600px at 80% -10%, hsl(36 100% 72% / 0.06), transparent 60%),
-      radial-gradient(900px 500px at 0% 100%, hsl(5 90% 67% / 0.05), transparent 60%),
-      hsl(var(--background));
+      radial-gradient(900px 500px at 0% 100%, hsl(5 90% 67% / 0.05), transparent 60%), hsl(var(--background));
     background-attachment: fixed;
   }
 
-  h1, h2, h3, h4, .font-display {
-    font-family: 'Poppins', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  h1,
+  h2,
+  h3,
+  h4,
+  .font-display {
+    font-family: "Poppins", "Inter", ui-sans-serif, system-ui, sans-serif;
     letter-spacing: -0.01em;
   }
 
@@ -116,15 +124,24 @@
   }
 
   /* Scrollbar */
-  ::-webkit-scrollbar { width: 10px; height: 10px; }
-  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
   ::-webkit-scrollbar-thumb {
     background: hsl(0 0% 100% / 0.08);
     border-radius: 999px;
   }
-  ::-webkit-scrollbar-thumb:hover { background: hsl(0 0% 100% / 0.14); }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(0 0% 100% / 0.14);
+  }
 
-  .font-mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .font-mono {
+    font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
 }
 
 @layer components {
@@ -139,19 +156,29 @@
     background: hsl(227 32% 14% / 0.78);
     backdrop-filter: blur(20px) saturate(160%);
     -webkit-backdrop-filter: blur(20px) saturate(160%);
-    border: 1px solid hsl(0 0% 100% / 0.10);
+    border: 1px solid hsl(0 0% 100% / 0.1);
   }
 
   .hairline {
-    border: 1px solid hsl(0 0% 100% / 0.10);
+    border: 1px solid hsl(0 0% 100% / 0.1);
   }
 
-  .hairline-b { border-bottom: 1px solid hsl(0 0% 100% / 0.10); }
-  .hairline-t { border-top: 1px solid hsl(0 0% 100% / 0.10); }
-  .hairline-r { border-right: 1px solid hsl(0 0% 100% / 0.10); }
+  .hairline-b {
+    border-bottom: 1px solid hsl(0 0% 100% / 0.1);
+  }
+  .hairline-t {
+    border-top: 1px solid hsl(0 0% 100% / 0.1);
+  }
+  .hairline-r {
+    border-right: 1px solid hsl(0 0% 100% / 0.1);
+  }
 
-  .text-dim { color: hsl(227 15% 75%); }
-  .text-dimmer { color: hsl(227 12% 60%); }
+  .text-dim {
+    color: hsl(220 12% 80%);
+  }
+  .text-dimmer {
+    color: hsl(220 8% 68%);
+  }
 
   .focus-ring {
     @apply outline-none ring-1 ring-transparent focus-visible:ring-2 focus-visible:ring-primary/60;
@@ -166,7 +193,9 @@
   .btn-coral {
     background: hsl(var(--brand-coral));
     color: hsl(var(--primary-foreground));
-    transition: background 150ms ease, transform 150ms ease;
+    transition:
+      background 150ms ease,
+      transform 150ms ease;
   }
   .btn-coral:hover {
     background: hsl(var(--brand-coral-strong));
