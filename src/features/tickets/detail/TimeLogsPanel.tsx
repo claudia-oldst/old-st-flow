@@ -54,6 +54,20 @@ export function TimeLogsPanel({
           <span className="text-[10px] text-dimmer">Assign yourself to log time</span>
         )}
       </div>
+      {logs.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 mb-2">
+          {perPerson.map((p) => (
+            <div
+              key={p.name}
+              className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-white/[0.03] hairline text-xs"
+            >
+              <MemberAvatar name={p.name} color={p.color} size="xs" />
+              <span className="text-dim">{p.name}</span>
+              <span className="font-mono text-foreground">{formatHours(p.hours)}</span>
+            </div>
+          ))}
+        </div>
+      )}
       {logs.length === 0 ? (
         <div className="text-sm text-dim p-4 rounded-lg bg-white/[0.02] hairline">
           No time logged yet.
