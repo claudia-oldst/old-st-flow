@@ -42,27 +42,11 @@ export function EstimatesPanel({
     <div>
       <div className="flex items-center justify-between mb-2">
         <div className="text-xs uppercase tracking-wider text-dimmer">Estimates & actuals</div>
-        <div className="flex items-center gap-1">
-          {!editing && !isProj && (canEditFE || canEditBE) && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                if (canEditFE && !canEditBE) onAdjustEstimate("FE");
-                else if (canEditBE && !canEditFE) onAdjustEstimate("BE");
-                else onAdjustEstimate(undefined);
-              }}
-              className="gap-1 text-xs"
-            >
-              <TrendingUp className="h-3 w-3" /> Adjust estimate
-            </Button>
-          )}
-          {(isPMBARole || (isProj && canEditProj)) && !editing && (
-            <Button variant="ghost" size="sm" onClick={() => setEditing(true)} className="gap-1 text-xs">
-              <Edit3 className="h-3 w-3" /> Edit
-            </Button>
-          )}
-        </div>
+        {(isPMBARole || (isProj && canEditProj)) && !editing && (
+          <Button variant="ghost" size="sm" onClick={() => setEditing(true)} className="gap-1 text-xs">
+            <Edit3 className="h-3 w-3" /> Edit
+          </Button>
+        )}
       </div>
       {editing ? (
         isProj ? (
