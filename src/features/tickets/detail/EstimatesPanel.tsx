@@ -1,4 +1,4 @@
-import { Edit3, TrendingUp } from "lucide-react";
+import { Edit3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,27 +42,11 @@ export function EstimatesPanel({
     <div>
       <div className="flex items-center justify-between mb-2">
         <div className="text-xs uppercase tracking-wider text-dimmer">Estimates & actuals</div>
-        <div className="flex items-center gap-1">
-          {!editing && !isProj && (canEditFE || canEditBE) && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                if (canEditFE && !canEditBE) onAdjustEstimate("FE");
-                else if (canEditBE && !canEditFE) onAdjustEstimate("BE");
-                else onAdjustEstimate(undefined);
-              }}
-              className="gap-1 text-xs"
-            >
-              <TrendingUp className="h-3 w-3" /> Adjust estimate
-            </Button>
-          )}
-          {(isPMBARole || (isProj && canEditProj)) && !editing && (
-            <Button variant="ghost" size="sm" onClick={() => setEditing(true)} className="gap-1 text-xs">
-              <Edit3 className="h-3 w-3" /> Edit
-            </Button>
-          )}
-        </div>
+        {(isPMBARole || (isProj && canEditProj)) && !editing && (
+          <Button variant="ghost" size="sm" onClick={() => setEditing(true)} className="gap-1 text-xs">
+            <Edit3 className="h-3 w-3" /> Edit
+          </Button>
+        )}
       </div>
       {editing ? (
         isProj ? (
@@ -109,12 +93,14 @@ export function EstimatesPanel({
             actual={ticket.actual_frontend_hours}
             estimate={ticket.current_fe_estimate}
             original={ticket.original_fe_estimate}
+            onClick={!editing && canEditFE ? () => onAdjustEstimate("FE") : undefined}
           />
           <Stat
             label="Backend"
             actual={ticket.actual_backend_hours}
             estimate={ticket.current_be_estimate}
             original={ticket.original_be_estimate}
+            onClick={!editing && canEditBE ? () => onAdjustEstimate("BE") : undefined}
           />
         </div>
       )}
