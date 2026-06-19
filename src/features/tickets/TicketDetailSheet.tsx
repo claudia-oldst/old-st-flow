@@ -112,12 +112,20 @@ export function TicketDetailSheet({ open, onOpenChange, ticket: ticketProp, proj
   const isPMBARole = canManage;
 
   const defaultTab =
-    ticket.acceptance_criteria && ticket.acceptance_criteria.trim() ? "acceptance" : "detail";
+    ticket.acceptance_criteria && ticket.acceptance_criteria.trim() ? "acceptance" : "status";
+
+  const feAssignees = ticket.assignees.filter((a) => a.slot === "FE");
+  const beAssignees = ticket.assignees.filter((a) => a.slot === "BE");
+  const totalActual =
+    ticket.actual_frontend_hours + ticket.actual_backend_hours + ticket.actual_project_hours;
+  const totalEst =
+    ticket.current_fe_estimate + ticket.current_be_estimate + ticket.current_project_estimate;
+  const burnPct = totalEst > 0 ? (totalActual / totalEst) * 100 : 0;
 
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent className="glass-strong w-full sm:max-w-xl flex flex-col overflow-hidden">
+        <SheetContent className="glass-strong w-full sm:max-w-3xl flex flex-col overflow-hidden">
           <TicketDetailHeader
             ticket={ticket}
             status={status}
@@ -126,26 +134,57 @@ export function TicketDetailSheet({ open, onOpenChange, ticket: ticketProp, proj
             setTitle={editor.setTitle}
           />
 
-          <Tabs defaultValue={defaultTab} className="mt-6 flex-1 flex flex-col min-h-0">
+          <div className="mt-4 flex flex-wrap items-center gap-3 text-xs">
+            {feAssignees.map((a) => (
+              <div key={`fe-${a.user_id}`} className="flex items-center gap-1.5">
+                <MemberAvatar name={a.member.name} color={a.member.avatar_color} size="xs" />
+                <span className="text-dim">{a.member.name}</span>
+                <span className="px-1.5 py-0.5 rounded bg-white/[0.05] text-[10px] font-mono text-dimmer">FE</span>
+              </div>
+            ))}
+            {beAssignees.map((a) => (
+              <div key={`be-${a.user_id}`} className="flex items-center gap-1.5">
+                <MemberAvatar name={a.member.name} color={a.member.avatar_color} size="xs" />
+                <span className="text-dim">{a.member.name}</span>
+                <span className="px-1.5 py-0.5 rounded bg-white/[0.05] text-[10px] font-mono text-dimmer">BE</span>
+              </div>
+            ))}
+
+            {totalEst > 0 && (
+              <div className="flex items-center gap-2 ml-auto">
+                <div className="relative h-1.5 w-32 rounded-full bg-white/[0.05] overflow-hidden">
+                  <div
+                    className={cn(
+                      "absolute inset-y-0 left-0 rounded-full",
+                      burnPct > 100 ? "bg-health-bad" : burnPct > 80 ? "bg-health-warn" : "bg-health-good",
+                    )}
+                    style={{ width: `${Math.min(100, burnPct)}%` }}
+                  />
+                </div>
+                <span
+                  className={cn(
+                    "font-mono text-[11px]",
+                    burnPct > 100 ? "text-health-bad" : burnPct > 80 ? "text-health-warn" : "text-dim",
+                  )}
+                >
+                  {formatHours(totalActual)} / {formatHours(totalEst)}
+                </span>
+              </div>
+            )}
+
+            <span className={cn("text-dimmer text-[11px]", totalEst > 0 ? "" : "ml-auto")}>
+              {logCount} time log{logCount === 1 ? "" : "s"}
+            </span>
+          </div>
+
+          <Tabs defaultValue={defaultTab} className="mt-4 flex-1 flex flex-col min-h-0">
             <TabsList className="grid w-full grid-cols-3 shrink-0">
+              <TabsTrigger value="status">Status</TabsTrigger>
               <TabsTrigger value="acceptance">Acceptance</TabsTrigger>
               <TabsTrigger value="discussion">Discussion</TabsTrigger>
-              <TabsTrigger value="detail">Detail</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="acceptance" className="mt-4 space-y-6 flex-1 overflow-y-auto">
-              <AcceptanceCriteria
-                ticketId={ticket.id}
-                ticketTitle={ticket.title}
-                epicName={ticket.epic_name ?? null}
-                role={role}
-                value={ticket.acceptance_criteria}
-                canEdit={isPMBARole}
-                onSaved={onChange}
-              />
-            </TabsContent>
-
-            <TabsContent value="detail" className="mt-4 space-y-6 flex-1 overflow-y-auto">
+            <TabsContent value="status" className="mt-4 space-y-6 flex-1 overflow-y-auto">
               <TicketDetailBody
                 ticket={ticket}
                 projectId={projectId}
@@ -172,8 +211,20 @@ export function TicketDetailSheet({ open, onOpenChange, ticket: ticketProp, proj
                 onLocalPatch={(patch) =>
                   setLiveTicket((prev) => (prev ? { ...prev, ...patch } : prev))
                 }
+                onLogCount={setLogCount}
               />
+            </TabsContent>
 
+            <TabsContent value="acceptance" className="mt-4 space-y-6 flex-1 overflow-y-auto">
+              <AcceptanceCriteria
+                ticketId={ticket.id}
+                ticketTitle={ticket.title}
+                epicName={ticket.epic_name ?? null}
+                role={role}
+                value={ticket.acceptance_criteria}
+                canEdit={isPMBARole}
+                onSaved={onChange}
+              />
             </TabsContent>
 
             <TabsContent value="discussion" className="mt-4 flex-1 min-h-0 data-[state=active]:flex flex-col">
@@ -182,6 +233,7 @@ export function TicketDetailSheet({ open, onOpenChange, ticket: ticketProp, proj
           </Tabs>
         </SheetContent>
       </Sheet>
+
 
       {isPMBARole && (
         <AssignDialog
