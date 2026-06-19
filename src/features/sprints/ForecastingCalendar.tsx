@@ -30,13 +30,41 @@ export function ForecastingCalendar({ projectId, sprints, isPMBA }: Props) {
     const nextNumber = (last?.sprint_number ?? 0) + 1;
     const start = last ? addDays(parseISO(last.end_date), 1) : new Date();
     const end = addDays(start, 13);
-    const { error } = await supabase.from("sprints").insert({
-      project_id: projectId,
-      sprint_number: nextNumber,
-      start_date: format(start, "yyyy-MM-dd"),
-      end_date: format(end, "yyyy-MM-dd"),
-    });
-    if (error) toast.error(error.message);
+    const { data: created, error } = await supabase
+      .from("sprints")
+      .insert({
+        project_id: projectId,
+        sprint_number: nextNumber,
+        start_date: format(start, "yyyy-MM-dd"),
+        end_date: format(end, "yyyy-MM-dd"),
+      })
+      .select("id")
+      .single();
+    if (error || !created) {
+      if (error) toast.error(error.message);
+      return;
+    }
+    // Carry over devs (and their hours) from the previous sprint so the new
+    // block is pre-populated instead of empty.
+    if (last) {
+      const { data: prevCaps } = await supabase
+        .from("sprint_capacities")
+        .select("user_id, discipline, hours")
+        .eq("sprint_id", last.id);
+      if (prevCaps && prevCaps.length > 0) {
+        const { error: capErr } = await supabase
+          .from("sprint_capacities")
+          .insert(
+            prevCaps.map((c) => ({
+              sprint_id: created.id,
+              user_id: c.user_id,
+              discipline: c.discipline,
+              hours: c.hours,
+            })),
+          );
+        if (capErr) toast.error(capErr.message);
+      }
+    }
     qc.invalidateQueries({ queryKey: ["sprints", projectId] });
   };
 
