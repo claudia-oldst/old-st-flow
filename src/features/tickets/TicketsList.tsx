@@ -102,7 +102,7 @@ export function TicketsList({
         )}
         {groups.map((rawGroup) => {
           const g = { ...rawGroup, tickets: sortTickets(rawGroup.tickets) };
-          const isCollapsed = collapsed[g.key] ?? true;
+          const isCollapsed = groupBy === "none" ? false : (collapsed[g.key] ?? true);
           const ids = g.tickets.map((t) => t.id);
           return (
             <div key={g.key} className="glass rounded-2xl overflow-hidden">
