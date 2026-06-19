@@ -83,6 +83,7 @@ export function TicketDetailSheet({ open, onOpenChange, ticket: ticketProp, proj
   const [requestOpen, setRequestOpen] = useState(false);
   const [requestSlot, setRequestSlot] = useState<"FE" | "BE" | undefined>(undefined);
   const [logsReloadKey, setLogsReloadKey] = useState(0);
+  const [logCount, setLogCount] = useState(0);
   const { changes: estimateChanges, reload: reloadChanges } =
     useTicketEstimateChanges(ticket?.id);
 
