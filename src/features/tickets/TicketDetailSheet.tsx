@@ -106,8 +106,8 @@ export function TicketDetailSheet({ open, onOpenChange, ticket: ticketProp, proj
   const hasFE = !isProj && ticket.assignees.some((a) => a.slot === "FE");
   const hasBE = !isProj && ticket.assignees.some((a) => a.slot === "BE");
   const canManage = canManageTickets(role);
-  const canEditFE = hasFE && (canManage || myFE);
-  const canEditBE = hasBE && (canManage || myBE);
+  const canEditFE = !isProj && (canManage || (hasFE && myFE));
+  const canEditBE = !isProj && (canManage || (hasBE && myBE));
   const canEditProj = isProj && (canManage || isMine);
   const isPMBARole = canManage;
 
