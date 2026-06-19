@@ -11,6 +11,7 @@ import { TicketsList } from "@/features/tickets/TicketsList";
 import { BulkActionsBar } from "@/features/tickets/BulkActionsBar";
 import { ProjectBoard } from "@/features/board/ProjectBoard";
 import { useCardDisplayPrefs } from "@/features/tickets/useCardDisplayPrefs";
+import { useColumnDisplayPrefs } from "@/features/tickets/useColumnDisplayPrefs";
 import { useProjectRole } from "@/features/team/useProjectRole";
 import { useTicketsCsvImport } from "./project-tickets/useTicketsCsvImport";
 import { useProjectTicketsView } from "./project-tickets/useProjectTicketsView";
@@ -35,6 +36,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
   const [groupTimerOpen, setGroupTimerOpen] = useState(false);
   const activeTimer = useTimerStore((s) => s.active);
   const { prefs: cardPrefs, setPrefs: setCardPrefs, reset: resetCardPrefs } = useCardDisplayPrefs();
+  const { prefs: columnPrefs, setPrefs: setColumnPrefs, reset: resetColumnPrefs } = useColumnDisplayPrefs();
   const csv = useTicketsCsvImport(projectId, tickets, reload);
   const { rows, fileName, dragOver, setDragOver, importing, handleFile, handleImport, reset: resetImport } = csv;
 
@@ -119,6 +121,9 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
         cardPrefs={cardPrefs}
         setCardPrefs={setCardPrefs}
         resetCardPrefs={resetCardPrefs}
+        columnPrefs={columnPrefs}
+        setColumnPrefs={setColumnPrefs}
+        resetColumnPrefs={resetColumnPrefs}
         search={v.search}
         setSearch={v.setSearch}
         role={role}
@@ -223,6 +228,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
             currentUserId={user?.id}
             extraCols={["fe_pool", "be_pool"]}
             poolData={poolData}
+            columnPrefs={columnPrefs}
           />
           <div className="mt-4 flex items-center justify-between gap-3 flex-wrap">
             <div className="text-[11px] text-dimmer">

@@ -15,7 +15,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CardDisplayMenu } from "@/features/tickets/CardDisplayMenu";
+import { ColumnDisplayMenu } from "@/features/tickets/ColumnDisplayMenu";
 import type { CardDisplayPrefs } from "@/features/tickets/useCardDisplayPrefs";
+import type { ColumnDisplayPrefs } from "@/features/tickets/useColumnDisplayPrefs";
 import {
   TicketsFilter,
   type TicketFilters,
@@ -45,6 +47,9 @@ export function ProjectTicketsToolbar({
   cardPrefs,
   setCardPrefs,
   resetCardPrefs,
+  columnPrefs,
+  setColumnPrefs,
+  resetColumnPrefs,
   search,
   setSearch,
   role,
@@ -75,6 +80,9 @@ export function ProjectTicketsToolbar({
   cardPrefs?: CardDisplayPrefs;
   setCardPrefs?: (p: CardDisplayPrefs) => void;
   resetCardPrefs?: () => void;
+  columnPrefs?: ColumnDisplayPrefs;
+  setColumnPrefs?: (p: ColumnDisplayPrefs) => void;
+  resetColumnPrefs?: () => void;
   search: string;
   setSearch: (s: string) => void;
   role: ProjectRole | null;
@@ -155,6 +163,13 @@ export function ProjectTicketsToolbar({
           prefs={cardPrefs}
           onChange={setCardPrefs}
           onReset={resetCardPrefs}
+        />
+      )}
+      {view === "list" && columnPrefs && setColumnPrefs && resetColumnPrefs && (
+        <ColumnDisplayMenu
+          prefs={columnPrefs}
+          onChange={setColumnPrefs}
+          onReset={resetColumnPrefs}
         />
       )}
       <div className="ml-auto flex items-center gap-2">
