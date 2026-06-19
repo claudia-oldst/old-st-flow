@@ -17,6 +17,8 @@ import { TicketDetailBody } from "./detail/TicketDetailBody";
 import { useTicketEditor } from "./detail/useTicketEditor";
 import { OPEN_TICKET_EVENT } from "@/features/tickets/openTicketEvent";
 import { fetchTicketById } from "@/features/tickets/fetchTicketById";
+import { MemberAvatar } from "@/components/MemberAvatar";
+import { cn, formatHours } from "@/lib/utils";
 
 interface Props {
   open: boolean;
