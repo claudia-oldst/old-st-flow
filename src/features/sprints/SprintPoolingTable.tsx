@@ -22,6 +22,7 @@ import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
 import type { Sprint } from "./types";
 import { usePoolData } from "./usePoolData";
 import { SprintPoolFilter } from "./SprintPoolFilter";
+import { useColumnDisplayPrefs } from "@/features/tickets/useColumnDisplayPrefs";
 
 type Discipline = "FE" | "BE";
 
@@ -45,6 +46,7 @@ export function SprintPoolingTable({ projectId, sprints, isPMBA }: Props) {
   const role = useProjectRole(projectId);
   const { tickets } = useProjectTickets(projectId);
   const poolData = usePoolData(projectId, sprints);
+  const { prefs: columnPrefs, setPrefs: setColumnPrefs, reset: resetColumnPrefs } = useColumnDisplayPrefs();
 
   // Exclude Proj-type tickets — they don't go in sprints.
   const projectTickets = useMemo(
@@ -158,6 +160,9 @@ export function SprintPoolingTable({ projectId, sprints, isPMBA }: Props) {
         showAddButtons={false}
         showGroupTimer={false}
         filterSections={["epic", "assignee", "type"]}
+        columnPrefs={columnPrefs}
+        setColumnPrefs={setColumnPrefs}
+        resetColumnPrefs={resetColumnPrefs}
         extras={
           <>
             <SprintPoolFilter
@@ -194,6 +199,7 @@ export function SprintPoolingTable({ projectId, sprints, isPMBA }: Props) {
           onToggleSelectAll={v.toggleSelectAll}
           extraCols={["fe_pool", "be_pool"]}
           poolData={poolData}
+          columnPrefs={columnPrefs}
         />
       )}
 
