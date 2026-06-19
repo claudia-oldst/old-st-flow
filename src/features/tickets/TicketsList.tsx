@@ -4,6 +4,7 @@ import { useStatuses } from "@/features/statuses/useStatuses";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { COLS, ColKey, GroupBy } from "./list/columns";
+import type { ColumnDisplayPrefs } from "./useColumnDisplayPrefs";
 import { useTicketsSort } from "./list/useTicketsSort";
 import { useColumnResize } from "./list/useColumnResize";
 import { useTicketsGrouping } from "./list/useTicketsGrouping";
@@ -25,6 +26,7 @@ export function TicketsList({
   currentUserId,
   extraCols,
   poolData,
+  columnPrefs,
 }: {
   tickets: TicketRow[];
   groupBy: GroupBy;
@@ -36,6 +38,7 @@ export function TicketsList({
   currentUserId?: string;
   extraCols?: ColKey[];
   poolData?: PoolData;
+  columnPrefs?: ColumnDisplayPrefs;
 }) {
 
   const selectionEnabled = !!selectedIds && !!onToggleSelect;
@@ -56,8 +59,12 @@ export function TicketsList({
     extraCols?.forEach((c) => {
       if (!out.includes(c)) out.push(c);
     });
+    if (columnPrefs) {
+      // `title` is always visible; everything else respects user prefs.
+      return out.filter((c) => c === "title" || columnPrefs[c] !== false);
+    }
     return out;
-  }, [groupBy, extraCols]);
+  }, [groupBy, extraCols, columnPrefs]);
 
 
   const { widthFor, totalWidth, onResizeStart } = useColumnResize(visibleCols);
