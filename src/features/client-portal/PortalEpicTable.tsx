@@ -1,11 +1,9 @@
 import { useMemo, useState } from "react";
 import { TrendingUp } from "lucide-react";
 import { type PortalPayload } from "./types";
-import {
-  buildEpicTrendSeries,
-  usePortalEpicTrendData,
-} from "./epic-trend/usePortalEpicTrendData";
-import { PortalTrendChart } from "./epic-trend/PortalTrendChart";
+import { TrendChart } from "@/features/_shared/estimate-trend/TrendChart";
+import { buildTrendSeries } from "@/features/_shared/estimate-trend/buildTrendSeries";
+import { useTrendData } from "@/features/_shared/estimate-trend/useTrendData";
 import {
   discountTotalsByEpic,
   sumTotals,
@@ -36,32 +34,35 @@ export function PortalEpicTable({
     [epics],
   );
 
-  const includedForTrend = useMemo(
-    () =>
-      visibleEpics.map((e) => ({
-        id: e.id,
-        name: e.epic_name ?? "Untitled epic",
-      })),
+  const includedIds = useMemo(
+    () => new Set(visibleEpics.map((e) => e.id)),
     [visibleEpics],
   );
 
-  const { tickets, changes, logs, projectStart, ticketEpic } =
-    usePortalEpicTrendData(projectId, includedForTrend);
+  const { dataset } = useTrendData(projectId);
+  const { tickets, changes, logs, projectStart, ticketEpic } = dataset;
 
   const cutoffMs = useMemo(() => new Date(cutoff).getTime(), [cutoff]);
+  const projectStartDate = useMemo(
+    () => (projectStart ? new Date(projectStart) : null),
+    [projectStart],
+  );
 
   const aggregated = useMemo(
     () =>
-      buildEpicTrendSeries({
+      buildTrendSeries({
         tickets,
         changes,
         logs,
-        projectStart,
+        projectStart: projectStartDate,
         cutoffMs,
-        ticketFilter: () => true,
+        ticketFilter: (tid) => {
+          const eid = ticketEpic.get(tid);
+          return eid != null && includedIds.has(eid);
+        },
         discounts,
       }),
-    [tickets, changes, logs, projectStart, cutoffMs, discounts],
+    [tickets, changes, logs, projectStartDate, cutoffMs, ticketEpic, includedIds, discounts],
   );
 
   const discountByEpic = useMemo(
@@ -98,13 +99,7 @@ export function PortalEpicTable({
             </div>
           </div>
           <div className="h-56">
-            {aggregated.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-sm text-dim">
-                No trend data yet.
-              </div>
-            ) : (
-              <PortalTrendChart data={aggregated} />
-            )}
+            <TrendChart data={aggregated} />
           </div>
         </div>
       )}
@@ -145,7 +140,7 @@ export function PortalEpicTable({
                   tickets={tickets}
                   changes={changes}
                   logs={logs}
-                  projectStart={projectStart}
+                  projectStart={projectStartDate}
                   ticketEpic={ticketEpic}
                   cutoffMs={cutoffMs}
                   discounts={discounts}

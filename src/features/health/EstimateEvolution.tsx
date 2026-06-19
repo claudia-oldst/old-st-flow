@@ -5,12 +5,19 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useProjectEpics } from "@/features/epics/useProjectEpics";
+import { TrendChart } from "@/features/_shared/estimate-trend/TrendChart";
 import { cn } from "@/lib/utils";
-import { ALL_EPICS_KEY } from "./estimate-evolution/dateUtils";
+import { ALL_EPICS_KEY, NO_EPIC_KEY } from "./estimate-evolution/dateUtils";
 import { EpicRow } from "./estimate-evolution/EpicRow";
 import { useEstimateEvolution } from "./estimate-evolution/useEstimateEvolution";
-import { EstimateTrendChart } from "./estimate-evolution/EstimateTrendChart";
 
 export function EstimateEvolution({ projectId }: { projectId: string }) {
   const { epics } = useProjectEpics(projectId);
@@ -80,12 +87,30 @@ export function EstimateEvolution({ projectId }: { projectId: string }) {
         </Collapsible>
       )}
 
-      <EstimateTrendChart
-        trendData={trendData}
-        selectedEpic={selectedEpic}
-        setSelectedEpic={setSelectedEpic}
-        epics={epics}
-      />
+      <div className="hairline-t pt-4 space-y-3">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="text-[11px] uppercase tracking-wider text-dimmer">
+            Trend over time
+          </div>
+          <Select value={selectedEpic} onValueChange={setSelectedEpic}>
+            <SelectTrigger className="h-8 text-xs w-[200px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_EPICS_KEY}>All epics aggregated</SelectItem>
+              <SelectItem value={NO_EPIC_KEY}>No epic</SelectItem>
+              {epics.map((e) => (
+                <SelectItem key={e.id} value={`e:${e.id}`}>
+                  {e.epic_name ?? `Epic ${e.id}`}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="h-64">
+          <TrendChart data={trendData} emptyLabel="No data for this selection." />
+        </div>
+      </div>
     </div>
   );
 }
