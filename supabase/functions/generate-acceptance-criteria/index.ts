@@ -96,6 +96,9 @@ Write acceptance criteria for the ticket above. Use Markdown. Prefer Given/When/
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
+        temperature: 0.3,
+        top_p: 0.9,
+        max_tokens: 600,
         messages: [
           {
             role: "system",
