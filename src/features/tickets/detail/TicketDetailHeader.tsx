@@ -1,5 +1,6 @@
-import { Bookmark, GitBranch, Sparkles } from "lucide-react";
+import { Bookmark, GitBranch, Sparkles, Pencil, Check, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import type { Status } from "@/lib/types";
@@ -14,7 +15,15 @@ export function TicketDetailHeader({
   editing,
   title,
   setTitle,
+  canEdit = false,
+  onStartEdit,
+  onSave,
+  onCancel,
 }: {
+  canEdit?: boolean;
+  onStartEdit?: () => void;
+  onSave?: () => void;
+  onCancel?: () => void;
   ticket: TicketRow;
   status: Status | undefined;
   editing: boolean;
