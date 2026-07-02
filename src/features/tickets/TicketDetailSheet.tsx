@@ -132,6 +132,13 @@ export function TicketDetailSheet({ open, onOpenChange, ticket: ticketProp, proj
             editing={editor.editing}
             title={editor.title}
             setTitle={editor.setTitle}
+            canEdit={isPMBARole}
+            onStartEdit={() => editor.setEditing(true)}
+            onSave={editor.handleSaveEdit}
+            onCancel={() => {
+              editor.setTitle(ticket.title);
+              editor.setEditing(false);
+            }}
           />
 
           <div className="mt-4 flex flex-wrap items-center gap-3 text-xs">
