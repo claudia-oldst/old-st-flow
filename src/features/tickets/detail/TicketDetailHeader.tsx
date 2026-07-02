@@ -1,5 +1,6 @@
-import { Bookmark, GitBranch, Sparkles } from "lucide-react";
+import { Bookmark, GitBranch, Sparkles, Pencil, Check, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import type { Status } from "@/lib/types";
@@ -14,7 +15,15 @@ export function TicketDetailHeader({
   editing,
   title,
   setTitle,
+  canEdit = false,
+  onStartEdit,
+  onSave,
+  onCancel,
 }: {
+  canEdit?: boolean;
+  onStartEdit?: () => void;
+  onSave?: () => void;
+  onCancel?: () => void;
   ticket: TicketRow;
   status: Status | undefined;
   editing: boolean;
@@ -64,9 +73,39 @@ export function TicketDetailHeader({
       </div>
       <SheetTitle className="text-left text-xl">
         {editing ? (
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} className="text-xl" />
+          <div className="flex items-center gap-2">
+            <Input
+              autoFocus
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") { e.preventDefault(); onSave?.(); }
+                if (e.key === "Escape") { e.preventDefault(); onCancel?.(); }
+              }}
+              className="text-xl"
+            />
+            <Button size="sm" variant="ghost" onClick={onSave} className="h-8 w-8 p-0" aria-label="Save title">
+              <Check className="h-4 w-4" />
+            </Button>
+            <Button size="sm" variant="ghost" onClick={onCancel} className="h-8 w-8 p-0" aria-label="Cancel">
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         ) : (
-          displayTitle(ticket.title, ticket.ticket_type)
+          <div className="group flex items-center gap-2">
+            <span>{displayTitle(ticket.title, ticket.ticket_type)}</span>
+            {canEdit && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={onStartEdit}
+                className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition"
+                aria-label="Edit title"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+            )}
+          </div>
         )}
       </SheetTitle>
     </SheetHeader>
