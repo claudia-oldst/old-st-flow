@@ -236,18 +236,21 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
             poolData={poolData}
             columnPrefs={columnPrefs}
           />
-          <div className="mt-4 flex items-center justify-between gap-3 flex-wrap">
-            <div className="text-[11px] text-dimmer">
-              Showing {(page - 1) * PAGE_SIZES.ticketsList + 1}–
-              {Math.min(page * PAGE_SIZES.ticketsList, paged.total)} of {paged.total}
+          {!grouped && (
+            <div className="mt-4 flex items-center justify-between gap-3 flex-wrap">
+              <div className="text-[11px] text-dimmer">
+                Showing {(page - 1) * PAGE_SIZES.ticketsList + 1}–
+                {Math.min(page * PAGE_SIZES.ticketsList, paged.total)} of {paged.total}
+              </div>
+              <ListPagination
+                page={page}
+                total={paged.total}
+                pageSize={PAGE_SIZES.ticketsList}
+                onChange={setPage}
+              />
             </div>
-            <ListPagination
-              page={page}
-              total={paged.total}
-              pageSize={PAGE_SIZES.ticketsList}
-              onChange={setPage}
-            />
-          </div>
+          )}
+
         </>
       )}
 
