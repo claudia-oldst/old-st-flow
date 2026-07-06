@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { usePersistentState } from "@/hooks/usePersistentState";
+
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import {
@@ -46,6 +48,8 @@ function PlanningInner({ projectId, sprints, isPMBA }: Props) {
   const [targetSprintId, setTargetSprintId] = useState<string>(sprints[0]?.id ?? "");
   const [discipline, setDiscipline] = useState<"FE" | "BE">("FE");
   const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
+  const [poolWidth, setPoolWidth] = usePersistentState<number>("sprints:poolWidth", 384);
+
 
   const { tickets } = useProjectTickets(projectId);
   const ticketById = useMemo(() => {
@@ -162,6 +166,9 @@ function PlanningInner({ projectId, sprints, isPMBA }: Props) {
           onToggleSelect={togglePool}
           onToggleSelectAll={toggleAllPool}
           onOpenTicket={setOpenTicket}
+          width={poolWidth}
+          onResize={setPoolWidth}
+
         />
 
         {sprintDevs.length === 0 ? (

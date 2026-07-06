@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   EMPTY_FILTERS,
@@ -23,7 +23,13 @@ interface Props {
   onToggleSelect: (id: string, shiftKey: boolean) => void;
   onToggleSelectAll: (ids: string[], select: boolean) => void;
   onOpenTicket: (t: TicketRow) => void;
+  width: number;
+  onResize: (width: number) => void;
 }
+
+const MIN_WIDTH = 320;
+const MAX_WIDTH = 900;
+
 
 /**
  * Planning tab left panel: tickets roadmapped to the selected sprint+discipline
@@ -40,6 +46,8 @@ export function PlanningPoolPanel({
   onToggleSelect,
   onToggleSelectAll,
   onOpenTicket,
+  width,
+  onResize,
 }: Props) {
   const { tickets: allTickets } = useProjectTickets(projectId);
   const { data: assignments = [] } = usePlannedSprintAssignments(projectId);
@@ -47,6 +55,30 @@ export function PlanningPoolPanel({
   const [filters, setFilters] = useState<TicketFilters>(EMPTY_FILTERS);
   const [roadmapIds, setRoadmapIds] = useState<Set<string>>(() => new Set([sprintId]));
   const [groupBy, setGroupBy] = useState<PoolGroupBy>("none");
+
+  const panelRef = useRef<HTMLDivElement>(null);
+  const startResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const panel = panelRef.current;
+    if (!panel) return;
+    const left = panel.getBoundingClientRect().left;
+    const onMove = (ev: MouseEvent) => {
+      const w = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, ev.clientX - left));
+      onResize(w);
+    };
+    const onUp = () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
+
+
 
   // Reset roadmap selection to the current sprint whenever the planning sprint changes.
   useEffect(() => {
@@ -143,7 +175,13 @@ export function PlanningPoolPanel({
   });
 
   return (
-    <div className="flex flex-col gap-2 h-full min-h-0 rounded-md hairline bg-surface-1/40 w-96 shrink-0">
+    <div
+      ref={panelRef}
+      className="relative flex flex-col gap-2 h-full min-h-0 min-w-0 rounded-md hairline bg-surface-1/40 shrink-0"
+      style={{ width }}
+    >
+
+
       <div className="p-2.5 hairline-b bg-surface-1/60 space-y-2">
         <div className="flex items-center justify-between gap-2">
           <h3 className="font-display text-sm font-semibold tracking-tight">Pool</h3>
@@ -212,6 +250,14 @@ export function PlanningPoolPanel({
           </>
         )}
       </div>
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize pool"
+        onMouseDown={startResize}
+        className="absolute top-0 right-0 h-full w-1.5 -mr-0.5 cursor-col-resize hover:bg-accent/40 active:bg-accent/60 transition-colors"
+      />
     </div>
+
   );
 }
