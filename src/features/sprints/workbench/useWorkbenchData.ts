@@ -53,11 +53,6 @@ export function useWorkbenchData({
       if (!list) return;
       const t = ticketById.get(st.ticket_id);
       if (!t) return;
-      const hasHours =
-        discipline === "FE"
-          ? (t.current_fe_estimate || 0) > 0
-          : (t.current_be_estimate || 0) > 0;
-      if (!hasHours) return;
       list.push(t);
     });
     return m;
