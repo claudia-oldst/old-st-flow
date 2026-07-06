@@ -48,6 +48,8 @@ function PlanningInner({ projectId, sprints, isPMBA }: Props) {
   const [targetSprintId, setTargetSprintId] = useState<string>(sprints[0]?.id ?? "");
   const [discipline, setDiscipline] = useState<"FE" | "BE">("FE");
   const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
+  const [poolWidth, setPoolWidth] = usePersistentState<number>("sprints:poolWidth", 384);
+
 
   const { tickets } = useProjectTickets(projectId);
   const ticketById = useMemo(() => {
