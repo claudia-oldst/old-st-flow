@@ -46,6 +46,8 @@ export function PlanningPoolPanel({
   onToggleSelect,
   onToggleSelectAll,
   onOpenTicket,
+  width,
+  onResize,
 }: Props) {
   const { tickets: allTickets } = useProjectTickets(projectId);
   const { data: assignments = [] } = usePlannedSprintAssignments(projectId);
@@ -53,6 +55,33 @@ export function PlanningPoolPanel({
   const [filters, setFilters] = useState<TicketFilters>(EMPTY_FILTERS);
   const [roadmapIds, setRoadmapIds] = useState<Set<string>>(() => new Set([sprintId]));
   const [groupBy, setGroupBy] = useState<PoolGroupBy>("none");
+
+  const resizingRef = useRef(false);
+  const startResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    resizingRef.current = true;
+    const onMove = (ev: MouseEvent) => {
+      if (!resizingRef.current) return;
+      // width is measured from panel's left edge; panel is the first child in its flex row.
+      const panel = (e.currentTarget as HTMLElement).parentElement;
+      if (!panel) return;
+      const left = panel.getBoundingClientRect().left;
+      const w = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, ev.clientX - left));
+      onResize(w);
+    };
+    const onUp = () => {
+      resizingRef.current = false;
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
+
 
   // Reset roadmap selection to the current sprint whenever the planning sprint changes.
   useEffect(() => {
