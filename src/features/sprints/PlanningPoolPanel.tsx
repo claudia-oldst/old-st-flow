@@ -100,11 +100,6 @@ export function PlanningPoolPanel({
     return allTickets.filter((t) => {
       if (t.ticket_type === "Proj") return false;
       if (allDevTicketIds.has(t.id)) return false;
-      const hasHours =
-        discipline === "FE"
-          ? (t.current_fe_estimate || 0) > 0
-          : (t.current_be_estimate || 0) > 0;
-      if (!hasHours) return false;
       if (allMode) return true;
       const plan = planByTicket.get(t.id);
       const planned = discipline === "FE" ? plan?.fe ?? null : plan?.be ?? null;
