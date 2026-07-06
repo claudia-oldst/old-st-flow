@@ -251,6 +251,14 @@ export function PlanningPoolPanel({
           </>
         )}
       </div>
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize pool"
+        onMouseDown={startResize}
+        className="absolute top-0 right-0 h-full w-1.5 -mr-0.5 cursor-col-resize hover:bg-accent/40 active:bg-accent/60 transition-colors"
+      />
     </div>
+
   );
 }
