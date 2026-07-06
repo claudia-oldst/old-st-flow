@@ -42,10 +42,12 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
 
   const v = useProjectTicketsView({ tickets, user, role, projectId });
 
-  // List-view server pagination
+  const grouped = v.groupBy !== "none";
+
+  // List-view server pagination (only when ungrouped — grouping needs the full set)
   const [page, setPage] = useState(1);
   const sort: ServerSort = useMemo(() => ({ col: "position", dir: "asc" }), []);
-  const paged = useProjectTicketsPaged(v.view === "list" ? projectId : undefined, {
+  const paged = useProjectTicketsPaged(v.view === "list" && !grouped ? projectId : undefined, {
     filters: v.filters,
     search: v.search,
     sort,
@@ -74,8 +76,9 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
   const [bePlannedFilter, setBePlannedFilter] = useState<string[]>([]);
   const [beCommittedFilter, setBeCommittedFilter] = useState<number[]>([]);
 
+  const sourceRows = grouped ? v.visibleTickets : paged.rows;
   const listVisible = useMemo(() => {
-    let rows = paged.rows;
+    let rows = sourceRows;
     if (fePlannedFilter.length > 0) {
       rows = rows.filter((t) => {
         const fe = poolData.byTicket.get(t.id)?.fe ?? null;
@@ -101,8 +104,11 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
       });
     }
     return rows;
-  }, [paged.rows, poolData, fePlannedFilter, feCommittedFilter, bePlannedFilter, beCommittedFilter]);
-  const listLoading = v.view === "list" && paged.loading && listVisible.length === 0;
+  }, [sourceRows, poolData, fePlannedFilter, feCommittedFilter, bePlannedFilter, beCommittedFilter]);
+  const listLoading = v.view === "list" && (
+    grouped ? (loading && tickets.length === 0) : (paged.loading && listVisible.length === 0)
+  );
+
 
   return (
     <div>
@@ -230,18 +236,21 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
             poolData={poolData}
             columnPrefs={columnPrefs}
           />
-          <div className="mt-4 flex items-center justify-between gap-3 flex-wrap">
-            <div className="text-[11px] text-dimmer">
-              Showing {(page - 1) * PAGE_SIZES.ticketsList + 1}–
-              {Math.min(page * PAGE_SIZES.ticketsList, paged.total)} of {paged.total}
+          {!grouped && (
+            <div className="mt-4 flex items-center justify-between gap-3 flex-wrap">
+              <div className="text-[11px] text-dimmer">
+                Showing {(page - 1) * PAGE_SIZES.ticketsList + 1}–
+                {Math.min(page * PAGE_SIZES.ticketsList, paged.total)} of {paged.total}
+              </div>
+              <ListPagination
+                page={page}
+                total={paged.total}
+                pageSize={PAGE_SIZES.ticketsList}
+                onChange={setPage}
+              />
             </div>
-            <ListPagination
-              page={page}
-              total={paged.total}
-              pageSize={PAGE_SIZES.ticketsList}
-              onChange={setPage}
-            />
-          </div>
+          )}
+
         </>
       )}
 
