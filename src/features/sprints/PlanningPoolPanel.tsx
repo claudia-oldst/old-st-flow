@@ -23,7 +23,13 @@ interface Props {
   onToggleSelect: (id: string, shiftKey: boolean) => void;
   onToggleSelectAll: (ids: string[], select: boolean) => void;
   onOpenTicket: (t: TicketRow) => void;
+  width: number;
+  onResize: (width: number) => void;
 }
+
+const MIN_WIDTH = 320;
+const MAX_WIDTH = 900;
+
 
 /**
  * Planning tab left panel: tickets roadmapped to the selected sprint+discipline
