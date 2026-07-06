@@ -35,11 +35,22 @@ export function EpicCRRow({
       <td className="px-2 py-2 max-w-[420px]">
         <span className="truncate block" title={t.title}>{t.title}</span>
       </td>
-      <td className="px-2 py-2 text-right font-mono text-dim">{formatHours(t.current_fe_estimate)}</td>
-      <td className="px-2 py-2 text-right font-mono text-dim">{formatHours(t.current_be_estimate)}</td>
+      <td className="px-2 py-2 text-right font-mono text-dim">
+        {t.ticket_type === "Proj" ? "—" : formatHours(t.current_fe_estimate)}
+      </td>
+      <td className="px-2 py-2 text-right font-mono text-dim">
+        {t.ticket_type === "Proj"
+          ? formatHours(t.current_project_estimate)
+          : formatHours(t.current_be_estimate)}
+      </td>
       {ratePerHour !== undefined && (
         <td className="px-2 py-2 text-right font-mono text-dim">
-          {formatGBP((Number(t.current_fe_estimate) + Number(t.current_be_estimate)) * ratePerHour)}
+          {formatGBP(
+            (t.ticket_type === "Proj"
+              ? Number(t.current_project_estimate)
+              : Number(t.current_fe_estimate) + Number(t.current_be_estimate)
+            ) * ratePerHour,
+          )}
         </td>
       )}
       <td className="px-2 py-2 text-dimmer whitespace-nowrap">

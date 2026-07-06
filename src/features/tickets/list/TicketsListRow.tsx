@@ -134,12 +134,22 @@ export function TicketsListRow({
         );
       }
       case "fe":
+        if (t.ticket_type === "Proj") {
+          return <span className="text-dimmer text-xs">—</span>;
+        }
         return (
           <span className="text-xs font-mono text-dim whitespace-nowrap">
             {formatHours(t.actual_frontend_hours)} / {formatHours(t.current_fe_estimate)}
           </span>
         );
       case "be":
+        if (t.ticket_type === "Proj") {
+          return (
+            <span className="text-xs font-mono text-dim whitespace-nowrap">
+              {formatHours(t.actual_project_hours)} / {formatHours(t.current_project_estimate)}
+            </span>
+          );
+        }
         return (
           <span className="text-xs font-mono text-dim whitespace-nowrap">
             {formatHours(t.actual_backend_hours)} / {formatHours(t.current_be_estimate)}
