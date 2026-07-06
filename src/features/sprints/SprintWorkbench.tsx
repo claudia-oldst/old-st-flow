@@ -166,6 +166,9 @@ function PlanningInner({ projectId, sprints, isPMBA }: Props) {
           onToggleSelect={togglePool}
           onToggleSelectAll={toggleAllPool}
           onOpenTicket={setOpenTicket}
+          width={poolWidth}
+          onResize={setPoolWidth}
+
         />
 
         {sprintDevs.length === 0 ? (
