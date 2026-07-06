@@ -178,7 +178,11 @@ export function PlanningPoolPanel({
   });
 
   return (
-    <div className="flex flex-col gap-2 h-full min-h-0 rounded-md hairline bg-surface-1/40 w-96 shrink-0">
+    <div
+      className="relative flex flex-col gap-2 h-full min-h-0 min-w-0 rounded-md hairline bg-surface-1/40 shrink-0"
+      style={{ width }}
+    >
+
       <div className="p-2.5 hairline-b bg-surface-1/60 space-y-2">
         <div className="flex items-center justify-between gap-2">
           <h3 className="font-display text-sm font-semibold tracking-tight">Pool</h3>
