@@ -1,14 +1,24 @@
-# Allow zero-hour tickets in the Sprint Planning pool
+# Show Proj hours in place of FE/BE for Proj tickets
 
-Currently the pool in `PlanningPoolPanel.tsx` filters out any ticket whose remaining hours for the selected discipline are 0 (via the `hasHours` check). This blocks assigning tickets that legitimately have no FE/BE estimate yet but still need to be planned.
+For `ticket_type === "Proj"` tickets, render the FE column as blank and the BE column with the ticket's project hours (`actual_project_hours` / `current_project_estimate`). This affects the two tables that show FE and BE hours side-by-side.
 
-## Change
+## Changes
 
-**`src/features/sprints/PlanningPoolPanel.tsx`** — In the `pool` `useMemo`, remove the `hasHours` guard so tickets with 0 remaining hours in the selected discipline still appear in the pool and can be selected/assigned.
+**`src/features/tickets/list/TicketsListRow.tsx`** — In `renderCell` for `case "fe"` and `case "be"`:
+- If `t.ticket_type === "Proj"`:
+  - `fe` cell → render `<span className="text-dimmer text-xs">—</span>`
+  - `be` cell → render `{formatHours(t.actual_project_hours)} / {formatHours(t.current_project_estimate)}`
+- Otherwise, keep the existing FE/BE rendering.
 
-`PoolRow` already handles 0 gracefully (`formatHours(0)`), and downstream capacity math treats missing hours as 0, so no other changes are needed.
+**`src/features/change-requests/EpicCRRow.tsx`** — For the two hour cells (lines 38–39) and the rate cell (line 42):
+- If `t.ticket_type === "Proj"`:
+  - FE cell → `—`
+  - BE cell → `formatHours(t.current_project_estimate)`
+  - Rate cell (when `ratePerHour` is set) → use `current_project_estimate * ratePerHour` instead of FE+BE sum.
+- Otherwise, keep existing rendering.
 
 ## Out of scope
 
-- No changes to dev columns, capacity calculations, or DB.
-- No new UI affordance to distinguish zero-hour tickets (can add later if wanted).
+- Column headers stay "FE" / "BE" (no header retitling per row).
+- No changes to sorting, filtering, CSV export, capacity math, planning pool, dev columns, MyWork (already shows "—" for Project slot), Portal, or health rollups.
+- No DB or schema changes.
