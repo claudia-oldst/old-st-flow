@@ -53,7 +53,7 @@ export function useLogTime({
   const [durH, setDurH] = useState("");
   const [durM, setDurM] = useState("");
   const setDuration = (h: string, m: string) => { setDurH(h); setDurM(m); };
-  const note_hours_placeholder = ""; // reserved
+  
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
 
