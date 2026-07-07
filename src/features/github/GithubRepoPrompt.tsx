@@ -18,9 +18,11 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   /** Called with the canonical URL after a successful save. */
   onSaved: (url: string) => void;
+  /** Optional skip handler; when set, a "Skip for now" button appears. */
+  onSkip?: () => void;
 }
 
-export function GithubRepoPrompt({ open, projectId, onOpenChange, onSaved }: Props) {
+export function GithubRepoPrompt({ open, projectId, onOpenChange, onSaved, onSkip }: Props) {
   const handleSubmit = async (value: string): Promise<string | null> => {
     const parsed = parseGithubRepoUrl(value);
     if (!parsed) return "Enter a full GitHub repo URL.";
