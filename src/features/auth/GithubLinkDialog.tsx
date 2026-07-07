@@ -29,6 +29,9 @@ export interface GithubLinkDialogProps {
    */
   onSubmit: (value: string) => Promise<string | null>;
   maxLength?: number;
+  /** Optional third button label; shown only with onSkip and when dismissible. */
+  skipLabel?: string;
+  onSkip?: () => void;
 }
 
 export function GithubLinkDialog({
