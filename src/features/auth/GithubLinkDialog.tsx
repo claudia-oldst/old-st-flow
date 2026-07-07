@@ -46,6 +46,8 @@ export function GithubLinkDialog({
   validate,
   onSubmit,
   maxLength,
+  skipLabel,
+  onSkip,
 }: GithubLinkDialogProps) {
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
