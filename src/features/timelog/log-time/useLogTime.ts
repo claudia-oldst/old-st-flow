@@ -50,7 +50,10 @@ export function useLogTime({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [role, ticket.id, user?.id, open]);
 
-  const [hours, setHours] = useState("");
+  const [durH, setDurH] = useState("");
+  const [durM, setDurM] = useState("");
+  const setDuration = (h: string, m: string) => { setDurH(h); setDurM(m); };
+  const note_hours_placeholder = ""; // reserved
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
 
