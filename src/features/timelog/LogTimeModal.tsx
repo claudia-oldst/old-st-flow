@@ -37,8 +37,9 @@ export function LogTimeModal({ open, onOpenChange, ticket, role, onLogged }: Pro
     discipline,
     setDiscipline,
     disciplineOptions,
-    hours,
-    setHours,
+    durH,
+    durM,
+    setDuration,
     note,
     setNote,
     busy,
@@ -62,7 +63,7 @@ export function LogTimeModal({ open, onOpenChange, ticket, role, onLogged }: Pro
   const [savingEstimate, setSavingEstimate] = useState(false);
   const isMyTimerOnThisTicket = activeTimer?.ticket_id === ticket.id;
 
-  const enteredHours = parseFloat(hours) || 0;
+  const enteredHours = hoursMinutesToDecimal(durH, durM);
   const overflowsManual = enteredHours > 0 && wouldOverflowManual(enteredHours);
   const adjustSlot: AdjustSlot =
     discipline === "Project" ? "Proj" : (discipline as "FE" | "BE");
