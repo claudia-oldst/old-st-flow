@@ -132,6 +132,17 @@ export function GithubLinkDialog({
                 Cancel
               </Button>
             )}
+            {dismissible && onSkip && skipLabel && (
+              <Button
+                type="button"
+                variant="ghost"
+                className="flex-1"
+                onClick={onSkip}
+                disabled={busy}
+              >
+                {skipLabel}
+              </Button>
+            )}
             <Button
               type="submit"
               className="flex-1"
