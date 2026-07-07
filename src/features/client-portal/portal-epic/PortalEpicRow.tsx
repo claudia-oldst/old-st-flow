@@ -103,7 +103,7 @@ export function PortalEpicRow({ epic, isOpen, onToggle, canExpand }: Props) {
       </div>
 
       <div className="flex justify-center">
-        {hasDelta ? (
+        {expandable ? (
           <ChevronRight
             className={cn(
               "h-4 w-4 text-dim transition-transform",
