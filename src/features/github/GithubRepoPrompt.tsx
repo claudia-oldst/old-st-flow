@@ -74,6 +74,8 @@ export function GithubRepoPrompt({ open, projectId, onOpenChange, onSaved, onSki
           : "Must be a URL like https://github.com/owner/repo"
       }
       onSubmit={handleSubmit}
+      skipLabel={onSkip ? "Skip for now" : undefined}
+      onSkip={onSkip}
     />
   );
 }
