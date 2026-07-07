@@ -1,24 +1,17 @@
-## Change
+## Fix
 
-Add a **Skip** option to the GitHub repo prompt when it's triggered from the assign flow, so the user can save the assignees without linking a repo.
+New/unassigned tickets currently derive to "TO DO" instead of "BACKLOG" because the seed derivation rule for `FE=todo AND BE=todo` still points at the old "TO DO" status row. That rule was seeded before the "BACKLOG" status existed (added later at position 1), so its `status_id` was never updated.
 
-## Implementation
+### Migration
+- In `public.status_derivation_rules`, update any rule whose `status_id` matches the "TO DO" status row to point at `public.first_status_in_category('backlog')` — which now resolves to BACKLOG (position 1). Scoped by matching the "TO DO" id specifically so PMBA-authored rules aren't touched.
+- Call `SELECT public.reapply_status_rules();` so existing non-overridden tickets currently on "TO DO" (both FE/BE = todo) re-derive to BACKLOG.
 
-**`src/features/auth/GithubLinkDialog.tsx`**
-- Add optional `skipLabel?: string` and `onSkip?: () => void` props.
-- When both are provided AND `dismissible`, render a third button (ghost variant) between Cancel and Save labelled with `skipLabel`. Clicking it calls `onSkip()` (parent decides what to do — typically close + continue).
-- No change to existing callers that don't pass these props.
+### No code changes
+- `AddTicketsDialog`, `derive_project_status`, and the statuses table itself are unchanged.
+- Tickets with `project_status_override = true` keep their manual status (guaranteed by `reapply_status_rules`).
 
-**`src/features/github/GithubRepoPrompt.tsx`**
-- Accept an optional `onSkip?: () => void` prop and forward it to `GithubLinkDialog` with `skipLabel="Skip for now"`.
-- Keep the existing validate/submit/onSaved flow untouched.
-
-**`src/features/tickets/AssignDialog.tsx`**
-- Pass `onSkip={() => { setRepoPromptOpen(false); void performSave(); }}` to `<GithubRepoPrompt>` so skipping proceeds with the assignment save (assignees persist, no repo written).
-
-## Out of scope
-- The `GithubUsernamePrompt` (first-login) stays non-dismissible — no Skip there.
-- No RLS, schema, or copy changes elsewhere.
-
-## Verification
-- Assign an FE/BE dev on a repo-less project → prompt shows **Cancel / Skip for now / Save**. Skip closes the prompt and persists the assignees without touching `projects.github_repo_url`. Save still validates + saves the URL as today. Cancel aborts both.
+### Verification
+- Create a fresh, unassigned ticket → project status = BACKLOG.
+- Existing unassigned/non-overridden tickets that showed "TO DO" now show BACKLOG.
+- Manually-overridden tickets unchanged.
+- Status Rules admin: the backlog-bucket rule's "THEN Project =" now reads BACKLOG.
