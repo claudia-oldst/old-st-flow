@@ -132,14 +132,11 @@ export function EditTimeLogDialog({
 
           <div className="space-y-4 pt-2">
             <div className="space-y-2">
-              <Label>Hours</Label>
-              <Input
-                type="number"
-                step="0.25"
-                min="0.25"
-                value={hours}
-                onChange={(e) => setHours(e.target.value)}
-                className={cn(overflows && "border-primary focus-visible:ring-primary")}
+              <DurationInput
+                h={durH}
+                m={durM}
+                onChange={(h, m) => { setDurH(h); setDurM(m); }}
+                invalid={overflows}
               />
               {overflows && (
                 <p className="text-[11px] text-primary">
