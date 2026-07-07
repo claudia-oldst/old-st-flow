@@ -33,12 +33,12 @@ export function PortalEpicRow({ epic, isOpen, onToggle, canExpand }: Props) {
 
   return (
     <RowEl
-      {...(hasDelta
+      {...(expandable
         ? { onClick: onToggle, "aria-expanded": isOpen, type: "button" as const }
         : {})}
       className={cn(
         "w-full grid grid-cols-[20px_minmax(0,1.6fr)_minmax(0,1.4fr)_minmax(0,0.9fr)_minmax(0,0.7fr)_28px] gap-3 items-center px-4 py-3 text-left transition",
-        hasDelta && "hover:bg-white/[0.03] cursor-pointer",
+        expandable && "hover:bg-white/[0.03] cursor-pointer",
       )}
     >
       <div className="flex justify-center">
