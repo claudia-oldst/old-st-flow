@@ -9,11 +9,14 @@ interface Props {
   epic: EpicLite;
   isOpen: boolean;
   onToggle: () => void;
+  /** When true, the row is expandable (delta present OR PMBA summary present). */
+  canExpand?: boolean;
 }
 
-export function PortalEpicRow({ epic, isOpen, onToggle }: Props) {
+export function PortalEpicRow({ epic, isOpen, onToggle, canExpand }: Props) {
   const delta = epic.current_estimate - epic.original_estimate;
   const hasDelta = delta !== 0;
+  const expandable = canExpand ?? hasDelta;
   const donePct =
     epic.total_tickets > 0 ? (epic.done_tickets / epic.total_tickets) * 100 : 0;
   const ipPct =
@@ -26,7 +29,7 @@ export function PortalEpicRow({ epic, isOpen, onToggle }: Props) {
       ? "bg-health-warn"
       : "bg-health-good";
 
-  const RowEl: keyof JSX.IntrinsicElements = hasDelta ? "button" : "div";
+  const RowEl: keyof JSX.IntrinsicElements = expandable ? "button" : "div";
 
   return (
     <RowEl
