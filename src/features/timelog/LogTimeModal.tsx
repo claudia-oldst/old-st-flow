@@ -176,15 +176,11 @@ export function LogTimeModal({ open, onOpenChange, ticket, role, onLogged }: Pro
 
               <TabsContent value="manual" className="space-y-4 pt-4">
                 <div className="space-y-2">
-                  <Label>Hours</Label>
-                  <Input
-                    type="number"
-                    step="0.25"
-                    min="0.25"
-                    value={hours}
-                    onChange={(e) => setHours(e.target.value)}
-                    placeholder="1.5"
-                    className={cn(overflowsManual && "border-primary focus-visible:ring-primary")}
+                  <DurationInput
+                    h={durH}
+                    m={durM}
+                    onChange={setDuration}
+                    invalid={overflowsManual}
                   />
                   {overflowsManual && (
                     <p className="text-[11px] text-primary">
