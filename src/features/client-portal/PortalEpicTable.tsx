@@ -119,16 +119,19 @@ export function PortalEpicTable({
         {visibleEpics.map((e) => {
           const delta = e.current_estimate - e.original_estimate;
           const hasDelta = delta !== 0;
+          const hasSummary = (e.pmba_text ?? "").trim().length > 0;
+          const canExpand = hasDelta || hasSummary;
           const isOpen = expanded.has(e.id);
           return (
             <div key={e.id} className="hairline-b last:border-b-0">
               <PortalEpicRow
                 epic={e}
                 isOpen={isOpen}
+                canExpand={canExpand}
                 onToggle={() => toggle(e.id)}
               />
 
-              {hasDelta && isOpen && (
+              {canExpand && isOpen && (
                 <PortalEpicExpandedPanel
                   epicId={e.id}
                   epicName={e.epic_name ?? "Untitled epic"}
