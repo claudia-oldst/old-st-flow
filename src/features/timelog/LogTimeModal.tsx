@@ -18,6 +18,8 @@ import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { cn, displayTitle, formatHours } from "@/lib/utils";
 import { useLogTime } from "./log-time/useLogTime";
 import { DisciplinePicker } from "./log-time/DisciplinePicker";
+import { DurationInput } from "./log-time/DurationInput";
+import { hoursMinutesToDecimal } from "./utils";
 import { RequestMoreTimeDialog, type AdjustSlot } from "@/features/tickets/RequestMoreTimeDialog";
 
 interface Props {
