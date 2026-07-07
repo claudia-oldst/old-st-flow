@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { evenSplit } from "./utils";
+import { evenSplit, hoursMinutesToDecimal, decimalToHoursMinutes } from "./utils";
 
 describe("evenSplit", () => {
   it("returns empty array for n=0", () => {
