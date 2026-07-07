@@ -29,6 +29,9 @@ export interface GithubLinkDialogProps {
    */
   onSubmit: (value: string) => Promise<string | null>;
   maxLength?: number;
+  /** Optional third button label; shown only with onSkip and when dismissible. */
+  skipLabel?: string;
+  onSkip?: () => void;
 }
 
 export function GithubLinkDialog({
@@ -43,6 +46,8 @@ export function GithubLinkDialog({
   validate,
   onSubmit,
   maxLength,
+  skipLabel,
+  onSkip,
 }: GithubLinkDialogProps) {
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -125,6 +130,17 @@ export function GithubLinkDialog({
                 disabled={busy}
               >
                 Cancel
+              </Button>
+            )}
+            {dismissible && onSkip && skipLabel && (
+              <Button
+                type="button"
+                variant="ghost"
+                className="flex-1"
+                onClick={onSkip}
+                disabled={busy}
+              >
+                {skipLabel}
               </Button>
             )}
             <Button

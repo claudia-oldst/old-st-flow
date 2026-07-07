@@ -178,6 +178,10 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
           setProjectRepoUrl(url);
           void performSave();
         }}
+        onSkip={() => {
+          setRepoPromptOpen(false);
+          void performSave();
+        }}
       />
     </Dialog>
   );
