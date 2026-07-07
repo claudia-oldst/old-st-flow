@@ -111,8 +111,8 @@ export function useLogTime({
 
   const handleManualLog = async () => {
     if (!user) return toast.error("Pick a user first");
-    const h = parseFloat(hours);
-    if (!h || h <= 0) return toast.error("Enter hours > 0");
+    const h = hoursMinutesToDecimal(durH, durM);
+    if (!h || h <= 0) return toast.error("Enter a duration greater than 0");
     if (wouldOverflowManual(h)) {
       return toast.error("Adjust the estimate first — this would exceed available hours.");
     }
@@ -128,7 +128,7 @@ export function useLogTime({
     setBusy(false);
     if (error) return toast.error(error.message);
     toast.success(`Logged ${h}h`);
-    setHours("");
+    setDuration("", "");
     setNote("");
     await maybePromoteToActive();
     onLogged?.();
