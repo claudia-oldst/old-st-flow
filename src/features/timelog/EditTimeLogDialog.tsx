@@ -24,6 +24,8 @@ import {
   type AdjustSlot,
 } from "@/features/tickets/RequestMoreTimeDialog";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
+import { DurationInput } from "./log-time/DurationInput";
+import { hoursMinutesToDecimal, decimalToHoursMinutes } from "./utils";
 
 interface Props {
   open: boolean;
