@@ -24,6 +24,8 @@ import {
   type AdjustSlot,
 } from "@/features/tickets/RequestMoreTimeDialog";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
+import { DurationInput } from "./log-time/DurationInput";
+import { hoursMinutesToDecimal, decimalToHoursMinutes } from "./utils";
 
 interface Props {
   open: boolean;
@@ -46,14 +48,18 @@ export function EditTimeLogDialog({
   ticket,
   onSaved,
 }: Props) {
-  const [hours, setHours] = useState(String(log.hours));
+  const initial = decimalToHoursMinutes(log.hours);
+  const [durH, setDurH] = useState(String(initial.h));
+  const [durM, setDurM] = useState(String(initial.m));
   const [note, setNote] = useState(log.note ?? "");
   const [busy, setBusy] = useState(false);
   const [adjustOpen, setAdjustOpen] = useState(false);
 
   useEffect(() => {
     if (open) {
-      setHours(String(log.hours));
+      const init = decimalToHoursMinutes(log.hours);
+      setDurH(String(init.h));
+      setDurM(String(init.m));
       setNote(log.note ?? "");
     }
   }, [open, log.id, log.hours, log.note]);
@@ -63,7 +69,7 @@ export function EditTimeLogDialog({
 
   // Capacity excluding this log's existing contribution.
   const baseUsed = Math.max(0, cap.actual - log.hours);
-  const entered = parseFloat(hours) || 0;
+  const entered = hoursMinutesToDecimal(durH, durM);
   const overflows =
     cap.available > 0 && baseUsed + entered > cap.available + 1e-6;
   const remaining = Math.max(0, cap.available - baseUsed);
@@ -126,14 +132,11 @@ export function EditTimeLogDialog({
 
           <div className="space-y-4 pt-2">
             <div className="space-y-2">
-              <Label>Hours</Label>
-              <Input
-                type="number"
-                step="0.25"
-                min="0.25"
-                value={hours}
-                onChange={(e) => setHours(e.target.value)}
-                className={cn(overflows && "border-primary focus-visible:ring-primary")}
+              <DurationInput
+                h={durH}
+                m={durM}
+                onChange={(h, m) => { setDurH(h); setDurM(m); }}
+                invalid={overflows}
               />
               {overflows && (
                 <p className="text-[11px] text-primary">

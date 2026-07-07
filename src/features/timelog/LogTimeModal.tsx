@@ -18,6 +18,8 @@ import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { cn, displayTitle, formatHours } from "@/lib/utils";
 import { useLogTime } from "./log-time/useLogTime";
 import { DisciplinePicker } from "./log-time/DisciplinePicker";
+import { DurationInput } from "./log-time/DurationInput";
+import { hoursMinutesToDecimal } from "./utils";
 import { RequestMoreTimeDialog, type AdjustSlot } from "@/features/tickets/RequestMoreTimeDialog";
 
 interface Props {
@@ -35,8 +37,9 @@ export function LogTimeModal({ open, onOpenChange, ticket, role, onLogged }: Pro
     discipline,
     setDiscipline,
     disciplineOptions,
-    hours,
-    setHours,
+    durH,
+    durM,
+    setDuration,
     note,
     setNote,
     busy,
@@ -60,7 +63,7 @@ export function LogTimeModal({ open, onOpenChange, ticket, role, onLogged }: Pro
   const [savingEstimate, setSavingEstimate] = useState(false);
   const isMyTimerOnThisTicket = activeTimer?.ticket_id === ticket.id;
 
-  const enteredHours = parseFloat(hours) || 0;
+  const enteredHours = hoursMinutesToDecimal(durH, durM);
   const overflowsManual = enteredHours > 0 && wouldOverflowManual(enteredHours);
   const adjustSlot: AdjustSlot =
     discipline === "Project" ? "Proj" : (discipline as "FE" | "BE");
@@ -173,15 +176,11 @@ export function LogTimeModal({ open, onOpenChange, ticket, role, onLogged }: Pro
 
               <TabsContent value="manual" className="space-y-4 pt-4">
                 <div className="space-y-2">
-                  <Label>Hours</Label>
-                  <Input
-                    type="number"
-                    step="0.25"
-                    min="0.25"
-                    value={hours}
-                    onChange={(e) => setHours(e.target.value)}
-                    placeholder="1.5"
-                    className={cn(overflowsManual && "border-primary focus-visible:ring-primary")}
+                  <DurationInput
+                    h={durH}
+                    m={durM}
+                    onChange={setDuration}
+                    invalid={overflowsManual}
                   />
                   {overflowsManual && (
                     <p className="text-[11px] text-primary">

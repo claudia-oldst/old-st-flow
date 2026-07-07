@@ -5,6 +5,7 @@ import type { LogDiscipline, ProjectRole } from "@/lib/types";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { useTicketCapacity, capacityFor } from "@/features/timelog/useTicketCapacity";
 import { toast } from "sonner";
+import { hoursMinutesToDecimal } from "../utils";
 
 export function useLogTime({
   open,
@@ -49,7 +50,10 @@ export function useLogTime({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [role, ticket.id, user?.id, open]);
 
-  const [hours, setHours] = useState("");
+  const [durH, setDurH] = useState("");
+  const [durM, setDurM] = useState("");
+  const setDuration = (h: string, m: string) => { setDurH(h); setDurM(m); };
+  
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -107,8 +111,8 @@ export function useLogTime({
 
   const handleManualLog = async () => {
     if (!user) return toast.error("Pick a user first");
-    const h = parseFloat(hours);
-    if (!h || h <= 0) return toast.error("Enter hours > 0");
+    const h = hoursMinutesToDecimal(durH, durM);
+    if (!h || h <= 0) return toast.error("Enter a duration greater than 0");
     if (wouldOverflowManual(h)) {
       return toast.error("Adjust the estimate first — this would exceed available hours.");
     }
@@ -124,7 +128,7 @@ export function useLogTime({
     setBusy(false);
     if (error) return toast.error(error.message);
     toast.success(`Logged ${h}h`);
-    setHours("");
+    setDuration("", "");
     setNote("");
     await maybePromoteToActive();
     onLogged?.();
@@ -184,8 +188,9 @@ export function useLogTime({
     discipline,
     setDiscipline,
     disciplineOptions,
-    hours,
-    setHours,
+    durH,
+    durM,
+    setDuration,
     note,
     setNote,
     busy,
