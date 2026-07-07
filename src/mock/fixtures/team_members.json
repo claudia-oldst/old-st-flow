@@ -1,0 +1,189 @@
+[
+  {
+    "id": "d0000000-0000-4000-8000-000000000001",
+    "name": "Dennis",
+    "email": "dennis@old.st",
+    "role": "PMBA",
+    "avatar_color": "#f43f5e",
+    "auth_user_id": "9a000000-0000-4000-8000-000000000001",
+    "github_username": "dennis-oldst",
+    "created_at": "2026-01-10T08:00:00.000Z",
+    "updated_at": "2026-01-10T08:00:00.000Z"
+  },
+  {
+    "id": "5b97ae5d-d944-4f3d-9ce5-34104a655fc2",
+    "name": "Claudia Schwaeble",
+    "email": "claudia@old.st",
+    "role": "PMBA",
+    "avatar_color": "#3b82f6",
+    "auth_user_id": null,
+    "github_username": null,
+    "created_at": "2026-01-10T08:00:00.000Z",
+    "updated_at": "2026-01-10T08:00:00.000Z"
+  },
+  {
+    "id": "e0000000-0000-4000-8000-000000000002",
+    "name": "Heinrich",
+    "email": "heinrich@old.st",
+    "role": "PMBA",
+    "avatar_color": "#10b981",
+    "auth_user_id": null,
+    "github_username": null,
+    "created_at": "2026-01-10T08:00:00.000Z",
+    "updated_at": "2026-01-10T08:00:00.000Z"
+  },
+  {
+    "id": "e0000000-0000-4000-8000-000000000003",
+    "name": "Lorenz",
+    "email": "lorenz@old.st",
+    "role": "PMBA",
+    "avatar_color": "#f59e0b",
+    "auth_user_id": null,
+    "github_username": null,
+    "created_at": "2026-01-10T08:00:00.000Z",
+    "updated_at": "2026-01-10T08:00:00.000Z"
+  },
+  {
+    "id": "e0000000-0000-4000-8000-000000000004",
+    "name": "Zaria",
+    "email": "zaria@old.st",
+    "role": "PMBA",
+    "avatar_color": "#8b5cf6",
+    "auth_user_id": null,
+    "github_username": null,
+    "created_at": "2026-01-10T08:00:00.000Z",
+    "updated_at": "2026-01-10T08:00:00.000Z"
+  },
+  {
+    "id": "e0000000-0000-4000-8000-000000000005",
+    "name": "Brygs",
+    "email": "brygs@old.st",
+    "role": "QA",
+    "avatar_color": "#6366f1",
+    "auth_user_id": null,
+    "github_username": null,
+    "created_at": "2026-01-10T08:00:00.000Z",
+    "updated_at": "2026-01-10T08:00:00.000Z"
+  },
+  {
+    "id": "bf26f5ed-99c6-4831-aedf-acb31ab24cfc",
+    "name": "Gino",
+    "email": "gino@old.st",
+    "role": "Backend",
+    "avatar_color": "#ec4899",
+    "auth_user_id": null,
+    "github_username": "gino-be",
+    "created_at": "2026-01-10T08:00:00.000Z",
+    "updated_at": "2026-01-10T08:00:00.000Z"
+  },
+  {
+    "id": "e0000000-0000-4000-8000-000000000006",
+    "name": "Jethro",
+    "email": "jethro@old.st",
+    "role": "Backend",
+    "avatar_color": "#14b8a6",
+    "auth_user_id": null,
+    "github_username": null,
+    "created_at": "2026-01-10T08:00:00.000Z",
+    "updated_at": "2026-01-10T08:00:00.000Z"
+  },
+  {
+    "id": "e0000000-0000-4000-8000-000000000007",
+    "name": "Joven",
+    "email": "joven@old.st",
+    "role": "Backend",
+    "avatar_color": "#0ea5e9",
+    "auth_user_id": null,
+    "github_username": null,
+    "created_at": "2026-01-10T08:00:00.000Z",
+    "updated_at": "2026-01-10T08:00:00.000Z"
+  },
+  {
+    "id": "e0000000-0000-4000-8000-000000000008",
+    "name": "Keneth Paladin",
+    "email": "keneth@old.st",
+    "role": "Backend",
+    "avatar_color": "#84cc16",
+    "auth_user_id": null,
+    "github_username": "keneth-paladin",
+    "created_at": "2026-01-10T08:00:00.000Z",
+    "updated_at": "2026-01-10T08:00:00.000Z"
+  },
+  {
+    "id": "db8ee2c4-29f2-45d7-a996-2405493f9e68",
+    "name": "Ida",
+    "email": "ida@old.st",
+    "role": "Frontend",
+    "avatar_color": "#a855f7",
+    "auth_user_id": null,
+    "github_username": null,
+    "created_at": "2026-01-10T08:00:00.000Z",
+    "updated_at": "2026-01-10T08:00:00.000Z"
+  },
+  {
+    "id": "e0000000-0000-4000-8000-000000000009",
+    "name": "Lind",
+    "email": "lind@old.st",
+    "role": "Frontend",
+    "avatar_color": "#eab308",
+    "auth_user_id": null,
+    "github_username": null,
+    "created_at": "2026-01-10T08:00:00.000Z",
+    "updated_at": "2026-01-10T08:00:00.000Z"
+  },
+  {
+    "id": "e0000000-0000-4000-8000-000000000010",
+    "name": "Merielle",
+    "email": "merielle@old.st",
+    "role": "Frontend",
+    "avatar_color": "#d946ef",
+    "auth_user_id": null,
+    "github_username": null,
+    "created_at": "2026-01-10T08:00:00.000Z",
+    "updated_at": "2026-01-10T08:00:00.000Z"
+  },
+  {
+    "id": "e0000000-0000-4000-8000-000000000011",
+    "name": "Reg",
+    "email": "regina@old.st",
+    "role": "Frontend",
+    "avatar_color": "#22c55e",
+    "auth_user_id": null,
+    "github_username": null,
+    "created_at": "2026-01-10T08:00:00.000Z",
+    "updated_at": "2026-01-10T08:00:00.000Z"
+  },
+  {
+    "id": "e0000000-0000-4000-8000-000000000012",
+    "name": "Joyce Albos",
+    "email": "joyce@old.st",
+    "role": "Design",
+    "avatar_color": "#fb7185",
+    "auth_user_id": null,
+    "github_username": null,
+    "created_at": "2026-01-10T08:00:00.000Z",
+    "updated_at": "2026-01-10T08:00:00.000Z"
+  },
+  {
+    "id": "e0000000-0000-4000-8000-000000000013",
+    "name": "Patricia Regarde",
+    "email": "patricia@old.st",
+    "role": "Design",
+    "avatar_color": "#2dd4bf",
+    "auth_user_id": null,
+    "github_username": null,
+    "created_at": "2026-01-10T08:00:00.000Z",
+    "updated_at": "2026-01-10T08:00:00.000Z"
+  },
+  {
+    "id": "e0000000-0000-4000-8000-000000000014",
+    "name": "Trixie Amistad",
+    "email": "trixie@old.st",
+    "role": "Design",
+    "avatar_color": "#c084fc",
+    "auth_user_id": null,
+    "github_username": null,
+    "created_at": "2026-01-10T08:00:00.000Z",
+    "updated_at": "2026-01-10T08:00:00.000Z"
+  }
+]
