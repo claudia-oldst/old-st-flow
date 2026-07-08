@@ -29,6 +29,7 @@ interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   ticketId: string;
+  projectId: string;
   currentFE: number;
   currentBE: number;
   actualFE: number;
