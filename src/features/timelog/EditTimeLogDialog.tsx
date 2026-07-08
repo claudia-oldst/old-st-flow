@@ -187,6 +187,7 @@ export function EditTimeLogDialog({
           open={adjustOpen}
           onOpenChange={setAdjustOpen}
           ticketId={ticket.id}
+          projectId={ticket.project_id}
           currentFE={ticket.current_fe_estimate}
           currentBE={ticket.current_be_estimate}
           actualFE={ticket.actual_frontend_hours}
