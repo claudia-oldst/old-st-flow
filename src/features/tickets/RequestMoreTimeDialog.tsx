@@ -49,6 +49,7 @@ export function RequestMoreTimeDialog({
   open,
   onOpenChange,
   ticketId,
+  projectId,
   currentFE,
   currentBE,
   actualFE,
@@ -61,6 +62,8 @@ export function RequestMoreTimeDialog({
   onSaved,
 }: Props) {
   const user = useCurrentUser((s) => s.user);
+  const role = useProjectRole(projectId);
+  const canAutoApprove = isPMBA(role);
   const [slot, setSlot] = useState<AdjustSlot>(
     defaultSlot ?? allowedSlots[0] ?? "FE"
   );
