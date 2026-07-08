@@ -93,38 +93,45 @@ export function RequestMoreTimeDialog({
     setBusy(true);
 
     const dbDiscipline = slot === "Proj" ? "Project" : slot;
+    const insertRow: Record<string, unknown> = {
+      ticket_id: ticketId,
+      user_id: user.id,
+      discipline: dbDiscipline,
+      previous_hours: previous,
+      new_hours: next,
+      reason: reason.trim(),
+      status: canAutoApprove ? "approved" : "pending",
+    };
+    if (canAutoApprove) {
+      insertRow.decided_by = user.id;
+      insertRow.decided_at = new Date().toISOString();
+    }
     const { error: logErr } = await supabase
       .from("ticket_estimate_changes")
-      .insert({
-        ticket_id: ticketId,
-        user_id: user.id,
-        discipline: dbDiscipline,
-        previous_hours: previous,
-        new_hours: next,
-        reason: reason.trim(),
-        status: "approved",
-        decided_by: user.id,
-        decided_at: new Date().toISOString(),
-      });
+      .insert(insertRow);
     if (logErr) {
       setBusy(false);
       return toast.error(logErr.message);
     }
 
-    const patch =
-      slot === "FE"
-        ? { current_fe_estimate: next }
-        : slot === "BE"
-        ? { current_be_estimate: next }
-        : { current_project_estimate: next };
-    const { error: tErr } = await supabase
-      .from("tickets")
-      .update(patch)
-      .eq("id", ticketId);
-    setBusy(false);
-    if (tErr) return toast.error(tErr.message);
-
-    toast.success(`Estimate updated: ${formatHours(previous)} → ${formatHours(next)}`);
+    if (canAutoApprove) {
+      const patch =
+        slot === "FE"
+          ? { current_fe_estimate: next }
+          : slot === "BE"
+          ? { current_be_estimate: next }
+          : { current_project_estimate: next };
+      const { error: tErr } = await supabase
+        .from("tickets")
+        .update(patch)
+        .eq("id", ticketId);
+      setBusy(false);
+      if (tErr) return toast.error(tErr.message);
+      toast.success(`Estimate updated: ${formatHours(previous)} → ${formatHours(next)}`);
+    } else {
+      setBusy(false);
+      toast.success("Estimate revision submitted for PMBA approval");
+    }
     onOpenChange(false);
     onSaved();
   };
