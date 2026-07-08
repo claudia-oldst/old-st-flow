@@ -1,0 +1,62 @@
+[
+  {
+    "id": "5b000000-0000-4000-8000-000000000001",
+    "position": 1,
+    "operator": "AND",
+    "fe_statuses": ["done"],
+    "be_statuses": ["done"],
+    "status_id": "5a000000-0000-4000-8000-000000000009",
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "updated_at": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "5b000000-0000-4000-8000-000000000002",
+    "position": 2,
+    "operator": "AND",
+    "fe_statuses": ["for_integration", "done"],
+    "be_statuses": ["for_integration", "done"],
+    "status_id": "5a000000-0000-4000-8000-000000000004",
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "updated_at": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "5b000000-0000-4000-8000-000000000003",
+    "position": 3,
+    "operator": "AND",
+    "fe_statuses": ["in_progress"],
+    "be_statuses": ["todo", "in_progress", "for_integration", "done"],
+    "status_id": "5a000000-0000-4000-8000-000000000003",
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "updated_at": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "5b000000-0000-4000-8000-000000000004",
+    "position": 4,
+    "operator": "AND",
+    "fe_statuses": ["todo", "in_progress", "for_integration", "done"],
+    "be_statuses": ["in_progress"],
+    "status_id": "5a000000-0000-4000-8000-000000000003",
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "updated_at": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "5b000000-0000-4000-8000-000000000005",
+    "position": 5,
+    "operator": "AND",
+    "fe_statuses": ["done"],
+    "be_statuses": ["todo"],
+    "status_id": "5a000000-0000-4000-8000-000000000004",
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "updated_at": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "5b000000-0000-4000-8000-000000000006",
+    "position": 6,
+    "operator": "AND",
+    "fe_statuses": ["todo"],
+    "be_statuses": ["todo"],
+    "status_id": "5a000000-0000-4000-8000-000000000001",
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "updated_at": "2026-01-01T00:00:00.000Z"
+  }
+]

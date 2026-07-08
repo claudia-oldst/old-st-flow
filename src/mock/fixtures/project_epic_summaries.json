@@ -1,0 +1,112 @@
+[
+  {
+    "id": "60000000-0000-4000-8000-000000000001",
+    "project_id": "f77acac6-09f3-4da8-97e6-ec125afcbb22",
+    "epic_id": 1,
+    "ai_draft": "Admin authentication is complete: sign-in, password reset, and session handling are live and verified.",
+    "pmba_text": null,
+    "delta_hours": 0.4,
+    "included": true,
+    "created_at": "2026-06-18T08:00:00.000Z",
+    "updated_at": "2026-06-18T08:00:00.000Z"
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000002",
+    "project_id": "f77acac6-09f3-4da8-97e6-ec125afcbb22",
+    "epic_id": 2,
+    "ai_draft": null,
+    "pmba_text": "Application forms are progressing well; the configurable field builder shipped this cycle and validation is in active development.",
+    "delta_hours": 787.0,
+    "included": true,
+    "created_at": "2026-06-18T08:00:00.000Z",
+    "updated_at": "2026-06-18T08:00:00.000Z"
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000003",
+    "project_id": "f77acac6-09f3-4da8-97e6-ec125afcbb22",
+    "epic_id": 3,
+    "ai_draft": "Applications management review/approve flow is on staging awaiting QA.",
+    "pmba_text": "We expect applications management to clear QA next sprint and move to client sign-off.",
+    "delta_hours": 2.0,
+    "included": true,
+    "created_at": "2026-06-18T08:00:00.000Z",
+    "updated_at": "2026-06-18T08:00:00.000Z"
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000004",
+    "project_id": "f77acac6-09f3-4da8-97e6-ec125afcbb22",
+    "epic_id": 4,
+    "ai_draft": null,
+    "pmba_text": null,
+    "delta_hours": 0,
+    "included": false,
+    "created_at": "2026-06-18T08:00:00.000Z",
+    "updated_at": "2026-06-18T08:00:00.000Z"
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000005",
+    "project_id": "f77acac6-09f3-4da8-97e6-ec125afcbb22",
+    "epic_id": 5,
+    "ai_draft": "Family members can be added to an application; inline edit and reordering are in design.",
+    "pmba_text": "Core family-member capture is shipped. We're scoping a small enhancement for inline editing — no impact to the current timeline.",
+    "delta_hours": 0,
+    "included": true,
+    "created_at": "2026-06-18T08:00:00.000Z",
+    "updated_at": "2026-06-18T08:00:00.000Z"
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000006",
+    "project_id": "f77acac6-09f3-4da8-97e6-ec125afcbb22",
+    "epic_id": 7,
+    "ai_draft": "Industry partner management is in integration; partner status filters were expanded at the client's request.",
+    "pmba_text": "Industry Partners grew slightly this cycle (+4h FE) to add the extra partner-status filters you asked for. Now in integration testing.",
+    "delta_hours": 4.0,
+    "included": true,
+    "created_at": "2026-06-18T08:00:00.000Z",
+    "updated_at": "2026-06-18T08:00:00.000Z"
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000007",
+    "project_id": "f77acac6-09f3-4da8-97e6-ec125afcbb22",
+    "epic_id": 8,
+    "ai_draft": "Payment gateway integration is in progress; the vendor SDK reduced backend scope.",
+    "pmba_text": "Good news on Integrations — the payment gateway SDK covers retry handling we'd planned to build, trimming 4h of backend effort.",
+    "delta_hours": -4.0,
+    "included": true,
+    "created_at": "2026-06-18T08:00:00.000Z",
+    "updated_at": "2026-06-18T08:00:00.000Z"
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000008",
+    "project_id": "f77acac6-09f3-4da8-97e6-ec125afcbb22",
+    "epic_id": 12,
+    "ai_draft": null,
+    "pmba_text": "Project coordination was extended (+20h) to cover the multi-currency change-request scoping and the additional client review cycles this cycle.",
+    "delta_hours": 20.0,
+    "included": true,
+    "created_at": "2026-06-18T08:00:00.000Z",
+    "updated_at": "2026-06-18T08:00:00.000Z"
+  },
+  {
+    "id": "60000000-0000-4000-8000-000000000009",
+    "project_id": "f77acac6-09f3-4da8-97e6-ec125afcbb22",
+    "epic_id": 13,
+    "ai_draft": "Reporting is complete; export now produces a branded PDF in addition to CSV.",
+    "pmba_text": "Reports shipped this cycle. We added branded PDF export on top of CSV (+4h FE) so the output is client-ready.",
+    "delta_hours": 4.0,
+    "included": true,
+    "created_at": "2026-06-18T08:00:00.000Z",
+    "updated_at": "2026-06-18T08:00:00.000Z"
+  },
+  {
+    "id": "60000000-0000-4000-8000-00000000000a",
+    "project_id": "f77acac6-09f3-4da8-97e6-ec125afcbb22",
+    "epic_id": 14,
+    "ai_draft": "Resource upload and management is in integration; an async virus scan was added before downloads.",
+    "pmba_text": "Resources is in integration. We added an async virus-scan step (+2h BE) before files are downloadable, for member safety.",
+    "delta_hours": 2.0,
+    "included": true,
+    "created_at": "2026-06-18T08:00:00.000Z",
+    "updated_at": "2026-06-18T08:00:00.000Z"
+  }
+]

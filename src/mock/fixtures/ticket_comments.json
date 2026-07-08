@@ -1,0 +1,59 @@
+[
+  {
+    "id": "74000000-0000-4000-8000-000000000001",
+    "ticket_id": "71000000-0000-4000-8000-000000000002",
+    "user_id": "d0000000-0000-4000-8000-000000000001",
+    "parent_id": null,
+    "body": "Can we confirm the required fields with the client before we lock the schema? I think marital status is optional.",
+    "attachments": [],
+    "created_at": "2026-03-08T09:00:00.000Z",
+    "edited_at": null
+  },
+  {
+    "id": "74000000-0000-4000-8000-000000000002",
+    "ticket_id": "71000000-0000-4000-8000-000000000002",
+    "user_id": "e0000000-0000-4000-8000-000000000009",
+    "parent_id": "74000000-0000-4000-8000-000000000001",
+    "body": "Confirmed with Claudia — marital status is optional. I've updated the form accordingly.",
+    "attachments": [],
+    "created_at": "2026-03-08T10:15:00.000Z",
+    "edited_at": "2026-03-08T10:20:00.000Z"
+  },
+  {
+    "id": "74000000-0000-4000-8000-000000000003",
+    "ticket_id": "71000000-0000-4000-8000-000000000002",
+    "user_id": "e0000000-0000-4000-8000-000000000006",
+    "parent_id": null,
+    "body": "Backend validation endpoint is stubbed but not wired yet. Screenshot of the current state attached.",
+    "attachments": [
+      {
+        "name": "screenshot.png",
+        "path": "71000000-0000-4000-8000-000000000002/a1b2c3d4-screenshot.png",
+        "size": 12345,
+        "content_type": "image/png"
+      }
+    ],
+    "created_at": "2026-03-09T11:30:00.000Z",
+    "edited_at": null
+  },
+  {
+    "id": "74000000-0000-4000-8000-000000000004",
+    "ticket_id": "71000000-0000-4000-8000-000000000003",
+    "user_id": "d0000000-0000-4000-8000-000000000001",
+    "parent_id": null,
+    "body": "Let's make sure the approve/reject actions are audit-logged before this goes to QA.",
+    "attachments": [],
+    "created_at": "2026-03-18T14:00:00.000Z",
+    "edited_at": null
+  },
+  {
+    "id": "74000000-0000-4000-8000-000000000005",
+    "ticket_id": "71000000-0000-4000-8000-000000000003",
+    "user_id": "e0000000-0000-4000-8000-000000000007",
+    "parent_id": "74000000-0000-4000-8000-000000000004",
+    "body": "Audit logging is now part of COU-020. I'll add the hooks once that lands.",
+    "attachments": [],
+    "created_at": "2026-03-18T15:10:00.000Z",
+    "edited_at": null
+  }
+]

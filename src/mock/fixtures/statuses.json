@@ -1,0 +1,101 @@
+[
+  {
+    "id": "5a000000-0000-4000-8000-000000000001",
+    "name": "BACKLOG",
+    "category": "backlog",
+    "color": "#94a3b8",
+    "position": 1,
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "updated_at": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "5a000000-0000-4000-8000-000000000002",
+    "name": "TO DO",
+    "category": "backlog",
+    "color": "#64748b",
+    "position": 2,
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "updated_at": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "5a000000-0000-4000-8000-000000000003",
+    "name": "IN PROGRESS",
+    "category": "active",
+    "color": "#3b82f6",
+    "position": 3,
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "updated_at": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "5a000000-0000-4000-8000-000000000004",
+    "name": "FOR INTEGRATION",
+    "category": "active",
+    "color": "#a855f7",
+    "position": 4,
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "updated_at": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "5a000000-0000-4000-8000-000000000005",
+    "name": "FOR QA (ON STAGING)",
+    "category": "active",
+    "color": "#f59e0b",
+    "position": 5,
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "updated_at": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "5a000000-0000-4000-8000-000000000006",
+    "name": "IN QA",
+    "category": "active",
+    "color": "#eab308",
+    "position": 6,
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "updated_at": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "5a000000-0000-4000-8000-000000000007",
+    "name": "FOR DESIGN REVIEW",
+    "category": "active",
+    "color": "#ec4899",
+    "position": 7,
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "updated_at": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "5a000000-0000-4000-8000-000000000008",
+    "name": "IN DESIGN REVIEW",
+    "category": "active",
+    "color": "#d946ef",
+    "position": 8,
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "updated_at": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "5a000000-0000-4000-8000-000000000009",
+    "name": "DEV DONE (FOR DEPL.)",
+    "category": "dev done",
+    "color": "#14b8a6",
+    "position": 9,
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "updated_at": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "5a000000-0000-4000-8000-000000000010",
+    "name": "FOR CLIENT SIGN-OFF",
+    "category": "done",
+    "color": "#10b981",
+    "position": 10,
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "updated_at": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "5a000000-0000-4000-8000-000000000011",
+    "name": "Done",
+    "category": "done",
+    "color": "#22c55e",
+    "position": 11,
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "updated_at": "2026-01-01T00:00:00.000Z"
+  }
+]

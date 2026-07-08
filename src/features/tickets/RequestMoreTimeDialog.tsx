@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/store/currentUser";
+import { useProjectRole, isPMBA } from "@/features/team/useProjectRole";
 import { formatHours } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -28,6 +29,7 @@ interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   ticketId: string;
+  projectId: string;
   currentFE: number;
   currentBE: number;
   actualFE: number;
@@ -47,6 +49,7 @@ export function RequestMoreTimeDialog({
   open,
   onOpenChange,
   ticketId,
+  projectId,
   currentFE,
   currentBE,
   actualFE,
@@ -59,6 +62,8 @@ export function RequestMoreTimeDialog({
   onSaved,
 }: Props) {
   const user = useCurrentUser((s) => s.user);
+  const role = useProjectRole(projectId);
+  const canAutoApprove = isPMBA(role);
   const [slot, setSlot] = useState<AdjustSlot>(
     defaultSlot ?? allowedSlots[0] ?? "FE"
   );
@@ -97,29 +102,34 @@ export function RequestMoreTimeDialog({
         previous_hours: previous,
         new_hours: next,
         reason: reason.trim(),
-        status: "approved",
-        decided_by: user.id,
-        decided_at: new Date().toISOString(),
+        status: canAutoApprove ? "approved" : "pending",
+        ...(canAutoApprove
+          ? { decided_by: user.id, decided_at: new Date().toISOString() }
+          : {}),
       });
     if (logErr) {
       setBusy(false);
       return toast.error(logErr.message);
     }
 
-    const patch =
-      slot === "FE"
-        ? { current_fe_estimate: next }
-        : slot === "BE"
-        ? { current_be_estimate: next }
-        : { current_project_estimate: next };
-    const { error: tErr } = await supabase
-      .from("tickets")
-      .update(patch)
-      .eq("id", ticketId);
-    setBusy(false);
-    if (tErr) return toast.error(tErr.message);
-
-    toast.success(`Estimate updated: ${formatHours(previous)} → ${formatHours(next)}`);
+    if (canAutoApprove) {
+      const patch =
+        slot === "FE"
+          ? { current_fe_estimate: next }
+          : slot === "BE"
+          ? { current_be_estimate: next }
+          : { current_project_estimate: next };
+      const { error: tErr } = await supabase
+        .from("tickets")
+        .update(patch)
+        .eq("id", ticketId);
+      setBusy(false);
+      if (tErr) return toast.error(tErr.message);
+      toast.success(`Estimate updated: ${formatHours(previous)} → ${formatHours(next)}`);
+    } else {
+      setBusy(false);
+      toast.success("Estimate revision submitted for PMBA approval");
+    }
     onOpenChange(false);
     onSaved();
   };
@@ -131,7 +141,7 @@ export function RequestMoreTimeDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="glass-strong max-w-md">
         <DialogHeader>
-          <DialogTitle>Adjust estimate</DialogTitle>
+          <DialogTitle>{canAutoApprove ? "Adjust estimate" : "Request estimate change"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
           {helperText && (
@@ -175,7 +185,9 @@ export function RequestMoreTimeDialog({
             <div className="flex items-center justify-between text-[11px] text-dim">
               <span>
                 {formatHours(previous)} →{" "}
-                <span className="text-foreground font-mono">{formatHours(next)}</span>
+                <span className={canAutoApprove ? "text-foreground font-mono" : "text-dim font-mono italic"}>
+                  {formatHours(next)}{canAutoApprove ? "" : " (pending)"}
+                </span>
               </span>
               <span className="text-dimmer">
                 Used so far:{" "}
@@ -199,7 +211,7 @@ export function RequestMoreTimeDialog({
             Cancel
           </Button>
           <Button onClick={submit} disabled={busy}>
-            Submit
+            {canAutoApprove ? "Submit" : "Submit for approval"}
           </Button>
         </DialogFooter>
       </DialogContent>

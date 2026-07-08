@@ -12,10 +12,20 @@ const SUPABASE_PUBLISHABLE_KEY =
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+import { mockSupabase } from "@/mock/mock-client";
+
+const realClient = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
   }
 });
+
+// Mock seam (see src/mock/): when VITE_MOCK=true the app boots on deterministic
+// fixtures with no live backend. Activated by `npm run dev:mock` / --mode mock.
+const IS_MOCK = import.meta.env.VITE_MOCK === "true";
+
+export const supabase = IS_MOCK
+  ? (mockSupabase as unknown as typeof realClient)
+  : realClient;

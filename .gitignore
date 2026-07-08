@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Generated build/test artifacts
+storybook-static
+test-results
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

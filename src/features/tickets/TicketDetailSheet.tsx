@@ -271,6 +271,7 @@ export function TicketDetailSheet({ open, onOpenChange, ticket: ticketProp, proj
           open={requestOpen}
           onOpenChange={setRequestOpen}
           ticketId={ticket.id}
+          projectId={projectId}
           currentFE={ticket.current_fe_estimate}
           currentBE={ticket.current_be_estimate}
           actualFE={ticket.actual_frontend_hours}

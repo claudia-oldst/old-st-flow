@@ -1,0 +1,35 @@
+[
+  {
+    "id": "5f000000-0000-4000-8000-000000000001",
+    "project_id": "f77acac6-09f3-4da8-97e6-ec125afcbb22",
+    "epic_id": 1,
+    "discipline": "BE",
+    "hours": 4,
+    "reason": "Reused auth scaffolding from a prior project.",
+    "created_by": "d0000000-0000-4000-8000-000000000001",
+    "created_at": "2026-03-01T08:00:00.000Z",
+    "updated_at": "2026-03-01T08:00:00.000Z"
+  },
+  {
+    "id": "5f000000-0000-4000-8000-000000000002",
+    "project_id": "f77acac6-09f3-4da8-97e6-ec125afcbb22",
+    "epic_id": 4,
+    "discipline": "FE",
+    "hours": 6,
+    "reason": "Dashboard shares components with the reports epic.",
+    "created_by": "d0000000-0000-4000-8000-000000000001",
+    "created_at": "2026-03-15T08:00:00.000Z",
+    "updated_at": "2026-03-15T08:00:00.000Z"
+  },
+  {
+    "id": "5f000000-0000-4000-8000-000000000003",
+    "project_id": "f77acac6-09f3-4da8-97e6-ec125afcbb22",
+    "epic_id": 11,
+    "discipline": "Project",
+    "hours": 3,
+    "reason": "Payments coordination overlaps with the integrations epic.",
+    "created_by": "5b97ae5d-d944-4f3d-9ce5-34104a655fc2",
+    "created_at": "2026-04-02T08:00:00.000Z",
+    "updated_at": "2026-04-02T08:00:00.000Z"
+  }
+]

@@ -188,6 +188,7 @@ export function StartGroupTimerDialog({ open, onOpenChange, tickets, role }: Pro
           open={!!adjustTicket}
           onOpenChange={(v) => !v && setAdjustTicket(null)}
           ticketId={adjustTicket.id}
+          projectId={adjustTicket.project_id}
           currentFE={adjustTicket.current_fe_estimate}
           currentBE={adjustTicket.current_be_estimate}
           actualFE={adjustTicket.actual_frontend_hours}

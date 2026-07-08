@@ -172,6 +172,7 @@ export function StopGroupTimerDialog({
         open={!!adjustRow}
         onOpenChange={(v) => !v && setAdjustTicketId(null)}
         ticketId={adjustRow.ticket.id}
+        projectId={adjustRow.ticket.project_id}
         currentFE={adjustCap?.currentFE ?? 0}
         currentBE={adjustCap?.currentBE ?? 0}
         actualFE={adjustCap?.actualFE ?? 0}

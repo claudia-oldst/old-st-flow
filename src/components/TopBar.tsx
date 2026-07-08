@@ -161,11 +161,16 @@ function UserMenu() {
 
 export function TopBar() {
   const location = useLocation();
+  const isPMBA = useCurrentUser((s) => s.user?.role === "PMBA");
 
   const navItems = [
     { to: "/", label: "Projects", icon: FolderKanban },
     { to: "/my-work", label: "My Work", icon: ListChecks },
-    { to: "/admin", label: "Admin", icon: Settings },
+    // Admin is a PMBA-only surface (the /admin route is guarded by RequirePMBA),
+    // so hide the link entirely for non-PMBA users to avoid confusion.
+    ...(isPMBA
+      ? [{ to: "/admin", label: "Admin", icon: Settings }]
+      : []),
   ];
 
   return (
