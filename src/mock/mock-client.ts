@@ -182,7 +182,7 @@ class MockQueryBuilder implements PromiseLike<any> {
   private rangeFrom: number | null = null;
   private rangeTo: number | null = null;
   private limitN: number | null = null;
-  private single: "none" | "one" | "maybe" = "none";
+  private singleMode: "none" | "one" | "maybe" = "none";
   private wantCount = false;
   private headOnly = false;
   private op: "select" | "insert" | "update" | "upsert" | "delete" = "select";
@@ -224,8 +224,8 @@ class MockQueryBuilder implements PromiseLike<any> {
   }
   range(from: number, to: number) { this.rangeFrom = from; this.rangeTo = to; return this; }
   limit(n: number) { this.limitN = n; return this; }
-  maybeSingle() { this.single = "maybe"; return this; }
-  single() { this.single = "one"; return this; }
+  maybeSingle() { this.singleMode = "maybe"; return this; }
+  single() { this.singleMode = "one"; return this; }
 
   // mutations
   insert(payload: any) { this.op = "insert"; this.payload = payload; return this; }
@@ -305,12 +305,12 @@ class MockQueryBuilder implements PromiseLike<any> {
   }
 
   private finishSingle(rows: any[], count: number | null) {
-    if (this.single === "one") {
+    if (this.singleMode === "one") {
       if (rows.length === 0)
         return { data: null, error: { message: "No rows", code: "PGRST116" }, count };
       return { data: rows[0], error: null, count };
     }
-    if (this.single === "maybe") return { data: rows[0] ?? null, error: null, count };
+    if (this.singleMode === "maybe") return { data: rows[0] ?? null, error: null, count };
     return { data: rows, error: null, count };
   }
 
