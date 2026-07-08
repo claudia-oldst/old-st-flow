@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/store/currentUser";
+import { useProjectRole, isPMBA } from "@/features/team/useProjectRole";
 import { formatHours } from "@/lib/utils";
 import { toast } from "sonner";
 
