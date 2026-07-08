@@ -185,7 +185,9 @@ export function RequestMoreTimeDialog({
             <div className="flex items-center justify-between text-[11px] text-dim">
               <span>
                 {formatHours(previous)} →{" "}
-                <span className="text-foreground font-mono">{formatHours(next)}</span>
+                <span className={canAutoApprove ? "text-foreground font-mono" : "text-dim font-mono italic"}>
+                  {formatHours(next)}{canAutoApprove ? "" : " (pending)"}
+                </span>
               </span>
               <span className="text-dimmer">
                 Used so far:{" "}
