@@ -211,7 +211,7 @@ export function RequestMoreTimeDialog({
             Cancel
           </Button>
           <Button onClick={submit} disabled={busy}>
-            Submit
+            {canAutoApprove ? "Submit" : "Submit for approval"}
           </Button>
         </DialogFooter>
       </DialogContent>
