@@ -141,7 +141,7 @@ export function RequestMoreTimeDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="glass-strong max-w-md">
         <DialogHeader>
-          <DialogTitle>Adjust estimate</DialogTitle>
+          <DialogTitle>{canAutoApprove ? "Adjust estimate" : "Request estimate change"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
           {helperText && (
