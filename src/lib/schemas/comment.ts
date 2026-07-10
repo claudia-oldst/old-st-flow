@@ -4,7 +4,7 @@ export const MAX_COMMENT_LENGTH = 5000;
 export const MAX_COMMENT_ATTACHMENTS = 10;
 
 export const commentAttachmentSchema = z.object({
-  url: z.string().url(),
+  url: z.string().url().or(z.literal("")),
   path: z.string().min(1),
   name: z.string().min(1).max(255),
   mime: z.string().max(255),
