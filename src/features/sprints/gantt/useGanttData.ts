@@ -107,11 +107,8 @@ export function useGanttData(
     });
 
     for (const t of tickets) {
-      const hasHours =
-        discipline === "FE"
-          ? (t.current_fe_estimate || 0) > 0
-          : (t.current_be_estimate || 0) > 0;
-      if (!hasHours) continue;
+
+
 
       // Resolve effective sprint.
       let res: TicketResolution | null = null;
