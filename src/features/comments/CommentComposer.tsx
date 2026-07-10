@@ -117,6 +117,28 @@ export function CommentComposer({
             submit();
           }
         }}
+        onPaste={(e) => {
+          if (disabled) return;
+          const files: File[] = [];
+          for (const item of Array.from(e.clipboardData?.items ?? [])) {
+            if (item.kind === "file") {
+              const f = item.getAsFile();
+              if (f) {
+                // Give pasted images a friendlier name
+                if (!f.name || f.name === "image.png") {
+                  const ext = (f.type.split("/")[1] || "png").replace("+xml", "");
+                  files.push(new File([f], `pasted-${Date.now()}.${ext}`, { type: f.type }));
+                } else {
+                  files.push(f);
+                }
+              }
+            }
+          }
+          if (files.length > 0) {
+            e.preventDefault();
+            handleFiles(files);
+          }
+        }}
       />
 
       {attachments.length > 0 && (
