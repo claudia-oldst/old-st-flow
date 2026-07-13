@@ -128,6 +128,7 @@ export function useLogTime({
       hours: h,
       note: note || null,
       source: "manual",
+      logged_at: loggedDate.toISOString(),
     });
     setBusy(false);
     if (error) return toast.error(error.message);
