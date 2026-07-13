@@ -45,6 +45,8 @@ export function LogTimeModal({ open, onOpenChange, ticket, role, onLogged }: Pro
     setDuration,
     note,
     setNote,
+    loggedDate,
+    setLoggedDate,
     busy,
     handleStartTimer,
     handleManualLog,
