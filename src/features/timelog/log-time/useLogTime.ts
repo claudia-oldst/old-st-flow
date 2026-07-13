@@ -56,6 +56,10 @@ export function useLogTime({
   
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  const [loggedDate, setLoggedDate] = useState<Date>(() => new Date());
+  useEffect(() => {
+    if (open) setLoggedDate(new Date());
+  }, [open, ticket.id]);
 
   const maybePromoteToActive = async () => {
     const { data: status } = await supabase
