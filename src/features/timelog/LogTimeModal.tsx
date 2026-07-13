@@ -181,6 +181,33 @@ export function LogTimeModal({ open, onOpenChange, ticket, role, onLogged }: Pro
 
               <TabsContent value="manual" className="space-y-4 pt-4">
                 <div className="space-y-2">
+                  <Label>Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !loggedDate && "text-muted-foreground",
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {loggedDate ? format(loggedDate, "PPP") : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={loggedDate}
+                        onSelect={(d) => d && setLoggedDate(d)}
+                        disabled={{ after: new Date() }}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="space-y-2">
                   <DurationInput
                     h={durH}
                     m={durM}
