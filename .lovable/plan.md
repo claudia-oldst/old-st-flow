@@ -1,47 +1,31 @@
-## Problem
+## Goal
+Let users pick the date for a manual time log in the Log Time modal, alongside the duration.
 
-On the Project Pulse Sprint Gantt (BE tab), the "Ticket Management & Board Views" bar for Sprint 1 (Jul 6 → Jul 17) shows `todo: 2 · in progress: 0 · for integration: 0 · done: 2` — only 4 tickets.
+## UX
+In `LogTimeModal`'s **Manual entry** tab, add a **Date** field above the Duration input:
+- Uses the existing shadcn `Popover` + `Calendar` + `Button` datepicker pattern already used elsewhere in the project.
+- Defaults to today.
+- Displays as `format(date, "PPP")` with a `CalendarIcon`.
+- Cannot be set to a future date (disable days after today).
 
-The actual sprint commitment for that epic is **25 tickets** (3 todo + 22 done), all committed to a Backend member. I confirmed this against the database.
+The Live timer tab is unchanged — timers always start "now".
 
-## Root cause
+## Implementation
 
-`src/features/sprints/gantt/useGanttData.ts` skips every ticket whose current discipline estimate is 0:
+### `src/features/timelog/log-time/useLogTime.ts`
+- Add `loggedDate` state (default `new Date()`), a `setLoggedDate` setter, and reset it to today when the modal opens (same effect that resets discipline).
+- In `handleManualLog`, insert `logged_at: loggedDate.toISOString()` into the `time_logs` row. Keep everything else (capacity check, promote-to-active, toast) as-is.
+- Export `loggedDate` and `setLoggedDate` from the hook.
 
-```ts
-const hasHours =
-  discipline === "FE"
-    ? (t.current_fe_estimate || 0) > 0
-    : (t.current_be_estimate || 0) > 0;
-if (!hasHours) continue;
-```
+### `src/features/timelog/LogTimeModal.tsx`
+- Pull `loggedDate` / `setLoggedDate` from the hook.
+- In the Manual entry `TabsContent`, add a new field block above the `DurationInput`:
+  - `Label`: "Date"
+  - `Popover` + `PopoverTrigger` (outline `Button` showing formatted date) + `PopoverContent` with `Calendar mode="single" selected={loggedDate} onSelect={...} disabled={{ after: new Date() }} className="p-3 pointer-events-auto"`.
 
-23 of the 25 committed BE tickets in that epic have `current_be_estimate = 0` (estimates were cleared or never entered, even though the tickets are committed and done by a BE dev). The gantt silently drops them, so the tooltip shows 2/2 instead of 3/22.
-
-No other gantt view (Roadmap board, workbench) applies this filter — they use commitment/planned assignment as the source of truth.
-
-## Fix
-
-Remove the `hasHours` gate from `useGanttData`. Discipline membership is already established downstream by the two existing rules:
-
-1. **Committed:** ticket has a `sprint_tickets` row whose assignee's project role maps to the current discipline (`memberDisciplines(role)`).
-2. **Planned:** ticket's `planned_sprint_fe_id` / `planned_sprint_be_id` points at a sprint.
-
-A ticket that is neither committed to a BE dev nor planned on the BE side still gets filtered out by the existing resolution step (`if (!res) continue;`), so removing `hasHours` cannot pull FE-only tickets into the BE view.
-
-### File changes
-
-- **`src/features/sprints/gantt/useGanttData.ts`** — delete the `hasHours` block (the 4 lines that compute `hasHours` and the `if (!hasHours) continue;`). Nothing else in the file needs to move.
-
-### Not changing
-
-- `SprintGantt.tsx`, `GanttGrid.tsx`, `GanttBar.tsx`, legend, discipline switcher — unchanged.
-- Estimate-driven views (capacity bars, hours totals) — unchanged; they legitimately need `current_*_estimate`.
-- Merge logic for the ALL tab — unchanged; already tolerant of zero-estimate tickets once they flow through.
+No other files change. Capacity math continues to key off the ticket's totals (not the picked day), matching current behavior.
 
 ## Verification
-
-1. Reload Project Pulse → Sprints → Gantt → **BE** tab. Hover "Ticket Management & Board Views" in Sprint 1. Tooltip should now read `todo: 3 · in progress: 0 · for integration: 0 · done: 22`.
-2. Switch to **FE** tab — epic bar should still reflect only FE commitments/plans (unchanged behaviour for epics that were correct before).
-3. Switch to **ALL** — combined counts should equal FE + BE per sprint.
-4. Spot-check one other epic (e.g. "Sprint Planning & Roadmap") to confirm no over-counting.
+- Open a ticket → Log time → Manual entry → date defaults to today, can be changed, future dates disabled.
+- Submit → new row in `time_logs` has `logged_at` = selected date; Time Logs panel shows the picked date.
+- Live timer tab unchanged.

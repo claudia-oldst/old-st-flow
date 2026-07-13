@@ -56,6 +56,10 @@ export function useLogTime({
   
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  const [loggedDate, setLoggedDate] = useState<Date>(() => new Date());
+  useEffect(() => {
+    if (open) setLoggedDate(new Date());
+  }, [open, ticket.id]);
 
   const maybePromoteToActive = async () => {
     const { data: status } = await supabase
@@ -124,6 +128,7 @@ export function useLogTime({
       hours: h,
       note: note || null,
       source: "manual",
+      logged_at: loggedDate.toISOString(),
     });
     setBusy(false);
     if (error) return toast.error(error.message);
@@ -193,6 +198,8 @@ export function useLogTime({
     setDuration,
     note,
     setNote,
+    loggedDate,
+    setLoggedDate,
     busy,
     handleStartTimer,
     handleManualLog,
