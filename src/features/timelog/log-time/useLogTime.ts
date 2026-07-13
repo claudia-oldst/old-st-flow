@@ -198,6 +198,8 @@ export function useLogTime({
     setDuration,
     note,
     setNote,
+    loggedDate,
+    setLoggedDate,
     busy,
     handleStartTimer,
     handleManualLog,
