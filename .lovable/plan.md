@@ -1,39 +1,28 @@
-# Show all epics in Epic Risk table, even with 0h estimate
+## Goal
+Permanently delete the project **Test Project** (acronym `TEST`, id `37bc863c-0c5f-465b-9e97-23662a86c81a`) and every piece of data associated with it. This cannot be undone.
 
-## Change
+## What gets deleted
+Executed via one migration that calls the existing `purge_project_children(_project_id)` function, then deletes the project row itself.
 
-In `src/features/health/overview/EpicRiskTable.tsx`, relax the filter that hides epics whose current estimate is 0.
+`purge_project_children` already removes, scoped to the project:
+- tickets and their time_logs, ticket_estimate_changes, ticket_comments, ticket_assignees
+- active_timers and active_timer_tickets for those tickets
+- project_epics, project_epic_summaries, epic_discounts
+- sprints, sprint_tickets, sprint_capacities
+- project_members
 
-Currently (line ~72):
-```ts
-if (total === 0 || currentEst === 0) continue;
-```
+After that runs, we `DELETE FROM public.projects WHERE id = '37bc863c-...'`.
 
-Change to:
-```ts
-if (total === 0) continue; // still skip epics with no categorized tickets
-```
+Not touched: team_members, user_roles, statuses, status_derivation_rules (all global/shared).
 
-## Handling divide-by-zero for burn %
+## Steps
+1. Run one migration:
+   ```sql
+   SELECT public.purge_project_children('37bc863c-0c5f-465b-9e97-23662a86c81a');
+   DELETE FROM public.projects WHERE id = '37bc863c-0c5f-465b-9e97-23662a86c81a';
+   ```
+2. Verify: `SELECT count(*) FROM projects WHERE id = '37bc863c-...'` returns 0.
 
-`burnPct` is computed as `(actualHours / currentEst) * 100`. When `currentEst === 0`:
-- If `actualHours === 0` → show `0%` burned, healthy.
-- If `actualHours > 0` → treat as fully over-burned: clamp to `150%` (the existing cap) and let risk logic flag it.
-
-Implementation: guard the division — `burnPct = currentEst === 0 ? (actualHours > 0 ? 150 : 0) : Math.min(150, (actualHours / currentEst) * 100)`.
-
-The estimate-burn bar and label already handle high burnPct (red bar, "X% burned · Yh / 0h"), so no display changes needed.
-
-## Risk classification
-
-`computeRisk` already early-returns `"healthy"` when `currentEst === 0`. For epics with actuals-but-no-estimate that feels wrong — they should surface as risky. Update the guard so that when `currentEst === 0 && actualHours > 0`, risk is `"at_risk"`; when both are 0, stay `"healthy"`.
-
-## Out of scope
-
-- The CR filter (unapproved CRs still excluded) — unchanged.
-- Unknown-status tickets still excluded from `total` — unchanged.
-- No changes to the Overview burn ring or weekly burn panel.
-
-## Files
-
-- `src/features/health/overview/EpicRiskTable.tsx` (single file, ~5 lines changed)
+## Notes
+- Vault archive is skipped — you asked for a hard delete, so no recovery snapshot is created. If you'd like a vault export first as a safety net, say the word and I'll archive-then-delete instead.
+- Dennis Testing (DEM) is untouched.
