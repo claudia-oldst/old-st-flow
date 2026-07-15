@@ -118,7 +118,6 @@ export function useGanttData(
         if (st.discipline !== discipline) continue;
         res = { sprintId: st.sprint_id, committed: true };
         break;
-        }
       }
       if (!res) {
         const p = plannedByTicket.get(t.id);
