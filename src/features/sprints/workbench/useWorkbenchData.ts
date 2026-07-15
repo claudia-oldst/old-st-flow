@@ -12,7 +12,7 @@ interface CapacityRow {
 interface SprintTicketLink {
   ticket_id: string;
   assigned_user_id: string | null;
-  discipline: "FE" | "BE";
+  discipline: string;
 }
 
 interface Params {
