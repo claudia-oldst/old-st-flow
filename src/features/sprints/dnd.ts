@@ -16,7 +16,18 @@ export async function addTicketToLane(
 ) {
   // Sprint commitments are per-discipline. Only FE/BE map to a sprint_tickets row.
   const discipline = slot === "FE" ? "FE" : slot === "BE" ? "BE" : null;
-  if (!discipline) return;
+  if (discipline !== "FE" && discipline !== "BE") {
+    // eslint-disable-next-line no-console
+    console.error("[addTicketToLane] blocked insert with invalid discipline", {
+      sprintId,
+      ticketId,
+      userId,
+      slot,
+      discipline,
+    });
+    toast.error(`Cannot assign: toggle discipline was "${discipline ?? "unset"}"`);
+    return;
+  }
 
   const { data: existing } = await supabase
     .from("sprint_tickets")
