@@ -34,8 +34,9 @@ interface EpicRiskRow {
 }
 
 function computeRisk(row: Omit<EpicRiskRow, "risk">): Risk {
-  const { burnPct, done, devDone, active, backlog, total, currentEst } = row;
-  if (total === 0 || currentEst === 0) return "healthy";
+  const { burnPct, done, devDone, active, backlog, total, currentEst, actualHours } = row;
+  if (total === 0) return "healthy";
+  if (currentEst === 0) return actualHours > 0 ? "at_risk" : "healthy";
   const effectiveProgress = ((done + devDone + active * 0.3) / total) * 100;
   const burnAhead = burnPct - effectiveProgress;
   if (burnAhead > 35) return "at_risk";

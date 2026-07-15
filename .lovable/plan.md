@@ -1,31 +1,39 @@
-## Goal
-Let users pick the date for a manual time log in the Log Time modal, alongside the duration.
+# Show all epics in Epic Risk table, even with 0h estimate
 
-## UX
-In `LogTimeModal`'s **Manual entry** tab, add a **Date** field above the Duration input:
-- Uses the existing shadcn `Popover` + `Calendar` + `Button` datepicker pattern already used elsewhere in the project.
-- Defaults to today.
-- Displays as `format(date, "PPP")` with a `CalendarIcon`.
-- Cannot be set to a future date (disable days after today).
+## Change
 
-The Live timer tab is unchanged — timers always start "now".
+In `src/features/health/overview/EpicRiskTable.tsx`, relax the filter that hides epics whose current estimate is 0.
 
-## Implementation
+Currently (line ~72):
+```ts
+if (total === 0 || currentEst === 0) continue;
+```
 
-### `src/features/timelog/log-time/useLogTime.ts`
-- Add `loggedDate` state (default `new Date()`), a `setLoggedDate` setter, and reset it to today when the modal opens (same effect that resets discipline).
-- In `handleManualLog`, insert `logged_at: loggedDate.toISOString()` into the `time_logs` row. Keep everything else (capacity check, promote-to-active, toast) as-is.
-- Export `loggedDate` and `setLoggedDate` from the hook.
+Change to:
+```ts
+if (total === 0) continue; // still skip epics with no categorized tickets
+```
 
-### `src/features/timelog/LogTimeModal.tsx`
-- Pull `loggedDate` / `setLoggedDate` from the hook.
-- In the Manual entry `TabsContent`, add a new field block above the `DurationInput`:
-  - `Label`: "Date"
-  - `Popover` + `PopoverTrigger` (outline `Button` showing formatted date) + `PopoverContent` with `Calendar mode="single" selected={loggedDate} onSelect={...} disabled={{ after: new Date() }} className="p-3 pointer-events-auto"`.
+## Handling divide-by-zero for burn %
 
-No other files change. Capacity math continues to key off the ticket's totals (not the picked day), matching current behavior.
+`burnPct` is computed as `(actualHours / currentEst) * 100`. When `currentEst === 0`:
+- If `actualHours === 0` → show `0%` burned, healthy.
+- If `actualHours > 0` → treat as fully over-burned: clamp to `150%` (the existing cap) and let risk logic flag it.
 
-## Verification
-- Open a ticket → Log time → Manual entry → date defaults to today, can be changed, future dates disabled.
-- Submit → new row in `time_logs` has `logged_at` = selected date; Time Logs panel shows the picked date.
-- Live timer tab unchanged.
+Implementation: guard the division — `burnPct = currentEst === 0 ? (actualHours > 0 ? 150 : 0) : Math.min(150, (actualHours / currentEst) * 100)`.
+
+The estimate-burn bar and label already handle high burnPct (red bar, "X% burned · Yh / 0h"), so no display changes needed.
+
+## Risk classification
+
+`computeRisk` already early-returns `"healthy"` when `currentEst === 0`. For epics with actuals-but-no-estimate that feels wrong — they should surface as risky. Update the guard so that when `currentEst === 0 && actualHours > 0`, risk is `"at_risk"`; when both are 0, stay `"healthy"`.
+
+## Out of scope
+
+- The CR filter (unapproved CRs still excluded) — unchanged.
+- Unknown-status tickets still excluded from `total` — unchanged.
+- No changes to the Overview burn ring or weekly burn panel.
+
+## Files
+
+- `src/features/health/overview/EpicRiskTable.tsx` (single file, ~5 lines changed)
