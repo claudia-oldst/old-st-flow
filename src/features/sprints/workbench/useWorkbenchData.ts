@@ -12,6 +12,7 @@ interface CapacityRow {
 interface SprintTicketLink {
   ticket_id: string;
   assigned_user_id: string | null;
+  discipline: "FE" | "BE";
 }
 
 interface Params {
@@ -41,13 +42,14 @@ export function useWorkbenchData({
     );
   }, [capacities, members, discipline]);
 
-  // Assignments per dev for this sprint, scoped to current discipline.
-  // sprint_tickets links a ticket+user; we filter to tickets that have hours
-  // in the selected discipline so we don't show FE-only tickets in BE view.
+  // Only rows for the currently-viewed discipline are considered — a fullstack
+  // dev committed only for FE reappears in the BE pool until they're also
+  // committed for BE.
   const devAssignments = useMemo(() => {
     const m = new Map<string, TicketRow[]>();
     sprintDevs.forEach((d) => m.set(d.user_id, []));
     sprintTickets.forEach((st) => {
+      if (st.discipline !== discipline) return;
       if (!st.assigned_user_id) return;
       const list = m.get(st.assigned_user_id);
       if (!list) return;
