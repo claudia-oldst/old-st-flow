@@ -131,7 +131,9 @@ export function useWorkbenchBulkActions({
     if (!isPMBA) return;
     try {
       for (const id of selectedArr) {
-        const links = sprintTickets.filter((st) => st.ticket_id === id);
+        const links = sprintTickets.filter(
+          (st) => st.ticket_id === id && st.discipline === discipline,
+        );
         for (const link of links) {
           if (!link.assigned_user_id) continue;
           await removeTicketFromSprint(link.id, id, link.assigned_user_id, discipline);
