@@ -10,6 +10,7 @@ interface SprintTicketLink {
   id: string;
   ticket_id: string;
   assigned_user_id: string | null;
+  discipline: string;
 }
 
 interface Params {
@@ -68,10 +69,12 @@ export function useWorkbenchBulkActions({
         ? { planned_sprint_fe_id: toSprintId }
         : { planned_sprint_be_id: toSprintId };
     try {
-      // If selection is from dev columns, also remove their current sprint_tickets row.
+      // If selection is from dev columns, also remove their current sprint_tickets row for this discipline.
       if (source === "dev" && targetSprintId) {
         for (const id of selectedArr) {
-          const links = sprintTickets.filter((st) => st.ticket_id === id);
+          const links = sprintTickets.filter(
+            (st) => st.ticket_id === id && st.discipline === discipline,
+          );
           for (const link of links) {
             if (link.assigned_user_id) {
               await removeTicketFromSprint(link.id, id, link.assigned_user_id, discipline);
@@ -105,8 +108,10 @@ export function useWorkbenchBulkActions({
     const slot: AssigneeSlot = discipline;
     try {
       for (const id of selectedArr) {
-        // Use the same dev who owns the current sprint_tickets row.
-        const link = sprintTickets.find((st) => st.ticket_id === id);
+        // Use the same dev who owns the current sprint_tickets row for this discipline.
+        const link = sprintTickets.find(
+          (st) => st.ticket_id === id && st.discipline === discipline,
+        );
         const userId = link?.assigned_user_id ?? null;
         if (!userId) continue;
         await addTicketToLane(next.id, id, userId, slot);
@@ -126,7 +131,9 @@ export function useWorkbenchBulkActions({
     if (!isPMBA) return;
     try {
       for (const id of selectedArr) {
-        const links = sprintTickets.filter((st) => st.ticket_id === id);
+        const links = sprintTickets.filter(
+          (st) => st.ticket_id === id && st.discipline === discipline,
+        );
         for (const link of links) {
           if (!link.assigned_user_id) continue;
           await removeTicketFromSprint(link.id, id, link.assigned_user_id, discipline);

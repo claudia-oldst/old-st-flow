@@ -14,19 +14,24 @@ export async function addTicketToLane(
   userId: string,
   slot: AssigneeSlot,
 ) {
+  // Sprint commitments are per-discipline. Only FE/BE map to a sprint_tickets row.
+  const discipline = slot === "FE" ? "FE" : slot === "BE" ? "BE" : null;
+  if (!discipline) return;
+
   const { data: existing } = await supabase
     .from("sprint_tickets")
     .select("id")
     .eq("sprint_id", sprintId)
     .eq("ticket_id", ticketId)
     .eq("assigned_user_id", userId)
+    .eq("discipline", discipline)
     .maybeSingle();
 
-  if (existing) return; // already committed to this dev
+  if (existing) return; // already committed to this dev for this discipline
 
   const { error } = await supabase
     .from("sprint_tickets")
-    .insert({ sprint_id: sprintId, ticket_id: ticketId, assigned_user_id: userId });
+    .insert({ sprint_id: sprintId, ticket_id: ticketId, assigned_user_id: userId, discipline });
   if (error) throw error;
 
   // Upsert ticket_assignees row in specialty slot — additive
