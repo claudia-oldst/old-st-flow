@@ -108,8 +108,10 @@ export function useWorkbenchBulkActions({
     const slot: AssigneeSlot = discipline;
     try {
       for (const id of selectedArr) {
-        // Use the same dev who owns the current sprint_tickets row.
-        const link = sprintTickets.find((st) => st.ticket_id === id);
+        // Use the same dev who owns the current sprint_tickets row for this discipline.
+        const link = sprintTickets.find(
+          (st) => st.ticket_id === id && st.discipline === discipline,
+        );
         const userId = link?.assigned_user_id ?? null;
         if (!userId) continue;
         await addTicketToLane(next.id, id, userId, slot);
