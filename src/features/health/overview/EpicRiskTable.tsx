@@ -79,8 +79,13 @@ export function EpicRiskTable({ tickets, statuses, epics }: Props) {
       }
       // Exclude unknown-status tickets from totals used for risk math.
       const total = done + devDone + active + backlog;
-      if (total === 0 || currentEst === 0) continue;
-      const burnPct = Math.min(150, (actualHours / currentEst) * 100);
+      if (total === 0) continue;
+      const burnPct =
+        currentEst === 0
+          ? actualHours > 0
+            ? 150
+            : 0
+          : Math.min(150, (actualHours / currentEst) * 100);
       const progressPct = ((done + devDone) / total) * 100;
       const base = {
         epicId: e.id,
