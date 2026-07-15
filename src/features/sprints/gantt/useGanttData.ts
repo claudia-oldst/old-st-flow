@@ -110,16 +110,14 @@ export function useGanttData(
 
 
 
-      // Resolve effective sprint.
+      // Resolve effective sprint. Route by sprint_tickets.discipline so a
+      // fullstack dev's BE-only commit doesn't appear in the FE gantt.
       let res: TicketResolution | null = null;
       const commits = commitmentsByTicket.get(t.id) ?? [];
       for (const st of commits) {
-        if (!st.assigned_user_id) continue;
-        const discs = memberDiscMap.get(st.assigned_user_id) ?? [];
-        if (discs.includes(discipline)) {
-          res = { sprintId: st.sprint_id, committed: true };
-          break;
-        }
+        if (st.discipline !== discipline) continue;
+        res = { sprintId: st.sprint_id, committed: true };
+        break;
       }
       if (!res) {
         const p = plannedByTicket.get(t.id);
