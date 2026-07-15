@@ -10,6 +10,7 @@ interface SprintTicketLink {
   id: string;
   ticket_id: string;
   assigned_user_id: string | null;
+  discipline: string;
 }
 
 interface Params {
