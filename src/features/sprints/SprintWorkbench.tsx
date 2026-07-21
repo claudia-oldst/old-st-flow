@@ -29,6 +29,13 @@ import { PlanningDevColumn } from "./PlanningDevColumn";
 import { useWorkbenchData } from "./workbench/useWorkbenchData";
 import { useWorkbenchBulkActions } from "./workbench/useWorkbenchBulkActions";
 import { WorkbenchBulkBar } from "./workbench/WorkbenchBulkBar";
+import { DevColumnsToolbar } from "./planning-dev/DevColumnsToolbar";
+import type { DevColGroupBy } from "./planning-dev/useDevColumnGroups";
+import {
+  EMPTY_FILTERS,
+  applyFilters,
+  type TicketFilters,
+} from "@/features/tickets/TicketsFilter";
 
 interface Props {
   projectId: string;
@@ -49,6 +56,10 @@ function PlanningInner({ projectId, sprints, isPMBA }: Props) {
   const [discipline, setDiscipline] = useState<"FE" | "BE">("FE");
   const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
   const [poolWidth, setPoolWidth] = usePersistentState<number>("sprints:poolWidth", 384);
+  const dk = (name: string) => `sprint-planning:dev-cols:${projectId}:${name}`;
+  const [devSearch, setDevSearch] = usePersistentState<string>(dk("search"), "");
+  const [devFilters, setDevFilters] = usePersistentState<TicketFilters>(dk("filters"), EMPTY_FILTERS);
+  const [devGroupBy, setDevGroupBy] = usePersistentState<DevColGroupBy>(dk("groupBy"), "none");
 
 
   const { tickets } = useProjectTickets(projectId);
@@ -81,6 +92,43 @@ function PlanningInner({ projectId, sprints, isPMBA }: Props) {
     setMany(ids, select, "pool");
 
   const selectedArr = useMemo(() => Array.from(selected), [selected]);
+
+  const allAssignedTickets = useMemo(() => {
+    const seen = new Set<string>();
+    const out: TicketRow[] = [];
+    devAssignments.forEach((list) => {
+      list.forEach((t) => {
+        if (!seen.has(t.id)) {
+          seen.add(t.id);
+          out.push(t);
+        }
+      });
+    });
+    return out;
+  }, [devAssignments]);
+
+  const visibleAssignmentsByDev = useMemo(() => {
+    const q = devSearch.trim().toLowerCase();
+    const out = new Map<string, TicketRow[]>();
+    devAssignments.forEach((list, userId) => {
+      let filtered = applyFilters(list, devFilters);
+      if (q) {
+        filtered = filtered.filter(
+          (t) =>
+            t.title.toLowerCase().includes(q) ||
+            (t.formatted_id ?? "").toLowerCase().includes(q),
+        );
+      }
+      out.set(userId, filtered);
+    });
+    return out;
+  }, [devAssignments, devFilters, devSearch]);
+
+  const visibleCount = useMemo(() => {
+    const s = new Set<string>();
+    visibleAssignmentsByDev.forEach((list) => list.forEach((t) => s.add(t.id)));
+    return s.size;
+  }, [visibleAssignmentsByDev]);
 
   const { assignToDev, moveToSprint, carryOver, removeFromSprint, invalidate } =
     useWorkbenchBulkActions({
@@ -176,24 +224,39 @@ function PlanningInner({ projectId, sprints, isPMBA }: Props) {
             No devs have {discipline} capacity in this sprint.
           </div>
         ) : (
-          <div className="flex flex-row gap-3 flex-1 overflow-x-auto">
-            {sprintDevs.map((dev) => (
-              <PlanningDevColumn
-                key={dev.user_id}
-                projectId={projectId}
-                sprintId={targetSprintId}
-                allSprints={sprints}
-                dev={dev}
-                discipline={discipline}
-                capacityHours={capByDev.get(dev.user_id) ?? 0}
-                assignedTickets={devAssignments.get(dev.user_id) ?? []}
-                selectedIds={selected}
-                onToggleSelect={toggleDev}
-                onOpenTicket={setOpenTicket}
-                isPMBA={isPMBA}
-                carriedOverIds={new Set()}
-              />
-            ))}
+          <div className="flex flex-col gap-2 flex-1 min-w-0">
+            <DevColumnsToolbar
+              projectId={projectId}
+              tickets={allAssignedTickets}
+              search={devSearch}
+              setSearch={setDevSearch}
+              filters={devFilters}
+              setFilters={setDevFilters}
+              groupBy={devGroupBy}
+              setGroupBy={setDevGroupBy}
+              visibleCount={visibleCount}
+            />
+            <div className="flex flex-row gap-3 flex-1 min-h-0 overflow-x-auto">
+              {sprintDevs.map((dev) => (
+                <PlanningDevColumn
+                  key={dev.user_id}
+                  projectId={projectId}
+                  sprintId={targetSprintId}
+                  allSprints={sprints}
+                  dev={dev}
+                  discipline={discipline}
+                  capacityHours={capByDev.get(dev.user_id) ?? 0}
+                  assignedTickets={devAssignments.get(dev.user_id) ?? []}
+                  visibleTickets={visibleAssignmentsByDev.get(dev.user_id) ?? []}
+                  groupBy={devGroupBy}
+                  selectedIds={selected}
+                  onToggleSelect={toggleDev}
+                  onOpenTicket={setOpenTicket}
+                  isPMBA={isPMBA}
+                  carriedOverIds={new Set()}
+                />
+              ))}
+            </div>
           </div>
         )}
       </div>
