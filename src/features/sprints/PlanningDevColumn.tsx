@@ -133,61 +133,76 @@ export function PlanningDevColumn({
           />
         )}
 
-        {assignedTickets.length === 0 && carryoverCandidates.length === 0 && (
+        {renderTickets.length === 0 && carryoverCandidates.length === 0 && (
           <div className="text-[11px] text-dim text-center py-6">
-            No tickets assigned
+            {assignedTickets.length === 0 ? "No tickets assigned" : "No tickets match filters"}
           </div>
         )}
 
-        {assignedTickets.map((t) => {
-          const selected = selectedIds.has(t.id);
-          const est =
-            discipline === "FE"
-              ? t.current_fe_estimate || 0
-              : t.current_be_estimate || 0;
-          const spent =
-            discipline === "FE"
-              ? t.actual_frontend_hours || 0
-              : t.actual_backend_hours || 0;
-          const carried = carriedOverIds.has(t.id);
-          return (
-            <PlanningRowTooltip key={t.id} ticket={t}>
-              <div
-                className={cn(
-                  "flex items-center gap-2 px-1.5 py-1.5 rounded hover:bg-white/[0.04] cursor-pointer",
-                  selected && "ring-1 ring-primary bg-primary/5",
-                )}
-                onClick={(e) => {
-                  if ((e.target as HTMLElement).closest("[data-checkbox]")) return;
-                  onOpenTicket(t);
-                }}
-              >
-                <div data-checkbox onClick={(e) => e.stopPropagation()}>
-                  <Checkbox
-                    checked={selected}
-                    onCheckedChange={() => onToggleSelect(t.id, false)}
-                    aria-label="Select ticket"
-                  />
-                </div>
-                {carried && (
-                  <CornerDownLeft className="h-3 w-3 text-dimmer shrink-0" aria-label="Carried over" />
-                )}
-                <span className="font-mono text-[10px] text-dimmer w-14 shrink-0">
-                  {t.formatted_id}
+        {groups.map((g) => (
+          <div key={g.key} className="space-y-1">
+            {groupBy !== "none" && (
+              <div className="flex items-center gap-2 px-1.5 pt-2 pb-1">
+                <span className="text-[10px] uppercase tracking-wide text-dim font-semibold">
+                  {g.label}
                 </span>
-                <span className="text-xs truncate flex-1 min-w-0">{t.title}</span>
-                {t.epic_name && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-dim truncate max-w-20 shrink-0">
-                    {t.epic_name}
-                  </span>
-                )}
-                <span className="font-mono text-[10px] text-dim shrink-0 w-16 text-right">
-                  {formatHours(spent)} / {formatHours(est)}
+                <span className="text-[10px] font-mono text-dimmer">
+                  {g.tickets.length}
                 </span>
+                <div className="flex-1 h-px bg-white/5" />
               </div>
-            </PlanningRowTooltip>
-          );
-        })}
+            )}
+            {g.tickets.map((t) => {
+              const selected = selectedIds.has(t.id);
+              const est =
+                discipline === "FE"
+                  ? t.current_fe_estimate || 0
+                  : t.current_be_estimate || 0;
+              const spent =
+                discipline === "FE"
+                  ? t.actual_frontend_hours || 0
+                  : t.actual_backend_hours || 0;
+              const carried = carriedOverIds.has(t.id);
+              return (
+                <PlanningRowTooltip key={t.id} ticket={t}>
+                  <div
+                    className={cn(
+                      "flex items-center gap-2 px-1.5 py-1.5 rounded hover:bg-white/[0.04] cursor-pointer",
+                      selected && "ring-1 ring-primary bg-primary/5",
+                    )}
+                    onClick={(e) => {
+                      if ((e.target as HTMLElement).closest("[data-checkbox]")) return;
+                      onOpenTicket(t);
+                    }}
+                  >
+                    <div data-checkbox onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selected}
+                        onCheckedChange={() => onToggleSelect(t.id, false)}
+                        aria-label="Select ticket"
+                      />
+                    </div>
+                    {carried && (
+                      <CornerDownLeft className="h-3 w-3 text-dimmer shrink-0" aria-label="Carried over" />
+                    )}
+                    <span className="font-mono text-[10px] text-dimmer w-14 shrink-0">
+                      {t.formatted_id}
+                    </span>
+                    <span className="text-xs truncate flex-1 min-w-0">{t.title}</span>
+                    {t.epic_name && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-dim truncate max-w-20 shrink-0">
+                        {t.epic_name}
+                      </span>
+                    )}
+                    <span className="font-mono text-[10px] text-dim shrink-0 w-16 text-right">
+                      {formatHours(spent)} / {formatHours(est)}
+                    </span>
+                  </div>
+                </PlanningRowTooltip>
+              );
+            })}
+          </div>
+        ))}
       </div>
     </div>
   );
