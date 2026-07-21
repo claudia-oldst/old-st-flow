@@ -1,38 +1,44 @@
 ## Goal
 
-Tighten the Sprint Planning **Pool** so it only surfaces tickets that are actually plannable:
+Add a single shared Filter + Group control that governs the assigned-ticket lists inside every developer column on the Sprint Planning tab. One control set applies to all dev columns simultaneously — no per-column duplication.
 
-1. Only tickets whose project status category is **`backlog`** or **`active`** are eligible.
-2. Any ticket that already has a `sprint_tickets` row for the currently-selected **discipline** (FE or BE) — in *any* sprint — is excluded from the pool. It must be moved via carryover, not re-picked.
-3. The roadmap plan (`planned_sprint_fe_id` / `planned_sprint_be_id`) is ignored for tickets that already have a commitment for that discipline.
+## UX
 
-Pool visibility today already excludes tickets in the current sprint's dev columns (`allDevTicketIds`, both disciplines); this widens the exclusion to *all sprints* for the selected discipline and adds the status-category gate.
+New slim toolbar strip sits directly above the row of developer columns (inside the body area, to the right of the Pool panel). It stays sticky above the scrollable columns row.
 
-## Changes
+```text
+[Pool ...] │ [ Search ] [ Filter ▾ ]  GROUP [ None ▾ ]
+           │ ─────────────────────────────────────────
+           │ [Dev A col] [Dev B col] [Dev C col] ...
+```
 
-**File:** `src/features/sprints/PlanningPoolPanel.tsx`
+- **Search** — filters by ticket ID / title.
+- **Filter** popover — reuses the existing `TicketsFilter` shape (Epic, Type, Status multi-selects) used by the Pool's `PoolFilterBar` for consistency.
+- **Group by** dropdown — options: `None`, `Epic`, `Type`, `Status`. Applies inside every dev column: matching tickets are rendered under a small group header (same style as the Pool's group headers). Empty groups are hidden. Sort order matches the Pool (`usePoolGroups` style: no-epic last, etc.).
+- Ticket count next to Filter label shows how many tickets are visible across all dev columns (e.g. `12 tickets`).
+- Filter/group state is per project (persisted via `usePersistentState`, key `sprint-planning:dev-cols:*`) and is independent of the Pool's own filter state.
+- Carryover panel inside each column is unaffected — filters only apply to `assignedTickets`.
 
-- Pull all project sprint_tickets via `useProjectSprintTickets(projectId)` (already cached — same hook `usePoolData` uses) and build a `Set<string>` of ticket ids that have at least one `sprint_tickets` row where the row's `discipline` column equals the selected FE/BE toggle. Discipline is read from `sprint_tickets.discipline` — never inferred from assignee role — so fullstack tickets classify identically to the earlier fix.
-- Pull statuses via `useStatuses()` and build a `Map<string, StatusCategory>` (`status_id → category`).
-- Extend the existing `pool` filter in the `useMemo`:
-  - Skip if `t.ticket_type === "Proj"` (unchanged).
-  - Skip if `allDevTicketIds.has(t.id)` (unchanged — guards the current sprint's dev columns across both disciplines).
-  - **New:** skip if the ticket is committed to any sprint for the current discipline (`committedForDiscipline.has(t.id)`).
-  - **New:** skip if `t.status_id` is null (defensive — status_id is nullable pre-derivation) or its category is not `backlog` and not `active`.
-  - Then apply the existing roadmap-selection filter.
+## Technical
 
-No changes to drag/drop, carryover banner, or bulk actions — carryover remains the path to move a committed ticket forward.
+1. **New component `src/features/sprints/planning-dev/DevColumnsToolbar.tsx`** — search input + Filter popover (reuse `TicketsFilter` component or inline the same multi-selects used by `PoolFilterBar`) + Group-by dropdown. Emits `{ search, filters, groupBy }`.
+
+2. **New hook `src/features/sprints/planning-dev/useDevColumnGroups.ts`** — mirrors `usePoolGroups` but scoped to dev-column groupings (`none | epic | type | status`). Returns `PoolGroup[]` for a given ticket array.
+
+3. **`SprintWorkbench.tsx`**
+   - Add persistent state: `devColSearch`, `devColFilters` (`TicketFilters`, default `EMPTY_FILTERS`), `devColGroupBy` (default `"none"`), all keyed by `projectId`.
+   - Render `<DevColumnsToolbar>` above the dev-columns row (same flex row as Pool, or a wrapping column so the toolbar spans the dev-columns area only).
+   - Pre-filter each dev's `assignedTickets` with `applyFilters(...)` + search before passing to `PlanningDevColumn`. Also pass `groupBy` through.
+
+4. **`PlanningDevColumn.tsx`**
+   - New prop `groupBy: "none" | "epic" | "type" | "status"`.
+   - When `groupBy !== "none"`, run `useDevColumnGroups` over `assignedTickets` and render group headers (reuse the Pool's header markup: `text-[10px] uppercase tracking-wide text-dim font-semibold` + count + hairline).
+   - `usedHours` / capacity math is unchanged — it stays based on the full `assignedTickets` list so capacity remains truthful even while filtering hides rows. (Filter is a view lens, not a scope change.)
+
+5. No DB, RLS, or query changes. Purely presentational.
 
 ## Out of scope
 
-- Backend/schema changes.
-- FE/BE toggle behavior, dev column rendering, or the `activeByTicket` chip logic in the tickets list / Gantt.
-- Fullstack discipline routing (already fixed).
-- How `planned_sprint_fe_id` / `planned_sprint_be_id` are stored — we just stop honoring them for tickets that already have a commit for that discipline.
-
-## Verify
-
-- Sprint Workbench → Planning, toggle **FE**: tickets in Dev Done / Done disappear from the pool.
-- A ticket committed to Sprint 1 for FE no longer appears in the Sprint 2 FE pool. It only re-enters planning via Sprint 1's carryover action.
-- The same ticket, if only FE is committed, still appears in the **BE** pool when the toggle flips.
-- Tickets in Backlog/Active with no commitments continue to appear as before.
+- Per-column filters.
+- Changing capacity math based on filters.
+- Filtering the carryover review panel.
