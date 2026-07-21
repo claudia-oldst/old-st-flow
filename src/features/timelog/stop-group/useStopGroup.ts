@@ -70,7 +70,8 @@ export function useStopGroup({
 
   const overflowsRow = (id: string, minutes: number) => {
     const cap = capacityFor(capMap[id], discipline);
-    if (cap.available <= 0) return false;
+    if (minutes <= 0) return false;
+    if (cap.available <= 0) return true;
     return cap.actual + minutes / 60 > cap.available + 1e-6;
   };
   const overflowingRowIds = useMemo(

@@ -1,48 +1,35 @@
-## Goal
+## Root cause (confirmed)
 
-A ticket's `fe_status` / `be_status` should be **null** when no one is assigned to that discipline. With both sides null, the ticket derives to **BACKLOG**.
+`src/features/timelog/log-time/useLogTime.ts` line 113-114:
 
-## Current state (verified)
+```ts
+const wouldOverflowManual = (h: number) =>
+  capacity.available > 0 && capacity.actual + h > capacity.available + 1e-6;
+```
 
-- `tickets.fe_status` / `be_status` are `NOT NULL DEFAULT 'todo'`.
-- `derive_project_status()` matches rules on concrete `discipline_status` values — nulls never match, so a null side would leave `status_id` unchanged (bad on INSERT where `status_id` is null).
-- The `fe=todo AND be=todo` rule still points to **TO DO**, not **BACKLOG**.
+The `capacity.available > 0` short-circuit means when a discipline's current estimate is **0h**, the overflow check is skipped entirely and any log is accepted. So for DRA-003 with BE estimate = 0h, Julian's manual log (and any timer stop) went straight through.
 
-## Migration
+`capacityFor` (`useTicketCapacity.ts`) already models this as `isOver` when `available === 0 && actual > 0`, but the log-time guard doesn't consult it.
 
-1. **Make columns nullable, drop the default.**
-   ```sql
-   ALTER TABLE public.tickets
-     ALTER COLUMN fe_status DROP NOT NULL,
-     ALTER COLUMN fe_status DROP DEFAULT,
-     ALTER COLUMN be_status DROP NOT NULL,
-     ALTER COLUMN be_status DROP DEFAULT;
-   ```
+Stop-group and start-group timer paths use the same `n()`/`capacityFor` shape — worth checking they don't have the same 0-estimate bypass.
 
-2. **Backfill: null out sides with no assignee.**
-   ```sql
-   UPDATE public.tickets t SET fe_status = NULL
-   WHERE fe_status IS NOT NULL
-     AND NOT EXISTS (SELECT 1 FROM ticket_assignees a WHERE a.ticket_id = t.id AND a.slot = 'FE');
-   -- same for BE
-   ```
+## Fix plan
 
-3. **Update `derive_project_status()`** so a null side is treated as `'todo'` for rule matching (keeps existing rule semantics working). Both sides null then matches the todo+todo rule → routes to BACKLOG.
+1. In `useLogTime.ts`, change `wouldOverflowManual` so 0-estimate is treated as "no available capacity", not "unlimited":
+   - Block when `capacity.available <= 0` (nothing budgeted) **or** `capacity.actual + h > capacity.available + 1e-6`.
+   - Error message stays "Adjust the estimate first — this would exceed available hours."
+2. Audit and align the two timer paths so a 0-estimate discipline can't be started/stopped without an estimate bump:
+   - `src/features/timelog/StartGroupTimerDialog.tsx` — block start when `available <= 0`.
+   - `src/features/timelog/stop-group/useStopGroup.ts` + `RowsList.tsx` — surface the same guard on stop so the elapsed hours can't silently overflow.
+   - Single-ticket timer stop path (wherever `active_timers` closes into `time_logs`) — verify it uses the same guard; extend if not.
+3. Leave `RequestMoreTimeDialog` as the escape hatch (devs submit a pending revision, PMBA auto-approves).
 
-4. **Repoint the todo+todo rule to BACKLOG** (position 2 rule currently targets TO DO — id `c1a82ec5-93c8-4b7b-8ce5-08a2032ec1e5` is BACKLOG).
+## Not in scope
+- No DB / RPC / policy changes.
+- No change to how estimates are captured on ticket creation.
+- Existing over-logged entries on DRA-003 stay as-is (this is a going-forward guard). If you want them retroactively flagged or reversed, say so and I'll add a follow-up.
 
-5. **Assignee sync trigger on `ticket_assignees`** (AFTER INSERT/DELETE):
-   - On insert of an FE assignee: if `tickets.fe_status IS NULL`, set it to `'todo'`.
-   - On delete of the last FE assignee for a ticket: set `fe_status = NULL`.
-   - Same for BE. Then touch `updated_at` so `derive_project_status` re-runs.
-
-6. **Reapply:** `SELECT public.reapply_status_rules();` to shift existing tickets.
-
-## Code changes
-
-- `src/features/tickets/add-dialog/useDraftRows.ts` and `src/features/tickets/QuickAddRow.tsx`: no changes needed — the DB default is gone, so inserts that don't set fe/be_status will store null and derive to BACKLOG.
-- `src/integrations/supabase/types.ts` regenerates after the migration; any spot that assumed non-null `fe_status`/`be_status` for display already tolerates unknown values via the discipline-status label map lookups (verify at consumer sites: `StatusBadge`, board columns, dev columns — treat null as "todo" for rendering only).
-
-## Out of scope
-
-Rule editor UI, Proj-type tickets (skipped by the trigger already), manual overrides.
+## Verification
+- Manual log 0.5h on a 0h-BE ticket → blocked with toast.
+- Bump BE to 2h via Adjust estimate → log succeeds up to 2h, blocks past.
+- Timer start on 0h discipline → blocked (or allowed only if paired with an estimate bump, matching manual behaviour — confirm which you prefer).

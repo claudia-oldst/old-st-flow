@@ -45,7 +45,7 @@ export function RowsList({
       {rows.map((r) => {
         const cap = capacityFor(capMap[r.ticket.id], discipline);
         const overflow =
-          cap.available > 0 && cap.actual + r.minutes / 60 > cap.available + 1e-6;
+          cap.available <= 0 || cap.actual + r.minutes / 60 > cap.available + 1e-6;
         return (
           <div
             key={r.ticket.id}

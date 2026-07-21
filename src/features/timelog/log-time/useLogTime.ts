@@ -111,7 +111,7 @@ export function useLogTime({
   );
 
   const wouldOverflowManual = (h: number) =>
-    capacity.available > 0 && capacity.actual + h > capacity.available + 1e-6;
+    capacity.available <= 0 || capacity.actual + h > capacity.available + 1e-6;
 
   const handleManualLog = async () => {
     if (!user) return toast.error("Pick a user first");
