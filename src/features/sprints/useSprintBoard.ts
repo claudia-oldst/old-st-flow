@@ -185,8 +185,8 @@ export function useCarryoverTickets(
     if (!sprintId || !userId || !userRole) return [];
     const target = allSprints.find((s) => s.id === sprintId);
     if (!target) return [];
-    const discs: SprintDiscipline[] = memberDisciplines(userRole);
-    if (discs.length === 0) return [];
+    const roleDiscs: SprintDiscipline[] = memberDisciplines(userRole);
+    if (roleDiscs.length === 0) return [];
 
     const priorSprintIds = new Set(
       allSprints
@@ -201,22 +201,37 @@ export function useCarryoverTickets(
         .map((st) => st.ticket_id),
     );
 
-    const priorTicketIds = new Set<string>();
+    // Build map of prior commitments: ticket_id -> set of disciplines the user
+    // was committed for. Fall back to the user's role disciplines when a legacy
+    // sprint_tickets row has a NULL discipline.
+    const priorByTicket = new Map<string, Set<SprintDiscipline>>();
     allSprintTickets.forEach((st) => {
-      if (st.assigned_user_id === userId && priorSprintIds.has(st.sprint_id)) {
-        priorTicketIds.add(st.ticket_id);
+      if (st.assigned_user_id !== userId) return;
+      if (!priorSprintIds.has(st.sprint_id)) return;
+      const disc = (st.discipline === "FE" || st.discipline === "BE")
+        ? (st.discipline as SprintDiscipline)
+        : null;
+      const set = priorByTicket.get(st.ticket_id) ?? new Set<SprintDiscipline>();
+      if (disc) {
+        set.add(disc);
+      } else {
+        roleDiscs.forEach((d) => set.add(d));
       }
+      priorByTicket.set(st.ticket_id, set);
     });
 
     const byId = new Map<string, TicketRow>();
     tickets.forEach((t) => byId.set(t.id, t));
 
+    // Carry over any ticket where at least one of the user's prior-committed
+    // disciplines is not yet "done". Zero-estimate tickets are intentionally
+    // included — only Dev Done / Done (discipline status "done") excludes them.
     const out: TicketRow[] = [];
-    priorTicketIds.forEach((id) => {
+    priorByTicket.forEach((discs, id) => {
       if (inCurrentSprint.has(id)) return;
       const t = byId.get(id);
       if (!t) return;
-      const nonDone = discs.some((d) => {
+      const nonDone = Array.from(discs).some((d) => {
         const s = d === "FE" ? t.fe_status : t.be_status;
         return s !== "done";
       });
