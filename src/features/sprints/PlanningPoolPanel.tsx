@@ -6,7 +6,8 @@ import {
   type TicketFilters,
 } from "@/features/tickets/TicketsFilter";
 import { useProjectTickets, type TicketRow } from "@/features/tickets/useProjectTickets";
-import { usePlannedSprintAssignments } from "./useSprintBoard";
+import { usePlannedSprintAssignments, useProjectSprintTickets } from "./useSprintBoard";
+import { useStatuses } from "@/features/statuses/useStatuses";
 import type { Sprint } from "./types";
 import { PoolFilterBar } from "./planning-pool/PoolFilterBar";
 import { PoolRow } from "./planning-pool/PoolRow";
