@@ -52,6 +52,8 @@ export function PlanningPoolPanel({
 }: Props) {
   const { tickets: allTickets } = useProjectTickets(projectId);
   const { data: assignments = [] } = usePlannedSprintAssignments(projectId);
+  const { data: allSprintTickets = [] } = useProjectSprintTickets(projectId);
+  const { statuses } = useStatuses();
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<TicketFilters>(EMPTY_FILTERS);
   const [roadmapIds, setRoadmapIds] = useState<Set<string>>(() => new Set([sprintId]));
