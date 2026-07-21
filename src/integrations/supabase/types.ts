@@ -709,7 +709,7 @@ export type Database = {
           actual_backend_hours: number
           actual_frontend_hours: number
           actual_project_hours: number
-          be_status: Database["public"]["Enums"]["discipline_status"]
+          be_status: Database["public"]["Enums"]["discipline_status"] | null
           bug_sub_number: number | null
           cr_approval: string | null
           cr_decided_at: string | null
@@ -719,7 +719,7 @@ export type Database = {
           current_fe_estimate: number | null
           current_project_estimate: number | null
           epic_id: number | null
-          fe_status: Database["public"]["Enums"]["discipline_status"]
+          fe_status: Database["public"]["Enums"]["discipline_status"] | null
           formatted_id: string
           github_issue_node_id: string | null
           github_issue_number: number | null
@@ -745,7 +745,7 @@ export type Database = {
           actual_backend_hours?: number
           actual_frontend_hours?: number
           actual_project_hours?: number
-          be_status?: Database["public"]["Enums"]["discipline_status"]
+          be_status?: Database["public"]["Enums"]["discipline_status"] | null
           bug_sub_number?: number | null
           cr_approval?: string | null
           cr_decided_at?: string | null
@@ -755,7 +755,7 @@ export type Database = {
           current_fe_estimate?: number | null
           current_project_estimate?: number | null
           epic_id?: number | null
-          fe_status?: Database["public"]["Enums"]["discipline_status"]
+          fe_status?: Database["public"]["Enums"]["discipline_status"] | null
           formatted_id: string
           github_issue_node_id?: string | null
           github_issue_number?: number | null
@@ -781,7 +781,7 @@ export type Database = {
           actual_backend_hours?: number
           actual_frontend_hours?: number
           actual_project_hours?: number
-          be_status?: Database["public"]["Enums"]["discipline_status"]
+          be_status?: Database["public"]["Enums"]["discipline_status"] | null
           bug_sub_number?: number | null
           cr_approval?: string | null
           cr_decided_at?: string | null
@@ -791,7 +791,7 @@ export type Database = {
           current_fe_estimate?: number | null
           current_project_estimate?: number | null
           epic_id?: number | null
-          fe_status?: Database["public"]["Enums"]["discipline_status"]
+          fe_status?: Database["public"]["Enums"]["discipline_status"] | null
           formatted_id?: string
           github_issue_node_id?: string | null
           github_issue_number?: number | null
