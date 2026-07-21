@@ -12,6 +12,11 @@ import type { Sprint } from "./types";
 import { formatHours } from "@/lib/utils";
 import { PlanningRowTooltip } from "./PlanningRowTooltip";
 
+import {
+  useDevColumnGroups,
+  type DevColGroupBy,
+} from "./planning-dev/useDevColumnGroups";
+
 interface Props {
   projectId: string;
   sprintId: string;
@@ -19,7 +24,11 @@ interface Props {
   dev: SprintMember;
   discipline: "FE" | "BE";
   capacityHours: number;
+  /** Full list — used for capacity math (unfiltered). */
   assignedTickets: TicketRow[];
+  /** Filtered list — used for rendering rows. Defaults to assignedTickets. */
+  visibleTickets?: TicketRow[];
+  groupBy?: DevColGroupBy;
   selectedIds: Set<string>;
   onToggleSelect: (id: string, shiftKey: boolean) => void;
   onOpenTicket: (t: TicketRow) => void;
