@@ -56,6 +56,10 @@ function PlanningInner({ projectId, sprints, isPMBA }: Props) {
   const [discipline, setDiscipline] = useState<"FE" | "BE">("FE");
   const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
   const [poolWidth, setPoolWidth] = usePersistentState<number>("sprints:poolWidth", 384);
+  const dk = (name: string) => `sprint-planning:dev-cols:${projectId}:${name}`;
+  const [devSearch, setDevSearch] = usePersistentState<string>(dk("search"), "");
+  const [devFilters, setDevFilters] = usePersistentState<TicketFilters>(dk("filters"), EMPTY_FILTERS);
+  const [devGroupBy, setDevGroupBy] = usePersistentState<DevColGroupBy>(dk("groupBy"), "none");
 
 
   const { tickets } = useProjectTickets(projectId);
