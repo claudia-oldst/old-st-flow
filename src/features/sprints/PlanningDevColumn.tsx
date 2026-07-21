@@ -53,12 +53,16 @@ export function PlanningDevColumn({
   discipline,
   capacityHours,
   assignedTickets,
+  visibleTickets,
+  groupBy = "none",
   selectedIds,
   onToggleSelect,
   onOpenTicket,
   isPMBA,
   carriedOverIds,
 }: Props) {
+  const renderTickets = visibleTickets ?? assignedTickets;
+  const groups = useDevColumnGroups(renderTickets, groupBy);
   const slot: AssigneeSlot = discipline;
   const { data: carryover } = useCarryoverTickets(
     projectId,
