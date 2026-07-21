@@ -96,20 +96,41 @@ export function PlanningPoolPanel({
     return m;
   }, [assignments]);
 
-  
+  // Tickets already committed (any sprint) for the selected discipline — excluded from pool.
+  // Discipline is read from sprint_tickets.discipline (never inferred from assignee role).
+  const committedForDiscipline = useMemo(() => {
+    const s = new Set<string>();
+    allSprintTickets.forEach((st: { ticket_id: string; discipline: string | null }) => {
+      if (st.discipline === discipline) s.add(st.ticket_id);
+    });
+    return s;
+  }, [allSprintTickets, discipline]);
+
+  // status_id → category (only backlog / active tickets are plannable).
+  const statusCategoryById = useMemo(() => {
+    const m = new Map<string, string>();
+    statuses.forEach((s) => m.set(s.id, s.category));
+    return m;
+  }, [statuses]);
 
   const pool = useMemo(() => {
     const allMode = roadmapIds.has(ALL_ROADMAPS);
     return allTickets.filter((t) => {
       if (t.ticket_type === "Proj") return false;
       if (allDevTicketIds.has(t.id)) return false;
+      // Committed to any sprint for this discipline — must be carried over, not re-picked.
+      if (committedForDiscipline.has(t.id)) return false;
+      // Only Backlog / Active tickets are plannable. status_id can be null pre-derivation.
+      if (!t.status_id) return false;
+      const cat = statusCategoryById.get(t.status_id);
+      if (cat !== "backlog" && cat !== "active") return false;
       if (allMode) return true;
       const plan = planByTicket.get(t.id);
       const planned = discipline === "FE" ? plan?.fe ?? null : plan?.be ?? null;
       const key = planned ?? UNPLANNED;
       return roadmapIds.has(key);
     });
-  }, [allTickets, allDevTicketIds, discipline, roadmapIds, planByTicket]);
+  }, [allTickets, allDevTicketIds, discipline, roadmapIds, planByTicket, committedForDiscipline, statusCategoryById]);
 
   const sortedSprints = useMemo(
     () => [...sprints].sort((a, b) => a.sprint_number - b.sprint_number),
