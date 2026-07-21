@@ -29,6 +29,13 @@ import { PlanningDevColumn } from "./PlanningDevColumn";
 import { useWorkbenchData } from "./workbench/useWorkbenchData";
 import { useWorkbenchBulkActions } from "./workbench/useWorkbenchBulkActions";
 import { WorkbenchBulkBar } from "./workbench/WorkbenchBulkBar";
+import { DevColumnsToolbar } from "./planning-dev/DevColumnsToolbar";
+import type { DevColGroupBy } from "./planning-dev/useDevColumnGroups";
+import {
+  EMPTY_FILTERS,
+  applyFilters,
+  type TicketFilters,
+} from "@/features/tickets/TicketsFilter";
 
 interface Props {
   projectId: string;
