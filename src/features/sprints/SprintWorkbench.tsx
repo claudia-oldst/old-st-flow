@@ -224,24 +224,39 @@ function PlanningInner({ projectId, sprints, isPMBA }: Props) {
             No devs have {discipline} capacity in this sprint.
           </div>
         ) : (
-          <div className="flex flex-row gap-3 flex-1 overflow-x-auto">
-            {sprintDevs.map((dev) => (
-              <PlanningDevColumn
-                key={dev.user_id}
-                projectId={projectId}
-                sprintId={targetSprintId}
-                allSprints={sprints}
-                dev={dev}
-                discipline={discipline}
-                capacityHours={capByDev.get(dev.user_id) ?? 0}
-                assignedTickets={devAssignments.get(dev.user_id) ?? []}
-                selectedIds={selected}
-                onToggleSelect={toggleDev}
-                onOpenTicket={setOpenTicket}
-                isPMBA={isPMBA}
-                carriedOverIds={new Set()}
-              />
-            ))}
+          <div className="flex flex-col gap-2 flex-1 min-w-0">
+            <DevColumnsToolbar
+              projectId={projectId}
+              tickets={allAssignedTickets}
+              search={devSearch}
+              setSearch={setDevSearch}
+              filters={devFilters}
+              setFilters={setDevFilters}
+              groupBy={devGroupBy}
+              setGroupBy={setDevGroupBy}
+              visibleCount={visibleCount}
+            />
+            <div className="flex flex-row gap-3 flex-1 min-h-0 overflow-x-auto">
+              {sprintDevs.map((dev) => (
+                <PlanningDevColumn
+                  key={dev.user_id}
+                  projectId={projectId}
+                  sprintId={targetSprintId}
+                  allSprints={sprints}
+                  dev={dev}
+                  discipline={discipline}
+                  capacityHours={capByDev.get(dev.user_id) ?? 0}
+                  assignedTickets={devAssignments.get(dev.user_id) ?? []}
+                  visibleTickets={visibleAssignmentsByDev.get(dev.user_id) ?? []}
+                  groupBy={devGroupBy}
+                  selectedIds={selected}
+                  onToggleSelect={toggleDev}
+                  onOpenTicket={setOpenTicket}
+                  isPMBA={isPMBA}
+                  carriedOverIds={new Set()}
+                />
+              ))}
+            </div>
           </div>
         )}
       </div>
