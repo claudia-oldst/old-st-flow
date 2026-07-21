@@ -1,44 +1,48 @@
 ## Goal
 
-Add a single shared Filter + Group control that governs the assigned-ticket lists inside every developer column on the Sprint Planning tab. One control set applies to all dev columns simultaneously — no per-column duplication.
+A ticket's `fe_status` / `be_status` should be **null** when no one is assigned to that discipline. With both sides null, the ticket derives to **BACKLOG**.
 
-## UX
+## Current state (verified)
 
-New slim toolbar strip sits directly above the row of developer columns (inside the body area, to the right of the Pool panel). It stays sticky above the scrollable columns row.
+- `tickets.fe_status` / `be_status` are `NOT NULL DEFAULT 'todo'`.
+- `derive_project_status()` matches rules on concrete `discipline_status` values — nulls never match, so a null side would leave `status_id` unchanged (bad on INSERT where `status_id` is null).
+- The `fe=todo AND be=todo` rule still points to **TO DO**, not **BACKLOG**.
 
-```text
-[Pool ...] │ [ Search ] [ Filter ▾ ]  GROUP [ None ▾ ]
-           │ ─────────────────────────────────────────
-           │ [Dev A col] [Dev B col] [Dev C col] ...
-```
+## Migration
 
-- **Search** — filters by ticket ID / title.
-- **Filter** popover — reuses the existing `TicketsFilter` shape (Epic, Type, Status multi-selects) used by the Pool's `PoolFilterBar` for consistency.
-- **Group by** dropdown — options: `None`, `Epic`, `Type`, `Status`. Applies inside every dev column: matching tickets are rendered under a small group header (same style as the Pool's group headers). Empty groups are hidden. Sort order matches the Pool (`usePoolGroups` style: no-epic last, etc.).
-- Ticket count next to Filter label shows how many tickets are visible across all dev columns (e.g. `12 tickets`).
-- Filter/group state is per project (persisted via `usePersistentState`, key `sprint-planning:dev-cols:*`) and is independent of the Pool's own filter state.
-- Carryover panel inside each column is unaffected — filters only apply to `assignedTickets`.
+1. **Make columns nullable, drop the default.**
+   ```sql
+   ALTER TABLE public.tickets
+     ALTER COLUMN fe_status DROP NOT NULL,
+     ALTER COLUMN fe_status DROP DEFAULT,
+     ALTER COLUMN be_status DROP NOT NULL,
+     ALTER COLUMN be_status DROP DEFAULT;
+   ```
 
-## Technical
+2. **Backfill: null out sides with no assignee.**
+   ```sql
+   UPDATE public.tickets t SET fe_status = NULL
+   WHERE fe_status IS NOT NULL
+     AND NOT EXISTS (SELECT 1 FROM ticket_assignees a WHERE a.ticket_id = t.id AND a.slot = 'FE');
+   -- same for BE
+   ```
 
-1. **New component `src/features/sprints/planning-dev/DevColumnsToolbar.tsx`** — search input + Filter popover (reuse `TicketsFilter` component or inline the same multi-selects used by `PoolFilterBar`) + Group-by dropdown. Emits `{ search, filters, groupBy }`.
+3. **Update `derive_project_status()`** so a null side is treated as `'todo'` for rule matching (keeps existing rule semantics working). Both sides null then matches the todo+todo rule → routes to BACKLOG.
 
-2. **New hook `src/features/sprints/planning-dev/useDevColumnGroups.ts`** — mirrors `usePoolGroups` but scoped to dev-column groupings (`none | epic | type | status`). Returns `PoolGroup[]` for a given ticket array.
+4. **Repoint the todo+todo rule to BACKLOG** (position 2 rule currently targets TO DO — id `c1a82ec5-93c8-4b7b-8ce5-08a2032ec1e5` is BACKLOG).
 
-3. **`SprintWorkbench.tsx`**
-   - Add persistent state: `devColSearch`, `devColFilters` (`TicketFilters`, default `EMPTY_FILTERS`), `devColGroupBy` (default `"none"`), all keyed by `projectId`.
-   - Render `<DevColumnsToolbar>` above the dev-columns row (same flex row as Pool, or a wrapping column so the toolbar spans the dev-columns area only).
-   - Pre-filter each dev's `assignedTickets` with `applyFilters(...)` + search before passing to `PlanningDevColumn`. Also pass `groupBy` through.
+5. **Assignee sync trigger on `ticket_assignees`** (AFTER INSERT/DELETE):
+   - On insert of an FE assignee: if `tickets.fe_status IS NULL`, set it to `'todo'`.
+   - On delete of the last FE assignee for a ticket: set `fe_status = NULL`.
+   - Same for BE. Then touch `updated_at` so `derive_project_status` re-runs.
 
-4. **`PlanningDevColumn.tsx`**
-   - New prop `groupBy: "none" | "epic" | "type" | "status"`.
-   - When `groupBy !== "none"`, run `useDevColumnGroups` over `assignedTickets` and render group headers (reuse the Pool's header markup: `text-[10px] uppercase tracking-wide text-dim font-semibold` + count + hairline).
-   - `usedHours` / capacity math is unchanged — it stays based on the full `assignedTickets` list so capacity remains truthful even while filtering hides rows. (Filter is a view lens, not a scope change.)
+6. **Reapply:** `SELECT public.reapply_status_rules();` to shift existing tickets.
 
-5. No DB, RLS, or query changes. Purely presentational.
+## Code changes
+
+- `src/features/tickets/add-dialog/useDraftRows.ts` and `src/features/tickets/QuickAddRow.tsx`: no changes needed — the DB default is gone, so inserts that don't set fe/be_status will store null and derive to BACKLOG.
+- `src/integrations/supabase/types.ts` regenerates after the migration; any spot that assumed non-null `fe_status`/`be_status` for display already tolerates unknown values via the discipline-status label map lookups (verify at consumer sites: `StatusBadge`, board columns, dev columns — treat null as "todo" for rendering only).
 
 ## Out of scope
 
-- Per-column filters.
-- Changing capacity math based on filters.
-- Filtering the carryover review panel.
+Rule editor UI, Proj-type tickets (skipped by the trigger already), manual overrides.
