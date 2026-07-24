@@ -78,6 +78,7 @@ export function useDraftRows({
         ticket_type: d.type,
         status_id: d.statusId,
         epic_id: d.epicId,
+        version: d.version.trim() || null,
         original_fe_estimate: isProj ? null : fe,
         original_be_estimate: isProj ? null : be,
         current_fe_estimate: isProj ? null : fe,
