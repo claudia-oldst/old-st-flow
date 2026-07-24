@@ -103,7 +103,8 @@ export function useTicketEditor({
       patch.original_be_estimate = 0;
     }
     const { error } = await supabase.from("tickets").update(patch).eq("id", ticket.id);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
+
     toast.success(`Type changed to ${nextType}`);
     onChange();
   };
