@@ -48,9 +48,24 @@ export function TicketDetailHeader({
             )}
           </span>
         )}
-        {ticket.ticket_type !== "Standard" && (
-          <span className="px-2 py-0.5 rounded-full text-[10px] bg-white/5 hairline">{ticket.ticket_type}</span>
+        {canEdit && onChangeType ? (
+          <Select value={ticket.ticket_type} onValueChange={(v) => onChangeType(v as TicketType)}>
+            <SelectTrigger className="h-6 w-auto gap-1 px-2 py-0 text-[10px] rounded-full bg-white/5 hairline border-0">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Standard">Standard</SelectItem>
+              <SelectItem value="Bug">Bug</SelectItem>
+              <SelectItem value="CR">CR</SelectItem>
+              <SelectItem value="Proj">Proj</SelectItem>
+            </SelectContent>
+          </Select>
+        ) : (
+          ticket.ticket_type !== "Standard" && (
+            <span className="px-2 py-0.5 rounded-full text-[10px] bg-white/5 hairline">{ticket.ticket_type}</span>
+          )
         )}
+
         {ticket.ticket_type === "CR" && (
           <StatusBadge status={ticket.cr_approval} />
         )}
