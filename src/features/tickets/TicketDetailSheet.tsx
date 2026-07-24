@@ -139,6 +139,8 @@ export function TicketDetailSheet({ open, onOpenChange, ticket: ticketProp, proj
               editor.setTitle(ticket.title);
               editor.setEditing(false);
             }}
+            onChangeType={editor.handleChangeType}
+
           />
 
           <div className="mt-4 flex flex-wrap items-center gap-3 text-xs">
