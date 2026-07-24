@@ -125,6 +125,6 @@ export function useTicketEditor({
     feEst, setFeEst,
     beEst, setBeEst,
     projEst, setProjEst,
-    handleSaveEdit, handleDelete,
+    handleSaveEdit, handleDelete, handleChangeType,
   };
 }
