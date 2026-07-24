@@ -21,17 +21,20 @@ export function TicketDetailHeader({
   onStartEdit,
   onSave,
   onCancel,
+  onChangeType,
 }: {
   canEdit?: boolean;
   onStartEdit?: () => void;
   onSave?: () => void;
   onCancel?: () => void;
+  onChangeType?: (type: TicketType) => void | Promise<void>;
   ticket: TicketRow;
   status: Status | undefined;
   editing: boolean;
   title: string;
   setTitle: (v: string) => void;
 }) {
+
   return (
     <SheetHeader className="space-y-2 shrink-0">
       <div className="flex items-center gap-2 text-xs">
