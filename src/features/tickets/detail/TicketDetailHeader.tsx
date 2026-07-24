@@ -2,12 +2,14 @@ import { Bookmark, GitBranch, Sparkles, Pencil, Check, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
-import type { Status } from "@/lib/types";
+import type { Status, TicketType } from "@/lib/types";
 import { displayTitle } from "@/lib/utils";
 import { StatusBadge } from "@/features/_shared/estimate-ui/StatusBadge";
 import { GithubIssueBadge } from "@/features/github/GithubIssueBadge";
 import { emitOpenTicket } from "@/features/tickets/openTicketEvent";
+
 
 export function TicketDetailHeader({
   ticket,
@@ -19,17 +21,20 @@ export function TicketDetailHeader({
   onStartEdit,
   onSave,
   onCancel,
+  onChangeType,
 }: {
   canEdit?: boolean;
   onStartEdit?: () => void;
   onSave?: () => void;
   onCancel?: () => void;
+  onChangeType?: (type: TicketType) => void | Promise<void>;
   ticket: TicketRow;
   status: Status | undefined;
   editing: boolean;
   title: string;
   setTitle: (v: string) => void;
 }) {
+
   return (
     <SheetHeader className="space-y-2 shrink-0">
       <div className="flex items-center gap-2 text-xs">
@@ -43,9 +48,24 @@ export function TicketDetailHeader({
             )}
           </span>
         )}
-        {ticket.ticket_type !== "Standard" && (
-          <span className="px-2 py-0.5 rounded-full text-[10px] bg-white/5 hairline">{ticket.ticket_type}</span>
+        {canEdit && onChangeType ? (
+          <Select value={ticket.ticket_type} onValueChange={(v) => onChangeType(v as TicketType)}>
+            <SelectTrigger className="h-6 w-auto gap-1 px-2 py-0 text-[10px] rounded-full bg-white/5 hairline border-0">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Standard">Standard</SelectItem>
+              <SelectItem value="Bug">Bug</SelectItem>
+              <SelectItem value="CR">CR</SelectItem>
+              <SelectItem value="Proj">Proj</SelectItem>
+            </SelectContent>
+          </Select>
+        ) : (
+          ticket.ticket_type !== "Standard" && (
+            <span className="px-2 py-0.5 rounded-full text-[10px] bg-white/5 hairline">{ticket.ticket_type}</span>
+          )
         )}
+
         {ticket.ticket_type === "CR" && (
           <StatusBadge status={ticket.cr_approval} />
         )}

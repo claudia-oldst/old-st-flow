@@ -1,16 +1,20 @@
-## Add "Version" field to Add Tickets modal
+## Goal
+Let PMBA users change a ticket's **type** (Standard / Bug / CR / Proj) from the Ticket Detail sheet header, next to where the type chip currently renders.
 
-Let PMBAs set a version per row when bulk-adding tickets, matching the existing version field on the ticket detail sheet.
+## Change
+In `src/features/tickets/detail/TicketDetailHeader.tsx`, replace the read-only type pill with a small inline `Select` (shadcn) when `canEdit` is true. On change, update `tickets.ticket_type` via Supabase and refresh the sheet.
 
-### Changes
+- Options: Standard, Bug, CR, Proj (matches the enum used in `AddTicketsDialog`).
+- Non-PMBA users keep seeing the current read-only pill.
+- Switching **to Proj**: null out `current_fe_estimate` / `current_be_estimate` / `original_*` and any `parent_ticket_id` (Proj tickets can't have a parent — mirrors AddTickets behaviour). Move any existing FE/BE hours into `current_project_estimate` if project estimate is null, otherwise leave project estimate as-is.
+- Switching **from Proj to a dev type**: null out `current_project_estimate` / `original_project_estimate`; leave FE/BE at 0 for the user to edit.
+- Show a toast on success/failure and call the existing `onChange` refresh (thread it through from `TicketDetailSheet` where the header is rendered).
 
-1. **`src/features/tickets/add-dialog/types.ts`**
-   - Add `version: string` to `Draft`; default `""` in `newDraft`.
+## Technical
+- Add `onChangeType?: (type: TicketType) => Promise<void>` prop to `TicketDetailHeader`.
+- Implement `handleChangeType` in `useTicketEditor.ts` alongside `handleSaveEdit` — one supabase update + `onChange()`.
+- Wire it in `TicketDetailSheet.tsx` (passes `canEdit` already).
+- No schema changes; no changes to the Add dialog.
 
-2. **`src/features/tickets/add-dialog/DraftRow.tsx`**
-   - Add a compact `Input` (placeholder "Version") in the grid alongside FE/BE/Proj. Rebalance column spans so the row still fits on one line at `md`.
-
-3. **`src/features/tickets/add-dialog/useDraftRows.ts`**
-   - Include `version: d.version.trim() || null` in the insert payload for each ticket.
-
-No schema changes — `tickets.version` already exists and is validated (max 50 chars) via `ticketInputSchema`.
+## Out of scope
+Bulk type edits, CR-approval side effects when converting to/from CR (still editable manually via existing CR flow).

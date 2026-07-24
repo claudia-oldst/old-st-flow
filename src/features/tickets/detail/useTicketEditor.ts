@@ -79,6 +79,36 @@ export function useTicketEditor({
     reloadChanges();
   };
 
+  const handleChangeType = async (nextType: "Standard" | "Bug" | "CR" | "Proj") => {
+    if (!ticket || nextType === ticket.ticket_type) return;
+    const patch: any = { ticket_type: nextType };
+    if (nextType === "Proj") {
+      const carried =
+        (ticket.current_project_estimate ?? 0) > 0
+          ? ticket.current_project_estimate
+          : (ticket.current_fe_estimate ?? 0) + (ticket.current_be_estimate ?? 0);
+      patch.current_project_estimate = carried || null;
+      patch.original_project_estimate = carried || null;
+      patch.current_fe_estimate = null;
+      patch.current_be_estimate = null;
+      patch.original_fe_estimate = null;
+      patch.original_be_estimate = null;
+      patch.parent_ticket_id = null;
+    } else if (ticket.ticket_type === "Proj") {
+      patch.current_project_estimate = null;
+      patch.original_project_estimate = null;
+      patch.current_fe_estimate = 0;
+      patch.current_be_estimate = 0;
+      patch.original_fe_estimate = 0;
+      patch.original_be_estimate = 0;
+    }
+    const { error } = await supabase.from("tickets").update(patch).eq("id", ticket.id);
+    if (error) { toast.error(error.message); return; }
+
+    toast.success(`Type changed to ${nextType}`);
+    onChange();
+  };
+
   const handleDelete = async () => {
     if (!ticket) return;
     if (!confirm("Delete this ticket and all its time logs?")) return;
@@ -89,12 +119,13 @@ export function useTicketEditor({
     onChange();
   };
 
+
   return {
     editing, setEditing,
     title, setTitle,
     feEst, setFeEst,
     beEst, setBeEst,
     projEst, setProjEst,
-    handleSaveEdit, handleDelete,
+    handleSaveEdit, handleDelete, handleChangeType,
   };
 }
