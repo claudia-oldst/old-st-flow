@@ -17,6 +17,7 @@ export interface Draft {
   fe: string;
   be: string;
   proj: string;
+  version: string;
   assignees: DraftAssignees;
   parentTicketId: string | null;
   parentTitle: string | null;
@@ -31,6 +32,7 @@ export const newDraft = (statusId: string | null = null, type: TicketType = "Sta
   fe: "",
   be: "",
   proj: "",
+  version: "",
   assignees: { fe: new Set(), be: new Set(), project: new Set() },
   parentTicketId: null,
   parentTitle: null,

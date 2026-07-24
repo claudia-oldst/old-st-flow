@@ -209,6 +209,16 @@ export function DraftRow({
           </>
         )}
 
+        <div className="md:col-span-2">
+          <Input
+            value={draft.version}
+            onChange={(e) => onChange({ version: e.target.value })}
+            placeholder="Version"
+            maxLength={50}
+            className="h-8 text-xs"
+          />
+        </div>
+
         <div className={cn("md:col-span-2", isProj && "md:col-span-2")}>
           <AssignPopover
             members={members}
