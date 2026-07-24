@@ -2,12 +2,14 @@ import { Bookmark, GitBranch, Sparkles, Pencil, Check, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
-import type { Status } from "@/lib/types";
+import type { Status, TicketType } from "@/lib/types";
 import { displayTitle } from "@/lib/utils";
 import { StatusBadge } from "@/features/_shared/estimate-ui/StatusBadge";
 import { GithubIssueBadge } from "@/features/github/GithubIssueBadge";
 import { emitOpenTicket } from "@/features/tickets/openTicketEvent";
+
 
 export function TicketDetailHeader({
   ticket,
