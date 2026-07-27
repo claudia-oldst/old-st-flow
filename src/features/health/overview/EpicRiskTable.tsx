@@ -27,6 +27,8 @@ interface EpicRiskRow {
   active: number;
   backlog: number;
   currentEst: number;
+  originalEst: number;
+  baselineEst: number;
   actualHours: number;
   burnPct: number;
   progressPct: number;
