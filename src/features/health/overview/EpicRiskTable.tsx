@@ -200,7 +200,10 @@ export function EpicRiskTable({ tickets, statuses, epics }: Props) {
               </div>
               <div className="mt-1 text-[10px] text-dimmer font-mono">
                 {Math.round(row.burnPct)}% burned · {formatHours(row.actualHours)} /{" "}
-                {formatHours(row.currentEst)}
+                {formatHours(row.baselineEst)}
+                {row.currentEst !== row.baselineEst && (
+                  <span className="text-dim"> (current {formatHours(row.currentEst)})</span>
+                )}
               </div>
             </div>
 
