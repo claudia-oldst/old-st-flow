@@ -1,18 +1,27 @@
 ## Goal
-In the Epic Risk — Doneness vs Estimate Burn table, the "Estimate burn" column should measure actual hours against the **original** estimate, showing the current estimate in brackets for context.
+Permanently delete two projects and everything attached to them. No vault archive, no restore path.
 
-## Change (single file: `src/features/health/overview/EpicRiskTable.tsx`)
+| Project | Acronym | Tickets | Time logs | Epics | Sprints | Members |
+| --- | --- | --- | --- | --- | --- | --- |
+| Project Cousteau | COUT | 471 | 1,493 | 55 | 2 | 14 |
+| Dennis Testing | DEM | 0 | 0 | 0 | 0 | 1 |
 
-1. Sum `original_fe_estimate + original_be_estimate + original_project_estimate` per epic (null-safe, treating nulls as 0) into a new `originalEst` alongside the existing `currentEst`.
-2. Compute `burnPct` from `actualHours / originalEst` instead of `currentEst`. If `originalEst` is 0, fall back to `currentEst` as the baseline; if both are 0 and hours exist, keep the existing 150% over-burn treatment.
-3. Update the caption line to:
+**Project Cousteau R1 (COU) is a different project and will not be touched.**
 
-```text
-84% burned · 5.3h / 6.3h (current 8h)
-```
-i.e. `{pct}% burned · {actual} / {original} (current {currentEst})`. The bracketed part is omitted when the current estimate equals the original.
-4. Bar colour thresholds (good/warn/bad) stay as-is but now reflect the original-based percentage.
-5. Risk scoring (`computeRisk`) uses the same new `burnPct`, so epics that grew past their original baseline surface as watch/at-risk.
+## How
+
+A single data operation (no schema change) for each project id:
+- `b95f5c11-16a9-4b2f-a410-00ba79f88f15` — Project Cousteau
+- `36aa2c91-61e3-4098-9fc5-f3d41313852c` — Dennis Testing
+
+Steps per project, in dependency order:
+1. Call `public.purge_project_children(<project_id>)`, which removes time logs, estimate changes, comments, ticket assignees, active timers, epic summaries, epic discounts, sprint tickets, sprint capacities, sprints, tickets, epics and project members.
+2. Delete the `projects` row itself.
+
+Team member records, statuses and global settings are untouched — only project-scoped rows are removed.
+
+## Verification
+Re-query `projects`, `tickets`, `sprints`, `project_epics` and `time_logs` for those two ids and confirm zero rows remain, and that COU (Project Cousteau R1) still has its full data.
 
 ## Notes
-Presentation/derivation change only — no database or schema work.
+This is irreversible. Nothing in the app code changes.
