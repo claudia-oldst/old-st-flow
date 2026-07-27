@@ -1,40 +1,18 @@
-## Why nothing snapped
+## Goal
+In the Epic Risk — Doneness vs Estimate Burn table, the "Estimate burn" column should measure actual hours against the **original** estimate, showing the current estimate in brackets for context.
 
-`snap_estimates_on_dev_done_trg` and `trim_estimates_on_done` are declared as:
+## Change (single file: `src/features/health/overview/EpicRiskTable.tsx`)
 
-```text
-BEFORE INSERT OR UPDATE OF status_id ON public.tickets
-```
-
-Postgres decides whether an `UPDATE OF <col>` trigger fires from the **columns named in the UPDATE statement**, not from what other triggers change. When a dev flips a discipline status, the app runs `UPDATE tickets SET fe_status = ... / be_status = ...`. `derive_project_status_trg` (which is armed on `fe_status, be_status`) then sets `NEW.status_id` to DEV DONE inside the same row — but that does not re-arm the snap trigger, so it never runs.
-
-That's why the only auto-snap rows in the database are from Project Pulse: those came from PMBAs clicking the status pill directly (`UPDATE tickets SET status_id = ...`), which does name the column.
-
-Verified: all 11 Draper tickets in DEV DONE (FOR DEPL.) still carry their pre-snap estimates (e.g. DRA-002 8h FE est / 7.33h actual, DRA-007 5h BE est / 2.75h actual), and `ticket_estimate_changes` has zero auto rows for Draper.
-
-## The fix
-
-**1. Migration — re-arm both triggers on any UPDATE**
-
-Drop and recreate `snap_estimates_on_dev_done_trg` and `trim_estimates_on_done` without the `OF status_id` column list:
+1. Sum `original_fe_estimate + original_be_estimate + original_project_estimate` per epic (null-safe, treating nulls as 0) into a new `originalEst` alongside the existing `currentEst`.
+2. Compute `burnPct` from `actualHours / originalEst` instead of `currentEst`. If `originalEst` is 0, fall back to `currentEst` as the baseline; if both are 0 and hours exist, keep the existing 150% over-burn treatment.
+3. Update the caption line to:
 
 ```text
-BEFORE INSERT OR UPDATE ON public.tickets
-BEFORE UPDATE ON public.tickets
+84% burned · 5.3h / 6.3h (current 8h)
 ```
-
-No function-body changes needed — both already early-return when `status_id` is NULL or unchanged (`NEW.status_id IS NOT DISTINCT FROM OLD.status_id`), and when the old status was already in the same category. So the wider arming costs one cheap comparison per ticket update and cannot double-snap.
-
-**2. Data fix — backfill Project Draper only**
-
-For Draper tickets currently in a `dev done` or `done` category status, where actuals are below the current estimate:
-
-- Insert `ticket_estimate_changes` audit rows per discipline (FE / BE / Project) with `reason = 'Auto-snapped at Dev Done (backfill)'`, `status = 'approved'`, attributed to the ticket's most recent time logger, falling back to its first assignee; skip the audit row when no team member can be resolved (matches the trigger's own guard).
-- Then set `current_fe_estimate` / `current_be_estimate` / `current_project_estimate` down to the corresponding actuals for those rows.
-
-Expected affected tickets: DRA-001 (FE 2→1.5), DRA-002 (FE 8→7.33, BE 8→4), DRA-004 (FE 1→1), DRA-007 (FE 4→3.5, BE 5→2.75), DRA-008 (FE 4→2.5, BE 6→3.5), DRA-010 (FE 2→1.5, BE 4→3), DRA-011 (FE 1→0.75). Tickets where actuals already meet or exceed the estimate are untouched.
+i.e. `{pct}% burned · {actual} / {original} (current {currentEst})`. The bracketed part is omitted when the current estimate equals the original.
+4. Bar colour thresholds (good/warn/bad) stay as-is but now reflect the original-based percentage.
+5. Risk scoring (`computeRisk`) uses the same new `burnPct`, so epics that grew past their original baseline surface as watch/at-risk.
 
 ## Notes
-
-- No frontend changes — the Health, portal and ticket views read these columns directly.
-- Other projects are left as-is per your choice; the trigger fix means any future Dev Done transition there snaps correctly.
+Presentation/derivation change only — no database or schema work.
