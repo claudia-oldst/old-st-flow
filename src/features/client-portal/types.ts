@@ -4,6 +4,7 @@ export interface PortalEpic {
   total_tickets: number;
   backlog_tickets: number;
   in_progress_tickets: number;
+  dev_done_tickets: number;
   done_tickets: number;
   current_estimate: number;
   original_estimate: number;
@@ -17,7 +18,9 @@ export interface PortalTotals {
   tickets_total: number;
   tickets_backlog: number;
   tickets_in_progress: number;
+  tickets_dev_done: number;
   tickets_done: number;
+
   fe_actual: number;
   be_actual: number;
   proj_actual: number;

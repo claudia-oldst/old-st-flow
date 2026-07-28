@@ -17,12 +17,12 @@ export function PortalEpicRow({ epic, isOpen, onToggle, canExpand }: Props) {
   const delta = epic.current_estimate - epic.original_estimate;
   const hasDelta = delta !== 0;
   const expandable = canExpand ?? hasDelta;
-  const donePct =
-    epic.total_tickets > 0 ? (epic.done_tickets / epic.total_tickets) * 100 : 0;
-  const ipPct =
-    epic.total_tickets > 0
-      ? (epic.in_progress_tickets / epic.total_tickets) * 100
-      : 0;
+  const pct = (n: number) =>
+    epic.total_tickets > 0 ? (n / epic.total_tickets) * 100 : 0;
+  const donePct = pct(epic.done_tickets);
+  const devDonePct = pct(epic.dev_done_tickets ?? 0);
+  const ipPct = pct(epic.in_progress_tickets);
+
   const dotCls = !hasDelta
     ? ""
     : delta > 0
@@ -65,16 +65,20 @@ export function PortalEpicRow({ epic, isOpen, onToggle, canExpand }: Props) {
           className="h-1.5 bg-white/5"
           segments={[
             { pct: donePct, className: "bg-health-good" },
+            { pct: devDonePct, className: "bg-health-good/50" },
             { pct: ipPct, className: "bg-chart-in-progress" },
           ]}
         />
         <div className="text-xs text-dimmer mt-1 truncate">
           {epic.done_tickets} done
+          {(epic.dev_done_tickets ?? 0) > 0 &&
+            ` · ${epic.dev_done_tickets} dev done`}
           {epic.in_progress_tickets > 0 &&
-            ` · ${epic.in_progress_tickets} in progress`}
-          {epic.backlog_tickets > 0 && ` · ${epic.backlog_tickets} to do`}
+            ` · ${epic.in_progress_tickets} active`}
+          {epic.backlog_tickets > 0 && ` · ${epic.backlog_tickets} backlog`}
         </div>
       </div>
+
 
       <div className="text-xs font-mono text-dim text-right">
         {formatHours(epic.current_estimate)}

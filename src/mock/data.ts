@@ -182,7 +182,9 @@ function buildPortalTotals(projectId: string) {
     tickets_total: tickets.length,
     tickets_backlog: countCat("backlog"),
     tickets_in_progress: countCat("active"),
-    tickets_done: countCat("dev done") + countCat("done"),
+    tickets_dev_done: countCat("dev done"),
+    tickets_done: countCat("done"),
+
     fe_actual,
     be_actual,
     proj_actual,
@@ -219,7 +221,9 @@ function buildPortalEpics(projectId: string) {
         total_tickets: et.length,
         backlog_tickets: cat("backlog"),
         in_progress_tickets: cat("active"),
-        done_tickets: cat("dev done") + cat("done"),
+        dev_done_tickets: cat("dev done"),
+        done_tickets: cat("done"),
+
         current_estimate:
           sum((t) => Number(t.current_fe_estimate ?? 0)) +
           sum((t) => Number(t.current_be_estimate ?? 0)) +
