@@ -182,7 +182,9 @@ function buildPortalTotals(projectId: string) {
     tickets_total: tickets.length,
     tickets_backlog: countCat("backlog"),
     tickets_in_progress: countCat("active"),
-    tickets_done: countCat("dev done") + countCat("done"),
+    tickets_dev_done: countCat("dev done"),
+    tickets_done: countCat("done"),
+
     fe_actual,
     be_actual,
     proj_actual,
