@@ -62,7 +62,8 @@ export function buildEpicSnapshots({
     const g = groups.get(key)!;
     g.ticketIds.add(t.id);
     if (effMs > asOfMs) return;
-    g.original += t.original_fe_estimate + t.original_be_estimate;
+    g.original +=
+      t.original_fe_estimate + t.original_be_estimate + t.original_project_estimate;
   });
 
   const ticketEff = new Map<string, number>();
