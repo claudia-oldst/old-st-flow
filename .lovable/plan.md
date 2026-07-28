@@ -1,27 +1,40 @@
-## Goal
-Permanently delete two projects and everything attached to them. No vault archive, no restore path.
+## What's wrong
 
-| Project | Acronym | Tickets | Time logs | Epics | Sprints | Members |
-| --- | --- | --- | --- | --- | --- | --- |
-| Project Cousteau | COUT | 471 | 1,493 | 55 | 2 | 14 |
-| Dennis Testing | DEM | 0 | 0 | 0 | 0 | 1 |
+Draper has 28 baseline tickets: 13 backlog, 4 active, **11 in "DEV DONE (FOR DEPL.)"**, 0 done (confirmed by querying the project's tickets and the `statuses` table).
 
-**Project Cousteau R1 (COU) is a different project and will not be touched.**
+Both portal database functions (`get_project_portal_preview` and `get_client_portal`) bucket tickets into only three categories — `backlog`, `active`, `done`. Neither function references the `dev done` category at all (verified in their source). So Draper's 11 dev-done tickets are counted in the totals but land in no bucket: progress shows 0%, and epic rows show "0 done" with an empty bar.
 
-## How
+The same three-bucket assumption exists in the portal UI. The project health Epic Risk table already handles all four categories correctly.
 
-A single data operation (no schema change) for each project id:
-- `b95f5c11-16a9-4b2f-a410-00ba79f88f15` — Project Cousteau
-- `36aa2c91-61e3-4098-9fc5-f3d41313852c` — Dennis Testing
+Secondary gap: the per-discipline strip counts only `todo` / `in_progress` / `done`, so tickets sitting in the `for_integration` discipline state disappear from those rows.
 
-Steps per project, in dependency order:
-1. Call `public.purge_project_children(<project_id>)`, which removes time logs, estimate changes, comments, ticket assignees, active timers, epic summaries, epic discounts, sprint tickets, sprint capacities, sprints, tickets, epics and project members.
-2. Delete the `projects` row itself.
+## Changes
 
-Team member records, statuses and global settings are untouched — only project-scoped rows are removed.
+### 1. Database (one migration, both portal functions)
 
-## Verification
-Re-query `projects`, `tickets`, `sprints`, `project_epics` and `time_logs` for those two ids and confirm zero rows remain, and that COU (Project Cousteau R1) still has its full data.
+Add a fourth bucket everywhere tickets are grouped:
 
-## Notes
-This is irreversible. Nothing in the app code changes.
+- Totals: add `tickets_dev_done` alongside `tickets_backlog` / `tickets_in_progress` / `tickets_done`.
+- Per-epic rows: add `dev_done_tickets` alongside the existing three counts.
+- Discipline counts: fold `for_integration` into the in-progress count so no ticket is dropped.
+
+No schema changes — only function bodies.
+
+### 2. Portal types
+
+Extend `PortalTotals` with `tickets_dev_done` and `PortalEpic` with `dev_done_tickets`.
+
+### 3. Portal UI
+
+- `PortalView`: progress tile percentage becomes `(done + dev_done) / total`; the tickets tile caption reads `X done · Y dev done · Z in progress · W to do`, omitting zero segments.
+- Progress bars (`PortalView` tile, `PortalEpicRow`, discipline rows): three segments — done, dev done, in progress — using a distinct token for dev done.
+- `PortalEpicRow` caption gains the dev-done count and its bar counts dev done toward progress.
+
+### 4. Consistent labels
+
+Grouped status reporting in the portal uses exactly **Backlog, Active, Dev Done, Done**, matching the status categories in Admin.
+
+## Technical notes
+
+- Colour for the dev-done segment comes from an existing semantic token (e.g. `bg-chart-in-progress` variant / `bg-health-watch`) — no hardcoded colours.
+- The Sprint Gantt groups by per-discipline status (`todo/in_progress/for_integration/done`), not project status categories, so it is left alone unless you want it switched too.
