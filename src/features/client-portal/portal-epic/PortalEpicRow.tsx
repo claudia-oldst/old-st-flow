@@ -17,12 +17,12 @@ export function PortalEpicRow({ epic, isOpen, onToggle, canExpand }: Props) {
   const delta = epic.current_estimate - epic.original_estimate;
   const hasDelta = delta !== 0;
   const expandable = canExpand ?? hasDelta;
-  const donePct =
-    epic.total_tickets > 0 ? (epic.done_tickets / epic.total_tickets) * 100 : 0;
-  const ipPct =
-    epic.total_tickets > 0
-      ? (epic.in_progress_tickets / epic.total_tickets) * 100
-      : 0;
+  const pct = (n: number) =>
+    epic.total_tickets > 0 ? (n / epic.total_tickets) * 100 : 0;
+  const donePct = pct(epic.done_tickets);
+  const devDonePct = pct(epic.dev_done_tickets ?? 0);
+  const ipPct = pct(epic.in_progress_tickets);
+
   const dotCls = !hasDelta
     ? ""
     : delta > 0
