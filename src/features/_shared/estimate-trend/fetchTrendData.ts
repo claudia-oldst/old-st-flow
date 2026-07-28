@@ -26,7 +26,7 @@ export async function fetchTrendData(projectId: string): Promise<TrendDataset> {
     supabase
       .from("tickets")
       .select(
-        "id, created_at, epic_id, ticket_type, original_fe_estimate, original_be_estimate, cr_approval, cr_decided_at",
+        "id, created_at, epic_id, ticket_type, original_fe_estimate, original_be_estimate, original_project_estimate, cr_approval, cr_decided_at",
       )
       .eq("project_id", projectId),
   ]);
@@ -48,6 +48,7 @@ export async function fetchTrendData(projectId: string): Promise<TrendDataset> {
         ticket_type: t.ticket_type,
         original_fe_estimate: Number(t.original_fe_estimate) || 0,
         original_be_estimate: Number(t.original_be_estimate) || 0,
+        original_project_estimate: Number(t.original_project_estimate) || 0,
         is_cr: isCR,
         cr_effective_at: isCR ? (t.cr_decided_at ?? t.created_at) : null,
       };
@@ -80,8 +81,7 @@ export async function fetchTrendData(projectId: string): Promise<TrendDataset> {
         supabase
           .from("time_logs")
           .select("ticket_id, hours, logged_at, discipline")
-          .in("ticket_id", c)
-          .in("discipline", ["FE", "BE"]),
+          .in("ticket_id", c),
       ),
     ),
   ]);

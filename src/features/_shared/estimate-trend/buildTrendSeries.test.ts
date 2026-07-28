@@ -9,6 +9,7 @@ const tk = (over: Partial<TicketLite> & { id: string; created_at: string }): Tic
   cr_effective_at: null,
   original_fe_estimate: 0,
   original_be_estimate: 0,
+  original_project_estimate: 0,
   ...over,
 });
 
