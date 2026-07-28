@@ -1,40 +1,33 @@
 ## What's wrong
 
-Draper has 28 baseline tickets: 13 backlog, 4 active, **11 in "DEV DONE (FOR DEPL.)"**, 0 done (confirmed by querying the project's tickets and the `statuses` table).
+Project Prism 2 has 10 tickets: 5 Standard (44h of FE/BE estimate) and 5 **Proj** tickets carrying **110h** of project estimate and 0.77h of logged Proj time. The chart tops out around 44h because every Proj hour is dropped before it reaches the chart.
 
-Both portal database functions (`get_project_portal_preview` and `get_client_portal`) bucket tickets into only three categories — `backlog`, `active`, `done`. Neither function references the `dev done` category at all (verified in their source). So Draper's 11 dev-done tickets are counted in the totals but land in no bucket: progress shows 0%, and epic rows show "0 done" with an empty bar.
+Two places drop it, both in the shared trend data layer:
 
-The same three-bucket assumption exists in the portal UI. The project health Epic Risk table already handles all four categories correctly.
+1. `src/features/_shared/estimate-trend/fetchTrendData.ts` selects only `original_fe_estimate` and `original_be_estimate` from tickets — `original_project_estimate` is never fetched. It also filters time logs with `.in("discipline", ["FE", "BE"])`, so Proj time never counts as Actual.
+2. `buildTrendSeries.ts` and `buildEpicSnapshots.ts` both compute Original as `original_fe_estimate + original_be_estimate`.
 
-Secondary gap: the per-discipline strip counts only `todo` / `in_progress` / `done`, so tickets sitting in the `for_integration` discipline state disappear from those rows.
+This shared layer feeds the Health page "Estimate Evolution by Epic", the "Trend over time" chart, the per-epic mini charts, and the client portal — so the omission shows up everywhere consistently.
 
-## Changes
+## The fix
 
-### 1. Database (one migration, both portal functions)
+**Fetch layer** (`fetchTrendData.ts`)
+- Add `original_project_estimate` to the ticket select and map it onto a new `original_project_estimate` field.
+- Drop the `discipline` filter on `time_logs` so Proj logs are included in Actual.
 
-Add a fourth bucket everywhere tickets are grouped:
+**Types** (`estimate-trend/types.ts`)
+- Add `original_project_estimate: number` to `TicketLite`.
 
-- Totals: add `tickets_dev_done` alongside `tickets_backlog` / `tickets_in_progress` / `tickets_done`.
-- Per-epic rows: add `dev_done_tickets` alongside the existing three counts.
-- Discipline counts: fold `for_integration` into the in-progress count so no ticket is dropped.
+**Builders**
+- `buildTrendSeries.ts`: Original sums FE + BE + Proj.
+- `buildEpicSnapshots.ts`: same change to the per-epic Original sum.
 
-No schema changes — only function bodies.
+Estimate-change deltas already flow through `ticket_estimate_changes`, which records a `Project` discipline, so Current picks up Proj revisions automatically once Original includes the baseline.
 
-### 2. Portal types
+## Effect on Prism 2
 
-Extend `PortalTotals` with `tickets_dev_done` and `PortalEpic` with `dev_done_tickets`.
+Original/Current rise from ~44h to ~154h, and Actual includes the 0.77h of logged Proj time. Epic rows in Estimate Evolution that contain only Proj tickets — currently filtered out because all three totals were zero — will start appearing.
 
-### 3. Portal UI
+## Note
 
-- `PortalView`: progress tile percentage becomes `(done + dev_done) / total`; the tickets tile caption reads `X done · Y dev done · Z in progress · W to do`, omitting zero segments.
-- Progress bars (`PortalView` tile, `PortalEpicRow`, discipline rows): three segments — done, dev done, in progress — using a distinct token for dev done.
-- `PortalEpicRow` caption gains the dev-done count and its bar counts dev done toward progress.
-
-### 4. Consistent labels
-
-Grouped status reporting in the portal uses exactly **Backlog, Active, Dev Done, Done**, matching the status categories in Admin.
-
-## Technical notes
-
-- Colour for the dev-done segment comes from an existing semantic token (e.g. `bg-chart-in-progress` variant / `bg-health-watch`) — no hardcoded colours.
-- The Sprint Gantt groups by per-discipline status (`todo/in_progress/for_integration/done`), not project status categories, so it is left alone unless you want it switched too.
+This is a shared module: the same correction applies to the client portal's trend chart and the Health page at once, which is the intended behaviour (Proj work is real billable scope). No database changes are needed.
