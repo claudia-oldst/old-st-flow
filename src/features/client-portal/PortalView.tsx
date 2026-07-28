@@ -26,10 +26,18 @@ export function PortalView({
   const totalDiscountedHours = discounts.reduce((s, d) => s + Number(d.hours), 0);
   const effectiveActualHours = Math.max(0, totals.actual_total - totalDiscountedHours);
   const effectiveCostActual = effectiveActualHours * project.rate_per_hour;
+  const devDone = totals.tickets_dev_done ?? 0;
   const completionPct =
     totals.tickets_total > 0
-      ? Math.round((totals.tickets_done / totals.tickets_total) * 100)
+      ? Math.round(((totals.tickets_done + devDone) / totals.tickets_total) * 100)
       : 0;
+  const donePct =
+    totals.tickets_total > 0
+      ? (totals.tickets_done / totals.tickets_total) * 100
+      : 0;
+  const devDonePct =
+    totals.tickets_total > 0 ? (devDone / totals.tickets_total) * 100 : 0;
+
 
 
   return (
