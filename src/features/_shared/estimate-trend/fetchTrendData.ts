@@ -48,6 +48,7 @@ export async function fetchTrendData(projectId: string): Promise<TrendDataset> {
         ticket_type: t.ticket_type,
         original_fe_estimate: Number(t.original_fe_estimate) || 0,
         original_be_estimate: Number(t.original_be_estimate) || 0,
+        original_project_estimate: Number(t.original_project_estimate) || 0,
         is_cr: isCR,
         cr_effective_at: isCR ? (t.cr_decided_at ?? t.created_at) : null,
       };
