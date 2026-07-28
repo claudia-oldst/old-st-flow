@@ -26,7 +26,7 @@ export async function fetchTrendData(projectId: string): Promise<TrendDataset> {
     supabase
       .from("tickets")
       .select(
-        "id, created_at, epic_id, ticket_type, original_fe_estimate, original_be_estimate, cr_approval, cr_decided_at",
+        "id, created_at, epic_id, ticket_type, original_fe_estimate, original_be_estimate, original_project_estimate, cr_approval, cr_decided_at",
       )
       .eq("project_id", projectId),
   ]);
