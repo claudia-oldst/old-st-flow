@@ -71,18 +71,31 @@ export function PortalView({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         <Tile label="Tickets" value={String(totals.tickets_total)}>
           <div className="text-xs text-dim mt-1">
-            {totals.tickets_done} done · {totals.tickets_in_progress} in progress
-            {totals.tickets_backlog > 0 && ` · ${totals.tickets_backlog} to do`}
+            {[
+              `${totals.tickets_done} done`,
+              devDone > 0 ? `${devDone} dev done` : null,
+              totals.tickets_in_progress > 0
+                ? `${totals.tickets_in_progress} active`
+                : null,
+              totals.tickets_backlog > 0
+                ? `${totals.tickets_backlog} backlog`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           </div>
         </Tile>
         <Tile label="Progress" value={`${completionPct}%`}>
-          <div className="mt-2 h-1.5 rounded-full bg-white/5 overflow-hidden">
-            <div
-              className="h-full bg-health-good transition-all"
-              style={{ width: `${completionPct}%` }}
+          <div className="mt-2">
+            <SegmentedBar
+              segments={[
+                { pct: donePct, className: "bg-health-good" },
+                { pct: devDonePct, className: "bg-health-good/50" },
+              ]}
             />
           </div>
         </Tile>
+
         {showRate && project.rate_per_hour > 0 && (
           <Tile label="Cost" value={formatGBP(effectiveCostActual)}>
             <div className="text-xs text-dim mt-1">
