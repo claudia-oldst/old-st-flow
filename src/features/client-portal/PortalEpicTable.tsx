@@ -107,11 +107,11 @@ export function PortalEpicTable({
       {/* Epic progress table */}
       <div className="glass rounded-2xl overflow-hidden">
         {/* Header */}
-        <div className="grid grid-cols-[20px_minmax(0,1.6fr)_minmax(0,1.4fr)_minmax(0,0.9fr)_minmax(0,0.7fr)_28px] gap-3 items-center px-4 py-2.5 text-[10px] uppercase tracking-wider text-dimmer hairline-b">
+        <div className="grid grid-cols-[20px_minmax(0,1.6fr)_minmax(0,1.4fr)_minmax(0,1.15fr)_minmax(0,0.7fr)_28px] gap-3 items-center px-4 py-2.5 text-[10px] uppercase tracking-wider text-dimmer hairline-b">
           <div />
           <div>Epic</div>
           <div>Progress</div>
-          <div className="text-right">Hours (cur/orig)</div>
+          <div className="text-right">Hours (act/cur/orig)</div>
           <div className="text-right">Change</div>
           <div />
         </div>
