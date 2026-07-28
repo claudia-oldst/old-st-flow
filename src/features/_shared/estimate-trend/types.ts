@@ -10,6 +10,7 @@ export interface TicketLite {
   ticket_type: string;
   original_fe_estimate: number;
   original_be_estimate: number;
+  original_project_estimate: number;
   /** True when ticket_type === "CR" AND the CR is approved. */
   is_cr: boolean;
   /** For approved CRs: cr_decided_at ?? created_at. Null for non-CRs. */
