@@ -65,16 +65,20 @@ export function PortalEpicRow({ epic, isOpen, onToggle, canExpand }: Props) {
           className="h-1.5 bg-white/5"
           segments={[
             { pct: donePct, className: "bg-health-good" },
+            { pct: devDonePct, className: "bg-health-good/50" },
             { pct: ipPct, className: "bg-chart-in-progress" },
           ]}
         />
         <div className="text-xs text-dimmer mt-1 truncate">
           {epic.done_tickets} done
+          {(epic.dev_done_tickets ?? 0) > 0 &&
+            ` · ${epic.dev_done_tickets} dev done`}
           {epic.in_progress_tickets > 0 &&
-            ` · ${epic.in_progress_tickets} in progress`}
-          {epic.backlog_tickets > 0 && ` · ${epic.backlog_tickets} to do`}
+            ` · ${epic.in_progress_tickets} active`}
+          {epic.backlog_tickets > 0 && ` · ${epic.backlog_tickets} backlog`}
         </div>
       </div>
+
 
       <div className="text-xs font-mono text-dim text-right">
         {formatHours(epic.current_estimate)}
