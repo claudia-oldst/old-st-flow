@@ -84,7 +84,8 @@ export function buildTrendSeries({
     relevant.forEach((tk) => {
       const eff = ticketEff.get(tk.id) ?? Infinity;
       if (eff > c) return;
-      original += tk.original_fe_estimate + tk.original_be_estimate;
+      original +=
+        tk.original_fe_estimate + tk.original_be_estimate + tk.original_project_estimate;
     });
     changes.forEach((ch) => {
       if (!ticketFilter(ch.ticket_id)) return;
