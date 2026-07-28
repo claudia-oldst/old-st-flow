@@ -81,8 +81,7 @@ export async function fetchTrendData(projectId: string): Promise<TrendDataset> {
         supabase
           .from("time_logs")
           .select("ticket_id, hours, logged_at, discipline")
-          .in("ticket_id", c)
-          .in("discipline", ["FE", "BE"]),
+          .in("ticket_id", c),
       ),
     ),
   ]);
