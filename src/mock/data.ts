@@ -221,7 +221,9 @@ function buildPortalEpics(projectId: string) {
         total_tickets: et.length,
         backlog_tickets: cat("backlog"),
         in_progress_tickets: cat("active"),
-        done_tickets: cat("dev done") + cat("done"),
+        dev_done_tickets: cat("dev done"),
+        done_tickets: cat("done"),
+
         current_estimate:
           sum((t) => Number(t.current_fe_estimate ?? 0)) +
           sum((t) => Number(t.current_be_estimate ?? 0)) +
