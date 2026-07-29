@@ -154,7 +154,11 @@ export function BulkActionsBar({
                   </BulkMenuRow>
                 ))}
               </BulkMenu>
+            </>
+          )}
 
+          {canEdit && (
+            <>
               <Popover>
                 <PopoverTrigger asChild>
                   <button
