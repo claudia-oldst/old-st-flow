@@ -58,6 +58,8 @@ export function BulkActionsBar({
   const [assignOpen, setAssignOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  const showStatus = canEdit || canEditStatus;
+
   if (selectedIds.length === 0) return null;
 
   const update = async (patch: TicketPatch, msg: string) => {
