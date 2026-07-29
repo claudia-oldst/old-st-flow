@@ -42,11 +42,13 @@ export function BulkActionsBar({
   selectedIds,
   onClear,
   canEdit,
+  canEditStatus = false,
 }: {
   projectId: string;
   selectedIds: string[];
   onClear: () => void;
   canEdit: boolean;
+  canEditStatus?: boolean;
 }) {
   const { statuses } = useStatuses();
   const { epics } = useProjectEpics(projectId);
