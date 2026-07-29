@@ -107,15 +107,17 @@ export function BulkActionsBar({
           </div>
 
           {canEdit && (
-            <>
-              <button
-                disabled={busy}
-                onClick={() => setAssignOpen(true)}
-                className="px-3 py-1.5 rounded-lg text-xs hover:bg-white/5 transition inline-flex items-center gap-1.5 text-dim hover:text-foreground"
-              >
-                <Users className="h-3.5 w-3.5" /> Assign
-              </button>
+            <button
+              disabled={busy}
+              onClick={() => setAssignOpen(true)}
+              className="px-3 py-1.5 rounded-lg text-xs hover:bg-white/5 transition inline-flex items-center gap-1.5 text-dim hover:text-foreground"
+            >
+              <Users className="h-3.5 w-3.5" /> Assign
+            </button>
+          )}
 
+          {showStatus && (
+            <>
               <BulkMenu icon={Tag} label="Status" title="Set status" disabled={busy}>
                 {statuses.map((s) => (
                   <BulkMenuRow key={s.id} onClick={() => setStatus(s.id)}>
