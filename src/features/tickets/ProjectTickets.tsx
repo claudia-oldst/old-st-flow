@@ -260,6 +260,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
           selectedIds={Array.from(v.selectedIds)}
           onClear={v.clearSelection}
           canEdit={v.pmba}
+          canEditStatus={!!role}
         />
       )}
 

@@ -42,11 +42,13 @@ export function BulkActionsBar({
   selectedIds,
   onClear,
   canEdit,
+  canEditStatus = false,
 }: {
   projectId: string;
   selectedIds: string[];
   onClear: () => void;
   canEdit: boolean;
+  canEditStatus?: boolean;
 }) {
   const { statuses } = useStatuses();
   const { epics } = useProjectEpics(projectId);
@@ -55,6 +57,8 @@ export function BulkActionsBar({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  const showStatus = canEdit || canEditStatus;
 
   if (selectedIds.length === 0) return null;
 
@@ -107,15 +111,17 @@ export function BulkActionsBar({
           </div>
 
           {canEdit && (
-            <>
-              <button
-                disabled={busy}
-                onClick={() => setAssignOpen(true)}
-                className="px-3 py-1.5 rounded-lg text-xs hover:bg-white/5 transition inline-flex items-center gap-1.5 text-dim hover:text-foreground"
-              >
-                <Users className="h-3.5 w-3.5" /> Assign
-              </button>
+            <button
+              disabled={busy}
+              onClick={() => setAssignOpen(true)}
+              className="px-3 py-1.5 rounded-lg text-xs hover:bg-white/5 transition inline-flex items-center gap-1.5 text-dim hover:text-foreground"
+            >
+              <Users className="h-3.5 w-3.5" /> Assign
+            </button>
+          )}
 
+          {showStatus && (
+            <>
               <BulkMenu icon={Tag} label="Status" title="Set status" disabled={busy}>
                 {statuses.map((s) => (
                   <BulkMenuRow key={s.id} onClick={() => setStatus(s.id)}>
@@ -152,7 +158,11 @@ export function BulkActionsBar({
                   </BulkMenuRow>
                 ))}
               </BulkMenu>
+            </>
+          )}
 
+          {canEdit && (
+            <>
               <Popover>
                 <PopoverTrigger asChild>
                   <button
