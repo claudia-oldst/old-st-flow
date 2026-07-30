@@ -93,6 +93,9 @@ async function dm(
   await slack("chat.postMessage", {
     channel: slackId,
     text,
+    // No link previews — keep DMs compact.
+    unfurl_links: false,
+    unfurl_media: false,
     ...(blocks ? { blocks } : {}),
   });
   return "sent";
