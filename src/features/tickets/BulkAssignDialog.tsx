@@ -30,6 +30,7 @@ export function BulkAssignDialog({
     feEligible,
     beEligible,
     otherEligible,
+    contributorEligible,
     feUserIds,
     setFeUserIds,
     beUserIds,
@@ -93,7 +94,7 @@ export function BulkAssignDialog({
               />
               <BulkAssignSlot
                 label="Project contributors"
-                members={otherEligible}
+                members={contributorEligible}
                 selected={otherUserIds}
                 partial={partial.OtherStd}
                 onToggle={(id) => toggle(otherUserIds, setOtherUserIds, id)}

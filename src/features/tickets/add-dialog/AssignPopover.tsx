@@ -26,6 +26,9 @@ export function AssignPopover({
   const feEligible = members.filter((m) => m.role === "Frontend" || m.role === "Fullstack");
   const beEligible = members.filter((m) => m.role === "Backend" || m.role === "Fullstack");
   const projectEligible = members;
+  const contributorEligible = members.filter(
+    (m) => m.role !== "Frontend" && m.role !== "Backend" && m.role !== "Fullstack",
+  );
 
   const toggle = (slot: keyof DraftAssignees, id: string) => {
     const next: DraftAssignees = {
@@ -95,7 +98,7 @@ export function AssignPopover({
             />
             <SlotChips
               label="Project contributors"
-              members={projectEligible}
+              members={contributorEligible}
               selected={assignees.project}
               onToggle={(id) => toggle("project", id)}
               showRole
