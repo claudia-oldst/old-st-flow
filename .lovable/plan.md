@@ -1,47 +1,46 @@
 ## Goal
-Send immediate Slack DMs when (A) someone is newly assigned to a ticket slot, and (B) a pending estimate revision is created — one DM per PMBA on that project. Notifications can be switched on/off globally per user **and** per project per member. Slack failures never break the underlying save.
 
-## 1. Migration (new file)
-- `team_members`: add `slack_user_id text`, `slack_notifications_enabled boolean not null default true` (global opt-out).
-- `project_members`: add `slack_notifications_enabled boolean not null default true` (per-project opt-out).
-- RLS: a member can update their own row's flag on both tables; PMBAs on a project can update the per-project flag for any member of that project. `slack_user_id` is written only by the edge function via service role.
+Both Slack DMs get clickable links: straight to the ticket, plus the project, and for estimate revisions a link to the approvals screen.
 
-## 2. Secrets
-- `SLACK_BOT_TOKEN` (you add it) and `APP_BASE_URL` for deep links. Existing `chat:write` + `users:read.email` scopes are sufficient.
+## The gap to close first
 
-## 3. Shared helper `supabase/functions/_shared/slack.ts`
-- `isNotifiable(admin, teamMemberId, projectId)` — true only when the global flag and the member's `project_members` flag for that project are both true.
-- `getOrLookupSlackUserId(admin, teamMemberId)` — reads `slack_user_id`/`email`; on missing id calls `users.lookupByEmail`, persists it, returns id; logs and returns `null` on failure.
-- `sendSlackDM(slackUserId, blocks, fallbackText)` — `chat.postMessage`, checks HTTP status and Slack's `ok` field, logs failures, never throws.
+The app has no URL that opens a specific ticket. Tickets open through an in-app event (`openTicketEvent`), never via the address bar — so today there is nothing a Slack link could point at. Routes that do exist: `/projects/:id` (tickets list), `/projects/:id/change-requests` (estimate revisions).
 
-## 4. Edge function `notify-slack-assignment`
-- Zod input `{ ticketId, assigneeTeamMemberId, slot: "FE"|"BE"|"Project" }`; JWT verified in code; service-role client for lookups.
-- Loads ticket `formatted_id`, `title`, `project_id`; skips if the assignee isn't notifiable for that project.
-- DM: "You've been assigned {formatted_id}: {title}" with the slot and a button to `{APP_BASE_URL}/projects/{project_id}/tickets#open-ticket:{ticketId}`.
+So this is two pieces: make ticket deep links work in the app, then use them in Slack.
 
-## 5. Edge function `notify-slack-estimate-revision`
-- Zod input `{ estimateChangeId }`; skips unless the row's `status = 'pending'`.
-- Loads the change row, its ticket, and the proposer's name.
-- Finds PMBAs via `project_members` (role = PMBA) for that project, filters to those notifiable for the project, resolves each Slack id.
-- One immediate DM per PMBA: "{proposer} requested a {discipline} estimate change on {formatted_id}: {prev}h → {new}h — {reason}", with a button to `/projects/{project_id}/change-requests`.
+## 1. Deep link to a ticket
 
-## 6. Call sites (fire-and-forget)
-- New `src/features/notifications/notifySlack.ts` wrapping `supabase.functions.invoke`, swallowing errors.
-- Assignment — fired only for genuinely new `(ticket_id, slot, user_id)` inserts, computed from each surface's existing diff (no fire on removal or unchanged re-save):
-  - `src/features/tickets/AssignDialog.tsx`
-  - `src/features/tickets/bulk-assign/useBulkAssign.ts`
-  - `src/features/tickets/add-dialog/useDraftRows.ts`
-- Estimate revision — `RequestMoreTimeDialog.tsx`, right after a successful insert, only in the `!canAutoApprove` branch.
+Add a `?ticket=<id>` query parameter to the project tickets route.
 
-## 7. Settings UI
-- **Global**: a Notification settings dialog from the TopBar user dropdown with the `team_members.slack_notifications_enabled` switch.
-- **Per project**: in Project Settings → Team tab (`src/features/project/settings/ProjectTeamTab.tsx`), each member row gets a Slack-notifications switch writing `project_members.slack_notifications_enabled`. PMBAs can toggle anyone; a non-PMBA can toggle only their own row.
+- `src/features/tickets/ProjectTickets.tsx` — on mount, read the `ticket` param and open the detail sheet for that ticket. Reuse `fetchTicketById` so it works even when the ticket isn't on the current page or is filtered out.
+- Clear the param once the sheet opens, so closing the sheet doesn't reopen it and a refresh behaves sanely.
+- If the id is unknown or the user can't access it, fall through to the plain tickets list rather than erroring.
 
-## 8. Tests (vitest, `src/test/mocks/supabase.ts`)
-- Assignment diff: one invoke per newly inserted (ticket, slot, user); none on removal or re-save.
-- Estimate revision: no invoke when auto-approved; one invoke when pending.
-- Fan-out unit: one DM per project PMBA, and members opted out globally or per project are skipped.
+Result: `/projects/{project_id}?ticket={ticket_id}` opens the project *and* the ticket.
 
-## Notes
-- No changes to `daily-logoff-summary`; nudges are sent immediately.
-- `supabase/config.toml` gets entries for the two new functions.
+## 2. Base URL for the links
+
+The edge function needs to know the app's public address. Store it as an `app_settings` row (`app_base_url`, e.g. `https://oldst-pulse.lovable.app`) alongside the existing `slack_notify_secret`, read once per invocation. If it's absent, messages send as they do now, just without links — never a hard failure.
+
+## 3. Richer Slack messages
+
+Rework both messages in `supabase/functions/slack-notify/index.ts` to use Slack Block Kit instead of plain text, keeping a plain-text fallback for notifications previews.
+
+**Assignment DM**
+- Ticket line becomes a link: `<url|DRA-014 — Fix login redirect>`
+- Project name becomes a link to the project.
+- Keeps the role/slot line.
+- An "Open ticket" button.
+
+**Estimate revision DM (to each PMBA)**
+- Ticket and project as links, same as above.
+- Requester, discipline, and the `Xh → Yh` change as today.
+- Two buttons: "Review request" pointing at `/projects/{id}/change-requests`, and "Open ticket".
+
+## Technical detail
+
+- `supabase/functions/slack-notify/index.ts`: fetch `app_base_url` in the same place the notify secret is read; pass it into both handlers. Build links with Slack's `<url|label>` mrkdwn syntax inside a `section` block, plus an `actions` block for the buttons. `chat.postMessage` gets `blocks` and a `text` fallback.
+- Slack link labels must escape `&`, `<`, `>` in ticket titles — add a small escape helper; unescaped titles silently mangle the message.
+- `src/features/tickets/ProjectTickets.tsx`: `useSearchParams` for the `ticket` param, `fetchTicketById` to load it, then the existing sheet state.
+- No migration needed for schema — just one settings row inserted, which I can do as part of the change.
+- No new Slack scopes; buttons that are pure links need nothing beyond `chat:write`.
