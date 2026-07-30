@@ -1,19 +1,40 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/store/currentUser";
 import { Button } from "@/components/ui/button";
 import oldStLogo from "@/assets/oldst-logo.png";
 
+/** Where to land after sign-in: router state, then sessionStorage, then home. */
+function readRedirect(stateFrom: unknown): string {
+  if (typeof stateFrom === "string" && stateFrom.startsWith("/")) return stateFrom;
+  try {
+    const stored = sessionStorage.getItem("oldst:postLoginRedirect");
+    if (stored && stored.startsWith("/")) return stored;
+  } catch {
+    /* storage unavailable */
+  }
+  return "/";
+}
+
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const user = useCurrentUser((s) => s.user);
   const authLoading = useCurrentUser((s) => s.authLoading);
   const [loading, setLoading] = useState(false);
 
+  const redirect = readRedirect((location.state as { from?: unknown } | null)?.from);
+
   useEffect(() => {
-    if (user) navigate("/", { replace: true });
-  }, [user, navigate]);
+    if (!user) return;
+    try {
+      sessionStorage.removeItem("oldst:postLoginRedirect");
+    } catch {
+      /* storage unavailable */
+    }
+    navigate(redirect, { replace: true });
+  }, [user, navigate, redirect]);
 
   if (authLoading) {
     return (
@@ -28,12 +49,13 @@ export default function Login() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: window.location.origin,
+        redirectTo: `${window.location.origin}${redirect}`,
         queryParams: { hd: "old.st", prompt: "select_account" },
       },
     });
     if (error) setLoading(false);
   };
+
 
   return (
     <div className="min-h-screen flex items-center justify-center px-6">
