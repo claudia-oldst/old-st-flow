@@ -29,6 +29,9 @@ export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
   const [open, setOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const s = useProjectSettings(project, open, onUpdated);
+  const currentUser = useCurrentUser((st) => st.user);
+  const prefs = useNotificationPrefs(project.id, open);
+
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
