@@ -250,20 +250,23 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const { data: secretRow } = await admin
+    const { data: settings } = await admin
       .from("app_settings")
-      .select("value")
-      .eq("key", "slack_notify_secret")
-      .maybeSingle();
-    const expected = (secretRow as { value?: string } | null)?.value;
+      .select("key, value")
+      .in("key", ["slack_notify_secret", "app_base_url"]);
+    const byKey = new Map(
+      ((settings ?? []) as { key: string; value: string }[]).map((r) => [r.key, r.value]),
+    );
+    const expected = byKey.get("slack_notify_secret");
     if (!expected || req.headers.get("x-notify-secret") !== expected) {
       return j({ error: "unauthorized" }, 401);
     }
+    const base = byKey.get("app_base_url") ?? null;
 
     const payload = (await req.json()) as Payload;
-    if (payload.event === "ticket_assigned") return await handleAssignment(admin, payload);
+    if (payload.event === "ticket_assigned") return await handleAssignment(admin, payload, base);
     if (payload.event === "estimate_revision_requested") {
-      return await handleEstimateRevision(admin, payload);
+      return await handleEstimateRevision(admin, payload, base);
     }
     return j({ error: `unknown event: ${payload.event}` }, 400);
   } catch (e) {
