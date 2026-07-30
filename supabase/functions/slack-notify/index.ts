@@ -169,7 +169,7 @@ async function handleAssignment(admin: Admin, p: Payload, base: string | null) {
 }
 
 
-async function handleEstimateRevision(admin: Admin, p: Payload) {
+async function handleEstimateRevision(admin: Admin, p: Payload, base: string | null) {
   if (!p.change_id) return j({ error: "missing change_id" }, 400);
 
   const { data: change, error: cErr } = await admin
