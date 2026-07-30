@@ -54,10 +54,12 @@ export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
         </DialogHeader>
 
         <Tabs defaultValue="details" className="mt-2">
-          <TabsList className="grid grid-cols-2 w-full">
+          <TabsList className="grid grid-cols-3 w-full">
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="team">Team</TabsTrigger>
+            <TabsTrigger value="notifications">Notifications</TabsTrigger>
           </TabsList>
+
 
           <TabsContent value="details">
             <ProjectDetailsTab
