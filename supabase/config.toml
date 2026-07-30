@@ -11,3 +11,6 @@ verify_jwt = true
 
 [functions.github-sync-ticket]
 verify_jwt = true
+
+[functions.slack-notify]
+verify_jwt = false
