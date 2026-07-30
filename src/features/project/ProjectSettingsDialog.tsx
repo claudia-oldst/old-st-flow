@@ -88,6 +88,17 @@ export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
               onRemove={s.removeMember}
             />
           </TabsContent>
+
+          <TabsContent value="notifications">
+            <ProjectNotificationsTab
+              members={s.members}
+              currentUserId={currentUser?.id}
+              canEditAll={canEdit}
+              isEnabled={prefs.isEnabled}
+              onToggle={prefs.setEnabled}
+            />
+          </TabsContent>
+
         </Tabs>
       </DialogContent>
       <ArchiveProjectDialog
