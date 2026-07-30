@@ -205,17 +205,34 @@ async function handleEstimateRevision(admin: Admin, p: Payload, base: string | n
     .map((m) => m.team_members)
     .filter((tm) => tm && tm.role === "PMBA");
 
-  const text =
+  const u = urls(base, t.project_id as string, t.id as string);
+  const who = (requester as any)?.name ?? "A team member";
+
+  const mrkdwn =
     `:hourglass_flowing_sand: *Estimate revision needs your approval*\n` +
-    `${t.formatted_id} — ${t.title} (${t.projects?.name ?? "project"})\n` +
-    `${(requester as any)?.name ?? "A team member"} requested ${c.discipline}: ` +
+    `${link(u.ticket, `${t.formatted_id} — ${t.title}`)} · ` +
+    `${link(u.project, t.projects?.name ?? "project")}\n` +
+    `${esc(who)} requested ${esc(String(c.discipline))}: ` +
     `${Number(c.previous_hours)}h → ${Number(c.new_hours)}h` +
-    (c.reason ? `\nReason: ${String(c.reason).slice(0, 500)}` : "");
+    (c.reason ? `\nReason: ${esc(String(c.reason).slice(0, 500))}` : "");
+
+  const text =
+    `Estimate revision needs your approval — ${t.formatted_id} ${t.title}: ` +
+    `${Number(c.previous_hours)}h → ${Number(c.new_hours)}h`;
+
+  const blocks: unknown[] = [
+    { type: "section", text: { type: "mrkdwn", text: mrkdwn } },
+  ];
+  const buttons = [
+    ...(u.changeRequests ? [linkButton("Review request", u.changeRequests)] : []),
+    ...(u.ticket ? [linkButton("Open ticket", u.ticket)] : []),
+  ];
+  if (buttons.length) blocks.push({ type: "actions", elements: buttons });
 
   const results: string[] = [];
   for (const pmba of pmbas) {
     try {
-      results.push(await dm(admin, t.project_id as string, pmba, text));
+      results.push(await dm(admin, t.project_id as string, pmba, text, blocks));
     } catch (e) {
       console.error("PMBA DM failed:", (e as Error).message);
       results.push("error");
