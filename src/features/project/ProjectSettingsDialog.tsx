@@ -12,6 +12,10 @@ import { ArchiveProjectDialog } from "@/features/vault/ArchiveProjectDialog";
 import { useProjectSettings } from "./settings/useProjectSettings";
 import { ProjectDetailsTab } from "./settings/ProjectDetailsTab";
 import { ProjectTeamTab } from "./settings/ProjectTeamTab";
+import { ProjectNotificationsTab } from "./settings/ProjectNotificationsTab";
+import { useNotificationPrefs } from "./settings/useNotificationPrefs";
+import { useCurrentUser } from "@/store/currentUser";
+
 
 export type { ProjectLink } from "./settings/types";
 
