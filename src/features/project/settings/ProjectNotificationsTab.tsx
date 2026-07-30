@@ -32,7 +32,7 @@ export function ProjectNotificationsTab({
           const editable = canEditAll || pm.user_id === currentUserId;
           return (
             <div key={pm.user_id} className="flex items-center gap-3 p-3">
-              <MemberAvatar member={pm.member} size="sm" />
+              <MemberAvatar name={pm.member?.name ?? "?"} color={pm.member?.avatar_color} size="sm" />
               <div className="flex-1 min-w-0">
                 <div className="text-sm truncate">{pm.member?.name}</div>
                 <div className="text-xs text-dimmer truncate">{pm.role}</div>
