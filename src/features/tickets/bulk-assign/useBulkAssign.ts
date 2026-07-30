@@ -110,7 +110,11 @@ export function useBulkAssign({
 
   const feEligible = members.filter((m) => m.role === "Frontend" || m.role === "Fullstack");
   const beEligible = members.filter((m) => m.role === "Backend" || m.role === "Fullstack");
+  // Proj tickets: anyone on the project. Project-contributor slot: non-dev roles only.
   const otherEligible = members;
+  const contributorEligible = members.filter(
+    (m) => m.role !== "Frontend" && m.role !== "Backend" && m.role !== "Fullstack",
+  );
 
   const toggle = (set: Set<string>, setter: (s: Set<string>) => void, id: string) => {
     const next = new Set(set);
