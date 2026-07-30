@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { fetchTicketById } from "@/features/tickets/fetchTicketById";
 import { useCurrentUser } from "@/store/currentUser";
 import { useTimerStore } from "@/store/timer";
 import { AlertCircle, FileText, RefreshCw } from "lucide-react";
