@@ -270,6 +270,7 @@ export function useBulkAssign({
     feEligible,
     beEligible,
     otherEligible,
+    contributorEligible,
     feUserIds,
     setFeUserIds,
     beUserIds,
