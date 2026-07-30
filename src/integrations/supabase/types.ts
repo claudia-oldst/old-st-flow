@@ -223,6 +223,45 @@ export type Database = {
           },
         ]
       }
+      project_notification_prefs: {
+        Row: {
+          created_at: string
+          project_id: string
+          slack_enabled: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          project_id: string
+          slack_enabled?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          project_id?: string
+          slack_enabled?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_notification_prefs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_notification_prefs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           acronym: string
@@ -526,6 +565,7 @@ export type Database = {
           id: string
           name: string
           role: Database["public"]["Enums"]["project_role"]
+          slack_user_id: string | null
           updated_at: string
         }
         Insert: {
@@ -537,6 +577,7 @@ export type Database = {
           id?: string
           name: string
           role?: Database["public"]["Enums"]["project_role"]
+          slack_user_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -548,6 +589,7 @@ export type Database = {
           id?: string
           name?: string
           role?: Database["public"]["Enums"]["project_role"]
+          slack_user_id?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -954,6 +996,7 @@ export type Database = {
       current_is_project_member: { Args: { _pid: string }; Returns: boolean }
       current_team_member_id: { Args: never; Returns: string }
       enqueue_github_sync: { Args: { _ticket_id: string }; Returns: undefined }
+      enqueue_slack_notify: { Args: { _payload: Json }; Returns: undefined }
       first_status_in_category: {
         Args: { _cat: Database["public"]["Enums"]["status_category"] }
         Returns: string

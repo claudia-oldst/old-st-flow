@@ -12,6 +12,10 @@ import { ArchiveProjectDialog } from "@/features/vault/ArchiveProjectDialog";
 import { useProjectSettings } from "./settings/useProjectSettings";
 import { ProjectDetailsTab } from "./settings/ProjectDetailsTab";
 import { ProjectTeamTab } from "./settings/ProjectTeamTab";
+import { ProjectNotificationsTab } from "./settings/ProjectNotificationsTab";
+import { useNotificationPrefs } from "./settings/useNotificationPrefs";
+import { useCurrentUser } from "@/store/currentUser";
+
 
 export type { ProjectLink } from "./settings/types";
 
@@ -25,6 +29,9 @@ export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
   const [open, setOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const s = useProjectSettings(project, open, onUpdated);
+  const currentUser = useCurrentUser((st) => st.user);
+  const prefs = useNotificationPrefs(project.id, open);
+
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -47,10 +54,12 @@ export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
         </DialogHeader>
 
         <Tabs defaultValue="details" className="mt-2">
-          <TabsList className="grid grid-cols-2 w-full">
+          <TabsList className="grid grid-cols-3 w-full">
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="team">Team</TabsTrigger>
+            <TabsTrigger value="notifications">Notifications</TabsTrigger>
           </TabsList>
+
 
           <TabsContent value="details">
             <ProjectDetailsTab
@@ -79,6 +88,17 @@ export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
               onRemove={s.removeMember}
             />
           </TabsContent>
+
+          <TabsContent value="notifications">
+            <ProjectNotificationsTab
+              members={s.members}
+              currentUserId={currentUser?.id}
+              canEditAll={canEdit}
+              isEnabled={prefs.isEnabled}
+              onToggle={prefs.setEnabled}
+            />
+          </TabsContent>
+
         </Tabs>
       </DialogContent>
       <ArchiveProjectDialog
