@@ -85,11 +85,16 @@ async function dm(
   projectId: string,
   member: { id: string; slack_user_id?: string | null; email?: string | null },
   text: string,
+  blocks?: unknown[],
 ) {
   if (!(await isEnabled(admin, projectId, member.id))) return "muted";
   const slackId = await resolveSlackId(member);
   if (!slackId) return "no-slack-user";
-  await slack("chat.postMessage", { channel: slackId, text });
+  await slack("chat.postMessage", {
+    channel: slackId,
+    text,
+    ...(blocks ? { blocks } : {}),
+  });
   return "sent";
 }
 
@@ -99,7 +104,30 @@ const SLOT_LABEL: Record<string, string> = {
   Project: "Project",
 };
 
-async function handleAssignment(admin: Admin, p: Payload) {
+/** Slack mrkdwn requires these escaped inside link labels and text. */
+function esc(s: string) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function link(url: string | null, label: string) {
+  return url ? `<${url}|${esc(label)}>` : `*${esc(label)}*`;
+}
+
+function urls(base: string | null, projectId: string, ticketId: string) {
+  if (!base) return { project: null, ticket: null, changeRequests: null };
+  const b = base.replace(/\/+$/, "");
+  return {
+    project: `${b}/projects/${projectId}`,
+    ticket: `${b}/projects/${projectId}?ticket=${ticketId}`,
+    changeRequests: `${b}/projects/${projectId}/change-requests`,
+  };
+}
+
+function linkButton(text: string, url: string) {
+  return { type: "button", text: { type: "plain_text", text, emoji: true }, url };
+}
+
+async function handleAssignment(admin: Admin, p: Payload, base: string | null) {
   if (!p.ticket_id || !p.user_id) return j({ error: "missing ticket_id/user_id" }, 400);
 
   const { data: ticket, error: tErr } = await admin
@@ -121,13 +149,25 @@ async function handleAssignment(admin: Admin, p: Payload) {
   const t = ticket as Record<string, any>;
   const projectName = t.projects?.name ?? "a project";
   const slot = SLOT_LABEL[p.slot ?? ""] ?? p.slot ?? "";
-  const text =
-    `:ticket: You've been assigned to *${t.formatted_id}* — ${t.title}\n` +
-    `Project: ${projectName}${slot ? ` · Role: ${slot}` : ""}`;
+  const u = urls(base, t.project_id as string, t.id as string);
 
-  const result = await dm(admin, t.project_id as string, member as any, text);
+  const mrkdwn =
+    `:ticket: You've been assigned to ` +
+    `${link(u.ticket, `${t.formatted_id} — ${t.title}`)}\n` +
+    `Project: ${link(u.project, projectName)}${slot ? ` · Role: ${esc(slot)}` : ""}`;
+  const fallback = `You've been assigned to ${t.formatted_id} — ${t.title} (${projectName})`;
+
+  const blocks: unknown[] = [
+    { type: "section", text: { type: "mrkdwn", text: mrkdwn } },
+  ];
+  if (u.ticket) {
+    blocks.push({ type: "actions", elements: [linkButton("Open ticket", u.ticket)] });
+  }
+
+  const result = await dm(admin, t.project_id as string, member as any, fallback, blocks);
   return j({ ok: true, event: "ticket_assigned", result });
 }
+
 
 async function handleEstimateRevision(admin: Admin, p: Payload) {
   if (!p.change_id) return j({ error: "missing change_id" }, 400);
