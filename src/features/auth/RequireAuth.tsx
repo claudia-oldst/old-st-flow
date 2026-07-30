@@ -50,7 +50,15 @@ export function RequireAuth({ children }: { children: ReactNode }) {
     );
   }
   if (!hasSession) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+    // Preserve the full deep link (path + query) so links like
+    // /projects/:id?ticket=<id> survive the sign-in round trip.
+    const from = `${location.pathname}${location.search}`;
+    try {
+      sessionStorage.setItem("oldst:postLoginRedirect", from);
+    } catch {
+      /* storage unavailable — fall back to router state */
+    }
+    return <Navigate to="/login" replace state={{ from }} />;
   }
   return <>{children}</>;
 }
