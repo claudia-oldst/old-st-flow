@@ -58,8 +58,11 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
 
   const feEligible = members.filter((m) => m.role === "Frontend" || m.role === "Fullstack");
   const beEligible = members.filter((m) => m.role === "Backend" || m.role === "Fullstack");
-  // Project Contributors slot accepts any project member.
+  // Proj tickets: any project member. Project contributors slot: non-dev roles only.
   const projectEligible = members;
+  const contributorEligible = members.filter(
+    (m) => m.role !== "Frontend" && m.role !== "Backend" && m.role !== "Fullstack",
+  );
 
   const toggle = (set: Set<string>, setter: (s: Set<string>) => void, id: string) => {
     const next = new Set(set);

@@ -30,6 +30,7 @@ export function BulkAssignDialog({
     feEligible,
     beEligible,
     otherEligible,
+    contributorEligible,
     feUserIds,
     setFeUserIds,
     beUserIds,
