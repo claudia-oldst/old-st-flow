@@ -159,7 +159,7 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
               <SlotPicker
                 label="Project contributors"
                 description="QA, PMBA, Design — anyone else on the ticket. Time logged here goes to the ticket's shared Project bucket."
-                members={projectEligible}
+                members={contributorEligible}
                 selected={projectUserIds}
                 onToggle={(id) => toggle(projectUserIds, setProjectUserIds, id)}
                 showRole

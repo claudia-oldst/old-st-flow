@@ -98,7 +98,7 @@ export function AssignPopover({
             />
             <SlotChips
               label="Project contributors"
-              members={projectEligible}
+              members={contributorEligible}
               selected={assignees.project}
               onToggle={(id) => toggle("project", id)}
               showRole
