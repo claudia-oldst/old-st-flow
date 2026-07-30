@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { fetchTicketById } from "@/features/tickets/fetchTicketById";
 import { useCurrentUser } from "@/store/currentUser";
 import { useTimerStore } from "@/store/timer";
 import { AlertCircle, FileText, RefreshCw } from "lucide-react";
@@ -62,6 +64,31 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
     [v.filters, v.search, v.filterMine],
   );
   useEffect(() => setPage(1), [filterSig]);
+
+  // Deep link: /projects/:id?ticket=<uuid> opens that ticket's detail sheet.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const deepTicketId = searchParams.get("ticket");
+  useEffect(() => {
+    if (!deepTicketId) return;
+    let cancelled = false;
+    (async () => {
+      const t = await fetchTicketById(deepTicketId);
+      if (!cancelled && t) setOpenTicket(t);
+      if (!cancelled) {
+        setSearchParams(
+          (prev) => {
+            const next = new URLSearchParams(prev);
+            next.delete("ticket");
+            return next;
+          },
+          { replace: true },
+        );
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [deepTicketId, setSearchParams]);
 
   const onImportClick = async () => {
     const ok = await handleImport();

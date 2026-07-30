@@ -85,11 +85,16 @@ async function dm(
   projectId: string,
   member: { id: string; slack_user_id?: string | null; email?: string | null },
   text: string,
+  blocks?: unknown[],
 ) {
   if (!(await isEnabled(admin, projectId, member.id))) return "muted";
   const slackId = await resolveSlackId(member);
   if (!slackId) return "no-slack-user";
-  await slack("chat.postMessage", { channel: slackId, text });
+  await slack("chat.postMessage", {
+    channel: slackId,
+    text,
+    ...(blocks ? { blocks } : {}),
+  });
   return "sent";
 }
 
@@ -99,7 +104,30 @@ const SLOT_LABEL: Record<string, string> = {
   Project: "Project",
 };
 
-async function handleAssignment(admin: Admin, p: Payload) {
+/** Slack mrkdwn requires these escaped inside link labels and text. */
+function esc(s: string) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function link(url: string | null, label: string) {
+  return url ? `<${url}|${esc(label)}>` : `*${esc(label)}*`;
+}
+
+function urls(base: string | null, projectId: string, ticketId: string) {
+  if (!base) return { project: null, ticket: null, changeRequests: null };
+  const b = base.replace(/\/+$/, "");
+  return {
+    project: `${b}/projects/${projectId}`,
+    ticket: `${b}/projects/${projectId}?ticket=${ticketId}`,
+    changeRequests: `${b}/projects/${projectId}/change-requests`,
+  };
+}
+
+function linkButton(text: string, url: string) {
+  return { type: "button", text: { type: "plain_text", text, emoji: true }, url };
+}
+
+async function handleAssignment(admin: Admin, p: Payload, base: string | null) {
   if (!p.ticket_id || !p.user_id) return j({ error: "missing ticket_id/user_id" }, 400);
 
   const { data: ticket, error: tErr } = await admin
@@ -121,15 +149,27 @@ async function handleAssignment(admin: Admin, p: Payload) {
   const t = ticket as Record<string, any>;
   const projectName = t.projects?.name ?? "a project";
   const slot = SLOT_LABEL[p.slot ?? ""] ?? p.slot ?? "";
-  const text =
-    `:ticket: You've been assigned to *${t.formatted_id}* — ${t.title}\n` +
-    `Project: ${projectName}${slot ? ` · Role: ${slot}` : ""}`;
+  const u = urls(base, t.project_id as string, t.id as string);
 
-  const result = await dm(admin, t.project_id as string, member as any, text);
+  const mrkdwn =
+    `:ticket: You've been assigned to ` +
+    `${link(u.ticket, `${t.formatted_id} — ${t.title}`)}\n` +
+    `Project: ${link(u.project, projectName)}${slot ? ` · Role: ${esc(slot)}` : ""}`;
+  const fallback = `You've been assigned to ${t.formatted_id} — ${t.title} (${projectName})`;
+
+  const blocks: unknown[] = [
+    { type: "section", text: { type: "mrkdwn", text: mrkdwn } },
+  ];
+  if (u.ticket) {
+    blocks.push({ type: "actions", elements: [linkButton("Open ticket", u.ticket)] });
+  }
+
+  const result = await dm(admin, t.project_id as string, member as any, fallback, blocks);
   return j({ ok: true, event: "ticket_assigned", result });
 }
 
-async function handleEstimateRevision(admin: Admin, p: Payload) {
+
+async function handleEstimateRevision(admin: Admin, p: Payload, base: string | null) {
   if (!p.change_id) return j({ error: "missing change_id" }, 400);
 
   const { data: change, error: cErr } = await admin
@@ -165,17 +205,34 @@ async function handleEstimateRevision(admin: Admin, p: Payload) {
     .map((m) => m.team_members)
     .filter((tm) => tm && tm.role === "PMBA");
 
-  const text =
+  const u = urls(base, t.project_id as string, t.id as string);
+  const who = (requester as any)?.name ?? "A team member";
+
+  const mrkdwn =
     `:hourglass_flowing_sand: *Estimate revision needs your approval*\n` +
-    `${t.formatted_id} — ${t.title} (${t.projects?.name ?? "project"})\n` +
-    `${(requester as any)?.name ?? "A team member"} requested ${c.discipline}: ` +
+    `${link(u.ticket, `${t.formatted_id} — ${t.title}`)} · ` +
+    `${link(u.project, t.projects?.name ?? "project")}\n` +
+    `${esc(who)} requested ${esc(String(c.discipline))}: ` +
     `${Number(c.previous_hours)}h → ${Number(c.new_hours)}h` +
-    (c.reason ? `\nReason: ${String(c.reason).slice(0, 500)}` : "");
+    (c.reason ? `\nReason: ${esc(String(c.reason).slice(0, 500))}` : "");
+
+  const text =
+    `Estimate revision needs your approval — ${t.formatted_id} ${t.title}: ` +
+    `${Number(c.previous_hours)}h → ${Number(c.new_hours)}h`;
+
+  const blocks: unknown[] = [
+    { type: "section", text: { type: "mrkdwn", text: mrkdwn } },
+  ];
+  const buttons = [
+    ...(u.changeRequests ? [linkButton("Review request", u.changeRequests)] : []),
+    ...(u.ticket ? [linkButton("Open ticket", u.ticket)] : []),
+  ];
+  if (buttons.length) blocks.push({ type: "actions", elements: buttons });
 
   const results: string[] = [];
   for (const pmba of pmbas) {
     try {
-      results.push(await dm(admin, t.project_id as string, pmba, text));
+      results.push(await dm(admin, t.project_id as string, pmba, text, blocks));
     } catch (e) {
       console.error("PMBA DM failed:", (e as Error).message);
       results.push("error");
@@ -193,20 +250,23 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const { data: secretRow } = await admin
+    const { data: settings } = await admin
       .from("app_settings")
-      .select("value")
-      .eq("key", "slack_notify_secret")
-      .maybeSingle();
-    const expected = (secretRow as { value?: string } | null)?.value;
+      .select("key, value")
+      .in("key", ["slack_notify_secret", "app_base_url"]);
+    const byKey = new Map(
+      ((settings ?? []) as { key: string; value: string }[]).map((r) => [r.key, r.value]),
+    );
+    const expected = byKey.get("slack_notify_secret");
     if (!expected || req.headers.get("x-notify-secret") !== expected) {
       return j({ error: "unauthorized" }, 401);
     }
+    const base = byKey.get("app_base_url") ?? null;
 
     const payload = (await req.json()) as Payload;
-    if (payload.event === "ticket_assigned") return await handleAssignment(admin, payload);
+    if (payload.event === "ticket_assigned") return await handleAssignment(admin, payload, base);
     if (payload.event === "estimate_revision_requested") {
-      return await handleEstimateRevision(admin, payload);
+      return await handleEstimateRevision(admin, payload, base);
     }
     return j({ error: `unknown event: ${payload.event}` }, 400);
   } catch (e) {
