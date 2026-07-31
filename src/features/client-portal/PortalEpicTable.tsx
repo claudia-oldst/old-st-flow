@@ -138,7 +138,7 @@ export function PortalEpicTable({
                   epicId={e.id}
                   epicName={e.epic_name ?? "Untitled epic"}
                   delta={delta}
-                  pmbaText={e.pmba_text}
+                  pmbaText={clientText}
                   actualHours={e.actual_hours}
                   ratePerHour={ratePerHour}
                   showRate={showRate}
