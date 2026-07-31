@@ -119,7 +119,9 @@ export function PortalEpicTable({
         {visibleEpics.map((e) => {
           const delta = e.current_estimate - e.original_estimate;
           const hasDelta = delta !== 0;
-          const hasSummary = (e.pmba_text ?? "").trim().length > 0;
+          // "Show to client" toggle off => never surface the PM/BA note publicly
+          const clientText = e.included === false ? null : e.pmba_text;
+          const hasSummary = (clientText ?? "").trim().length > 0;
           const canExpand = hasDelta || hasSummary;
           const isOpen = expanded.has(e.id);
           return (
@@ -136,7 +138,7 @@ export function PortalEpicTable({
                   epicId={e.id}
                   epicName={e.epic_name ?? "Untitled epic"}
                   delta={delta}
-                  pmbaText={e.pmba_text}
+                  pmbaText={clientText}
                   actualHours={e.actual_hours}
                   ratePerHour={ratePerHour}
                   showRate={showRate}
