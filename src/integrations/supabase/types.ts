@@ -1006,6 +1006,7 @@ export type Database = {
         Args: { _hash: string }
         Returns: Json
       }
+      get_client_portal_gantt: { Args: { _hash: string }; Returns: Json }
       get_project_archive_payload: {
         Args: { _project_id: string }
         Returns: Json

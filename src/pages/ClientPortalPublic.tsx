@@ -6,7 +6,7 @@ import { usePublicPortal } from "@/features/client-portal/usePortalData";
 import { PortalView } from "@/features/client-portal/PortalView";
 import { PortalChangeRequests } from "@/features/client-portal/PortalChangeRequests";
 import { useClientPortalCRsByHash } from "@/features/client-portal/useClientPortalCRs";
-import { SprintGanttOrEmpty } from "@/features/sprints/SprintGanttOrEmpty";
+import { PortalTimeline } from "@/features/client-portal/PortalTimeline";
 import oldStLogo from "@/assets/oldst-logo.png";
 import { useEpicDiscounts } from "@/features/discounts/useEpicDiscounts";
 
@@ -59,7 +59,7 @@ export default function ClientPortalPublic() {
               <TabsTrigger value="change-requests">Change Requests</TabsTrigger>
             </TabsList>
             <TabsContent value="timeline">
-              <SprintGanttOrEmpty projectId={data.project.id} />
+              <PortalTimeline hash={hash} />
             </TabsContent>
             <TabsContent value="summary">
               <PortalView payload={data} showRate discounts={discounts} />
