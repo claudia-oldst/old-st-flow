@@ -1,46 +1,30 @@
-## Goal
+# Fix: public portal Timeline is empty for clients
 
-Both Slack DMs get clickable links: straight to the ticket, plus the project, and for estimate revisions a link to the approvals screen.
+## What's happening
 
-## The gap to close first
+The public portal page (`/h/:hash`) renders the Timeline tab with the same Gantt component the internal app uses. That component reads the `sprints`, `sprint_tickets`, `tickets` and `project_epics` tables directly from the browser.
 
-The app has no URL that opens a specific ticket. Tickets open through an in-app event (`openTicketEvent`), never via the address bar — so today there is nothing a Slack link could point at. Routes that do exist: `/projects/:id` (tickets list), `/projects/:id/change-requests` (estimate revisions).
+Confirmed in the database: every SELECT policy on those four tables is granted to the `authenticated` role only, and each one requires the caller to be a PMBA or a member of the project. A client in incognito is anonymous, so all four queries return zero rows — no error, just empty — and the Gantt falls through to "No sprint timeline available yet."
 
-So this is two pieces: make ticket deep links work in the app, then use them in Slack.
+Everything else on the portal (Summary, Change Requests) works because it goes through hash-scoped security-definer RPCs (`get_client_portal`, etc.), which bypass RLS after validating the hash. The Timeline is the one tab that never got that treatment.
 
-## 1. Deep link to a ticket
+## The fix
 
-Add a `?ticket=<id>` query parameter to the project tickets route.
+Give the Timeline the same hash-gated RPC treatment as the other tabs.
 
-- `src/features/tickets/ProjectTickets.tsx` — on mount, read the `ticket` param and open the detail sheet for that ticket. Reuse `fetchTicketById` so it works even when the ticket isn't on the current page or is filtered out.
-- Clear the param once the sheet opens, so closing the sheet doesn't reopen it and a refresh behaves sanely.
-- If the id is unknown or the user can't access it, fall through to the plain tickets list rather than erroring.
+1. **New database function** `get_client_portal_gantt(_hash text)` — security definer, granted to `anon`. It hashes the incoming token, matches it against the project's stored portal hash, and returns `null` if there is no match or the portal is disabled (same guard as `get_client_portal`). On a match it returns a single JSON payload with everything the Gantt needs: sprints (number, start/end dates), epics (name, order), and per-epic/per-sprint committed vs done counts for FE and BE, respecting the project's `client_visibility_cutoff` where the existing portal RPCs do.
 
-Result: `/projects/{project_id}?ticket={ticket_id}` opens the project *and* the ticket.
+2. **New read hook + portal Gantt view** — a `usePublicPortalGantt(hash)` hook calling that RPC, and a presentational Gantt that renders the returned rows. The existing internal Gantt visual (epic rows on the y-axis, sprints on the x-axis, segmented committed → done bars, dashed "Today" marker, hover tooltips) is reused so the client sees the same chart; only the data source changes.
 
-## 2. Base URL for the links
+3. **Wire it into `ClientPortalPublic.tsx`** — the Timeline tab uses the hash-based component instead of `SprintGanttOrEmpty`. The PMBA-side portal editor preview keeps using the current authenticated component, so nothing changes for internal users.
 
-The edge function needs to know the app's public address. Store it as an `app_settings` row (`app_base_url`, e.g. `https://oldst-pulse.lovable.app`) alongside the existing `slack_notify_secret`, read once per invocation. If it's absent, messages send as they do now, just without links — never a hard failure.
+4. **Genuine empty state preserved** — if the project truly has no sprints, the RPC returns an empty sprint list and the tab still shows "No sprint timeline available yet."
 
-## 3. Richer Slack messages
+## Technical notes
 
-Rework both messages in `supabase/functions/slack-notify/index.ts` to use Slack Block Kit instead of plain text, keeping a plain-text fallback for notifications previews.
+- No RLS policies are loosened. `anon` gets nothing beyond EXECUTE on the new security-definer function, which is gated on the portal hash exactly like `get_client_portal`.
+- Realtime invalidation on the public portal stays keyed off the payload's project id, matching how `usePublicPortal` already works.
 
-**Assignment DM**
-- Ticket line becomes a link: `<url|DRA-014 — Fix login redirect>`
-- Project name becomes a link to the project.
-- Keeps the role/slot line.
-- An "Open ticket" button.
+## Verification
 
-**Estimate revision DM (to each PMBA)**
-- Ticket and project as links, same as above.
-- Requester, discipline, and the `Xh → Yh` change as today.
-- Two buttons: "Review request" pointing at `/projects/{id}/change-requests`, and "Open ticket".
-
-## Technical detail
-
-- `supabase/functions/slack-notify/index.ts`: fetch `app_base_url` in the same place the notify secret is read; pass it into both handlers. Build links with Slack's `<url|label>` mrkdwn syntax inside a `section` block, plus an `actions` block for the buttons. `chat.postMessage` gets `blocks` and a `text` fallback.
-- Slack link labels must escape `&`, `<`, `>` in ticket titles — add a small escape helper; unescaped titles silently mangle the message.
-- `src/features/tickets/ProjectTickets.tsx`: `useSearchParams` for the `ticket` param, `fetchTicketById` to load it, then the existing sheet state.
-- No migration needed for schema — just one settings row inserted, which I can do as part of the change.
-- No new Slack scopes; buttons that are pure links need nothing beyond `chat:write`.
+Load the published `/h/:hash` URL in a fresh incognito-equivalent browser context (no Supabase session) and confirm the Timeline tab renders sprint bars rather than the empty message, with no 401/permission errors in the console.
