@@ -59,7 +59,7 @@ export default function ClientPortalPublic() {
               <TabsTrigger value="change-requests">Change Requests</TabsTrigger>
             </TabsList>
             <TabsContent value="timeline">
-              <SprintGanttOrEmpty projectId={data.project.id} />
+              <PortalTimeline hash={hash} />
             </TabsContent>
             <TabsContent value="summary">
               <PortalView payload={data} showRate discounts={discounts} />
