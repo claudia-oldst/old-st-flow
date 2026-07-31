@@ -3,12 +3,14 @@ import { eachWeekOfInterval, format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import type { Sprint } from "../types";
+
+type GanttSprint = Pick<Sprint, "id" | "sprint_number" | "start_date" | "end_date">;
 import type { GanttEpicRow } from "./useGanttData";
 import { GanttBar } from "./GanttBar";
 
 interface Props {
   rows: GanttEpicRow[];
-  sprints: Sprint[];
+  sprints: GanttSprint[];
   ganttRef: RefObject<HTMLDivElement>;
 }
 
@@ -19,7 +21,7 @@ export function GanttGrid({ rows, sprints, ganttRef }: Props) {
     const rs = new Date(Math.min(...starts));
     const re = new Date(Math.max(...ends));
     const wks = eachWeekOfInterval({ start: rs, end: re }, { weekStartsOn: 1 });
-    const sMs = new Map<number, Sprint>();
+    const sMs = new Map<number, GanttSprint>();
     sprints.forEach((s) => sMs.set(parseISO(s.start_date).getTime(), s));
     return {
       rangeStart: rs,
