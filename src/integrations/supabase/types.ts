@@ -122,6 +122,60 @@ export type Database = {
         }
         Relationships: []
       }
+      import_cou_logs: {
+        Row: {
+          assignee: string | null
+          be_est: number | null
+          created_date: string | null
+          discipline: string | null
+          email: string | null
+          epic: string | null
+          fe_est: number | null
+          hours: number | null
+          id: number
+          log_date: string | null
+          note: string | null
+          pj_est: number | null
+          start_time: string | null
+          ticket_name: string | null
+          ticket_type: string | null
+        }
+        Insert: {
+          assignee?: string | null
+          be_est?: number | null
+          created_date?: string | null
+          discipline?: string | null
+          email?: string | null
+          epic?: string | null
+          fe_est?: number | null
+          hours?: number | null
+          id?: number
+          log_date?: string | null
+          note?: string | null
+          pj_est?: number | null
+          start_time?: string | null
+          ticket_name?: string | null
+          ticket_type?: string | null
+        }
+        Update: {
+          assignee?: string | null
+          be_est?: number | null
+          created_date?: string | null
+          discipline?: string | null
+          email?: string | null
+          epic?: string | null
+          fe_est?: number | null
+          hours?: number | null
+          id?: number
+          log_date?: string | null
+          note?: string | null
+          pj_est?: number | null
+          start_time?: string | null
+          ticket_name?: string | null
+          ticket_type?: string | null
+        }
+        Relationships: []
+      }
       project_epic_summaries: {
         Row: {
           ai_draft: string | null
