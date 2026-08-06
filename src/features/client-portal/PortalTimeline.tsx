@@ -62,7 +62,7 @@ function mergeRows(feRows: GanttEpicRow[], beRows: GanttEpicRow[]): GanttEpicRow
 /** Read-only sprint timeline for the public /h/:hash portal. */
 export function PortalTimeline({ hash }: { hash: string | undefined }) {
   const { data, loading } = usePublicPortalGantt(hash);
-  const [discipline, setDiscipline] = useState<DisciplineFilter>("FE");
+  const [discipline, setDiscipline] = useState<DisciplineFilter>("ALL");
   const ganttRef = useRef<HTMLDivElement>(null);
 
   const rows = useMemo(() => {

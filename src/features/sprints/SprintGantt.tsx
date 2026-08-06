@@ -72,7 +72,7 @@ function mergeGanttRows(feRows: GanttEpicRow[], beRows: GanttEpicRow[]): GanttEp
 }
 
 export function SprintGantt({ projectId, sprints, hideExport }: Props) {
-  const [discipline, setDiscipline] = useState<DisciplineFilter>("FE");
+  const [discipline, setDiscipline] = useState<DisciplineFilter>("ALL");
   const feRows = useGanttData(projectId, sprints, "FE");
   const beRows = useGanttData(projectId, sprints, "BE");
   const rows = useMemo(() => {
