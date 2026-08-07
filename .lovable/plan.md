@@ -23,9 +23,11 @@ Add a sortable "Last activity" option to the Projects workspace so the most rece
 
 ## Default behavior
 
-- The default sort remains "Newest" (project creation date).
-- "Last activity" is an explicit option in the sort dropdown.
+- The default sort changes to "Last activity" (most recently edited projects first).
+- `Projects.tsx` initial sort state defaults to `last_activity` when no URL `sort` parameter is present.
+- "Newest" remains an option in the sort dropdown for users who want to switch back.
 - Sort state is stored in the URL as `?sort=last_activity`, so links and refreshes preserve the view.
+
 
 ## Technical notes
 
