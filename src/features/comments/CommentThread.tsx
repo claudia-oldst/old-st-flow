@@ -41,6 +41,7 @@ export function CommentThread({ thread, projectId, ticketId, onChanged }: Props)
           {replying && user && (
             <CommentComposer
               ticketId={ticketId}
+              projectId={projectId}
               placeholder="Write a reply…"
               submitLabel="Reply"
               compact
