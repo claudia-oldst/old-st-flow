@@ -1,35 +1,34 @@
-# Why Epic 174 (Client & Campaign Hierarchy) shows 0h current
+# @mentions in ticket discussions
 
-## What the data says
+Type `@` in the discussion composer, pick a person from an autocomplete list, and they get a Slack DM linking straight to that ticket's discussion.
 
-The epic itself is fine at ticket level: 9 tickets, original 24h, current 18.5h, actual 18.5h.
+## What the user sees
 
-The 0h only appears in Estimate Evolution / the epic trend chart, because that view does not read the tickets' current estimates. It rebuilds current as:
+- Typing `@` in a comment or reply box opens a dropdown of project members (filtered as you keep typing the name). Arrow keys + Enter/Tab or click to pick; Escape closes it.
+- The chosen person is inserted as a highlighted chip-style name in the comment text.
+- Posted comments render mentions as a highlighted name (not raw text).
+- Each mentioned person receives a Slack DM: who mentioned them, the ticket, a short excerpt of the comment, and an "Open discussion" button that deep-links to the ticket.
+- People are not notified for mentioning themselves, and existing per-project Slack mute preferences are respected.
+- Editing a comment only notifies people who were newly added as mentions.
 
-```text
-current = sum(original estimates) + sum(approved estimate-change deltas)
-```
+## Technical approach
 
-For epic 174 that is 24h + (-64.25h) = -40.25h, and the chart clamps negatives to 0.
+**Storage format**: mentions are stored inline in the comment body as `@[Name](mention:<team_member_id>)`. This is standard markdown link syntax, so existing markdown rendering and the comment length/validation schema keep working unchanged.
 
-The -64.25h comes almost entirely from one ticket, DRA-047:
+**Composer (`src/features/comments/CommentComposer.tsx`)**
+- New `MentionAutocomplete` popover driven by caret position: detect an `@word` token before the caret, query project members, render suggestions, insert the mention token on select.
+- Composer needs the `projectId` (already available at `TicketComments` / `CommentThread`; pass through as a new prop) to load candidates via a small `useMentionCandidates(projectId)` hook over `project_members` + `team_members`.
 
-| Ticket | Approved deltas | Ticket original now |
-| --- | --- | --- |
-| DRA-008 | -1.5 FE, -2.5 BE | 4 / 6 (consistent) |
-| DRA-009 | -0.75 FE, -0.75 BE | 2 / 3 (consistent) |
-| DRA-047 | -29.5 FE, -29.25 BE | 0.5 / 0.75 (inconsistent) |
+**Rendering (`src/features/comments/commentMarkdown.tsx`)**
+- Extend the existing `a` component override: hrefs matching `^mention:<uuid>$` render as a non-link highlighted span/badge instead of an external link (same pattern already used for `#open-ticket:` links).
 
-DRA-047 was auto-snapped at Dev Done from 30h/30h down to 0.5h/0.75h, but its stored *original* estimate is now 0.5/0.75 rather than 30/30. So the 29h drop is counted twice: once because the original baseline is already the low number, and again as a delta. Result: a large negative that wipes out the whole epic.
+**Notifications**
+- New event `comment_mention` in `supabase/functions/slack-notify/index.ts`: loads the comment, ticket, project, author and mentioned member; checks `project_notification_prefs`; resolves the Slack ID via `slack_user_id` or email lookup; sends a Block Kit DM with an "Open discussion" button using the existing `app_base_url` + `?ticket=<id>` deep link, with unfurling off.
+- New DB trigger on `ticket_comments` (INSERT and UPDATE of `body`): parses mention ids out of the body with a regex, skips the author and (on update) ids already present in `OLD.body`, and calls the existing `public.enqueue_slack_notify` once per mentioned user.
 
-## Fix
+**Docs**: update `docs/pages/ticket-detail-sheet.md` to describe mention behaviour.
 
-1. Correct the DRA-047 record so baseline and history agree. Preferred: restore its original estimates to 30 FE / 30 BE (the true pre-snap baseline), leaving the approved -29.5 / -29.25 deltas to carry it to the current 0.5 / 0.75. This makes the epic read original 83h, current 18.5h.
-2. Audit the rest of the database for the same mismatch — any ticket where `original - sum(approved deltas) != current` — and report them before changing anything else. Same-cause rows get the same correction; anything else gets flagged for your call.
-3. Harden the trend maths so one bad row cannot zero out an epic: clamp per ticket rather than per epic, and skip deltas whose implied baseline contradicts the ticket's stored original.
+## Out of scope
 
-## Technical notes
-
-- Reading side: `src/features/_shared/estimate-trend/fetchTrendData.ts` (approved-only deltas) and `src/features/health/estimate-evolution/buildEpicSnapshots.ts` / `buildTrendSeries.ts` (where the clamp to 0 happens).
-- Writing side: the snap is produced by the `snap_estimates_on_dev_done` trigger; the audit in step 2 will show whether the trigger, or a later manual edit of the originals, produced the mismatch. If the trigger is at fault it gets fixed in the same pass.
-- Step 1 and 2 are data corrections (SQL), step 3 is frontend only.
+- In-app notification centre / unread badges (Slack DM only).
+- Mentioning people who are not members of the project.
