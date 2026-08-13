@@ -25,7 +25,9 @@ interface Payload {
   user_id?: string;
   slot?: string;
   change_id?: string;
+  comment_id?: string;
 }
+
 
 async function slack(method: string, body: Record<string, unknown>) {
   const token = Deno.env.get("SLACK_BOT_TOKEN");
