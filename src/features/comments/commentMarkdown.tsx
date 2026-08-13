@@ -1,6 +1,8 @@
 import { emitOpenTicket } from "@/features/tickets/openTicketEvent";
 
 const OPEN_TICKET_HREF = /^#open-ticket:([0-9a-f-]{36})$/i;
+const MENTION_HREF = /^mention:([0-9a-f-]{36})$/i;
+
 
 export function relTime(iso: string) {
   const d = new Date(iso).getTime();
