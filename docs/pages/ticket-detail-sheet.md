@@ -17,7 +17,7 @@ A right-side slide-over showing everything about a single ticket. Opened by clic
 - **Epic** — select with autocomplete.
 - **Parent ticket** (for Bugs) — select with autocomplete.
 - **Time logged** — list of time entries; click an entry to edit; "Log time" button opens the Log Time modal pre-filled with this ticket.
-- **Comments** — threaded composer with markdown, mentions, attachments (drag-drop), and bot-posted GitHub activity.
+- **Comments** — threaded composer with markdown, mentions, attachments (drag-drop), and bot-posted GitHub activity. Typing `@` opens an autocomplete of project members; picking one inserts a highlighted mention and sends that person a Slack DM with a link back to the discussion (self-mentions and muted projects are skipped, and editing a comment only notifies newly added mentions).
 - **CR controls** (CR tickets only) — Approve / Reject buttons with reasoning, plus the decider name and timestamp once decided.
 
 ## Interactions
