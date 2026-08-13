@@ -25,7 +25,9 @@ interface Payload {
   user_id?: string;
   slot?: string;
   change_id?: string;
+  comment_id?: string;
 }
+
 
 async function slack(method: string, body: Record<string, unknown>) {
   const token = Deno.env.get("SLACK_BOT_TOKEN");
@@ -244,7 +246,73 @@ async function handleEstimateRevision(admin: Admin, p: Payload, base: string | n
   return j({ ok: true, event: "estimate_revision_requested", notified: results });
 }
 
+/** Strip mention/markdown syntax down to a readable excerpt. */
+function excerpt(body: string, max = 300) {
+  const plain = body
+    .replace(/@\[([^\]]+)\]\(mention:[0-9a-fA-F-]{36}\)/g, "@$1")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .trim();
+  return plain.length > max ? `${plain.slice(0, max)}…` : plain;
+}
+
+async function handleCommentMention(admin: Admin, p: Payload, base: string | null) {
+  if (!p.comment_id || !p.user_id) return j({ error: "missing comment_id/user_id" }, 400);
+
+  const { data: comment, error: cErr } = await admin
+    .from("ticket_comments")
+    .select("id, ticket_id, user_id, body")
+    .eq("id", p.comment_id)
+    .maybeSingle();
+  if (cErr) return j({ error: cErr.message }, 500);
+  if (!comment) return j({ error: "comment not found" }, 404);
+  const c = comment as Record<string, any>;
+  if (c.user_id === p.user_id) return j({ ok: true, skipped: "self-mention" });
+
+  const { data: ticket } = await admin
+    .from("tickets")
+    .select("id, formatted_id, title, project_id, projects(name)")
+    .eq("id", c.ticket_id)
+    .maybeSingle();
+  if (!ticket) return j({ error: "ticket not found" }, 404);
+  const t = ticket as Record<string, any>;
+
+  const { data: member } = await admin
+    .from("team_members")
+    .select("id, name, email, slack_user_id")
+    .eq("id", p.user_id)
+    .maybeSingle();
+  if (!member) return j({ error: "member not found" }, 404);
+
+  const { data: author } = await admin
+    .from("team_members")
+    .select("name")
+    .eq("id", c.user_id)
+    .maybeSingle();
+
+  const who = (author as any)?.name ?? "Someone";
+  const u = urls(base, t.project_id as string, t.id as string);
+  const snippet = excerpt(String(c.body ?? ""));
+
+  const mrkdwn =
+    `:speech_balloon: *${esc(who)} mentioned you in a discussion*\n` +
+    `${link(u.ticket, `${t.formatted_id} — ${t.title}`)} · ` +
+    `${link(u.project, t.projects?.name ?? "project")}` +
+    (snippet ? `\n>${esc(snippet).replace(/\n/g, "\n>")}` : "");
+
+  const text = `${who} mentioned you on ${t.formatted_id} — ${t.title}`;
+
+  const blocks: unknown[] = [{ type: "section", text: { type: "mrkdwn", text: mrkdwn } }];
+  if (u.ticket) {
+    blocks.push({ type: "actions", elements: [linkButton("Open discussion", u.ticket)] });
+  }
+
+  const result = await dm(admin, t.project_id as string, member as any, text, blocks);
+  return j({ ok: true, event: "comment_mention", result });
+}
+
 Deno.serve(async (req) => {
+
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -271,6 +339,10 @@ Deno.serve(async (req) => {
     if (payload.event === "estimate_revision_requested") {
       return await handleEstimateRevision(admin, payload, base);
     }
+    if (payload.event === "comment_mention") {
+      return await handleCommentMention(admin, payload, base);
+    }
+
     return j({ error: `unknown event: ${payload.event}` }, 400);
   } catch (e) {
     console.error("slack-notify error:", (e as Error).message);

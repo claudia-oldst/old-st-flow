@@ -1,6 +1,8 @@
 import { emitOpenTicket } from "@/features/tickets/openTicketEvent";
 
 const OPEN_TICKET_HREF = /^#open-ticket:([0-9a-f-]{36})$/i;
+const MENTION_HREF = /^mention:([0-9a-f-]{36})$/i;
+
 
 export function relTime(iso: string) {
   const d = new Date(iso).getTime();
@@ -18,7 +20,16 @@ export function relTime(iso: string) {
 export const markdownComponents = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   a: ({ href, children, ...rest }: any) => {
-    const m = typeof href === "string" ? href.match(OPEN_TICKET_HREF) : null;
+    const href_ = typeof href === "string" ? href : "";
+    if (MENTION_HREF.test(href_)) {
+      return (
+        <span className="rounded px-1 py-0.5 bg-primary/15 text-primary font-medium">
+          {children}
+        </span>
+      );
+    }
+    const m = href_.match(OPEN_TICKET_HREF);
+
     if (m) {
       const id = m[1];
       return (

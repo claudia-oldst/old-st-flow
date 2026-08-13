@@ -58,6 +58,7 @@ export function TicketComments({ ticketId, projectId }: Props) {
       <div className="pt-2 border-t border-white/10 bg-background/95">
         <CommentComposer
           ticketId={ticketId}
+          projectId={projectId}
           placeholder={user ? "Write a comment…" : "Select a user in the top bar to comment"}
           disabled={!user}
           disabledReason={!user ? "Select a user to comment" : undefined}

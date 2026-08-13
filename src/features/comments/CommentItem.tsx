@@ -61,6 +61,7 @@ export function CommentItem({ comment, projectId, ticketId, onReply, onChanged }
         <div className="flex-1 min-w-0">
           <CommentComposer
             ticketId={ticketId}
+            projectId={projectId}
             initialBody={comment.body}
             initialAttachments={comment.attachments}
             submitLabel="Save"

@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useMemo } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Paperclip, X, Send, Loader2, FileText, Film, Image as ImageIcon } from "lucide-react";
@@ -7,9 +7,12 @@ import { uploadCommentAttachment, MAX_FILES } from "./uploadCommentAttachment";
 import type { CommentAttachment } from "./types";
 import { commentInputSchema } from "@/lib/schemas/comment";
 import { cn } from "@/lib/utils";
+import { useMentionCandidates, type MentionCandidate } from "./useMentionCandidates";
+import { MentionList } from "./MentionList";
 
 interface Props {
   ticketId: string;
+  projectId?: string;
   initialBody?: string;
   initialAttachments?: CommentAttachment[];
   placeholder?: string;
@@ -22,8 +25,21 @@ interface Props {
   onCancel?: () => void;
 }
 
+/** Find an in-progress `@query` immediately before the caret. */
+function findMentionQuery(text: string, caret: number): { start: number; query: string } | null {
+  const prefix = text.slice(0, caret);
+  const at = prefix.lastIndexOf("@");
+  if (at === -1) return null;
+  const before = at === 0 ? "" : prefix[at - 1];
+  if (before && !/\s|\(/.test(before)) return null;
+  const query = prefix.slice(at + 1);
+  if (query.length > 30 || /[\n\]()]/.test(query)) return null;
+  return { start: at, query };
+}
+
 export function CommentComposer({
   ticketId,
+  projectId,
   initialBody = "",
   initialAttachments = [],
   placeholder = "Write a comment…",
@@ -40,7 +56,44 @@ export function CommentComposer({
   const [uploading, setUploading] = useState(0);
   const [sending, setSending] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [mention, setMention] = useState<{ start: number; query: string } | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
   const fileInput = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const candidates = useMentionCandidates(projectId);
+
+  const suggestions = useMemo<MentionCandidate[]>(() => {
+    if (!mention) return [];
+    const q = mention.query.trim().toLowerCase();
+    return candidates
+      .filter((c) => (q ? c.name.toLowerCase().includes(q) : true))
+      .slice(0, 8);
+  }, [mention, candidates]);
+
+  const syncMention = useCallback((value: string, caret: number) => {
+    const found = findMentionQuery(value, caret);
+    setMention(found);
+    setActiveIndex(0);
+  }, []);
+
+  const insertMention = useCallback(
+    (m: MentionCandidate) => {
+      if (!mention) return;
+      const el = textareaRef.current;
+      const caret = el?.selectionStart ?? body.length;
+      const token = `@[${m.name}](mention:${m.id}) `;
+      const next = body.slice(0, mention.start) + token + body.slice(caret);
+      setBody(next);
+      setMention(null);
+      requestAnimationFrame(() => {
+        const pos = mention.start + token.length;
+        el?.focus();
+        el?.setSelectionRange(pos, pos);
+      });
+    },
+    [mention, body]
+  );
 
   const handleFiles = useCallback(
     async (files: FileList | File[]) => {
@@ -85,10 +138,12 @@ export function CommentComposer({
     }
   };
 
+  const menuOpen = !!mention && suggestions.length > 0;
+
   return (
     <div
       className={cn(
-        "rounded-lg hairline bg-white/[0.02] p-2 transition-colors",
+        "relative rounded-lg hairline bg-white/[0.02] p-2 transition-colors",
         dragOver && "ring-2 ring-primary/40 bg-primary/5"
       )}
       onDragOver={(e) => {
@@ -103,19 +158,57 @@ export function CommentComposer({
         if (e.dataTransfer.files?.length) handleFiles(e.dataTransfer.files);
       }}
     >
+      {menuOpen && (
+        <MentionList items={suggestions} activeIndex={activeIndex} onPick={insertMention} />
+      )}
       <Textarea
+        ref={textareaRef}
         value={body}
-        onChange={(e) => setBody(e.target.value)}
+        onChange={(e) => {
+          setBody(e.target.value);
+          syncMention(e.target.value, e.target.selectionStart ?? e.target.value.length);
+        }}
+        onClick={(e) => {
+          const el = e.currentTarget;
+          syncMention(el.value, el.selectionStart ?? 0);
+        }}
+        onBlur={() => setMention(null)}
         placeholder={disabled ? disabledReason ?? placeholder : placeholder}
         disabled={disabled}
         autoFocus={autoFocus}
         rows={compact ? 2 : 3}
         className="resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 px-1 py-1 min-h-0"
         onKeyDown={(e) => {
+          if (menuOpen) {
+            if (e.key === "ArrowDown") {
+              e.preventDefault();
+              setActiveIndex((i) => (i + 1) % suggestions.length);
+              return;
+            }
+            if (e.key === "ArrowUp") {
+              e.preventDefault();
+              setActiveIndex((i) => (i - 1 + suggestions.length) % suggestions.length);
+              return;
+            }
+            if (e.key === "Enter" || e.key === "Tab") {
+              e.preventDefault();
+              insertMention(suggestions[activeIndex]);
+              return;
+            }
+            if (e.key === "Escape") {
+              e.preventDefault();
+              setMention(null);
+              return;
+            }
+          }
           if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
             e.preventDefault();
             submit();
           }
+        }}
+        onKeyUp={(e) => {
+          const el = e.currentTarget;
+          syncMention(el.value, el.selectionStart ?? 0);
         }}
         onPaste={(e) => {
           if (disabled) return;
