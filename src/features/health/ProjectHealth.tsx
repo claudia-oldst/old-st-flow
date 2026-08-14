@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { usePersistentState } from "@/hooks/usePersistentState";
 import { Plus, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useProjectTickets } from "@/features/tickets/useProjectTickets";
@@ -29,7 +30,11 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
   const { epics } = useProjectEpics(projectId);
   const { discounts: allDiscounts } = useEpicDiscounts(projectId);
   const [discountsOpen, setDiscountsOpen] = useState(false);
-  const [selectedVersions, setSelectedVersions] = useState<string[]>([]);
+  // Persisted per project so the version scope survives tab switches.
+  const [selectedVersions, setSelectedVersions] = usePersistentState<string[]>(
+    `health:${projectId}:versions`,
+    [],
+  );
 
   const versionOpts = useMemo(
     () => versionOptions(allTickets.map((t) => t.version)),
