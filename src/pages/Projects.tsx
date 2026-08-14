@@ -136,7 +136,7 @@ export default function Projects() {
             <Skeleton key={i} className="h-[148px] rounded-2xl" />
           ))}
         </div>
-      ) : projects.length === 0 ? (
+      ) : projects.length === 0 && pinned.length === 0 ? (
         <div className="glass rounded-2xl p-16 text-center">
           <FolderKanban className="h-10 w-10 mx-auto text-dimmer mb-4" />
           <div className="text-lg font-medium">
@@ -153,18 +153,36 @@ export default function Projects() {
         </div>
       ) : (
         <>
+          {pinned.length > 0 && (
+            <div className="mb-8">
+              <div className="text-xs uppercase tracking-[0.18em] text-dimmer mb-3">Pinned</div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {pinned.map((p) => (
+                  <ProjectCard
+                    key={p.id}
+                    project={p}
+                    count={counts[p.id] ?? { tickets: 0, members: 0 }}
+                    isFavorite
+                    onToggleFavorite={toggleFavorite}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {projects.map((p) => (
               <ProjectCard
                 key={p.id}
                 project={p}
                 count={counts[p.id] ?? { tickets: 0, members: 0 }}
+                isFavorite={favSet.has(p.id)}
+                onToggleFavorite={toggleFavorite}
               />
             ))}
           </div>
           <div className="mt-8 flex items-center justify-between gap-3 flex-wrap">
             <div className="text-[11px] text-dimmer">
-              Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} of {total}
+              Showing {total === 0 ? 0 : (page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} of {total}
             </div>
             <ListPagination
               page={page}
@@ -175,6 +193,7 @@ export default function Projects() {
           </div>
         </>
       )}
+
     </div>
   );
 }
