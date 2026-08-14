@@ -13,7 +13,10 @@ interface Props {
 
 export function WeeklyBurnPanel({ projectId, tickets }: Props) {
   const ticketIds = useMemo(() => tickets.map((t) => t.id), [tickets]);
-  const queryKey = ["weeklyBurn", projectId] as const;
+  // Ticket set can be narrowed by the Health page's version filter, so it is
+  // part of the cache key.
+  const ticketKey = useMemo(() => [...ticketIds].sort().join(","), [ticketIds]);
+  const queryKey = ["weeklyBurn", projectId, ticketKey] as const;
 
   const { data: logs = [] } = useQuery({
     queryKey,

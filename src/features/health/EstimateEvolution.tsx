@@ -19,7 +19,18 @@ import { ALL_EPICS_KEY, NO_EPIC_KEY } from "./estimate-evolution/dateUtils";
 import { EpicRow } from "./estimate-evolution/EpicRow";
 import { useEstimateEvolution } from "./estimate-evolution/useEstimateEvolution";
 
-export function EstimateEvolution({ projectId }: { projectId: string }) {
+interface EstimateEvolutionProps {
+  projectId: string;
+  /** null = all versions. Otherwise the allowed version keys. */
+  versionKeys?: string[] | null;
+  includeDiscounts?: boolean;
+}
+
+export function EstimateEvolution({
+  projectId,
+  versionKeys = null,
+  includeDiscounts = true,
+}: EstimateEvolutionProps) {
   const { epics } = useProjectEpics(projectId);
   const [asOf, setAsOf] = useState<Date>(new Date());
   const [selectedEpic, setSelectedEpic] = useState<string>(ALL_EPICS_KEY);
@@ -30,6 +41,8 @@ export function EstimateEvolution({ projectId }: { projectId: string }) {
     asOf,
     selectedEpic,
     epics,
+    versionKeys,
+    includeDiscounts,
   });
 
   return (
