@@ -98,7 +98,9 @@ export function useClientPortalEditor(projectId: string) {
       .update({
         client_visibility_cutoff: asOf.toISOString(),
         client_summary_draft: intro,
-      })
+        client_portal_versions: versions.length ? versions : null,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
       .eq("id", project.id)
       .select()
       .maybeSingle();
