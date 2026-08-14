@@ -134,7 +134,7 @@ export function PoolFilterBar({
           tickets={pool}
           filters={filters}
           onChange={setFilters}
-          sections={["epic"]}
+          sections={["epic", "version"]}
         />
         <div className="flex items-center gap-1.5">
           <span className="text-[10px] uppercase tracking-wide text-dimmer">Group</span>
