@@ -167,6 +167,8 @@ export function useClientPortalEditor(projectId: string) {
     setAsOf,
     intro,
     setIntro,
+    versions,
+    setVersions,
     busy,
     hash,
     payload,
