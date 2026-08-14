@@ -68,17 +68,11 @@ export function useProjectsList(args: {
     const like = `%${term}%`;
     const searchExpr = `name.ilike.${like},acronym.ilike.${like},client_name.ilike.${like}`;
 
-    const applyFilters = <T>(q: T): T => {
-      let query = q as never as ReturnType<typeof supabase.from>["select"] extends never ? never : any;
-      query = q;
-      if (allowedIds) query = query.in("id", allowedIds);
-      if (status === "active") query = query.eq("is_archived", false);
-      else if (status === "vaulted") query = query.eq("is_archived", true);
-      if (term) query = query.or(searchExpr);
-      return query as T;
-    };
-
-    let query = applyFilters(supabase.from("projects").select("*", { count: "exact" }));
+    let query = supabase.from("projects").select("*", { count: "exact" });
+    if (allowedIds) query = query.in("id", allowedIds);
+    if (status === "active") query = query.eq("is_archived", false);
+    else if (status === "vaulted") query = query.eq("is_archived", true);
+    if (term) query = query.or(searchExpr);
     if (favIds.length) query = query.not("id", "in", `(${favIds.join(",")})`);
 
     switch (sort) {
@@ -88,14 +82,20 @@ export function useProjectsList(args: {
       default: query = query.order("created_at", { ascending: false });
     }
 
+    let pinnedQuery = supabase.from("projects").select("*").in("id", favIds.length ? favIds : [""]);
+    if (allowedIds) pinnedQuery = pinnedQuery.in("id", allowedIds);
+    if (status === "active") pinnedQuery = pinnedQuery.eq("is_archived", false);
+    else if (status === "vaulted") pinnedQuery = pinnedQuery.eq("is_archived", true);
+    if (term) pinnedQuery = pinnedQuery.or(searchExpr);
+    pinnedQuery = pinnedQuery.order("name", { ascending: true });
+
     const [{ data, count }, pinnedRes] = await Promise.all([
       query.range(from, to),
       page === 1 && favIds.length
-        ? applyFilters(supabase.from("projects").select("*"))
-            .in("id", favIds)
-            .order("name", { ascending: true })
+        ? pinnedQuery
         : Promise.resolve({ data: [] as Project[] }),
     ]);
+
 
     const pinnedRows = (pinnedRes?.data ?? []) as Project[];
     setProjects(data ?? []);
