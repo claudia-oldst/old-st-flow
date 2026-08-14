@@ -7,6 +7,8 @@ export interface TicketLite {
   id: string;
   created_at: string;
   epic_id: number | null;
+  /** Trimmed version label, null when unset. */
+  version?: string | null;
   ticket_type: string;
   original_fe_estimate: number;
   original_be_estimate: number;

@@ -4,6 +4,11 @@
 
 A KPI dashboard for the project. Two big sections: **Overview** and **Estimate Evolution**.
 
+## Version filter
+- A multi-select **Version** control sits in the header next to "Create discount". It lists every version used by the project's tickets plus "No version".
+- All versions are selected by default. Narrowing the selection filters the whole page: burn rings, profitability, weekly burn, unassigned backlog, epic risk table, and Estimate Evolution.
+- Epic discounts are stored per epic + discipline (not per version), so they are excluded while a version filter is active.
+
 ## Overview
 - **Profitability pill** — large rounded badge: project margin %, colour-coded (green/amber/coral).
 - **Burn ring** — circular gauge: hours logged vs. current estimated total. Centre shows %.

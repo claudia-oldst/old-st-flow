@@ -9,6 +9,8 @@ export interface TrendDataset {
   projectStart: string | null;
   /** Map of ticket id → epic id for convenient in-memory filtering. */
   ticketEpic: Map<string, number | null>;
+  /** Map of ticket id → version (trimmed, null when unset). */
+  ticketVersion: Map<string, string | null>;
 }
 
 /**
@@ -26,7 +28,7 @@ export async function fetchTrendData(projectId: string): Promise<TrendDataset> {
     supabase
       .from("tickets")
       .select(
-        "id, created_at, epic_id, ticket_type, original_fe_estimate, original_be_estimate, original_project_estimate, cr_approval, cr_decided_at",
+        "id, created_at, epic_id, version, ticket_type, original_fe_estimate, original_be_estimate, original_project_estimate, cr_approval, cr_decided_at",
       )
       .eq("project_id", projectId),
   ]);
@@ -45,6 +47,7 @@ export async function fetchTrendData(projectId: string): Promise<TrendDataset> {
         id: t.id,
         created_at: t.created_at,
         epic_id: t.epic_id ?? null,
+        version: (typeof t.version === "string" ? t.version.trim() : "") || null,
         ticket_type: t.ticket_type,
         original_fe_estimate: Number(t.original_fe_estimate) || 0,
         original_be_estimate: Number(t.original_be_estimate) || 0,
@@ -56,10 +59,12 @@ export async function fetchTrendData(projectId: string): Promise<TrendDataset> {
 
   const ticketEpic = new Map<string, number | null>();
   tickets.forEach((t) => ticketEpic.set(t.id, t.epic_id));
+  const ticketVersion = new Map<string, string | null>();
+  tickets.forEach((t) => ticketVersion.set(t.id, t.version ?? null));
 
   const ids = tickets.map((t) => t.id);
   if (ids.length === 0) {
-    return { tickets, changes: [], logs: [], projectStart, ticketEpic };
+    return { tickets, changes: [], logs: [], projectStart, ticketEpic, ticketVersion };
   }
 
   const CHUNK = 100;
@@ -102,5 +107,5 @@ export async function fetchTrendData(projectId: string): Promise<TrendDataset> {
     logged_at: l.logged_at,
   }));
 
-  return { tickets, changes, logs, projectStart, ticketEpic };
+  return { tickets, changes, logs, projectStart, ticketEpic, ticketVersion };
 }

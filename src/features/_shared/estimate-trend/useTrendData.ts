@@ -8,6 +8,7 @@ const EMPTY: TrendDataset = {
   logs: [],
   projectStart: null,
   ticketEpic: new Map(),
+  ticketVersion: new Map(),
 };
 
 /**
