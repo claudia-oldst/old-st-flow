@@ -22,6 +22,7 @@ export function PortalEpicExpandedPanel({
   logs,
   projectStart,
   ticketEpic,
+  versionAllowed,
   cutoffMs,
   discounts,
   discountSumForEpic,
@@ -38,6 +39,8 @@ export function PortalEpicExpandedPanel({
   logs: LogLite[];
   projectStart: Date | null;
   ticketEpic: Map<string, number | null>;
+  /** Portal version scope predicate; defaults to allowing every ticket. */
+  versionAllowed?: (ticketId: string) => boolean;
   cutoffMs: number;
   discounts: EpicDiscount[];
   discountSumForEpic: number;
@@ -50,7 +53,8 @@ export function PortalEpicExpandedPanel({
         logs,
         projectStart,
         cutoffMs,
-        ticketFilter: (tid) => ticketEpic.get(tid) === epicId,
+        ticketFilter: (tid) =>
+          ticketEpic.get(tid) === epicId && (versionAllowed?.(tid) ?? true),
         discounts: discounts.filter((d) => d.epic_id === epicId),
       }),
     [
@@ -60,6 +64,7 @@ export function PortalEpicExpandedPanel({
       projectStart,
       cutoffMs,
       ticketEpic,
+      versionAllowed,
       epicId,
       discounts,
     ],
