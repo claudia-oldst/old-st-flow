@@ -49,6 +49,8 @@ export interface PortalProject {
   rate_per_hour: number;
   summary: string | null;
   summary_updated_at: string | null;
+  /** Version scope the portal is limited to; null/empty = all versions. */
+  versions?: string[] | null;
 }
 
 export interface PortalPayload {
