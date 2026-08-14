@@ -1,8 +1,6 @@
 import { useMemo, useState } from "react";
 import { Plus, AlertTriangle } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
 import { useProjectTickets } from "@/features/tickets/useProjectTickets";
 import { useStatuses } from "@/features/statuses/useStatuses";
 import { healthRatio, formatHours } from "@/lib/utils";
