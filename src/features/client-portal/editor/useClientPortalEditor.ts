@@ -129,7 +129,9 @@ export function useClientPortalEditor(projectId: string) {
         client_summary_published: intro,
         client_summary_draft: intro,
         client_summary_updated_at: new Date().toISOString(),
-      })
+        client_portal_versions: versions.length ? versions : null,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
       .eq("id", project.id)
       .select()
       .maybeSingle();
