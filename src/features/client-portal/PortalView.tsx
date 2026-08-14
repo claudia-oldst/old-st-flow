@@ -128,6 +128,7 @@ export function PortalView({
       <PortalEpicTable
         epics={epics}
         projectId={project.id}
+        versions={project.versions ?? null}
         cutoff={project.cutoff}
         ratePerHour={project.rate_per_hour}
         showRate={showRate}

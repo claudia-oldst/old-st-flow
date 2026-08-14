@@ -9,12 +9,15 @@ import {
   sumTotals,
   type EpicDiscount,
 } from "@/features/discounts/applyDiscounts";
+import { versionKeyOf } from "@/features/health/versionFilter";
 import { PortalEpicRow } from "./portal-epic/PortalEpicRow";
 import { PortalEpicExpandedPanel } from "./portal-epic/PortalEpicExpandedPanel";
 
 interface Props {
   epics: PortalPayload["epics"];
   projectId: string;
+  /** Portal version scope; null/empty means all versions. */
+  versions?: string[] | null;
   cutoff: string;
   ratePerHour: number;
   showRate: boolean;
@@ -24,6 +27,7 @@ interface Props {
 export function PortalEpicTable({
   epics,
   projectId,
+  versions,
   cutoff,
   ratePerHour,
   showRate,
@@ -40,7 +44,18 @@ export function PortalEpicTable({
   );
 
   const { dataset } = useTrendData(projectId);
-  const { tickets, changes, logs, projectStart, ticketEpic } = dataset;
+  const { tickets, changes, logs, projectStart, ticketEpic, ticketVersion } = dataset;
+
+  // Scope the trend chart to the same versions the rest of the portal uses.
+  const versionSet = useMemo(
+    () => (versions && versions.length ? new Set(versions) : null),
+    [versions],
+  );
+  const versionAllowed = useMemo(
+    () => (tid: string) =>
+      !versionSet || versionSet.has(versionKeyOf(ticketVersion.get(tid))),
+    [versionSet, ticketVersion],
+  );
 
   const cutoffMs = useMemo(() => new Date(cutoff).getTime(), [cutoff]);
   const projectStartDate = useMemo(
@@ -57,12 +72,23 @@ export function PortalEpicTable({
         projectStart: projectStartDate,
         cutoffMs,
         ticketFilter: (tid) => {
+          if (!versionAllowed(tid)) return false;
           const eid = ticketEpic.get(tid);
           return eid != null && includedIds.has(eid);
         },
         discounts,
       }),
-    [tickets, changes, logs, projectStartDate, cutoffMs, ticketEpic, includedIds, discounts],
+    [
+      tickets,
+      changes,
+      logs,
+      projectStartDate,
+      cutoffMs,
+      ticketEpic,
+      includedIds,
+      discounts,
+      versionAllowed,
+    ],
   );
 
   const discountByEpic = useMemo(
@@ -147,6 +173,7 @@ export function PortalEpicTable({
                   logs={logs}
                   projectStart={projectStartDate}
                   ticketEpic={ticketEpic}
+                  versionAllowed={versionAllowed}
                   cutoffMs={cutoffMs}
                   discounts={discounts}
                   discountSumForEpic={sumTotals(
