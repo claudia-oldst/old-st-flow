@@ -6,11 +6,15 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { Project } from "@/lib/types";
+import { MultiSelectFilter } from "@/features/estimates/MultiSelectFilter";
+import { useProjectVersions } from "./useProjectVersions";
 
 interface Props {
   project: Project | null;
   asOf: Date;
   setAsOf: (d: Date) => void;
+  versions: string[];
+  setVersions: (next: string[]) => void;
   hash: string | null;
   busy: boolean;
   onUpdate: () => void;
@@ -22,6 +26,8 @@ export function PortalToolbar({
   project,
   asOf,
   setAsOf,
+  versions,
+  setVersions,
   hash,
   busy,
   onUpdate,
@@ -29,6 +35,12 @@ export function PortalToolbar({
   onDisable,
 }: Props) {
   const portalUrl = hash ? `${window.location.origin}/h/${hash}` : null;
+  const { options: versionOpts } = useProjectVersions(project?.id);
+  const scopeLabel = versions.length
+    ? versions
+        .map((v) => versionOpts.find((o) => o.value === v)?.label ?? v)
+        .join(", ")
+    : null;
 
   return (
     <div className="glass rounded-2xl p-4 space-y-3">
@@ -51,6 +63,36 @@ export function PortalToolbar({
           />
         </PopoverContent>
       </Popover>
+
+      {versionOpts.length > 0 && (
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <MultiSelectFilter
+              label="Versions"
+              options={versionOpts}
+              selected={versions}
+              onChange={setVersions}
+              searchable
+            />
+            {versions.length > 0 && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 px-2 text-[10px] uppercase tracking-wider text-dimmer hover:text-foreground"
+                onClick={() => setVersions([])}
+              >
+                Reset
+              </Button>
+            )}
+          </div>
+          <div className="text-[10px] text-dimmer">
+            {scopeLabel
+              ? `Portal scoped to: ${scopeLabel}`
+              : "All versions shown to the client."}
+          </div>
+        </div>
+      )}
+
 
       {portalUrl ? (
         <div className="space-y-2">
