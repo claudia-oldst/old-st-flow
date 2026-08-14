@@ -16,4 +16,5 @@ The client's main scope-and-pricing view.
 
 ## Notes
 - Internal-only epics (toggled off in the editor) are hidden.
+- If the portal is scoped to specific versions, only tickets in those versions are counted; epics with no in-scope tickets are hidden.
 - Currency and rate are formatted using the project's configured locale.
