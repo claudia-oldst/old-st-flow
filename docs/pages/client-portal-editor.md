@@ -11,6 +11,7 @@ The authoring surface for the project's public-facing client portal. Two columns
 - **Toggle preview** — show/hide the right pane.
 - **Open public URL** link icon — opens `/h/:hash` in a new tab.
 - **As-of date picker** — recomputes the preview as it would have looked on that date (used to explain history to clients).
+- **Versions multi-select** — scope the whole portal (summary, timeline, change requests) to specific ticket versions, plus a "No version" option. Empty selection = all versions. Saved with Update/Publish; epics with no in-scope tickets drop out of the client view.
 
 ## Editor (left)
 - **Intro textarea** — markdown, the opening blurb shown above the epic list.

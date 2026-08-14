@@ -304,6 +304,7 @@ export type Database = {
           client_name: string | null
           client_portal_hash: string | null
           client_portal_hash_sha: string | null
+          client_portal_versions: string[] | null
           client_summary_draft: string | null
           client_summary_published: string | null
           client_summary_updated_at: string | null
@@ -331,6 +332,7 @@ export type Database = {
           client_name?: string | null
           client_portal_hash?: string | null
           client_portal_hash_sha?: string | null
+          client_portal_versions?: string[] | null
           client_summary_draft?: string | null
           client_summary_published?: string | null
           client_summary_updated_at?: string | null
@@ -358,6 +360,7 @@ export type Database = {
           client_name?: string | null
           client_portal_hash?: string | null
           client_portal_hash_sha?: string | null
+          client_portal_versions?: string[] | null
           client_summary_draft?: string | null
           client_summary_published?: string | null
           client_summary_updated_at?: string | null
@@ -1045,7 +1048,7 @@ export type Database = {
         Returns: Json
       }
       get_project_portal_preview: {
-        Args: { _cutoff: string; _project_id: string }
+        Args: { _cutoff: string; _project_id: string; _versions?: string[] }
         Returns: Json
       }
       has_role: {

@@ -12,6 +12,7 @@ export function useClientPortalEditor(projectId: string) {
   const [project, setProject] = useState<Project | null>(null);
   const [asOf, setAsOf] = useState<Date>(new Date());
   const [intro, setIntro] = useState("");
+  const [versions, setVersions] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -25,11 +26,13 @@ export function useClientPortalEditor(projectId: string) {
         if (!data) return;
         setProject(data);
         setIntro(data.client_summary_draft ?? data.client_summary_published ?? "");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setVersions(((data as any).client_portal_versions as string[] | null) ?? []);
       });
   }, [projectId]);
 
   const hash = project?.client_portal_hash ?? null;
-  const { data: payload, refresh } = usePortalPreview(projectId, hash, asOf);
+  const { data: payload, refresh } = usePortalPreview(projectId, hash, asOf, versions);
   const { changes } = useProjectEstimateChanges(projectId);
   const { tickets } = useProjectTickets(projectId);
 
@@ -95,7 +98,9 @@ export function useClientPortalEditor(projectId: string) {
       .update({
         client_visibility_cutoff: asOf.toISOString(),
         client_summary_draft: intro,
-      })
+        client_portal_versions: versions.length ? versions : null,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
       .eq("id", project.id)
       .select()
       .maybeSingle();
@@ -124,7 +129,9 @@ export function useClientPortalEditor(projectId: string) {
         client_summary_published: intro,
         client_summary_draft: intro,
         client_summary_updated_at: new Date().toISOString(),
-      })
+        client_portal_versions: versions.length ? versions : null,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
       .eq("id", project.id)
       .select()
       .maybeSingle();
@@ -160,6 +167,8 @@ export function useClientPortalEditor(projectId: string) {
     setAsOf,
     intro,
     setIntro,
+    versions,
+    setVersions,
     busy,
     hash,
     payload,
