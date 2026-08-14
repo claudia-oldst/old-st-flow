@@ -27,6 +27,8 @@ export function useProjectsList(args: {
   const user = useCurrentUser((s) => s.user);
   const pageSize = PAGE_SIZES.projects;
   const [projects, setProjects] = useState<Project[]>([]);
+  const [pinned, setPinned] = useState<Project[]>([]);
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [counts, setCounts] = useState<Record<string, { tickets: number; members: number }>>({});
@@ -46,6 +48,8 @@ export function useProjectsList(args: {
       allowedIds = (mem ?? []).map((r) => r.project_id);
       if (allowedIds.length === 0) {
         setProjects([]);
+        setPinned([]);
+        setFavoriteIds([]);
         setTotal(0);
         setCounts({});
         setLoading(false);
@@ -53,16 +57,23 @@ export function useProjectsList(args: {
       }
     }
 
+    const { data: favRows } = await supabase
+      .from("project_favorites")
+      .select("project_id")
+      .eq("user_id", user.id);
+    const favIds = (favRows ?? []).map((r) => r.project_id);
+    setFavoriteIds(favIds);
+
+    const term = debouncedQ.trim();
+    const like = `%${term}%`;
+    const searchExpr = `name.ilike.${like},acronym.ilike.${like},client_name.ilike.${like}`;
+
     let query = supabase.from("projects").select("*", { count: "exact" });
     if (allowedIds) query = query.in("id", allowedIds);
     if (status === "active") query = query.eq("is_archived", false);
     else if (status === "vaulted") query = query.eq("is_archived", true);
-
-    const term = debouncedQ.trim();
-    if (term) {
-      const like = `%${term}%`;
-      query = query.or(`name.ilike.${like},acronym.ilike.${like},client_name.ilike.${like}`);
-    }
+    if (term) query = query.or(searchExpr);
+    if (favIds.length) query = query.not("id", "in", `(${favIds.join(",")})`);
 
     switch (sort) {
       case "oldest": query = query.order("created_at", { ascending: true }); break;
@@ -71,14 +82,31 @@ export function useProjectsList(args: {
       default: query = query.order("created_at", { ascending: false });
     }
 
-    const { data, count } = await query.range(from, to);
+    let pinnedQuery = supabase.from("projects").select("*").in("id", favIds.length ? favIds : [""]);
+    if (allowedIds) pinnedQuery = pinnedQuery.in("id", allowedIds);
+    if (status === "active") pinnedQuery = pinnedQuery.eq("is_archived", false);
+    else if (status === "vaulted") pinnedQuery = pinnedQuery.eq("is_archived", true);
+    if (term) pinnedQuery = pinnedQuery.or(searchExpr);
+    pinnedQuery = pinnedQuery.order("name", { ascending: true });
+
+    const [{ data, count }, pinnedRes] = await Promise.all([
+      query.range(from, to),
+      page === 1 && favIds.length
+        ? pinnedQuery
+        : Promise.resolve({ data: [] as Project[] }),
+    ]);
+
+
+    const pinnedRows = (pinnedRes?.data ?? []) as Project[];
     setProjects(data ?? []);
+    setPinned(pinnedRows);
     setTotal(count ?? 0);
     setLoading(false);
 
-    if (data && data.length) {
+    const all = [...pinnedRows, ...(data ?? [])];
+    if (all.length) {
       const entries = await Promise.all(
-        data.map(async (p) => {
+        all.map(async (p) => {
           if (p.is_archived) return [p.id, { tickets: 0, members: 0 }] as const;
           const [{ count: tCount }, { count: mCount }] = await Promise.all([
             supabase.from("tickets").select("id", { count: "exact", head: true }).eq("project_id", p.id),
@@ -96,12 +124,13 @@ export function useProjectsList(args: {
   useEffect(() => { load(); }, [load]);
 
   useRealtimeReload(
-    [{ table: "projects" }, { table: "tickets" }, { table: "project_members" }],
+    [{ table: "projects" }, { table: "tickets" }, { table: "project_members" }, { table: "project_favorites" }],
     load,
   );
 
-  return { projects, total, loading, counts, pageSize, reload: load };
+  return { projects, pinned, favoriteIds, total, loading, counts, pageSize, reload: load };
 }
+
 
 
 export function relativeTime(iso: string | null): string {
