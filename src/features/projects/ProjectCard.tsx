@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Archive, ArrowRight } from "lucide-react";
+import { Archive, ArrowRight, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Project } from "@/lib/types";
@@ -8,9 +8,13 @@ import { relativeTime } from "./useProjectsList";
 export function ProjectCard({
   project,
   count,
+  isFavorite = false,
+  onToggleFavorite,
 }: {
   project: Project;
   count: { tickets: number; members: number };
+  isFavorite?: boolean;
+  onToggleFavorite?: (projectId: string, next: boolean) => void;
 }) {
   const archived = project.is_archived;
   return (
@@ -26,14 +30,37 @@ export function ProjectCard({
         <div className="font-mono text-xs px-2 py-1 rounded-md bg-white/5 hairline text-dim">
           {project.acronym}
         </div>
-        {archived ? (
-          <Badge className="bg-brand-gold/15 text-brand-gold ring-1 ring-brand-gold/30 hover:bg-brand-gold/20 gap-1">
-            <Archive className="h-3 w-3" /> Vaulted
-          </Badge>
-        ) : (
-          <ArrowRight className="h-4 w-4 text-dimmer group-hover:text-foreground transition" />
-        )}
+        <div className="flex items-center gap-2 relative z-10">
+          {archived ? (
+            <Badge className="bg-brand-gold/15 text-brand-gold ring-1 ring-brand-gold/30 hover:bg-brand-gold/20 gap-1">
+              <Archive className="h-3 w-3" /> Vaulted
+            </Badge>
+          ) : (
+            <ArrowRight className="h-4 w-4 text-dimmer group-hover:text-foreground transition" />
+          )}
+          {onToggleFavorite && (
+            <button
+              type="button"
+              aria-label={isFavorite ? "Unstar project" : "Star project"}
+              aria-pressed={isFavorite}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onToggleFavorite(project.id, !isFavorite);
+              }}
+              className={cn(
+                "rounded-md p-1 transition hover:bg-white/10",
+                isFavorite
+                  ? "text-brand-gold"
+                  : "text-dimmer opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:text-foreground",
+              )}
+            >
+              <Star className={cn("h-4 w-4", isFavorite && "fill-current")} />
+            </button>
+          )}
+        </div>
       </div>
+
       <div className="text-lg font-semibold tracking-tight">{project.name}</div>
       {project.client_name && (
         <div className="text-xs text-dim mt-0.5">{project.client_name}</div>
