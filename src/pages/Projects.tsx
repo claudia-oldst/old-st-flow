@@ -16,7 +16,9 @@ import {
   useDebounced, useProjectsList, type SortKey, type StatusFilter,
 } from "@/features/projects/useProjectsList";
 import { ProjectCard } from "@/features/projects/ProjectCard";
+import { useToggleFavorite } from "@/features/projects/useToggleFavorite";
 import { ProjectsToolbar } from "@/features/projects/ProjectsToolbar";
+
 
 export default function Projects() {
   const [params, setParams] = useSearchParams();
