@@ -66,6 +66,8 @@ export function ClientPortalEditor() {
           project={project}
           asOf={asOf}
           setAsOf={setAsOf}
+          versions={versions}
+          setVersions={setVersions}
           hash={hash}
           busy={busy}
           onUpdate={handleUpdate}
