@@ -32,9 +32,12 @@ export default function Projects() {
   const [acronym, setAcronym] = useState("");
   const [creating, setCreating] = useState(false);
 
-  const { projects, total, loading, counts, pageSize, reload } = useProjectsList({
+  const { projects, pinned, favoriteIds, total, loading, counts, pageSize, reload } = useProjectsList({
     page, status, sort, debouncedQ,
   });
+  const toggleFavorite = useToggleFavorite(reload);
+  const favSet = new Set(favoriteIds);
+
 
   const setParam = useCallback(
     (key: string, value: string | null) => {
