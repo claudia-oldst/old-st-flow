@@ -14,6 +14,8 @@ import {
   discountTotalsByDiscipline,
   sumTotals,
 } from "@/features/discounts/applyDiscounts";
+import { MultiSelectFilter } from "@/features/estimates/MultiSelectFilter";
+import { isAllVersions, versionKeyOf, versionOptions } from "./versionFilter";
 import { CreateDiscountsDialog } from "@/features/discounts/CreateDiscountsDialog";
 import { DiscountsList } from "@/features/discounts/DiscountsList";
 import { Ring } from "./overview/Ring";
@@ -22,13 +24,31 @@ import { WeeklyBurnPanel } from "./overview/WeeklyBurnPanel";
 import { EpicRiskTable } from "./overview/EpicRiskTable";
 
 export function ProjectHealth({ projectId }: { projectId: string }) {
-  const { tickets } = useProjectTickets(projectId);
+  const { tickets: allTickets } = useProjectTickets(projectId);
   const { statuses } = useStatuses();
   const role = useProjectRole(projectId);
   const canManageDiscounts = isPMBA(role);
   const { epics } = useProjectEpics(projectId);
-  const { discounts } = useEpicDiscounts(projectId);
+  const { discounts: allDiscounts } = useEpicDiscounts(projectId);
   const [discountsOpen, setDiscountsOpen] = useState(false);
+  const [selectedVersions, setSelectedVersions] = useState<string[]>([]);
+
+  const versionOpts = useMemo(
+    () => versionOptions(allTickets.map((t) => t.version)),
+    [allTickets],
+  );
+  const allVersions = isAllVersions(selectedVersions, versionOpts.length);
+  const versionKeys = allVersions ? null : selectedVersions;
+
+  const tickets = useMemo(() => {
+    if (!versionKeys) return allTickets;
+    const set = new Set(versionKeys);
+    return allTickets.filter((t) => set.has(versionKeyOf(t.version)));
+  }, [allTickets, versionKeys]);
+
+  // Discounts are recorded per epic + discipline, never per version, so they
+  // cannot be attributed to a version subset.
+  const discounts = allVersions ? allDiscounts : [];
 
   const { data: projectStart } = useQuery({
     queryKey: ["projectStartDate", projectId],
@@ -103,7 +123,34 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="text-xs uppercase tracking-wider text-dimmer">Hour burn</div>
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="text-xs uppercase tracking-wider text-dimmer">Hour burn</div>
+          {versionOpts.length > 0 && (
+            <MultiSelectFilter
+              label="Version"
+              options={versionOpts}
+              selected={allVersions ? versionOpts.map((o) => o.value) : selectedVersions}
+              onChange={(next) =>
+                setSelectedVersions(next.length === versionOpts.length ? [] : next)
+              }
+              searchable
+            />
+          )}
+          {!allVersions && (
+            <div className="flex items-center gap-2 text-[11px] text-dim">
+              <span>
+                Filtered to {selectedVersions.length} of {versionOpts.length} versions
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedVersions([])}
+                className="underline hover:text-foreground transition"
+              >
+                Reset
+              </button>
+            </div>
+          )}
+        </div>
         {canManageDiscounts && (
           <Button size="sm" onClick={() => setDiscountsOpen(true)} className="gap-1.5">
             <Plus className="h-4 w-4" /> Create discount
@@ -118,7 +165,13 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
         <WeeklyBurnPanel projectId={projectId} tickets={tickets} />
       </div>
 
-      {discounts.length > 0 && (
+      {!allVersions && allDiscounts.length > 0 && (
+        <div className="text-[11px] text-dim px-1">
+          Discounts apply to the whole project and are excluded while a version filter is active.
+        </div>
+      )}
+
+      {allVersions && discounts.length > 0 && (
         <div className="space-y-2">
           <div className="text-xs uppercase tracking-wider text-dimmer px-1">
             Discounts ({discounts.length})
@@ -170,7 +223,11 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
 
       <EpicRiskTable projectId={projectId} tickets={tickets} statuses={statuses} epics={epics} />
 
-      <EstimateEvolution projectId={projectId} />
+      <EstimateEvolution
+        projectId={projectId}
+        versionKeys={versionKeys}
+        includeDiscounts={allVersions}
+      />
 
       <CreateDiscountsDialog
         open={discountsOpen}
