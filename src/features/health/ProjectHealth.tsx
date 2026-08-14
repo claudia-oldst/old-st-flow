@@ -50,46 +50,23 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
   // cannot be attributed to a version subset.
   const discounts = allVersions ? allDiscounts : [];
 
-  const { data: projectStart } = useQuery({
-    queryKey: ["projectStartDate", projectId],
-    enabled: !!projectId,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("projects")
-        .select("start_date")
-        .eq("id", projectId)
-        .maybeSingle();
-      return (data?.start_date as string | null) ?? null;
-    },
-  });
-
   const openTickets = useMemo(() => {
     const doneIds = new Set(statuses.filter((s) => s.category === "done").map((s) => s.id));
     return tickets.filter((t) => !doneIds.has(t.status_id ?? ""));
   }, [tickets, statuses]);
 
   const totals = useMemo(() => {
-    // Parse as local time (no Z suffix) so the boundary aligns with how
-    // created_at is compared elsewhere in the app.
-    const startMs = projectStart
-      ? (() => {
-          const d = new Date(`${projectStart}T00:00:00`);
-          d.setHours(23, 59, 59, 999);
-          return d.getTime();
-        })()
-      : null;
+    // "Original" is the plain sum of the original_* estimates over the tickets
+    // in scope — no project start-date gate (that understated the baseline for
+    // every ticket created after kick-off).
     return tickets.reduce(
       (acc, t) => {
         acc.feEst += t.current_fe_estimate;
         acc.beEst += t.current_be_estimate;
         acc.projEst += t.current_project_estimate;
-        const inOriginal =
-          startMs == null ? false : new Date(t.created_at).getTime() <= startMs;
-        if (inOriginal) {
-          acc.feOrig += t.original_fe_estimate;
-          acc.beOrig += t.original_be_estimate;
-          acc.projOrig += t.original_project_estimate;
-        }
+        acc.feOrig += t.original_fe_estimate;
+        acc.beOrig += t.original_be_estimate;
+        acc.projOrig += t.original_project_estimate;
         acc.feAct += t.actual_frontend_hours;
         acc.beAct += t.actual_backend_hours;
         acc.projAct += t.actual_project_hours;
@@ -101,7 +78,7 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
         feAct: 0, beAct: 0, projAct: 0,
       }
     );
-  }, [tickets, projectStart]);
+  }, [tickets]);
 
   const discountTotals = useMemo(
     () => discountTotalsByDiscipline(discounts),
