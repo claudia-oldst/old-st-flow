@@ -8,9 +8,15 @@ import type { PortalPayload } from "./types";
  * Used inside the PMBA editor to preview the dashboard for any "as of" date,
  * without requiring data to be published.
  */
-export function usePortalPreview(projectId: string, _hash: string | null, asOf: Date) {
+export function usePortalPreview(
+  projectId: string,
+  _hash: string | null,
+  asOf: Date,
+  versions?: string[],
+) {
   const asOfIso = asOf.toISOString();
-  const queryKey = ["portalPreview", projectId, asOfIso] as const;
+  const versionKey = (versions ?? []).slice().sort().join("|");
+  const queryKey = ["portalPreview", projectId, asOfIso, versionKey] as const;
 
   const query = useQuery({
     queryKey,
@@ -19,6 +25,8 @@ export function usePortalPreview(projectId: string, _hash: string | null, asOf: 
       const { data, error } = await supabase.rpc("get_project_portal_preview", {
         _project_id: projectId,
         _cutoff: asOfIso,
+        // `[]` means "all versions" in the RPC, so an empty selection is safe.
+        _versions: versions ?? [],
       });
       if (error) throw error;
       return data as unknown as PortalPayload;
