@@ -68,10 +68,30 @@ export function useProjectEpics(projectId: string | undefined) {
     [projectId, epics, qc],
   );
 
+  /** Rename an existing epic. Returns true on success. */
+  const renameEpic = useCallback(
+    async (id: number, name: string): Promise<boolean> => {
+      const trimmed = name.trim();
+      if (!trimmed) return false;
+      const { error } = await supabase
+        .from("project_epics")
+        .update({ epic_name: trimmed })
+        .eq("id", id);
+      if (error) return false;
+      await qc.invalidateQueries({ queryKey });
+      await qc.invalidateQueries({ queryKey: ["projectTickets", projectId] });
+      await qc.invalidateQueries({ queryKey: ["projectTicketsPaged", projectId] });
+      return true;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [projectId, qc],
+  );
+
   return {
     epics,
     loading: query.isPending && !!projectId,
     reload,
     createEpic,
+    renameEpic,
   };
 }
