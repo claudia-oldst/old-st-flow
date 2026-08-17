@@ -195,8 +195,6 @@ export function buildGanttRows(
         planned: counts.planned,
       });
     });
-    // Epics with nothing scheduled contribute no bar — drop the empty row.
-    if (segments.length === 0) return;
     segments.sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
     rows.push({
       epicId: bucket.epicId,
