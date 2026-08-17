@@ -6,7 +6,14 @@ import { useSprints } from "@/features/sprints/useSprintBoard";
  * client portal can render the same gantt-or-empty-state without duplicating
  * the query.
  */
-export function SprintGanttOrEmpty({ projectId }: { projectId: string }) {
+export function SprintGanttOrEmpty({
+  projectId,
+  versions,
+}: {
+  projectId: string;
+  /** Optional version scope; undefined/empty means all versions. */
+  versions?: string[];
+}) {
   const { data: sprints = [] } = useSprints(projectId);
   if (sprints.length === 0) {
     return (
@@ -15,5 +22,7 @@ export function SprintGanttOrEmpty({ projectId }: { projectId: string }) {
       </div>
     );
   }
-  return <SprintGantt projectId={projectId} sprints={sprints} hideExport />;
+  return (
+    <SprintGantt projectId={projectId} sprints={sprints} hideExport versions={versions} />
+  );
 }

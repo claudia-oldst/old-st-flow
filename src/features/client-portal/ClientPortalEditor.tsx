@@ -140,7 +140,7 @@ export function ClientPortalEditor() {
                   <TabsTrigger value="change-requests">Change Requests</TabsTrigger>
                 </TabsList>
                 <TabsContent value="timeline">
-                  <SprintGanttOrEmpty projectId={id} />
+                  <SprintGanttOrEmpty projectId={id} versions={versions} />
                 </TabsContent>
                 <TabsContent value="summary">
                   <PortalView payload={payload} showRate discounts={discounts} />
