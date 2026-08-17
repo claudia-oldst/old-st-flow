@@ -28,6 +28,8 @@ export function TicketsList({
   extraCols,
   poolData,
   columnPrefs,
+  canEditEpics = false,
+  projectId,
 }: {
   tickets: TicketRow[];
   groupBy: GroupBy;
@@ -40,6 +42,8 @@ export function TicketsList({
   extraCols?: ColKey[];
   poolData?: PoolData;
   columnPrefs?: ColumnDisplayPrefs;
+  canEditEpics?: boolean;
+  projectId?: string;
 }) {
 
   const selectionEnabled = !!selectedIds && !!onToggleSelect;
