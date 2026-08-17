@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown } from "lucide-react";
+import { ChevronsDownUp, ChevronsUpDown } from "lucide-react";
 import { useStatuses } from "@/features/statuses/useStatuses";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -9,6 +9,7 @@ import { useTicketsSort } from "./list/useTicketsSort";
 import { useColumnResize } from "./list/useColumnResize";
 import { useTicketsGrouping } from "./list/useTicketsGrouping";
 import { TicketsListHeader } from "./list/TicketsListHeader";
+import { TicketsGroupHeader } from "./list/TicketsGroupHeader";
 import { TicketsListRow } from "./list/TicketsListRow";
 import type { PoolData } from "./list/poolData";
 
