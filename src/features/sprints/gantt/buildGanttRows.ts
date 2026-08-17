@@ -104,8 +104,16 @@ export function buildGanttRows(
     }
   >();
 
+  // Only epics that actually have tickets get a row (scheduled or not).
+  const epicIdsWithTickets = new Set(
+    tickets
+      .map((t) => t.epic_id)
+      .filter((id): id is number => id !== null && id !== undefined),
+  );
+
   epics.forEach((e) => {
     if (!e.epic_name) return;
+    if (!epicIdsWithTickets.has(e.id)) return;
     epicSegments.set(`e:${e.id}`, {
       epicId: e.id,
       epicName: e.epic_name,
