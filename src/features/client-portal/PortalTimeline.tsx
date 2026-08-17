@@ -65,6 +65,15 @@ export function PortalTimeline({ hash }: { hash: string | undefined }) {
   const [discipline, setDiscipline] = useState<DisciplineFilter>("ALL");
   const ganttRef = useRef<HTMLDivElement>(null);
 
+  const epicIdsWithTickets = useMemo(() => {
+    if (!data) return new Set<number>();
+    return new Set(
+      data.tickets
+        .map((t) => t.epic_id)
+        .filter((id): id is number => id != null),
+    );
+  }, [data]);
+
   const rows = useMemo(() => {
     if (!data) return [];
     const fe = buildGanttRows(
@@ -83,9 +92,11 @@ export function PortalTimeline({ hash }: { hash: string | undefined }) {
     );
     const all =
       discipline === "FE" ? fe : discipline === "BE" ? be : mergeRows(fe, be);
-    // Hide epics that have no tickets scheduled in any sprint.
-    return all.filter((r) => r.segments.length > 0);
-  }, [data, discipline]);
+    // Hide epics that have no tickets associated with them.
+    return all.filter(
+      (r) => r.epicId != null && epicIdsWithTickets.has(r.epicId),
+    );
+  }, [data, discipline, epicIdsWithTickets]);
 
 
   if (loading) {
