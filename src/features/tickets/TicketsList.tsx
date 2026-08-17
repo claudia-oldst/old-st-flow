@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown } from "lucide-react";
+import { ChevronsDownUp, ChevronsUpDown } from "lucide-react";
 import { useStatuses } from "@/features/statuses/useStatuses";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -9,6 +9,7 @@ import { useTicketsSort } from "./list/useTicketsSort";
 import { useColumnResize } from "./list/useColumnResize";
 import { useTicketsGrouping } from "./list/useTicketsGrouping";
 import { TicketsListHeader } from "./list/TicketsListHeader";
+import { TicketsGroupHeader } from "./list/TicketsGroupHeader";
 import { TicketsListRow } from "./list/TicketsListRow";
 import type { PoolData } from "./list/poolData";
 
@@ -27,6 +28,8 @@ export function TicketsList({
   extraCols,
   poolData,
   columnPrefs,
+  canEditEpics = false,
+  projectId,
 }: {
   tickets: TicketRow[];
   groupBy: GroupBy;
@@ -39,6 +42,8 @@ export function TicketsList({
   extraCols?: ColKey[];
   poolData?: PoolData;
   columnPrefs?: ColumnDisplayPrefs;
+  canEditEpics?: boolean;
+  projectId?: string;
 }) {
 
   const selectionEnabled = !!selectedIds && !!onToggleSelect;
@@ -107,23 +112,21 @@ export function TicketsList({
           return (
             <div key={g.key} className="glass rounded-2xl overflow-hidden">
               {groupBy !== "none" && (
-                <button
-                  onClick={() => setCollapsed((c) => ({ ...c, [g.key]: !(c[g.key] ?? true) }))}
-                  className="w-full flex items-center gap-2 px-4 py-3 hairline-b hover:bg-white/[0.02] transition text-left"
-                >
-                  {isCollapsed ? (
-                    <ChevronRight className="h-3.5 w-3.5 text-dimmer" />
-                  ) : (
-                    <ChevronDown className="h-3.5 w-3.5 text-dimmer" />
-                  )}
-                  {g.color && (
-                    <span className="h-2 w-2 rounded-full" style={{ background: g.color }} />
-                  )}
-                  <span className="text-sm font-medium">{g.label}</span>
-                  <span className="text-xs text-dimmer font-mono ml-1">
-                    {g.tickets.length}
-                  </span>
-                </button>
+                <TicketsGroupHeader
+                  label={g.label}
+                  count={g.tickets.length}
+                  color={g.color}
+                  isCollapsed={isCollapsed}
+                  onToggle={() =>
+                    setCollapsed((c) => ({ ...c, [g.key]: !(c[g.key] ?? true) }))
+                  }
+                  epicId={
+                    canEditEpics && groupBy === "epic" && /^\d+$/.test(g.key)
+                      ? Number(g.key)
+                      : null
+                  }
+                  projectId={projectId}
+                />
               )}
               {!isCollapsed && (
                 <div className="overflow-x-auto">
