@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useProjectTickets } from "@/features/tickets/useProjectTickets";
 import { useProjectEpics } from "@/features/epics/useProjectEpics";
 import { useProjectSprintTickets, usePlannedSprintAssignments } from "../useSprintBoard";
+import { versionKeyOf } from "@/features/health/versionFilter";
 import type { Sprint, SprintDiscipline } from "../types";
 import {
   buildGanttRows,
@@ -45,5 +46,5 @@ export function useGanttData(
       };
     });
     return buildGanttRows(sprints, ticketInputs, sprintTickets, epics, discipline);
-  }, [tickets, sprintTickets, planned, epics, sprints, discipline]);
+  }, [tickets, sprintTickets, planned, epics, sprints, discipline, versionKey]);
 }
