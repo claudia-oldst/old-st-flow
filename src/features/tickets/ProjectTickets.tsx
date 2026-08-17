@@ -262,6 +262,8 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
             extraCols={["fe_pool", "be_pool"]}
             poolData={poolData}
             columnPrefs={columnPrefs}
+            canEditEpics={v.pmba}
+            projectId={projectId}
           />
           {!grouped && (
             <div className="mt-4 flex items-center justify-between gap-3 flex-wrap">
