@@ -16,15 +16,23 @@ export function useGanttData(
   projectId: string,
   sprints: Sprint[],
   discipline: SprintDiscipline,
+  /** Optional version scope; undefined/empty means all versions. */
+  versions?: string[],
 ): GanttEpicRow[] {
   const { tickets } = useProjectTickets(projectId);
   const { data: sprintTickets = [] } = useProjectSprintTickets(projectId);
   const { data: planned = [] } = usePlannedSprintAssignments(projectId);
   const { epics } = useProjectEpics(projectId);
 
+  const versionKey = (versions ?? []).slice().sort().join("|");
+
   return useMemo<GanttEpicRow[]>(() => {
+    const scope = versionKey ? new Set(versionKey.split("|")) : null;
+    const scoped = scope
+      ? tickets.filter((t) => scope.has(versionKeyOf(t.version as string | null)))
+      : tickets;
     const plannedByTicket = new Map(planned.map((p) => [p.ticket_id, p]));
-    const ticketInputs: GanttTicketInput[] = tickets.map((t) => {
+    const ticketInputs: GanttTicketInput[] = scoped.map((t) => {
       const p = plannedByTicket.get(t.id);
       return {
         id: t.id,
