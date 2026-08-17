@@ -22,7 +22,7 @@ The authoring surface for the project's public-facing client portal. Two columns
 
 ## Preview (right)
 When open, replicates the public portal exactly, with three tabs:
-- **Timeline** — Sprint Gantt scoped to this project.
+- **Timeline** — Sprint Gantt scoped to this project and to the selected portal versions (empty selection = all versions), matching what the public portal shows.
 - **Summary** — `PortalView` with rate visible and applied discounts.
 - **Change Requests** — preview of pending/approved CRs the client will see.
 

@@ -14,6 +14,8 @@ interface Props {
   sprints: Sprint[];
   /** Hide the Export PNG button (e.g. on client portal). */
   hideExport?: boolean;
+  /** Optional version scope; undefined/empty means all versions. */
+  versions?: string[];
 }
 
 type DisciplineFilter = SprintDiscipline | "ALL";
@@ -71,10 +73,10 @@ function mergeGanttRows(feRows: GanttEpicRow[], beRows: GanttEpicRow[]): GanttEp
   );
 }
 
-export function SprintGantt({ projectId, sprints, hideExport }: Props) {
+export function SprintGantt({ projectId, sprints, hideExport, versions }: Props) {
   const [discipline, setDiscipline] = useState<DisciplineFilter>("ALL");
-  const feRows = useGanttData(projectId, sprints, "FE");
-  const beRows = useGanttData(projectId, sprints, "BE");
+  const feRows = useGanttData(projectId, sprints, "FE", versions);
+  const beRows = useGanttData(projectId, sprints, "BE", versions);
   const rows = useMemo(() => {
     if (discipline === "FE") return feRows;
     if (discipline === "BE") return beRows;
