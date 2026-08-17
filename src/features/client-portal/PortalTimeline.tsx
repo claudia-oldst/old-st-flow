@@ -81,10 +81,12 @@ export function PortalTimeline({ hash }: { hash: string | undefined }) {
       data.epics,
       "BE",
     );
-    if (discipline === "FE") return fe;
-    if (discipline === "BE") return be;
-    return mergeRows(fe, be);
+    const all =
+      discipline === "FE" ? fe : discipline === "BE" ? be : mergeRows(fe, be);
+    // Hide epics that have no tickets scheduled in any sprint.
+    return all.filter((r) => r.segments.length > 0);
   }, [data, discipline]);
+
 
   if (loading) {
     return (
