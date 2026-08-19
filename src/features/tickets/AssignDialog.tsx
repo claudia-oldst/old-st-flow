@@ -73,24 +73,47 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
 
   const performSave = async () => {
     setBusy(true);
-    // Replace all assignees for this ticket
-    await supabase.from("ticket_assignees").delete().eq("ticket_id", ticketId);
-    const rows: { ticket_id: string; user_id: string; slot: Slot }[] = [];
+    // Save a minimal diff — untouched rows must stay in place so existing
+    // assignees don't get re-notified (the Slack trigger fires on insert).
+    const desired: { user_id: string; slot: Slot }[] = [];
     if (isProj) {
-      projectUserIds.forEach((uid) => rows.push({ ticket_id: ticketId, user_id: uid, slot: "Project" }));
+      projectUserIds.forEach((uid) => desired.push({ user_id: uid, slot: "Project" }));
     } else {
-      feUserIds.forEach((uid) => rows.push({ ticket_id: ticketId, user_id: uid, slot: "FE" }));
-      beUserIds.forEach((uid) => rows.push({ ticket_id: ticketId, user_id: uid, slot: "BE" }));
-      projectUserIds.forEach((uid) => rows.push({ ticket_id: ticketId, user_id: uid, slot: "Project" }));
+      feUserIds.forEach((uid) => desired.push({ user_id: uid, slot: "FE" }));
+      beUserIds.forEach((uid) => desired.push({ user_id: uid, slot: "BE" }));
+      projectUserIds.forEach((uid) => desired.push({ user_id: uid, slot: "Project" }));
     }
-    if (rows.length) {
-      const { error } = await supabase.from("ticket_assignees").insert(rows);
+    const key = (r: { user_id: string; slot: Slot }) => `${r.slot}:${r.user_id}`;
+    const currentKeys = new Set(current.map(key));
+    const desiredKeys = new Set(desired.map(key));
+
+    const toRemove = current.filter((c) => !desiredKeys.has(key(c)));
+    const toAdd = desired.filter((d) => !currentKeys.has(key(d)));
+
+    for (const r of toRemove) {
+      const { error } = await supabase
+        .from("ticket_assignees")
+        .delete()
+        .eq("ticket_id", ticketId)
+        .eq("user_id", r.user_id)
+        .eq("slot", r.slot);
       if (error) {
         toast.error(error.message);
         setBusy(false);
         return;
       }
     }
+    if (toAdd.length) {
+      const { error } = await supabase
+        .from("ticket_assignees")
+        .insert(toAdd.map((r) => ({ ticket_id: ticketId, user_id: r.user_id, slot: r.slot })));
+      if (error) {
+        toast.error(error.message);
+        setBusy(false);
+        return;
+      }
+    }
+
     if (!isProj) {
       // If a slot lost its last assignee in this save, reset that slot's status to "todo"
       // so an unassigned slot can't keep influencing the auto-derived project status.
