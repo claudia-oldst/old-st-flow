@@ -90,6 +90,7 @@ STRICT rules:
 - If notes exist, prefer them as the source of truth. If only titles exist, paraphrase them in dev shorthand.
 - Each summary is just a few words of dev shorthand (roughly 4–8 words). Lowercase, comma-separated fragments, no full sentences, no trailing punctuation, no emojis, no ticket IDs, no hour counts.
 - If there is genuinely nothing meaningful to say for a project, write "misc work".
+- Use UK English spelling and conventions throughout (e.g. optimise, prioritise, colour, behaviour, cancelled).
 - Output the block exactly — no preamble, no markdown fences.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
