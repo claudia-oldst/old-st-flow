@@ -43,11 +43,6 @@ export default function StatusRulesAdmin({ canEdit }: { canEdit: boolean }) {
 
   const sorted = useMemo(() => [...rules].sort((a, b) => a.position - b.position), [rules]);
 
-  const reapply = async () => {
-    const { error } = await supabase.rpc("reapply_status_rules");
-    if (error) toast.error("Saved, but failed to re-apply: " + error.message);
-  };
-
   const updateRule = async (id: string, patch: Partial<Rule>) => {
     setRules((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)));
     setSaving(true);
@@ -56,9 +51,7 @@ export default function StatusRulesAdmin({ canEdit }: { canEdit: boolean }) {
     if (error) {
       toast.error(error.message);
       load();
-      return;
     }
-    await reapply();
   };
 
   const addRule = async () => {
@@ -96,7 +89,6 @@ export default function StatusRulesAdmin({ canEdit }: { canEdit: boolean }) {
     const { error } = await supabase.from("status_derivation_rules").delete().eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Deleted");
-    await reapply();
   };
 
   const move = async (id: string, dir: -1 | 1) => {
@@ -120,7 +112,6 @@ export default function StatusRulesAdmin({ canEdit }: { canEdit: boolean }) {
       load();
       return;
     }
-    await reapply();
   };
 
   const resetDefaults = async () => {
@@ -138,7 +129,6 @@ export default function StatusRulesAdmin({ canEdit }: { canEdit: boolean }) {
     ]);
     if (error) return toast.error(error.message);
     toast.success("Defaults restored");
-    await reapply();
   };
 
   if (loading) return <div className="text-dim text-sm">Loading rules…</div>;
