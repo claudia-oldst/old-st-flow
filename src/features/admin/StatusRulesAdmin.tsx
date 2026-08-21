@@ -138,30 +138,12 @@ export default function StatusRulesAdmin({ canEdit }: { canEdit: boolean }) {
       <div className="flex items-start justify-between gap-4">
         <div className="text-dim text-sm max-w-2xl">
           IF/THEN rules control how each ticket's <strong>Project status</strong> is derived from its FE
-          and BE statuses. Rules are evaluated top-down; first match wins. A manual project-status
-          change on a ticket is preserved only until the next FE or BE status change — then the
-          rules engine takes over again.
+          and BE statuses. Rules are evaluated top-down; first match wins. They apply to a ticket when it
+          is created and whenever its FE or BE statuses change. A project status that has been set
+          manually stays put — it isn't re-derived until it's reset to <strong>Auto</strong> in the ticket.
         </div>
         {canEdit && (
           <div className="flex gap-2 shrink-0">
-            <Button
-              size="sm"
-              variant="ghost"
-              className="gap-2"
-              onClick={async () => {
-                const ok = confirm(
-                  "Re-evaluate all tickets now? This applies the current rules to every ticket that doesn't have a manual project-status override.",
-                );
-                if (!ok) return;
-                setSaving(true);
-                const { error } = await supabase.rpc("reapply_status_rules");
-                setSaving(false);
-                if (error) toast.error(error.message);
-                else toast.success("Tickets re-evaluated");
-              }}
-            >
-              <RefreshCw className="h-4 w-4" /> Re-evaluate now
-            </Button>
             <Button size="sm" variant="ghost" className="gap-2" onClick={resetDefaults}>
               <RotateCcw className="h-4 w-4" /> Reset defaults
             </Button>
