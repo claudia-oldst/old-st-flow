@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStatuses } from "@/features/statuses/useStatuses";
 import { Button } from "@/components/ui/button";
-import { Plus, RefreshCw, RotateCcw } from "lucide-react";
+import { Plus, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { RuleRow, type Rule } from "./status-rules/RuleRow";
 import { StatusRulesPreviewMatrix } from "./status-rules/StatusRulesPreviewMatrix";
