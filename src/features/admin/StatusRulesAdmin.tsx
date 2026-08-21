@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStatuses } from "@/features/statuses/useStatuses";
 import { Button } from "@/components/ui/button";
-import { Plus, RefreshCw, RotateCcw } from "lucide-react";
+import { Plus, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { RuleRow, type Rule } from "./status-rules/RuleRow";
 import { StatusRulesPreviewMatrix } from "./status-rules/StatusRulesPreviewMatrix";
@@ -43,11 +43,6 @@ export default function StatusRulesAdmin({ canEdit }: { canEdit: boolean }) {
 
   const sorted = useMemo(() => [...rules].sort((a, b) => a.position - b.position), [rules]);
 
-  const reapply = async () => {
-    const { error } = await supabase.rpc("reapply_status_rules");
-    if (error) toast.error("Saved, but failed to re-apply: " + error.message);
-  };
-
   const updateRule = async (id: string, patch: Partial<Rule>) => {
     setRules((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)));
     setSaving(true);
@@ -56,9 +51,7 @@ export default function StatusRulesAdmin({ canEdit }: { canEdit: boolean }) {
     if (error) {
       toast.error(error.message);
       load();
-      return;
     }
-    await reapply();
   };
 
   const addRule = async () => {
@@ -96,7 +89,6 @@ export default function StatusRulesAdmin({ canEdit }: { canEdit: boolean }) {
     const { error } = await supabase.from("status_derivation_rules").delete().eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Deleted");
-    await reapply();
   };
 
   const move = async (id: string, dir: -1 | 1) => {
@@ -120,7 +112,6 @@ export default function StatusRulesAdmin({ canEdit }: { canEdit: boolean }) {
       load();
       return;
     }
-    await reapply();
   };
 
   const resetDefaults = async () => {
@@ -138,7 +129,6 @@ export default function StatusRulesAdmin({ canEdit }: { canEdit: boolean }) {
     ]);
     if (error) return toast.error(error.message);
     toast.success("Defaults restored");
-    await reapply();
   };
 
   if (loading) return <div className="text-dim text-sm">Loading rules…</div>;
@@ -148,30 +138,12 @@ export default function StatusRulesAdmin({ canEdit }: { canEdit: boolean }) {
       <div className="flex items-start justify-between gap-4">
         <div className="text-dim text-sm max-w-2xl">
           IF/THEN rules control how each ticket's <strong>Project status</strong> is derived from its FE
-          and BE statuses. Rules are evaluated top-down; first match wins. A manual project-status
-          change on a ticket is preserved only until the next FE or BE status change — then the
-          rules engine takes over again.
+          and BE statuses. Rules are evaluated top-down; first match wins. They apply to a ticket when it
+          is created and whenever its FE or BE statuses change. A project status that has been set
+          manually stays put — it isn't re-derived until it's reset to <strong>Auto</strong> in the ticket.
         </div>
         {canEdit && (
           <div className="flex gap-2 shrink-0">
-            <Button
-              size="sm"
-              variant="ghost"
-              className="gap-2"
-              onClick={async () => {
-                const ok = confirm(
-                  "Re-evaluate all tickets now? This applies the current rules to every ticket that doesn't have a manual project-status override.",
-                );
-                if (!ok) return;
-                setSaving(true);
-                const { error } = await supabase.rpc("reapply_status_rules");
-                setSaving(false);
-                if (error) toast.error(error.message);
-                else toast.success("Tickets re-evaluated");
-              }}
-            >
-              <RefreshCw className="h-4 w-4" /> Re-evaluate now
-            </Button>
             <Button size="sm" variant="ghost" className="gap-2" onClick={resetDefaults}>
               <RotateCcw className="h-4 w-4" /> Reset defaults
             </Button>

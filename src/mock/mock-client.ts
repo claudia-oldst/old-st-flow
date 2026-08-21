@@ -355,7 +355,6 @@ async function handleRpc(fn: string, params: any): Promise<{ data: any; error: a
       return { data: true, error: null };
     case "first_status_in_category":
       return { data: firstStatusInCategory(params?._cat), error: null };
-    case "reapply_status_rules":
     case "enqueue_github_sync":
       return { data: null, error: null };
     case "rotate_client_portal_hash":
