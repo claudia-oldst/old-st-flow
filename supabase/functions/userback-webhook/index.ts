@@ -43,17 +43,13 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
-  // --- Auth: shared secret from app_settings ---
+  // --- Auth: shared secret from edge function secrets ---
   const provided = req.headers.get("x-userback-secret") ?? "";
-  const { data: secretRow } = await supabase
-    .from("app_settings")
-    .select("value")
-    .eq("key", "userback_webhook_secret")
-    .maybeSingle();
-  const expected = secretRow?.value ?? "";
+  const expected = Deno.env.get("USERBACK_WEBHOOK_SECRET") ?? "";
   if (!expected || provided !== expected) {
     return json({ error: "Unauthorized" }, 401);
   }
+
 
   // --- Body ---
   let raw: unknown;
