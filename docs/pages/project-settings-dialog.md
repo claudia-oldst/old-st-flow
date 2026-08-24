@@ -3,7 +3,7 @@
 Opened from the cog icon in the project workspace header. Read-only for non-PMBA users.
 
 ## Tabs
-- **Details** — name, acronym (immutable after creation), client name, rate per hour, currency, project start date, GitHub repo URL, links list (label + URL pairs).
+- **Details** — name, acronym (immutable after creation), client name, rate per hour, currency, project start date, GitHub repo URL, Userback project ID (feedback for that ID becomes "UB - " tickets here), links list (label + URL pairs).
 - **Team** — add/remove project members and set per-member role (PMBA / FE / BE / Project). Inline avatar + name search.
 
 ## Interactions
