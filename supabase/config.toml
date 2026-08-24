@@ -14,3 +14,7 @@ verify_jwt = true
 
 [functions.slack-notify]
 verify_jwt = false
+
+[functions.userback-webhook]
+verify_jwt = false
+
