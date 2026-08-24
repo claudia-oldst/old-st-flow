@@ -46,6 +46,12 @@ export const projectDetailsSchema = z.object({
     .nullable()
     .optional()
     .or(z.literal("")),
+  userback_project_id: z
+    .string()
+    .trim()
+    .max(120, "Userback project ID must be 120 characters or fewer")
+    .nullable()
+    .optional(),
 });
 
 export type ProjectDetailsInput = z.infer<typeof projectDetailsSchema>;
