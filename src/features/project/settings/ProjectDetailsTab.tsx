@@ -17,6 +17,7 @@ interface Props {
   startDate: string; setStartDate: (v: string) => void;
   links: ProjectLink[]; setLinks: (v: ProjectLink[]) => void;
   githubRepoUrl: string; setGithubRepoUrl: (v: string) => void;
+  userbackProjectId: string; setUserbackProjectId: (v: string) => void;
   onSave: () => void;
   onClose: () => void;
   onArchive: () => void;
@@ -28,6 +29,7 @@ export function ProjectDetailsTab({
   clientName, setClientName, rate, setRate,
   startDate, setStartDate, links, setLinks,
   githubRepoUrl, setGithubRepoUrl,
+  userbackProjectId, setUserbackProjectId,
   onSave, onClose, onArchive,
 }: Props) {
   return (
@@ -105,6 +107,21 @@ export function ProjectDetailsTab({
           Tickets in this project will be mirrored as issues in this repo. Leave blank to disable.
         </div>
       </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="proj-userback">Userback project ID</Label>
+        <Input
+          id="proj-userback"
+          value={userbackProjectId}
+          onChange={(e) => setUserbackProjectId(e.target.value)}
+          disabled={!canEdit}
+          placeholder="e.g. 12345"
+        />
+        <div className="text-[10px] text-dimmer">
+          Feedback submitted via Userback for this project ID will be created as tickets here, prefixed "UB".
+        </div>
+      </div>
+
 
       {canEdit && !project.is_archived && (
         <div className="hairline-t pt-4 mt-2">
