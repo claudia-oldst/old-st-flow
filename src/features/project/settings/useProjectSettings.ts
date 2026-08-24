@@ -62,6 +62,7 @@ export function useProjectSettings(project: Project, open: boolean, onUpdated?: 
       start_date: startDate || null,
       links: cleanedLinks,
       github_repo_url: trimmedRepo,
+      userback_project_id: userbackProjectId.trim() || null,
     });
     if (!parsed.success) {
       return toast.error(parsed.error.issues[0]?.message ?? "Invalid project details");
@@ -84,6 +85,7 @@ export function useProjectSettings(project: Project, open: boolean, onUpdated?: 
         github_repo_url: canonicalRepoUrl,
         github_owner: repoParsed?.owner ?? null,
         github_repo: repoParsed?.repo ?? null,
+        userback_project_id: parsed.data.userback_project_id ?? null,
       })
       .eq("id", project.id)
       .select("*")
@@ -131,6 +133,7 @@ export function useProjectSettings(project: Project, open: boolean, onUpdated?: 
     startDate, setStartDate,
     links, setLinks,
     githubRepoUrl, setGithubRepoUrl,
+    userbackProjectId, setUserbackProjectId,
     members, allMembers,
     handleSaveDetails, addMember, updateMemberRole, removeMember,
   };
