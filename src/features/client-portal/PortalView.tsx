@@ -156,7 +156,7 @@ export function PortalView({
         cutoff={project.cutoff}
         ratePerHour={project.rate_per_hour}
         showRate={showRate}
-        discounts={discounts}
+        discounts={effectiveDiscounts}
       />
 
 
