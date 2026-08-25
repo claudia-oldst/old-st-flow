@@ -17,6 +17,8 @@ export interface EpicSummaryEditorProps {
   currentHours: number;
   delta: number;
   changes: Array<{ ticket: string; discipline: string; delta: number; reason: string | null }>;
+  /** Discounts in scope for the portal period, used to explain credits to the client. */
+  discounts?: Array<{ discipline: string; hours: number; reason: string; applied_at: string }>;
   initialText: string;
   initialIncluded: boolean;
   onSaved: () => void;
@@ -31,6 +33,7 @@ export function EpicSummaryEditor({
   currentHours,
   delta,
   changes,
+  discounts = [],
   initialText,
   initialIncluded,
   onSaved,
@@ -82,6 +85,7 @@ export function EpicSummaryEditor({
           original_hours: originalHours,
           current_hours: currentHours,
           changes,
+          discounts,
         },
       });
       if (error) throw error;
