@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { CalendarIcon, Plus, Trash2 } from "lucide-react";
+import { format } from "date-fns";
 import { z } from "zod";
 import {
   Dialog,
@@ -18,6 +19,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { EpicSelect } from "@/features/epics/EpicSelect";
 import { useEpicDiscounts, type CreateDiscountInput } from "./useEpicDiscounts";
 import type { Discipline } from "./applyDiscounts";
@@ -28,6 +36,8 @@ interface DraftDiscount {
   discipline: Discipline;
   hours: string;
   reason: string;
+  /** Date the discount applies from — drives which portal period shows it. */
+  appliedAt: Date;
 }
 
 const newDraft = (): DraftDiscount => ({
@@ -36,6 +46,7 @@ const newDraft = (): DraftDiscount => ({
   discipline: "FE",
   hours: "",
   reason: "",
+  appliedAt: new Date(),
 });
 
 const rowSchema = z.object({
@@ -74,7 +85,11 @@ export function CreateDiscountsDialog({ open, onOpenChange, projectId }: Props) 
         hours: parseFloat(d.hours) || 0,
         reason: d.reason,
       });
-      if (parsed.success) out.push(parsed.data as CreateDiscountInput);
+      if (parsed.success)
+        out.push({
+          ...(parsed.data as CreateDiscountInput),
+          applied_at: format(d.appliedAt, "yyyy-MM-dd"),
+        });
     }
     return out;
   }, [drafts]);
@@ -99,7 +114,7 @@ export function CreateDiscountsDialog({ open, onOpenChange, projectId }: Props) 
         <DialogHeader>
           <DialogTitle>Create discounts</DialogTitle>
           <div className="text-xs text-dim mt-1">
-            Apply hour discounts at the epic level. They reduce billable hours but leave estimates and actuals untouched.
+            Apply hour discounts at the epic level. They reduce billable hours but leave estimates and actuals untouched. The "applies from" date decides which reporting period the client sees the discount in.
           </div>
         </DialogHeader>
 
@@ -109,7 +124,7 @@ export function CreateDiscountsDialog({ open, onOpenChange, projectId }: Props) 
               key={d.key}
               className="glass rounded-xl p-3 space-y-2"
             >
-              <div className="grid grid-cols-1 md:grid-cols-[1fr_120px_100px_auto] gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-[1fr_120px_100px_150px_auto] gap-2">
                 <EpicSelect
                   projectId={projectId}
                   value={d.epicId}
@@ -139,6 +154,30 @@ export function CreateDiscountsDialog({ open, onOpenChange, projectId }: Props) 
                   onChange={(e) => update(d.key, { hours: e.target.value })}
                   className="h-7 text-xs font-mono"
                 />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={cn(
+                        "h-7 justify-start gap-1.5 text-xs font-normal",
+                        !d.appliedAt && "text-dimmer",
+                      )}
+                    >
+                      <CalendarIcon className="h-3.5 w-3.5" />
+                      {format(d.appliedAt, "d MMM yyyy")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={d.appliedAt}
+                      onSelect={(date) => date && update(d.key, { appliedAt: date })}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
                 <Button
                   variant="ghost"
                   size="icon"

@@ -17,6 +17,7 @@ const d = (over: Partial<EpicDiscount> = {}): EpicDiscount => ({
   created_by: null,
   created_at: "2026-01-01T00:00:00Z",
   updated_at: "2026-01-01T00:00:00Z",
+  applied_at: null,
   ...over,
 });
 
@@ -71,5 +72,16 @@ describe("discountsBefore", () => {
       d({ id: "c", created_at: "2026-02-02T00:00:00Z" }),
     ];
     expect(discountsBefore(list, cutoff).map((r) => r.id)).toEqual(["a", "b"]);
+  });
+
+  it("prefers applied_at over created_at when set", () => {
+    const cutoff = new Date("2026-08-01T00:00:00Z").getTime();
+    const list = [
+      // Raised in August but back-dated to July — in scope.
+      d({ id: "a", created_at: "2026-08-10T00:00:00Z", applied_at: "2026-07-31T00:00:00Z" }),
+      // Raised in July but dated forward to September — out of scope.
+      d({ id: "b", created_at: "2026-07-01T00:00:00Z", applied_at: "2026-09-01T00:00:00Z" }),
+    ];
+    expect(discountsBefore(list, cutoff).map((r) => r.id)).toEqual(["a"]);
   });
 });

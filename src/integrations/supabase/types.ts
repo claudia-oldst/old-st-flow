@@ -88,6 +88,7 @@ export type Database = {
       }
       epic_discounts: {
         Row: {
+          applied_at: string
           created_at: string
           created_by: string | null
           discipline: Database["public"]["Enums"]["assignee_slot"]
@@ -99,6 +100,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          applied_at?: string
           created_at?: string
           created_by?: string | null
           discipline: Database["public"]["Enums"]["assignee_slot"]
@@ -110,6 +112,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          applied_at?: string
           created_at?: string
           created_by?: string | null
           discipline?: Database["public"]["Enums"]["assignee_slot"]

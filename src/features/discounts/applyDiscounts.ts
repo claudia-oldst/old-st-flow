@@ -22,7 +22,10 @@ export interface EpicDiscount {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  /** Date the discount takes effect (defaults to created_at for legacy rows). */
+  applied_at?: string | null;
 }
+
 
 export interface DisciplineTotals {
   FE: number;
@@ -54,10 +57,15 @@ export function discountTotalsByEpic(
 
 export const sumTotals = (t: DisciplineTotals) => t.FE + t.BE + t.Project;
 
-/** Discounts that existed at or before the given timestamp. */
-export function discountsBefore<T extends { created_at: string }>(
-  discounts: T[],
-  cutoffMs: number,
-): T[] {
-  return discounts.filter((d) => new Date(d.created_at).getTime() <= cutoffMs);
+/**
+ * Discounts in effect at or before the given timestamp.
+ * Uses the chosen "applies from" date, falling back to when the row was created.
+ */
+export function discountsBefore<
+  T extends { created_at: string; applied_at?: string | null },
+>(discounts: T[], cutoffMs: number): T[] {
+  return discounts.filter(
+    (d) => new Date(d.applied_at ?? d.created_at).getTime() <= cutoffMs,
+  );
 }
+

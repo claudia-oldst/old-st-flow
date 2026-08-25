@@ -11,7 +11,6 @@ import { EpicSummaryEditor } from "./editor/EpicSummaryEditor";
 import { PreviewChangeRequests } from "./editor/PreviewChangeRequests";
 import { PortalToolbar } from "./editor/PortalToolbar";
 import { useClientPortalEditor } from "./editor/useClientPortalEditor";
-import { useEpicDiscounts } from "@/features/discounts/useEpicDiscounts";
 import { SprintGanttOrEmpty } from "@/features/sprints/SprintGanttOrEmpty";
 
 
@@ -23,7 +22,6 @@ export function ClientPortalEditor() {
   const canEdit = isPMBA(role);
   const [previewOpen, setPreviewOpen] = useState(true);
   const editor = useClientPortalEditor(id ?? "");
-  const { discounts } = useEpicDiscounts(id);
 
   if (!id) return null;
   if (!canEdit) {
@@ -107,6 +105,9 @@ export function ClientPortalEditor() {
                     currentHours={e.current_estimate}
                     delta={epicDeltas.get(e.id)?.delta ?? 0}
                     changes={epicDeltas.get(e.id)?.rows ?? []}
+                    discounts={(payload.discounts ?? []).filter(
+                      (d) => d.epic_id === e.id,
+                    )}
                     initialText={e.pmba_text ?? ""}
                     initialIncluded={e.included ?? true}
                     onSaved={refresh}
@@ -143,7 +144,7 @@ export function ClientPortalEditor() {
                   <SprintGanttOrEmpty projectId={id} versions={versions} />
                 </TabsContent>
                 <TabsContent value="summary">
-                  <PortalView payload={payload} showRate discounts={discounts} />
+                  <PortalView payload={payload} showRate />
                 </TabsContent>
                 <TabsContent value="change-requests">
                   <PreviewChangeRequests projectId={id} />

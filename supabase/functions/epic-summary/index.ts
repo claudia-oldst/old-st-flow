@@ -15,6 +15,13 @@ interface ChangeInput {
   reason?: string | null;
 }
 
+interface DiscountInput {
+  discipline: string;
+  hours: number;
+  reason?: string | null;
+  applied_at?: string | null;
+}
+
 interface Body {
   epic_name: string;
   project_name: string;
@@ -22,6 +29,7 @@ interface Body {
   original_hours: number;
   current_hours: number;
   changes: ChangeInput[];
+  discounts?: DiscountInput[];
 }
 
 async function verifyAuth(req: Request, admin: ReturnType<typeof createClient>) {
@@ -64,6 +72,15 @@ Deno.serve(async (req) => {
       )
       .join("\n");
 
+    const discounts = (body.discounts ?? []).slice(0, 30);
+    const discountTotal = discounts.reduce((t, d) => t + (Number(d.hours) || 0), 0);
+    const discountsBlock = discounts
+      .map(
+        (d) =>
+          `- ${sanitize(d.discipline, 20)}: −${Number(d.hours) || 0}h${d.applied_at ? ` (applies from ${sanitize(d.applied_at, 20)})` : ""}${d.reason ? ` — ${sanitize(d.reason, 200)}` : ""}`,
+      )
+      .join("\n");
+
     const direction =
       body.delta_hours > 0 ? "increased" : body.delta_hours < 0 ? "decreased" : "unchanged";
 
@@ -80,9 +97,12 @@ Change: ${body.delta_hours > 0 ? "+" : ""}${Number(body.delta_hours) || 0}h (${d
 
 Underlying ticket changes:
 ${changesBlock || "(none recorded — explain the delta in general terms)"}
+
+Discounts credited to the client in this reporting period (total −${discountTotal}h):
+${discountsBlock || "(none)"}
 <<<END DATA>>>
 
-Write a short, client-friendly paragraph (2–4 sentences, plain prose, no bullet points, no headings) that explains why the estimate ${direction}. Group related causes, avoid jargon and ticket IDs, write in UK English (British spelling), and keep a calm, professional tone. Do not invent specifics that aren't supported by the inputs.`;
+Write a short, client-friendly paragraph (2–4 sentences, up to 5 if discounts need explaining, plain prose, no bullet points, no headings) that explains why the estimate ${direction}. Group related causes, avoid jargon and ticket IDs, write in UK English (British spelling), and keep a calm, professional tone. Do not invent specifics that aren't supported by the inputs. If discounts are listed, mention them explicitly as hours credited back to the client, state the total credited, and explain briefly why (based on the reasons given); if there are none, do not mention discounts at all.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
