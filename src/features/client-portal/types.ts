@@ -65,12 +65,27 @@ export interface PortalMonth {
   cost: number;
 }
 
+/**
+ * Discount in scope for the portal cutoff (returned server-side so the public
+ * portal sees the same discounts as the internal preview).
+ */
+export interface PortalDiscount {
+  id: string;
+  epic_id: number;
+  discipline: "FE" | "BE" | "Project";
+  hours: number;
+  reason: string;
+  applied_at: string;
+}
+
 export interface PortalPayload {
   project: PortalProject;
   totals: PortalTotals;
   epics: PortalEpic[];
   month?: PortalMonth | null;
+  discounts?: PortalDiscount[] | null;
 }
+
 
 
 export const formatGBP = (n: number) =>
