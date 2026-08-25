@@ -22,7 +22,7 @@ export function PortalView({
   showRate: boolean;
   discounts?: EpicDiscount[];
 }) {
-  const { project, totals, epics } = payload;
+  const { project, totals, epics, month } = payload;
   const totalDiscountedHours = discounts.reduce((s, d) => s + Number(d.hours), 0);
   const effectiveActualHours = Math.max(0, totals.actual_total - totalDiscountedHours);
   const effectiveCostActual = effectiveActualHours * project.rate_per_hour;
