@@ -11,6 +11,8 @@ export interface CreateDiscountInput {
   discipline: Discipline;
   hours: number;
   reason: string;
+  /** ISO date the discount takes effect (defaults to today server-side). */
+  applied_at?: string;
 }
 
 export function useEpicDiscounts(projectId: string | undefined) {
@@ -26,7 +28,7 @@ export function useEpicDiscounts(projectId: string | undefined) {
         .from("epic_discounts")
         .select("*")
         .eq("project_id", projectId!)
-        .order("created_at", { ascending: false });
+        .order("applied_at", { ascending: false });
       if (error) throw error;
       return (data ?? []).map((d: any) => ({
         ...d,
@@ -57,6 +59,7 @@ export function useEpicDiscounts(projectId: string | undefined) {
         discipline: r.discipline,
         hours: r.hours,
         reason: r.reason.trim(),
+        ...(r.applied_at ? { applied_at: r.applied_at } : {}),
         created_by: user?.id ?? null,
       }));
       const { data, error } = await supabase
