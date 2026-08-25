@@ -173,6 +173,69 @@ function Tile({
   );
 }
 
+/**
+ * Month-to-date billing tile: hours logged inside the calendar month that the
+ * portal cutoff falls in, split by discipline, less discounts raised that month.
+ */
+function MonthToDateTile({
+  month,
+  showRate,
+}: {
+  month: PortalMonth;
+  showRate: boolean;
+}) {
+  const label = `${format(new Date(month.start), "MMMM yyyy")} to date`;
+  return (
+    <div className="glass rounded-2xl p-5">
+      <div className="text-[10px] uppercase tracking-wider text-dimmer">
+        {label}
+      </div>
+      <div className="font-mono ticker text-3xl mt-1">
+        {showRate ? formatGBP(month.cost) : formatHours(month.billed_hours)}
+      </div>
+      <div className="mt-3 space-y-1">
+        <MonthRow label="Frontend" hours={month.fe_actual} />
+        <MonthRow label="Backend" hours={month.be_actual} />
+        <MonthRow label="Project" hours={month.proj_actual} />
+        {month.discount_hours > 0 && (
+          <MonthRow
+            label="Discounted"
+            hours={-month.discount_hours}
+            muted
+          />
+        )}
+        {showRate && (
+          <div className="flex items-center justify-between text-xs pt-1 hairline-t mt-1">
+            <span className="text-dim">Billed</span>
+            <span className="font-mono">{formatHours(month.billed_hours)}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MonthRow({
+  label,
+  hours,
+  muted,
+}: {
+  label: string;
+  hours: number;
+  muted?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between text-xs">
+      <span className="text-dim">{label}</span>
+      <span className={muted ? "font-mono text-dimmer" : "font-mono"}>
+        {hours < 0 ? `−${formatHours(Math.abs(hours))}` : formatHours(hours)}
+      </span>
+    </div>
+  );
+}
+
+
+
 function DisciplineRow({
   label,
   done,
