@@ -1,5 +1,7 @@
 import { format } from "date-fns";
-import { formatGBP, type PortalPayload } from "./types";
+import { formatGBP, type PortalPayload, type PortalMonth } from "./types";
+import { formatHours } from "@/lib/utils";
+
 import { PortalEpicTable } from "./PortalEpicTable";
 import { SegmentedBar } from "@/features/_shared/SegmentedBar";
 import {
