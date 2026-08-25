@@ -34,9 +34,12 @@ export interface LogLite {
 export interface DiscountLite {
   hours: number;
   created_at: string;
+  /** Date the discount takes effect; falls back to created_at when absent. */
+  applied_at?: string | null;
   /** Optional — only used when callers want per-epic filtering before passing in. */
   epic_id?: number;
 }
+
 
 export interface TrendBucket {
   label: string;
