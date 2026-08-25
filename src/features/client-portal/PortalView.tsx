@@ -18,15 +18,29 @@ import {
 export function PortalView({
   payload,
   showRate,
-  discounts = [],
+  discounts,
 }: {
   payload: PortalPayload;
   showRate: boolean;
+  /** Optional override; by default the server-scoped payload discounts are used. */
   discounts?: EpicDiscount[];
 }) {
   const { project, totals, epics, month } = payload;
-  const totalDiscountedHours = discounts.reduce((s, d) => s + Number(d.hours), 0);
+  const effectiveDiscounts: EpicDiscount[] =
+    discounts ??
+    (payload.discounts ?? []).map((d) => ({
+      ...d,
+      project_id: project.id,
+      created_by: null,
+      created_at: d.applied_at,
+      updated_at: d.applied_at,
+    }));
+  const totalDiscountedHours = effectiveDiscounts.reduce(
+    (s, d) => s + Number(d.hours),
+    0,
+  );
   const effectiveActualHours = Math.max(0, totals.actual_total - totalDiscountedHours);
+
   const effectiveCostActual = effectiveActualHours * project.rate_per_hour;
   const devDone = totals.tickets_dev_done ?? 0;
   const completionPct =
