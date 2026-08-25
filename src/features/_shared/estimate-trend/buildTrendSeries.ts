@@ -104,9 +104,10 @@ export function buildTrendSeries({
     });
     let discounted = 0;
     discounts.forEach((d) => {
-      if (new Date(d.created_at).getTime() > c) return;
+      if (new Date(d.applied_at ?? d.created_at).getTime() > c) return;
       discounted += Number(d.hours) || 0;
     });
+
     return {
       original,
       current: Math.max(0, original + deltas - discounted),
