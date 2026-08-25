@@ -3,6 +3,13 @@ import { Trash2, Pencil, Check, X } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { formatHours } from "@/lib/utils";
 import { useEpicDiscounts } from "./useEpicDiscounts";
 import type { Epic } from "@/features/epics/useProjectEpics";
@@ -55,7 +62,7 @@ export function DiscountsList({ projectId, epics, canManage }: Props) {
         <div className="w-24">Discipline</div>
         <div className="w-20 text-right">Hours</div>
         <div className="flex-[2]">Reason</div>
-        <div className="w-20 text-right">Created</div>
+        <div className="w-28 text-right">Applies from</div>
         {canManage && <div className="w-16" />}
       </div>
       <div className="divide-y divide-white/5">
@@ -93,8 +100,37 @@ export function DiscountsList({ projectId, epics, canManage }: Props) {
                   </span>
                 )}
               </div>
-              <div className="w-20 text-right text-dimmer font-mono">
-                {format(new Date(d.created_at), "d MMM")}
+              <div className="w-28 text-right text-dimmer font-mono">
+                {canManage ? (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-1 text-xs font-mono text-dimmer hover:text-foreground"
+                      >
+                        {format(new Date(d.applied_at ?? d.created_at), "d MMM yyyy")}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="end">
+                      <Calendar
+                        mode="single"
+                        selected={new Date(d.applied_at ?? d.created_at)}
+                        onSelect={(date) =>
+                          date &&
+                          update({
+                            id: d.id,
+                            patch: { applied_at: format(date, "yyyy-MM-dd") },
+                          })
+                        }
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                ) : (
+                  format(new Date(d.applied_at ?? d.created_at), "d MMM yyyy")
+                )}
               </div>
               {canManage && (
                 <div className="w-16 flex items-center justify-end gap-1">
