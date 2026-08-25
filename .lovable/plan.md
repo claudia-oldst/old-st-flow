@@ -1,29 +1,38 @@
-# Userback: send all submitted media to the ticket discussion
+# Month to Date card — client portal
 
-Today the webhook only re-hosts a single `screenshot_url`. Any other images or files Userback sends (extra attachments, annotated images, session/video links) are dropped, so the ticket discussion is missing part of the picture.
+Add a fourth tile to the client portal (both the PMBA editor preview and the public `/h/:hash` view) showing the hours billed in the calendar month of the portal's "as of" date, with cost.
 
-## What changes
+## What the client sees
 
-- Accept every media field Userback can send, not just one screenshot:
-  - `screenshot_url` (existing)
-  - `attachments` — array of items that may be plain URL strings or objects with a url/name/type
-  - `attachment_url` / `image_url` / `file_url` single-value fallbacks
-  - `video_url` / `session_url` — recording links (kept as links, not downloaded)
-- Download and re-host each image/file into the `ticket-attachments` bucket under the ticket's folder, one storage object per file, and attach them all to the single Userback discussion comment.
-- Keep the original filename where Userback provides one; otherwise generate `userback-screenshot-1.png`, `userback-attachment-2.pdf`, etc.
-- Classify each attachment as `image`, `video`, or `file` from its MIME type so the discussion renders images inline.
-- Cap at 10 attachments per comment (existing discussion limit); any extras beyond that are listed as links at the bottom of the comment body.
-- If a download or upload fails for one file, log it and continue with the rest, and append that file's original URL as a link in the comment body so nothing is silently lost.
-- Recording/session links are appended to the comment body under a short "Recording" line.
+Month is derived from the portal cutoff date. Cutoff 31 July 2026 -> the card covers 1–31 July 2026 (up to the cutoff instant).
 
-## Result
+```text
+┌──────────────────────────────┐
+│ MONTH TO DATE      JULY 2026 │
+│                              │
+│ £4,275                       │
+│ 45h billed                   │
+│                              │
+│ Frontend            22.0h    │
+│ Backend             18.5h    │
+│ Project              6.5h    │
+│ Discounted          −2.0h    │
+└──────────────────────────────┘
+```
 
-One discussion comment per Userback submission containing the reporter line, their message, environment block, every re-hosted image/file inline, and links for anything that could not be re-hosted.
+- Big white number = cost (hours after discount x rate per hour). If the project has no rate, the big number becomes the billed hours and the cost line is dropped.
+- Four small rows: Frontend / Backend / Project actual hours for the month, and discounted hours for the month (shown negative, hidden when zero).
+- Sits alongside the existing Tickets / Progress / Cost tiles in the same grid, styled with the same `Tile` treatment.
+
+## Scope rules
+
+- Only time logs with `logged_at` inside the month window and `<= cutoff`, on tickets already in the portal scope (same version filter and CR/approval rules as the rest of the payload).
+- Discounted hours for the month: `epic_discounts` rows created inside the same month window (that is the only date the discount records carry).
+- Cost only shown where the existing portal already shows rate (`showRate`).
 
 ## Technical notes
 
-- All work is in `supabase/functions/userback-webhook/index.ts`; no schema or UI changes.
-- Body schema gains a permissive `attachments` union (`string | { url, name?, type? }`) plus the optional single-URL and video fields; unknown extra fields stay ignored.
-- Re-hosting is refactored from the inline single-screenshot block into a reusable `rehost(url, index, name?)` helper returning a comment-attachment object matching `commentAttachmentSchema` (`{ url: "", path, name, mime, size, kind }`).
-- Downloads run sequentially with a per-file try/catch and are bounded by the 10-attachment cap to keep the function within its execution budget.
-- Function is redeployed after the change.
+- Extend both security-definer RPCs `get_project_portal_preview` and `get_client_portal` with a `month` block in the returned JSON: `{ start, end, fe_actual, be_actual, proj_actual, discount_hours, billed_hours, cost }`, computed with a month-windowed variant of the existing `ticket_hours` CTE joined to the same in-scope ticket set.
+- Add a `PortalMonth` interface to `src/features/client-portal/types.ts` and an optional `month` field on `PortalPayload` (optional so old cached payloads still render).
+- Render a new `MonthToDateTile` inside `PortalView.tsx`, in the existing tiles grid, guarded on `payload.month` being present.
+- No changes to totals, epic tables, timeline or discount application logic.
