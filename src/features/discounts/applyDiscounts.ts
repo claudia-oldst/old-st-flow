@@ -22,7 +22,10 @@ export interface EpicDiscount {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  /** Date the discount takes effect (defaults to created_at for legacy rows). */
+  applied_at?: string | null;
 }
+
 
 export interface DisciplineTotals {
   FE: number;
