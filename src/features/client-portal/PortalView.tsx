@@ -68,7 +68,7 @@ export function PortalView({
       )}
 
       {/* Tiles */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <Tile label="Tickets" value={String(totals.tickets_total)}>
           <div className="text-xs text-dim mt-1">
             {[
@@ -103,7 +103,15 @@ export function PortalView({
             </div>
           </Tile>
         )}
+
+        {month && (
+          <MonthToDateTile
+            month={month}
+            showRate={showRate && project.rate_per_hour > 0}
+          />
+        )}
       </div>
+
 
       {/* Discipline breakdown */}
       <div className="glass rounded-2xl p-5 space-y-4">
