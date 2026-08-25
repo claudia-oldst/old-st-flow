@@ -53,11 +53,25 @@ export interface PortalProject {
   versions?: string[] | null;
 }
 
+/** Calendar-month window ending at the portal cutoff date. */
+export interface PortalMonth {
+  start: string;
+  end: string;
+  fe_actual: number;
+  be_actual: number;
+  proj_actual: number;
+  discount_hours: number;
+  billed_hours: number;
+  cost: number;
+}
+
 export interface PortalPayload {
   project: PortalProject;
   totals: PortalTotals;
   epics: PortalEpic[];
+  month?: PortalMonth | null;
 }
+
 
 export const formatGBP = (n: number) =>
   new Intl.NumberFormat("en-GB", {
