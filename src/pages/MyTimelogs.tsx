@@ -118,7 +118,6 @@ export default function MyTimelogs() {
 
       <div className="sticky top-14 z-30 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 mb-4 flex items-center gap-3 flex-wrap bg-background/85 backdrop-blur-md hairline-b">
         <div className="flex items-center gap-2">
-        <div className="flex items-center gap-2">
           <span className="text-xs text-dim">Group by</span>
           <Select
             value={groupBy}
