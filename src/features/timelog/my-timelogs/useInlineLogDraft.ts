@@ -327,5 +327,6 @@ export function useInlineLogDraft(onLogged?: () => void) {
     overflowingRowIds,
     adjustTicketId,
     setAdjustTicketId,
+    refetchCapacity,
   };
 }
