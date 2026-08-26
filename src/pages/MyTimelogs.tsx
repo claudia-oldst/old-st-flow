@@ -160,6 +160,8 @@ export default function MyTimelogs() {
         </div>
       </div>
 
+      {adding && <InlineLogRow onLogged={reload} onCancel={() => setAdding(false)} />}
+
       <div className="flex items-center gap-3 mb-3 text-sm">
         <span className="font-mono text-foreground">{formatHours(totalHours)}</span>
         <span className="text-dimmer">·</span>
