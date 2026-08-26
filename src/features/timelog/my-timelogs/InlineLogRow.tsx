@@ -22,7 +22,8 @@ import {
 } from "@/components/ui/select";
 import { cn, displayTitle, formatHours } from "@/lib/utils";
 import { useMyProjects, useMyProjectTickets } from "./useMyTimeLogs";
-import { useInlineLogDraft, capacityFor } from "./useInlineLogDraft";
+import { useInlineLogDraft } from "./useInlineLogDraft";
+import { capacityFor } from "@/features/timelog/useTicketCapacity";
 import { RequestMoreTimeDialog, type AdjustSlot } from "@/features/tickets/RequestMoreTimeDialog";
 import type { LogDiscipline } from "@/lib/types";
 
