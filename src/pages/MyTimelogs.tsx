@@ -254,7 +254,7 @@ export default function MyTimelogs() {
         </div>
       )}
 
-      <NewTimeLogDialog open={newOpen} onOpenChange={setNewOpen} onLogged={reload} />
+
 
       {editing && (
         <EditTimeLogDialog
