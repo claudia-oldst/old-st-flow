@@ -181,7 +181,7 @@ export function useInlineLogDraft(onLogged?: () => void) {
     !!discipline &&
     totalMinutes > 0 &&
     allocatedMinutes === totalMinutes &&
-    overflowingRowIds.length === 0 &&
+    (rows.length === 1 || overflowingRowIds.length === 0) &&
     !busy;
 
   const distributeEvenly = () => {
@@ -257,7 +257,14 @@ export function useInlineLogDraft(onLogged?: () => void) {
     if (rows.length === 0 || !discipline) return toast.error("Pick a project and ticket");
     if (totalMinutes <= 0) return toast.error("Enter a duration greater than 0");
     if (allocatedMinutes !== totalMinutes) return toast.error("Allocated time must match the total");
-    if (overflowingRowIds.length > 0) return toast.error("Adjust estimates on flagged tickets before saving");
+    if (overflowingRowIds.length > 0) {
+      if (rows.length === 1) {
+        setAdjustTicketId(overflowingRowIds[0]);
+        toast.info("This ticket exceeds its estimate — request more time to continue");
+        return;
+      }
+      return toast.error("Adjust estimates on flagged tickets before saving");
+    }
 
     const logs = rows
       .filter((r) => r.minutes > 0)
