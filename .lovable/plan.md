@@ -60,5 +60,5 @@ Ticket dropdown (multi-select):
 ## Technical detail
 
 - `useInlineLogDraft.ts`: `ticketId` becomes `ticketIds: string[]`; load details via the existing ticket detail loader for each; keep per-ticket minute allocations in state; reuse `evenSplit` and `useTicketCapacityByIds` / `capacityFor` from `src/features/timelog`; insert an array of `time_logs` in one call.
-- `InlineLogRow.tsx`: swap the ticket `Select` for a multi-select popover; render the allocation panel with the existing `stop-group/RowsList` pattern (minutes input, overflow highlight, remove) and mount `RequestMoreTimeDialog` for the flagged ticket.
+- `InlineLogRow.tsx`: swap the ticket `Select` for a multi-select dropdown; render the allocation panel with the existing `stop-group/RowsList` pattern (minutes input, overflow highlight, remove) and mount `RequestMoreTimeDialog` for the flagged ticket.
 - Existing single-ticket logging, editing via `EditTimeLogDialog`, grouping and filters on the page are untouched.
