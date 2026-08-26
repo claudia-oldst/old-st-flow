@@ -5,10 +5,11 @@ import { useCurrentUser } from "@/store/currentUser";
 import { cn, displayTitle, formatHours, PAGE_SHELL } from "@/lib/utils";
 import { ListChecks, ArrowRight } from "lucide-react";
 import { DisciplineStatusChip } from "@/features/tickets/DisciplineStatusChip";
-import type { DisciplineStatus, TeamMember, TicketAssignee } from "@/lib/types";
+import type { DisciplineStatus } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
+import { fetchTicketDetail } from "@/features/tickets/fetchTicketDetail";
 import { toast } from "sonner";
 
 interface Row {
