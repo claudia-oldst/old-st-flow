@@ -5,8 +5,8 @@ import { useCurrentUser } from "@/store/currentUser";
 import { useProjectRole } from "@/features/team/useProjectRole";
 import { fetchTicketDetail } from "@/features/tickets/fetchTicketDetail";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
-import { useTicketCapacity, capacityFor } from "@/features/timelog/useTicketCapacity";
-import { hoursMinutesToDecimal } from "@/features/timelog/utils";
+import { useTicketCapacityByIds, capacityFor } from "@/features/timelog/useTicketCapacity";
+import { evenSplit, hoursMinutesToDecimal } from "@/features/timelog/utils";
 import type { LogDiscipline } from "@/lib/types";
 import type { ProjectRole } from "@/lib/types";
 
@@ -29,7 +29,7 @@ export function disciplineOptionsFor(
   if (canFE && (role === "Fullstack" ? slots.includes("FE") : true)) {
     out.push({ value: "FE", label: "Frontend" });
   }
-  if (canBE && (role === "Fullstack" ? slots.includes("BE") : true)) {
+  if (canBE && (role === "Backend" ? slots.includes("BE") : true)) {
     out.push({ value: "BE", label: "Backend" });
   }
   if (role === "Fullstack" && out.length === 0) {
@@ -54,72 +54,175 @@ export function combineDateAndTime(date: Date, time: string): Date {
   return out;
 }
 
+/** Intersect arrays of discipline options by value. */
+function intersectOptions(
+  lists: { value: LogDiscipline; label: string }[][],
+): { value: LogDiscipline; label: string }[] {
+  if (lists.length === 0) return [];
+  const first = lists[0];
+  return first.filter((o) => lists.every((l) => l.some((x) => x.value === o.value)));
+}
+
+export interface AllocationRow {
+  ticket: TicketRow;
+  minutes: number;
+}
+
 export function useInlineLogDraft(onLogged?: () => void) {
   const user = useCurrentUser((s) => s.user);
 
   const [projectId, setProjectId] = useState<string | null>(null);
-  const [ticketId, setTicketId] = useState<string | null>(null);
-  const [ticket, setTicket] = useState<TicketRow | null>(null);
+  const [ticketIds, setTicketIds] = useState<string[]>([]);
+  const [tickets, setTickets] = useState<Record<string, TicketRow>>({});
   const [discipline, setDiscipline] = useState<LogDiscipline | null>(null);
+  const [allocations, setAllocations] = useState<Record<string, number>>({});
   const [note, setNote] = useState("");
   const [date, setDate] = useState<Date>(() => new Date());
   const [startTime, setStartTime] = useState("");
   const [durH, setDurH] = useState("");
   const [durM, setDurM] = useState("");
   const [busy, setBusy] = useState(false);
+  const [adjustTicketId, setAdjustTicketId] = useState<string | null>(null);
 
   const role = useProjectRole(projectId ?? undefined);
 
-  // Load full ticket detail whenever the ticket changes.
+  // Load full ticket details whenever the selection changes.
   useEffect(() => {
     let cancelled = false;
-    if (!ticketId) {
-      setTicket(null);
+    if (ticketIds.length === 0) {
+      setTickets({});
       return;
     }
-    fetchTicketDetail(ticketId).then((t) => {
-      if (!cancelled) setTicket(t);
+    Promise.all(ticketIds.map((id) => fetchTicketDetail(id))).then((loaded) => {
+      if (cancelled) return;
+      const next: Record<string, TicketRow> = {};
+      for (const t of loaded) {
+        if (t) next[t.id] = t;
+      }
+      setTickets(next);
     });
     return () => {
       cancelled = true;
     };
-  }, [ticketId]);
+  }, [ticketIds.join(",")]);
 
-  const options = useMemo(
-    () => disciplineOptionsFor(ticket, role, user?.id),
-    [ticket, role, user?.id],
+  const perTicketOptions = useMemo(
+    () => ticketIds.map((id) => disciplineOptionsFor(tickets[id] ?? null, role, user?.id)),
+    [tickets, ticketIds, role, user?.id],
   );
 
-  // Keep the discipline valid for the selected ticket.
+  const disciplineOptions = useMemo(
+    () => intersectOptions(perTicketOptions),
+    [perTicketOptions],
+  );
+
+  // Keep the selected discipline valid for the current group.
   useEffect(() => {
-    if (options.length === 0) {
+    if (disciplineOptions.length === 0) {
       setDiscipline(null);
       return;
     }
-    setDiscipline((d) => (d && options.some((o) => o.value === d) ? d : options[0].value));
-  }, [options]);
-
-  const { map: capMap, refetch: refetchCapacity } = useTicketCapacity(
-    ticket ? [ticket] : [],
-    !!ticket,
-  );
-  const capacity = useMemo(
-    () => capacityFor(ticket ? capMap[ticket.id] : undefined, discipline ?? "Project"),
-    [capMap, ticket, discipline],
-  );
+    setDiscipline((d) => (d && disciplineOptions.some((o) => o.value === d) ? d : disciplineOptions[0].value));
+  }, [disciplineOptions]);
 
   const hours = hoursMinutesToDecimal(durH, durM);
-  const canSave = !!user && !!ticket && !!discipline && hours > 0 && !busy;
+  const totalMinutes = Math.round(hours * 60);
+
+  // Distribute time evenly when the total or selection changes.
+  useEffect(() => {
+    if (ticketIds.length === 0) {
+      setAllocations({});
+      return;
+    }
+    const split = evenSplit(totalMinutes, ticketIds.length);
+    const next: Record<string, number> = {};
+    ticketIds.forEach((id, i) => {
+      next[id] = split[i] ?? 0;
+    });
+    setAllocations(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalMinutes, ticketIds.join(",")]);
+
+  const { map: capMap, refetch: refetchCapacity } = useTicketCapacityByIds(ticketIds, ticketIds.length > 0);
+
+  const rows: AllocationRow[] = useMemo(
+    () => ticketIds.map((id) => ({ ticket: tickets[id], minutes: allocations[id] ?? 0 })).filter((r): r is AllocationRow => !!r.ticket),
+    [ticketIds, tickets, allocations],
+  );
+
+  const overflowingRowIds = useMemo(() => {
+    if (!discipline) return [];
+    return rows
+      .filter((r) => {
+        const cap = capacityFor(capMap[r.ticket.id], discipline);
+        const allocatedHours = r.minutes / 60;
+        if (allocatedHours <= 0) return false;
+        if (cap.available <= 0) return true;
+        return cap.actual + allocatedHours > cap.available + 1e-6;
+      })
+      .map((r) => r.ticket.id);
+  }, [rows, capMap, discipline]);
+
+  const allocatedMinutes = useMemo(
+    () => rows.reduce((sum, r) => sum + (Number.isFinite(r.minutes) ? r.minutes : 0), 0),
+    [rows],
+  );
+  const remainingMinutes = totalMinutes - allocatedMinutes;
+
+  const canSave =
+    !!user &&
+    rows.length > 0 &&
+    !!discipline &&
+    totalMinutes > 0 &&
+    allocatedMinutes === totalMinutes &&
+    overflowingRowIds.length === 0 &&
+    !busy;
+
+  const distributeEvenly = () => {
+    const split = evenSplit(totalMinutes, ticketIds.length);
+    const next: Record<string, number> = {};
+    ticketIds.forEach((id, i) => {
+      next[id] = split[i] ?? 0;
+    });
+    setAllocations(next);
+  };
 
   const reset = (keepProject = true) => {
-    setTicketId(null);
-    setTicket(null);
+    setTicketIds([]);
+    setTickets({});
+    setAllocations({});
+    setDiscipline(null);
     setNote("");
     setStartTime("");
     setDurH("");
     setDurM("");
     setDate(new Date());
     if (!keepProject) setProjectId(null);
+  };
+
+  const toggleTicket = (id: string, ticketType: string) => {
+    setTicketIds((prev) => {
+      const exists = prev.includes(id);
+      if (exists) {
+        return prev.filter((x) => x !== id);
+      }
+      // Prevent mixing Project tickets with non-Project tickets.
+      const hasProj = prev.some((x) => tickets[x]?.ticket_type === "Proj") || ticketType === "Proj";
+      const hasNonProj = prev.some((x) => tickets[x]?.ticket_type !== "Proj") || ticketType !== "Proj";
+      if (hasProj && hasNonProj) {
+        toast.error("Project tickets cannot be grouped with FE/BE tickets");
+        return prev;
+      }
+      return [...prev, id];
+    });
+  };
+
+  const removeTicket = (id: string) => {
+    setTicketIds((prev) => prev.filter((x) => x !== id));
+  };
+
+  const updateMinutes = (id: string, minutes: number) => {
+    setAllocations((prev) => ({ ...prev, [id]: Math.max(0, Math.floor(minutes)) }));
   };
 
   const maybePromoteToActive = async (t: TicketRow) => {
@@ -145,29 +248,40 @@ export function useInlineLogDraft(onLogged?: () => void) {
 
   const save = async () => {
     if (!user) return toast.error("Pick a user first");
-    if (!ticket || !discipline) return toast.error("Pick a project and ticket");
-    if (hours <= 0) return toast.error("Enter a duration greater than 0");
-    if (capacity.available <= 0 || capacity.actual + hours > capacity.available + 1e-6) {
-      return toast.error("Adjust the estimate first — this would exceed available hours.");
-    }
+    if (rows.length === 0 || !discipline) return toast.error("Pick a project and ticket");
+    if (totalMinutes <= 0) return toast.error("Enter a duration greater than 0");
+    if (allocatedMinutes !== totalMinutes) return toast.error("Allocated time must match the total");
+    if (overflowingRowIds.length > 0) return toast.error("Adjust estimates on flagged tickets before saving");
+
+    const logs = rows
+      .filter((r) => r.minutes > 0)
+      .map((r) => ({
+        ticket_id: r.ticket.id,
+        user_id: user.id,
+        discipline,
+        hours: Math.round((r.minutes / 60) * 10000) / 10000,
+        note: note.trim() || null,
+        source: "manual" as const,
+        logged_at: combineDateAndTime(date, startTime).toISOString(),
+      }));
+
+    if (logs.length === 0) return toast.error("Nothing to log — every ticket was set to 0");
+
     setBusy(true);
-    const { error } = await supabase.from("time_logs").insert({
-      ticket_id: ticket.id,
-      user_id: user.id,
-      discipline,
-      hours,
-      note: note.trim() || null,
-      source: "manual",
-      logged_at: combineDateAndTime(date, startTime).toISOString(),
-    });
+    const { error } = await supabase.from("time_logs").insert(logs);
     if (error) {
       setBusy(false);
       return toast.error(error.message);
     }
-    await maybePromoteToActive(ticket);
+
+    for (const r of rows) {
+      if (r.minutes > 0) await maybePromoteToActive(r.ticket);
+    }
+
     await refetchCapacity();
     setBusy(false);
-    toast.success(`Logged ${hours}h`);
+    const totalH = logs.reduce((s, l) => s + l.hours, 0);
+    toast.success(`Logged ${totalH.toFixed(2)}h across ${logs.length} ticket${logs.length === 1 ? "" : "s"}`);
     reset();
     onLogged?.();
   };
@@ -175,12 +289,13 @@ export function useInlineLogDraft(onLogged?: () => void) {
   return {
     projectId,
     setProjectId,
-    ticketId,
-    setTicketId,
-    ticket,
+    ticketIds,
+    toggleTicket,
+    removeTicket,
+    rows,
     discipline,
     setDiscipline,
-    disciplineOptions: options,
+    disciplineOptions,
     note,
     setNote,
     date,
@@ -192,9 +307,19 @@ export function useInlineLogDraft(onLogged?: () => void) {
     durM,
     setDurM,
     hours,
+    totalMinutes,
+    allocations,
+    updateMinutes,
+    allocatedMinutes,
+    remainingMinutes,
+    distributeEvenly,
     busy,
     canSave,
     save,
     reset,
+    capMap,
+    overflowingRowIds,
+    adjustTicketId,
+    setAdjustTicketId,
   };
 }
