@@ -90,12 +90,8 @@ export function EpicRiskTable({ tickets, statuses, epics }: Props) {
       // Burn is measured against the ORIGINAL baseline; fall back to current
       // when no original estimate was ever captured.
       const baselineEst = originalEst > 0 ? originalEst : currentEst;
-      const burnPct =
-        baselineEst === 0
-          ? actualHours > 0
-            ? 150
-            : 0
-          : Math.min(150, (actualHours / baselineEst) * 100);
+      // Uncapped: a 900%-burned epic must not read the same as a 160% one.
+      const burnPct = baselineEst === 0 ? 0 : (actualHours / baselineEst) * 100;
       const progressPct = ((done + devDone) / total) * 100;
       const base = {
         epicId: e.id,
@@ -189,20 +185,30 @@ export function EpicRiskTable({ tickets, statuses, epics }: Props) {
                 <div
                   className={cn(
                     "h-full rounded-full transition-all",
-                    row.burnPct > 100
+                    row.baselineEst === 0 || row.burnPct > 100
                       ? "bg-health-bad"
                       : row.burnPct > 80
                       ? "bg-health-warn"
                       : "bg-health-good",
                   )}
-                  style={{ width: `${Math.min(100, row.burnPct)}%` }}
+                  style={{
+                    width: `${row.baselineEst === 0 ? (row.actualHours > 0 ? 100 : 0) : Math.min(100, row.burnPct)}%`,
+                  }}
                 />
               </div>
               <div className="mt-1 text-[10px] text-dimmer font-mono">
-                {Math.round(row.burnPct)}% burned · {formatHours(row.actualHours)} /{" "}
-                {formatHours(row.baselineEst)}
-                {row.currentEst !== row.baselineEst && (
-                  <span className="text-dim"> (current {formatHours(row.currentEst)})</span>
+                {row.baselineEst === 0 ? (
+                  <>
+                    no estimate · {formatHours(row.actualHours)} logged
+                  </>
+                ) : (
+                  <>
+                    {Math.round(row.burnPct)}% burned · {formatHours(row.actualHours)} /{" "}
+                    {formatHours(row.baselineEst)}
+                    {row.currentEst !== row.baselineEst && (
+                      <span className="text-dim"> (current {formatHours(row.currentEst)})</span>
+                    )}
+                  </>
                 )}
               </div>
             </div>
