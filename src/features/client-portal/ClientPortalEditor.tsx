@@ -122,15 +122,22 @@ export function ClientPortalEditor() {
         <div>
           <div className="flex items-center justify-between mb-2 px-1">
             <div className="text-[10px] uppercase tracking-wider text-dimmer">Client preview</div>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setPreviewOpen(false)}
-              className="h-6 px-2 gap-1.5 text-[10px] uppercase tracking-wider text-dimmer hover:text-foreground"
-            >
-              <PanelRightClose className="h-3 w-3" />
-              Hide
-            </Button>
+            <div className="flex items-center gap-1">
+              <DownloadReportButton
+                projectId={id}
+                payload={payload}
+                publicUrl={hash ? `${window.location.origin}/h/${hash}` : null}
+              />
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setPreviewOpen(false)}
+                className="h-6 px-2 gap-1.5 text-[10px] uppercase tracking-wider text-dimmer hover:text-foreground"
+              >
+                <PanelRightClose className="h-3 w-3" />
+                Hide
+              </Button>
+            </div>
           </div>
           <div className="glass rounded-2xl p-6 lg:p-8">
             {payload ? (
