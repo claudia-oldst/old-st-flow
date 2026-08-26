@@ -113,7 +113,7 @@ export function SprintGantt({ projectId, sprints, hideExport, versions }: Props)
     <div className="flex flex-col gap-3">
       {/* Top bar */}
       <div className="flex items-center gap-4 flex-wrap">
-        <div className="inline-flex rounded-md border border-white/10 overflow-hidden">
+        <div className="report-gantt-controls inline-flex rounded-md border border-white/10 overflow-hidden">
           {(["FE", "BE", "ALL"] as const).map((d) => (
             <button
               key={d}
