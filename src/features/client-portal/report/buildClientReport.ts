@@ -351,7 +351,7 @@ export async function buildClientReport({
     children.push(heading("Discounts applied"));
     children.push(
       table(
-        [2600, 1400, 1200, 2826, 1000],
+        [2400, 1400, 1100, 2626, 1500],
         [
           ["Epic", "Discipline", "Hours", "Reason", "Applied"],
           ...discounts.map((d) => [
