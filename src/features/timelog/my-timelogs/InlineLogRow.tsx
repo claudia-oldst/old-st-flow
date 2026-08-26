@@ -245,6 +245,21 @@ export function InlineLogRow({
         </Button>
       </div>
 
+      {d.rows.length === 1 && d.overflowingRowIds.length > 0 && (
+        <div className="mt-3 px-3 py-2 rounded-lg bg-primary/5 hairline flex items-center justify-between text-xs">
+          <span className="inline-flex items-center gap-1.5 text-primary">
+            <AlertTriangle className="h-3.5 w-3.5" /> This ticket exceeds its available estimate
+          </span>
+          <button
+            type="button"
+            onClick={() => d.setAdjustTicketId(d.rows[0].ticket.id)}
+            className="text-[11px] text-primary hover:underline"
+          >
+            Adjust
+          </button>
+        </div>
+      )}
+
       {d.rows.length > 1 && (
         <div className="mt-3 rounded-lg hairline divide-y divide-white/5">
           <div className="px-3 py-2 flex items-center justify-between text-xs">
