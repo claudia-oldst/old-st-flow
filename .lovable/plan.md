@@ -2,7 +2,47 @@
 
 Short answer: yes. The platform already has group logging — the Stop Group Timer flow splits one elapsed duration across several tickets, lets you tweak each ticket's minutes, flags tickets that would exceed their estimate, and opens the estimate request dialog inline. Making the inline row's ticket picker multi-select lets the manual entry reuse exactly that behaviour.
 
+## Wireframe
+
+Single ticket — unchanged one-line row:
+
+```text
+┌ glass card ─────────────────────────────────────────────────────────────────────────┐
+│ [Project ▾] [Tickets: DRA-041 ▾] [What you did…        ] [26 Aug 📅] [09:00] [2]h [30]m [Save] [x] │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+Two or more tickets — the row stays, an allocation panel drops below it:
+
+```text
+┌ glass card ─────────────────────────────────────────────────────────────────────────┐
+│ [Project ▾] [Tickets: 3 selected ▾] [What you did…    ] [26 Aug 📅] [09:00] [2]h [00]m [Save] [x] │
+│                                                                                     │
+│  Split 120m across 3 tickets            Allocated 120m · Remaining 0m  [Even split]  │
+│  ┌────────────────────────────────────────────────────────────────────────────────┐ │
+│  │ DRA-041  Checkout refinements                          [ 40 ] min          🗑   │ │
+│  │ DRA-047  Cart totals rounding                          [ 40 ] min          🗑   │ │
+│  │ DRA-052  Payment retry  ⚠ OVER  Adjust                 [ 40 ] min          🗑   │ │
+│  └────────────────────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+Ticket dropdown (multi-select):
+
+```text
+┌ Tickets ─────────────────────────┐
+│ 🔍 search…                       │
+│ ☑ DRA-041  Checkout refinements  │
+│ ☑ DRA-047  Cart totals rounding  │
+│ ☑ DRA-052  Payment retry         │
+│ ☐ DRA-060  Admin filters         │
+└──────────────────────────────────┘
+```
+
+"Adjust" on an over-capacity ticket opens the existing Request More Time dialog; Save stays disabled until it is resolved or the ticket is removed.
+
 ## How it will work
+
 
 1. The Ticket control on the inline row becomes a multi-select (checkbox list with search, showing `TICKET-ID + title`). Picking one ticket keeps today's single-line behaviour unchanged.
 2. Once two or more tickets are selected, an allocation panel opens beneath the row — the same list used when stopping a group timer:
