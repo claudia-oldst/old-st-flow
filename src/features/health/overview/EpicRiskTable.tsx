@@ -185,20 +185,30 @@ export function EpicRiskTable({ tickets, statuses, epics }: Props) {
                 <div
                   className={cn(
                     "h-full rounded-full transition-all",
-                    row.burnPct > 100
+                    row.baselineEst === 0 || row.burnPct > 100
                       ? "bg-health-bad"
                       : row.burnPct > 80
                       ? "bg-health-warn"
                       : "bg-health-good",
                   )}
-                  style={{ width: `${Math.min(100, row.burnPct)}%` }}
+                  style={{
+                    width: `${row.baselineEst === 0 ? (row.actualHours > 0 ? 100 : 0) : Math.min(100, row.burnPct)}%`,
+                  }}
                 />
               </div>
               <div className="mt-1 text-[10px] text-dimmer font-mono">
-                {Math.round(row.burnPct)}% burned · {formatHours(row.actualHours)} /{" "}
-                {formatHours(row.baselineEst)}
-                {row.currentEst !== row.baselineEst && (
-                  <span className="text-dim"> (current {formatHours(row.currentEst)})</span>
+                {row.baselineEst === 0 ? (
+                  <>
+                    no estimate · {formatHours(row.actualHours)} logged
+                  </>
+                ) : (
+                  <>
+                    {Math.round(row.burnPct)}% burned · {formatHours(row.actualHours)} /{" "}
+                    {formatHours(row.baselineEst)}
+                    {row.currentEst !== row.baselineEst && (
+                      <span className="text-dim"> (current {formatHours(row.currentEst)})</span>
+                    )}
+                  </>
                 )}
               </div>
             </div>
