@@ -1,8 +1,10 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { formatHours, cn } from "@/lib/utils";
 import { SegmentedBar } from "@/features/_shared/SegmentedBar";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import type { Status } from "@/lib/types";
+import { ArrowUp, ArrowDown } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface EpicLite {
   id: number;
@@ -18,6 +20,15 @@ interface Props {
 
 type Risk = "at_risk" | "watch" | "healthy";
 
+type SortKey =
+  | "originalEst"
+  | "currentEst"
+  | "actualHours"
+  | "delta"
+  | "burnPct"
+  | "progressPct"
+  | "name";
+
 interface EpicRiskRow {
   epicId: number;
   name: string;
@@ -30,6 +41,7 @@ interface EpicRiskRow {
   originalEst: number;
   baselineEst: number;
   actualHours: number;
+  delta: number;
   burnPct: number;
   progressPct: number;
   risk: Risk;
@@ -46,9 +58,22 @@ function computeRisk(row: Omit<EpicRiskRow, "risk">): Risk {
   return "healthy";
 }
 
-const riskOrder: Record<Risk, number> = { at_risk: 0, watch: 1, healthy: 2 };
+const SORT_LABELS: Record<SortKey, string> = {
+  originalEst: "Original Estimate Size",
+  currentEst: "Current Estimate Size",
+  actualHours: "Actual Logs",
+  delta: "Current vs Original Delta",
+  burnPct: "% Burned",
+  progressPct: "% Done",
+  name: "A-Z",
+};
 
 export function EpicRiskTable({ tickets, statuses, epics }: Props) {
+  const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({
+    key: "burnPct",
+    dir: "desc",
+  });
+
   const rows = useMemo<EpicRiskRow[]>(() => {
     const catById = new Map<string, string>();
     for (const s of statuses) catById.set(s.id, s.category);
@@ -93,6 +118,7 @@ export function EpicRiskTable({ tickets, statuses, epics }: Props) {
       // Uncapped: a 900%-burned epic must not read the same as a 160% one.
       const burnPct = baselineEst === 0 ? 0 : (actualHours / baselineEst) * 100;
       const progressPct = ((done + devDone) / total) * 100;
+      const delta = currentEst - originalEst;
       const base = {
         epicId: e.id,
         name: e.epic_name ?? "Untitled epic",
@@ -105,18 +131,26 @@ export function EpicRiskTable({ tickets, statuses, epics }: Props) {
         originalEst,
         baselineEst,
         actualHours,
+        delta,
         burnPct,
         progressPct,
       };
       result.push({ ...base, risk: computeRisk(base) });
     }
     result.sort((a, b) => {
-      const r = riskOrder[a.risk] - riskOrder[b.risk];
-      if (r !== 0) return r;
-      return b.burnPct - a.burnPct;
+      const dir = sort.dir === "asc" ? 1 : -1;
+      const key = sort.key;
+      if (key === "name") {
+        return a.name.localeCompare(b.name) * dir;
+      }
+      return (a[key] - b[key]) * dir;
     });
     return result;
-  }, [tickets, statuses, epics]);
+  }, [tickets, statuses, epics, sort]);
+
+  const toggleDir = () => {
+    setSort((s) => ({ ...s, dir: s.dir === "asc" ? "desc" : "asc" }));
+  };
 
   if (rows.length === 0) {
     return (
@@ -135,13 +169,50 @@ export function EpicRiskTable({ tickets, statuses, epics }: Props) {
         <div className="text-xs uppercase tracking-wider text-dimmer">
           Epic risk — doneness vs estimate burn
         </div>
-        <div className="flex items-center gap-3 text-[10px] text-dimmer">
-          <LegendDot className="bg-health-good" label="Done" />
-          <LegendDot className="bg-health-good/50" label="Dev done" />
-          <LegendDot className="bg-health-warn" label="Active" />
-          <LegendDot className="bg-white/10" label="Backlog" />
-          <span className="w-px h-3 bg-white/10" />
-          <LegendDot className="bg-health-bad" label="Burned" />
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Select
+              value={sort.key}
+              onValueChange={(v) =>
+                setSort({
+                  key: v as SortKey,
+                  dir: v === "name" ? "asc" : "desc",
+                })
+              }
+            >
+              <SelectTrigger className="h-8 min-w-[10rem] w-auto text-xs bg-surface-2 border-white/10 hover:border-white/20">
+                <span className="text-dim mr-1">Sort by</span>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-surface-2 border-white/10">
+                {(Object.keys(SORT_LABELS) as SortKey[]).map((k) => (
+                  <SelectItem key={k} value={k} className="text-xs">
+                    {SORT_LABELS[k]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <button
+              type="button"
+              onClick={toggleDir}
+              className="h-8 w-8 inline-flex items-center justify-center rounded-md border border-white/10 bg-surface-2 text-dim hover:text-foreground hover:border-white/20 transition"
+              aria-label={`Sort ${sort.dir === "asc" ? "ascending" : "descending"}`}
+            >
+              {sort.dir === "asc" ? (
+                <ArrowUp className="h-3.5 w-3.5" />
+              ) : (
+                <ArrowDown className="h-3.5 w-3.5" />
+              )}
+            </button>
+          </div>
+          <div className="flex items-center gap-3 text-[10px] text-dimmer">
+            <LegendDot className="bg-health-good" label="Done" />
+            <LegendDot className="bg-health-good/50" label="Dev done" />
+            <LegendDot className="bg-health-warn" label="Active" />
+            <LegendDot className="bg-white/10" label="Backlog" />
+            <span className="w-px h-3 bg-white/10" />
+            <LegendDot className="bg-health-bad" label="Burned" />
+          </div>
         </div>
       </div>
 
