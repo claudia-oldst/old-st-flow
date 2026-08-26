@@ -283,47 +283,71 @@ export async function buildClientReport({
     ),
   );
 
-  // Scope by epic
+  // Scope by epic — one table, each epic optionally followed by its client note.
   const included = epics.filter((e) => e.included !== false);
   if (included.length > 0) {
     children.push(heading("Scope by epic"));
+    const widths = showRate
+      ? [2626, 1000, 1200, 1200, 1200, 1800]
+      : [3626, 1200, 1400, 1400, 1400];
+    const header = showRate
+      ? ["Epic", "Tickets", "Actual", "Current", "Original", "Sub-total"]
+      : ["Epic", "Tickets", "Actual", "Current", "Original"];
+    const rows: TableRow[] = [
+      new TableRow({
+        children: header.map((h, i) =>
+          cell(h, widths[i], { header: true, align: i >= 1 ? AlignmentType.RIGHT : undefined }),
+        ),
+      }),
+    ];
     for (const epic of included) {
-      const widths = showRate
-        ? [3226, 1000, 1400, 1400, 1400, 1600]
-        : [4026, 1400, 1800, 1800, 2000];
-      const header = showRate
-        ? ["Epic", "Tickets", "Actual", "Current", "Original", "Sub-total"]
-        : ["Epic", "Tickets", "Actual", "Current", "Original"];
-      const row = showRate
-        ? [
-            epic.epic_name ?? "Untitled epic",
-            String(epic.total_tickets),
-            formatHours(epic.actual_hours),
-            formatHours(epic.current_estimate),
-            formatHours(epic.original_estimate),
-            formatGBP(epic.current_estimate * rate),
-          ]
-        : [
-            epic.epic_name ?? "Untitled epic",
-            String(epic.total_tickets),
-            formatHours(epic.actual_hours),
-            formatHours(epic.current_estimate),
-            formatHours(epic.original_estimate),
-          ];
-      children.push(table(widths, [header, row], { rightFrom: 1 }));
-      if (epic.pmba_text?.trim()) {
-        children.push(
-          new Paragraph({
-            spacing: { before: 100, after: 200 },
-            indent: { left: 200 },
-            children: [text(epic.pmba_text.trim(), { color: MUTED })],
+      const cols = [
+        epic.epic_name ?? "Untitled epic",
+        String(epic.total_tickets),
+        formatHours(epic.actual_hours),
+        formatHours(epic.current_estimate),
+        formatHours(epic.original_estimate),
+        ...(showRate ? [formatGBP(epic.current_estimate * rate)] : []),
+      ];
+      rows.push(
+        new TableRow({
+          children: cols.map((v, i) =>
+            cell(v, widths[i], { align: i >= 1 ? AlignmentType.RIGHT : undefined }),
+          ),
+        }),
+      );
+      const note = epic.pmba_text?.trim();
+      if (note) {
+        rows.push(
+          new TableRow({
+            children: [
+              new TableCell({
+                borders: cellBorders,
+                columnSpan: widths.length,
+                width: { size: widths.reduce((a, b) => a + b, 0), type: WidthType.DXA },
+                margins: { top: 80, bottom: 100, left: 120, right: 120 },
+                children: note
+                  .split(/\n+/)
+                  .filter((l) => l.trim())
+                  .map(
+                    (l) =>
+                      new Paragraph({ children: [text(l.trim(), { color: MUTED })] }),
+                  ),
+              }),
+            ],
           }),
         );
-      } else {
-        children.push(spacer());
       }
     }
+    children.push(
+      new Table({
+        width: { size: widths.reduce((a, b) => a + b, 0), type: WidthType.DXA },
+        columnWidths: widths,
+        rows,
+      }),
+    );
   }
+
 
   // Discounts
   if (discounts.length > 0) {
