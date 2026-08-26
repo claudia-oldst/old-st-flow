@@ -374,7 +374,7 @@ export async function buildClientReport({
     children.push(heading("Change requests"));
     children.push(
       table(
-        [1400, 4026, 1200, 1400, 1000],
+        [1500, 3326, 1100, 1400, 1700],
         [
           ["Reference", "Title", "Hours", "Status", "Decided"],
           ...crs.map((cr) => [
