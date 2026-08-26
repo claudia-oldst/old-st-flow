@@ -12,6 +12,7 @@ import { PreviewChangeRequests } from "./editor/PreviewChangeRequests";
 import { PortalToolbar } from "./editor/PortalToolbar";
 import { useClientPortalEditor } from "./editor/useClientPortalEditor";
 import { SprintGanttOrEmpty } from "@/features/sprints/SprintGanttOrEmpty";
+import { DownloadReportButton } from "./report/DownloadReportButton";
 
 
 
