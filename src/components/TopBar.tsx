@@ -22,7 +22,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ChevronDown, Settings, FolderKanban, ListChecks, Square, LogOut } from "lucide-react";
+import { ChevronDown, Settings, FolderKanban, ListChecks, Square, LogOut, Clock } from "lucide-react";
 import { cn, formatDuration, PAGE_SHELL } from "@/lib/utils";
 
 // Leaf component: isolates per-second re-renders to just the ticking text.
@@ -166,6 +166,7 @@ export function TopBar() {
   const navItems = [
     { to: "/", label: "Projects", icon: FolderKanban },
     { to: "/my-work", label: "My Work", icon: ListChecks },
+    { to: "/my-timelogs", label: "My Timelogs", icon: Clock },
     // Admin is a PMBA-only surface (the /admin route is guarded by RequirePMBA),
     // so hide the link entirely for non-PMBA users to avoid confusion.
     ...(isPMBA
