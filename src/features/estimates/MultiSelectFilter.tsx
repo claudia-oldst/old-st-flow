@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
@@ -16,9 +16,11 @@ interface Props {
   selected: string[];
   onChange: (next: string[]) => void;
   searchable?: boolean;
+  /** Renders the platform "Filter" trigger (icon + active count pill) instead of the label/summary trigger. */
+  filterStyle?: boolean;
 }
 
-export function MultiSelectFilter({ label, options, selected, onChange, searchable }: Props) {
+export function MultiSelectFilter({ label, options, selected, onChange, searchable, filterStyle }: Props) {
   const [q, setQ] = useState("");
   const filtered = useMemo(() => {
     if (!q.trim()) return options;
@@ -36,6 +38,8 @@ export function MultiSelectFilter({ label, options, selected, onChange, searchab
       ? options.find((o) => o.value === selected[0])?.label ?? "1"
       : `${selected.length} selected`;
 
+  const activeCount = allSelected ? 0 : selected.length;
+
   const toggle = (v: string) => {
     onChange(selected.includes(v) ? selected.filter((x) => x !== v) : [...selected, v]);
   };
@@ -43,11 +47,27 @@ export function MultiSelectFilter({ label, options, selected, onChange, searchab
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2 text-xs h-8">
-          <span className="text-dimmer">{label}:</span>
-          <span className="text-foreground">{summary}</span>
-          <ChevronDown className="h-3 w-3 opacity-60" />
-        </Button>
+        {filterStyle ? (
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn("h-8 gap-2 text-xs", activeCount > 0 && "border-accent/40 bg-accent/5")}
+          >
+            <Filter className="h-3.5 w-3.5" />
+            {label}
+            {activeCount > 0 && (
+              <span className="ml-0.5 inline-flex items-center justify-center h-4 min-w-[16px] px-1 rounded-full bg-foreground text-background text-[10px] font-mono">
+                {activeCount}
+              </span>
+            )}
+          </Button>
+        ) : (
+          <Button variant="outline" size="sm" className="gap-2 text-xs h-8">
+            <span className="text-dimmer">{label}:</span>
+            <span className="text-foreground">{summary}</span>
+            <ChevronDown className="h-3 w-3 opacity-60" />
+          </Button>
+        )}
       </PopoverTrigger>
       <PopoverContent align="start" className="w-64 p-2 glass-strong">
         <div className="flex items-center justify-between px-2 pb-2">
