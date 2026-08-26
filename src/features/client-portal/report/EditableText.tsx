@@ -1,4 +1,4 @@
-import { useRef, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -18,6 +18,8 @@ export function EditableText({
   as?: "div" | "h1" | "p";
 }) {
   const ref = useRef<HTMLElement | null>(null);
+  // Empty blocks are hidden when printing so placeholder copy never reaches the PDF.
+  const [empty, setEmpty] = useState(value.trim() === "");
 
   return (
     <Tag
@@ -27,13 +29,16 @@ export function EditableText({
       suppressContentEditableWarning
       spellCheck
       data-placeholder={placeholder}
+      onInput={(e: React.FormEvent<HTMLElement>) =>
+        setEmpty((e.currentTarget.textContent ?? "").trim() === "")
+      }
       onPaste={(e: React.ClipboardEvent) => {
         // Keep pasted copy plain so the printed document stays consistent.
         e.preventDefault();
         const text = e.clipboardData.getData("text/plain");
         document.execCommand("insertText", false, text);
       }}
-      className={cn("whitespace-pre-wrap", className)}
+      className={cn("whitespace-pre-wrap", empty && "report-empty", className)}
     >
       {value}
     </Tag>

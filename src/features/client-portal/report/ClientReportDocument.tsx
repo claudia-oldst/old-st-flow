@@ -131,7 +131,7 @@ export function ClientReportDocument({
       {/* Header */}
       <header className="report-section flex items-start justify-between gap-6 flex-wrap">
         <div className="flex items-center gap-4">
-          <img src={logo} alt="Old St" className="h-9 w-auto" />
+          <img src={logo} alt="Old St" className="report-logo h-9 w-auto" />
           <div>
             <h1 className="font-display text-3xl font-semibold tracking-tight">
               {project.name}
@@ -230,8 +230,8 @@ export function ClientReportDocument({
       </ReportSection>
 
       {/* Timeline */}
-      <ReportSection title="Sprint timeline" breakBefore>
-        <div className="report-scroll">
+      <ReportSection title="Sprint timeline">
+        <div className="report-scroll report-gantt">
           <SprintGanttOrEmpty
             projectId={project.id}
             versions={project.versions ?? undefined}
@@ -240,7 +240,7 @@ export function ClientReportDocument({
       </ReportSection>
 
       {/* Epics */}
-      <ReportSection title="Scope by epic" breakBefore>
+      <ReportSection title="Scope by epic">
         <div className="glass rounded-2xl overflow-hidden">
           <div className="grid grid-cols-[minmax(0,1.8fr)_minmax(0,1.4fr)_minmax(0,1fr)] gap-3 px-4 py-2.5 hairline-b text-[10px] uppercase tracking-wider text-dimmer">
             <div>Epic</div>
