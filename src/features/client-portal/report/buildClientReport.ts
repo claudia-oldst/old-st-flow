@@ -120,9 +120,6 @@ function body(value: string) {
   });
 }
 
-function spacer() {
-  return new Paragraph({ spacing: { after: 120 }, children: [] });
-}
 
 async function loadLogo(): Promise<ArrayBuffer | null> {
   try {
