@@ -8,6 +8,76 @@ Add a **Download** button next to **Hide** in the PMBA client preview header. It
 - Disabled while the preview payload is loading; shows a spinner while generating and a toast when the file is saved.
 - Filename: `{Acronym}-client-report-{as-of date}.docx` (e.g. `PRI-client-report-2026-08-26.docx`).
 
+## Wireframe
+
+Preview pane header (in the editor):
+
+```text
+ CLIENT PREVIEW                       [ ⤓ Download ]  [ ⤡ Hide ]
+ ───────────────────────────────────────────────────────────────
+ | Timeline | Summary | Change Requests |
+```
+
+Generated document (A4 pages):
+
+```text
++---------------------------------------------------+
+| [logo]                                            |
+|                                                   |
+| PROJECT PRISM 2                                   |
+| Acme Corporation                                  |
+| Status report as of 26 August 2026                |
+| Versions in scope: v1, v2                         |
+| ================================================= |  <- gold rule
+|                                                   |
+| Introduction                                      |
+| Lorem ipsum intro text authored by the PM…        |
+|                                                   |
+| At a glance                                       |
+| +-------------+---------------+-----------------+ |
+| | Tickets     | 84            | 40 done · 12    | |
+| |             |               | dev done · …    | |
+| | Progress    | 62%           |                 | |
+| | Cost to date| £48,200       | of £71,500      | |
+| | August 2026 | £6,400        | FE 22h · BE 14h | |
+| | to date     |               | Proj 4h · −2h   | |
+| +-------------+---------------+-----------------+ |
+|                                                   |
+| Delivery progress                                 |
+| Frontend   18 done · 4 in progress · 6 to do      |
+| Backend    14 done · 3 in progress · 9 to do      |
++---------------------------------------------------+
+
++---------------------------------------------------+
+| Scope by epic                                     |
+| +--------------+-----+--------+-------+---------+ |
+| | Epic         | Tkt | Act    | Cur   | Orig    | |
+| +--------------+-----+--------+-------+---------+ |
+| | Onboarding   |  12 | 96h    | 120h  | 100h    | |
+| |   "Summary paragraph for the client…"         | |
+| | Billing      |   9 | 60h    |  72h  |  72h    | |
+| |   "Summary paragraph…"                        | |
+| +--------------+-----+--------+-------+---------+ |
+|                                                   |
+| Discounts                                         |
+| Epic | Discipline | Hours | Reason | Applied      |
+| Bill | BE         |  −4h  | Rework | 31 Jul 2026  |
+|                                                   |
+| Change requests                                   |
+| Ref | Title | Hours | Status | Decided           |
+| CR-3| Export| +8h   | Approved| 12 Aug 2026      |
+|                                                   |
+| ------------------------------------------------- |
+| Totals   Actual 156h · Current 192h · Orig 172h   |
+|          Discounts −4h                            |
+|          Total cost £48,200 (£95/hour)            |
+|                                                   |
+| Timeline: view the live portal at old.st/h/…      |
++---------------------------------------------------+
+| Generated 26 August 2026 · Project Prism 2   p. 2 |
++---------------------------------------------------+
+```
+
 ## Report contents
 
 Laid out for a client audience, using the old.st brand (navy headings, coral accent rules, gold divider, Poppins-style headings / Inter body substitutes available in Word, logo at the top).
