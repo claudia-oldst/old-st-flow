@@ -332,7 +332,7 @@ export function InlineLogRow({
           actualProj={adjustCap.actual}
           allowedSlots={[DISCIPLINE_TO_SLOT[d.discipline]]}
           defaultSlot={DISCIPLINE_TO_SLOT[d.discipline]}
-          helperText={`Used ${formatHours(adjustCap.actual)} of ${formatHours(adjustCap.available)}h — need ${formatHours((d.allocations[adjustTicket.id] ?? 0) / 60 - adjustCap.available)}h more to log this ticket`}
+          helperText={`Used ${formatHours(adjustCap.actual)} of ${formatHours(adjustCap.available)}h — need ${formatHours(Math.max(0, (d.allocations[adjustTicket.id] ?? 0) / 60 - adjustCap.available))}h more to log this ticket`}
           onSaved={() => {
             d.setAdjustTicketId(null);
             void d.refetchCapacity();
