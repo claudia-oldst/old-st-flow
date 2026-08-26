@@ -14,6 +14,7 @@ import Admin from "./pages/Admin";
 import MyWork from "./pages/MyWork";
 import MyTimelogs from "./pages/MyTimelogs";
 import ClientPortalPublic from "./pages/ClientPortalPublic";
+import ProjectReport from "./pages/ProjectReport";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound.tsx";
 import { AuthProvider } from "@/features/auth/AuthProvider";
@@ -46,6 +47,12 @@ const App = () => (
           <TimerSync />
           <Routes>
             <Route path="/h/:hash" element={wrap("client portal", <ClientPortalPublic />)} />
+            <Route
+              path="/projects/:id/report"
+              element={
+                <RequireAuth>{wrap("client report", <ProjectReport />)}</RequireAuth>
+              }
+            />
             <Route path="/login" element={wrap("login", <Login />)} />
             <Route
               path="*"
