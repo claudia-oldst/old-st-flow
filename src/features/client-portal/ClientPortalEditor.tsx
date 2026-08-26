@@ -124,10 +124,11 @@ export function ClientPortalEditor() {
           <div className="flex items-center justify-between mb-2 px-1">
             <div className="text-[10px] uppercase tracking-wider text-dimmer">Client preview</div>
             <div className="flex items-center gap-1">
-              <DownloadReportButton
+              <OpenReportButton
                 projectId={id}
-                payload={payload}
-                publicUrl={hash ? `${window.location.origin}/h/${hash}` : null}
+                asOf={asOf}
+                versions={versions}
+                disabled={!payload}
               />
               <Button
                 size="sm"
