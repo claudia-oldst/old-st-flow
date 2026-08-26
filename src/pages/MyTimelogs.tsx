@@ -146,6 +146,7 @@ export default function MyTimelogs() {
             setPage(1);
           }}
           searchable
+          filterStyle
         />
 
         <div className="ml-auto">
