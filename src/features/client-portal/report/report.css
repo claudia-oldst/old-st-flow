@@ -112,12 +112,67 @@
     page-break-inside: avoid;
   }
 
-  .report-doc .report-break {
-    break-before: page;
-    page-break-before: always;
-  }
-
   .report-doc .report-scroll {
     overflow: visible !important;
+  }
+
+  /* The logo mark is a pale/white lockup — force it dark so it reads on paper */
+  .report-doc .report-logo {
+    filter: brightness(0) saturate(100%) !important;
+  }
+
+  /* Hover artefacts must never reach the PDF */
+  .report-doc .recharts-tooltip-wrapper,
+  .report-doc .recharts-tooltip-cursor,
+  .report-doc [data-radix-popper-content-wrapper] {
+    display: none !important;
+  }
+
+  /* Any remaining light-on-dark body text */
+  .report-doc,
+  .report-doc .text-foreground,
+  .report-doc .text-white {
+    color: #14161c !important;
+  }
+
+  /* Sprint timeline: labels, week headers and legend were built for dark UI */
+  .report-doc .report-gantt,
+  .report-doc .report-gantt * {
+    color: #14161c !important;
+  }
+  .report-doc .report-gantt [class*="text-dimmer"],
+  .report-doc .report-gantt [class*="text-dim"] {
+    color: #4a5160 !important;
+  }
+  .report-doc .report-gantt [class*="border-white/"] {
+    border-color: #dcdfe6 !important;
+  }
+  .report-doc .report-gantt [class*="bg-surface"] {
+    background: #f4f5f8 !important;
+  }
+  /* "todo" swatch and uncommitted dots are white-on-white without an outline */
+  .report-doc .report-gantt [class*="bg-white/"] {
+    background: #eceef3 !important;
+    box-shadow: inset 0 0 0 1px #c7cbd4;
+  }
+  /* Discipline toggle is an interactive control, not report content */
+  .report-doc .report-gantt-controls {
+    display: none !important;
+  }
+
+  /* Faint monospace ids / captions */
+  .report-doc .font-mono {
+    color: #14161c !important;
+  }
+  .report-doc .font-mono.text-dimmer {
+    color: #5b6272 !important;
+  }
+
+  /* Sections whose only content is an untouched editable block */
+  .report-doc .report-section:has(.report-empty) {
+    display: none !important;
+  }
+  .report-doc [contenteditable]:empty::before {
+    content: "" !important;
   }
 }
