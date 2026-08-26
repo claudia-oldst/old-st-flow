@@ -119,11 +119,17 @@ export function useInlineLogDraft(onLogged?: () => void) {
   // Keep the selected discipline valid for the current group.
   useEffect(() => {
     if (disciplineOptions.length === 0) {
+      if (ticketIds.length > 0 && perTicketOptions.every((l) => l.length > 0)) {
+        // All details loaded but no common discipline — remove the most recent ticket.
+        const last = ticketIds[ticketIds.length - 1];
+        toast.error("That ticket cannot be grouped with the current selection");
+        setTicketIds((prev) => prev.filter((id) => id !== last));
+      }
       setDiscipline(null);
       return;
     }
     setDiscipline((d) => (d && disciplineOptions.some((o) => o.value === d) ? d : disciplineOptions[0].value));
-  }, [disciplineOptions]);
+  }, [disciplineOptions, perTicketOptions, ticketIds]);
 
   const hours = hoursMinutesToDecimal(durH, durM);
   const totalMinutes = Math.round(hours * 60);
