@@ -12,6 +12,7 @@ import Projects from "./pages/Projects";
 import ProjectWorkspace from "./pages/ProjectWorkspace";
 import Admin from "./pages/Admin";
 import MyWork from "./pages/MyWork";
+import MyTimelogs from "./pages/MyTimelogs";
 import ClientPortalPublic from "./pages/ClientPortalPublic";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound.tsx";
@@ -59,6 +60,7 @@ const App = () => (
                       <Route path="/projects/:id/*" element={wrap("project", <ProjectWorkspace />)} />
                       <Route path="/admin" element={<RequirePMBA>{wrap("admin", <Admin />)}</RequirePMBA>} />
                       <Route path="/my-work" element={wrap("my work", <MyWork />)} />
+                      <Route path="/my-timelogs" element={wrap("my timelogs", <MyTimelogs />)} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </div>
