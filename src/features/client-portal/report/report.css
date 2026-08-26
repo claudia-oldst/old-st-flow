@@ -1,0 +1,123 @@
+/* ==========================================================
+   Client report — screen styling mirrors the portal (dark navy),
+   print styling converts to an ink-friendly A4 document.
+   Scoped to .report-doc so nothing else in the app is affected.
+   ========================================================== */
+
+.report-doc {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.report-doc [contenteditable]:focus-visible {
+  outline: 2px solid hsl(var(--primary) / 0.6);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.report-doc [contenteditable]:empty::before {
+  content: attr(data-placeholder);
+  color: hsl(220 8% 55%);
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #14161c !important;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .report-doc,
+  .report-doc * {
+    visibility: visible;
+  }
+
+  .report-doc {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    color: #14161c;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .report-no-print {
+    display: none !important;
+  }
+
+  /* Light surfaces in place of the glass panels */
+  .report-doc .glass,
+  .report-doc .glass-strong {
+    background: #fff !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: 1px solid #dcdfe6 !important;
+    box-shadow: none !important;
+  }
+
+  .report-doc .hairline {
+    border: 1px solid #dcdfe6 !important;
+  }
+  .report-doc .hairline-b {
+    border-bottom: 1px solid #dcdfe6 !important;
+  }
+  .report-doc .hairline-t {
+    border-top: 1px solid #dcdfe6 !important;
+  }
+
+  .report-doc,
+  .report-doc h1,
+  .report-doc h2,
+  .report-doc h3 {
+    color: #14161c !important;
+  }
+
+  .report-doc .text-dim {
+    color: #4a5160 !important;
+  }
+  .report-doc .text-dimmer {
+    color: #6b7280 !important;
+  }
+
+  /* Row shading used on dark backgrounds turns into a soft grey */
+  .report-doc [class*="bg-white/"] {
+    background: #f4f5f8 !important;
+  }
+
+  /* Recharts: CSS wins over SVG presentation attributes */
+  .report-doc .recharts-text tspan {
+    fill: #4a5160 !important;
+  }
+  .report-doc .recharts-cartesian-grid line {
+    stroke: #e2e5ea !important;
+  }
+  .report-doc .recharts-legend-item-text {
+    color: #4a5160 !important;
+  }
+
+  .report-doc .report-section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .report-doc .report-break {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  .report-doc .report-scroll {
+    overflow: visible !important;
+  }
+}
