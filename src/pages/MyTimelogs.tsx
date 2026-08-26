@@ -17,7 +17,7 @@ import { ListPagination } from "@/components/ListPagination";
 import { MemberAvatar } from "@/components/MemberAvatar";
 import { EditTimeLogDialog } from "@/features/timelog/EditTimeLogDialog";
 import type { TicketLogEntry } from "@/features/timelog/useTicketTimeLogs";
-import { NewTimeLogDialog } from "@/features/timelog/my-timelogs/NewTimeLogDialog";
+import { InlineLogRow } from "@/features/timelog/my-timelogs/InlineLogRow";
 import {
   useMyTimeLogs,
   useGroupedLogs,
@@ -54,7 +54,7 @@ export default function MyTimelogs() {
   );
   const [page, setPage] = useState(1);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
-  const [newOpen, setNewOpen] = useState(false);
+  const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<{ log: TicketLogEntry; ticket: TicketRow } | null>(null);
 
   const { logs, loading, reload } = useMyTimeLogs(range);
@@ -111,7 +111,7 @@ export default function MyTimelogs() {
           </h1>
           <p className="text-dim mt-1">Everything you have logged, across all projects.</p>
         </div>
-        <Button onClick={() => setNewOpen(true)} className="gap-1.5">
+        <Button onClick={() => setAdding(true)} className="gap-1.5">
           <Plus className="h-3.5 w-3.5" /> Log time
         </Button>
       </div>
@@ -159,6 +159,8 @@ export default function MyTimelogs() {
           />
         </div>
       </div>
+
+      {adding && <InlineLogRow onLogged={reload} onCancel={() => setAdding(false)} />}
 
       <div className="flex items-center gap-3 mb-3 text-sm">
         <span className="font-mono text-foreground">{formatHours(totalHours)}</span>
@@ -252,7 +254,7 @@ export default function MyTimelogs() {
         </div>
       )}
 
-      <NewTimeLogDialog open={newOpen} onOpenChange={setNewOpen} onLogged={reload} />
+
 
       {editing && (
         <EditTimeLogDialog
