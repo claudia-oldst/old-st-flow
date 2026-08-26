@@ -90,12 +90,8 @@ export function EpicRiskTable({ tickets, statuses, epics }: Props) {
       // Burn is measured against the ORIGINAL baseline; fall back to current
       // when no original estimate was ever captured.
       const baselineEst = originalEst > 0 ? originalEst : currentEst;
-      const burnPct =
-        baselineEst === 0
-          ? actualHours > 0
-            ? 150
-            : 0
-          : Math.min(150, (actualHours / baselineEst) * 100);
+      // Uncapped: a 900%-burned epic must not read the same as a 160% one.
+      const burnPct = baselineEst === 0 ? 0 : (actualHours / baselineEst) * 100;
       const progressPct = ((done + devDone) / total) * 100;
       const base = {
         epicId: e.id,
