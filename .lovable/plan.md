@@ -36,5 +36,5 @@ Save inserts the log, clears the row (keeping the selected project so consecutiv
 
 - Edit `src/pages/MyTimelogs.tsx` to render the inline row and drop `NewTimeLogDialog` usage; delete `src/features/timelog/my-timelogs/NewTimeLogDialog.tsx`.
 - New file `src/features/timelog/my-timelogs/InlineLogRow.tsx` plus a small `useInlineLogDraft.ts` holding draft state, discipline derivation and the insert. Reuse `useMyProjects` / `useMyProjectTickets`, `hoursMinutesToDecimal`, `useTicketCapacity` + `capacityFor`, `fetchTicketDetail` and `useProjectRole`.
-- Row-click editing of existing logs continues to use `EditTimeLogDialog` — unchanged.
+- Editing stays available: clicking any existing log row still opens `EditTimeLogDialog` so users can change hours, note, discipline and date, or delete the log — unchanged.
 - No database or RLS changes.
