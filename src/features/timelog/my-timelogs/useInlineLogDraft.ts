@@ -181,7 +181,7 @@ export function useInlineLogDraft(onLogged?: () => void) {
     !!discipline &&
     totalMinutes > 0 &&
     allocatedMinutes === totalMinutes &&
-    overflowingRowIds.length === 0 &&
+    (rows.length === 1 || overflowingRowIds.length === 0) &&
     !busy;
 
   const distributeEvenly = () => {
