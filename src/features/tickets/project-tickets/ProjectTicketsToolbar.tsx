@@ -213,7 +213,7 @@ export function ProjectTicketsToolbar({
             >
               <Plus className="h-4 w-4" /> Add ticket
             </Button>
-            {onImport && (
+            {(onImport || onCopyTickets) && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -225,9 +225,16 @@ export function ProjectTicketsToolbar({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={onImport} className="gap-2">
-                    <Upload className="h-4 w-4" /> Import from CSV…
-                  </DropdownMenuItem>
+                  {onCopyTickets && (
+                    <DropdownMenuItem onClick={onCopyTickets} className="gap-2">
+                      <ClipboardPaste className="h-4 w-4" /> Copy tickets…
+                    </DropdownMenuItem>
+                  )}
+                  {onImport && (
+                    <DropdownMenuItem onClick={onImport} className="gap-2">
+                      <Upload className="h-4 w-4" /> Import from CSV…
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             )}

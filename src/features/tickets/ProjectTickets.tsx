@@ -34,6 +34,8 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
   const { tickets, loading, reload, error } = useProjectTickets(projectId);
   const [importOpen, setImportOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [copyOpen, setCopyOpen] = useState(false);
+  const [initialTitles, setInitialTitles] = useState<string[] | undefined>(undefined);
   const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
   const [groupTimerOpen, setGroupTimerOpen] = useState(false);
   const activeTimer = useTimerStore((s) => s.active);
