@@ -1,14 +1,7 @@
 import { useState } from "react";
-import { X, Trash2, Tag, Layers, Hash, Code2, Users } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { X, Trash2, Tag, Code2, Users } from "lucide-react";
 import { useStatuses } from "@/features/statuses/useStatuses";
 import { useProjectEpics } from "@/features/epics/useProjectEpics";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,23 +12,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DISCIPLINE_STATUS_LABEL, type DisciplineStatus } from "@/lib/types";
 import { BulkAssignDialog } from "@/features/tickets/BulkAssignDialog";
 import { BulkMenu, BulkMenuRow } from "./bulk-actions/BulkMenu";
+import { BulkEpicPopover, BulkVersionPopover } from "./bulk-actions/BulkEpicVersion";
+import { useBulkTicketActions } from "./bulk-actions/useBulkTicketActions";
 
 const DISC_OPTS: DisciplineStatus[] = ["todo", "in_progress", "for_integration", "done"];
-
-type TicketPatch = {
-  status_id?: string | null;
-  project_status_override?: boolean;
-  epic_id?: number | null;
-  fe_status?: DisciplineStatus;
-  be_status?: DisciplineStatus;
-  version?: string | null;
-};
 
 export function BulkActionsBar({
   projectId,
@@ -52,52 +36,20 @@ export function BulkActionsBar({
 }) {
   const { statuses } = useStatuses();
   const { epics } = useProjectEpics(projectId);
-  const [versionOpen, setVersionOpen] = useState(false);
-  const [versionVal, setVersionVal] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const { busy, setStatus, setEpic, setFeStatus, setBeStatus, setVersion, doDelete } =
+    useBulkTicketActions(selectedIds, onClear);
 
   const showStatus = canEdit || canEditStatus;
 
   if (selectedIds.length === 0) return null;
 
-  const update = async (patch: TicketPatch, msg: string) => {
-    setBusy(true);
-    const { error } = await supabase.from("tickets").update(patch).in("id", selectedIds);
-    setBusy(false);
-    if (error) return toast.error(error.message);
-    toast.success(
-      `${msg} for ${selectedIds.length} ticket${selectedIds.length === 1 ? "" : "s"}`
-    );
-  };
-
-  const setStatus = (status_id: string | null) =>
-    update({ status_id, project_status_override: status_id !== null }, "Status updated");
-  const setEpic = (epic_id: number | null) => update({ epic_id }, "Epic updated");
-  const setFeStatus = (fe_status: DisciplineStatus) =>
-    update({ fe_status }, "FE status updated");
-  const setBeStatus = (be_status: DisciplineStatus) =>
-    update({ be_status }, "BE status updated");
-
-  const applyVersion = async () => {
-    const v = versionVal.trim() || null;
-    await update({ version: v }, "Version updated");
-    setVersionOpen(false);
-    setVersionVal("");
-  };
-
-  const doDelete = async () => {
-    setBusy(true);
-    const { error } = await supabase.from("tickets").delete().in("id", selectedIds);
-    setBusy(false);
+  const confirmAndDelete = async () => {
     setConfirmDelete(false);
-    if (error) return toast.error(error.message);
-    toast.success(
-      `Deleted ${selectedIds.length} ticket${selectedIds.length === 1 ? "" : "s"}`
-    );
-    onClear();
+    await doDelete();
   };
+
 
   return (
     <>
