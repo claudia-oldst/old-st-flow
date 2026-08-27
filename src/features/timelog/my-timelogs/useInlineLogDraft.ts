@@ -9,12 +9,11 @@ import { useTicketCapacityByIds, capacityFor } from "@/features/timelog/useTicke
 import { evenSplit, hoursMinutesToDecimal } from "@/features/timelog/utils";
 import type { LogDiscipline } from "@/lib/types";
 import {
-  combineDateAndTime,
   disciplineOptionsFor,
   intersectOptions,
-  maybePromoteToActive,
   type AllocationRow,
 } from "./inlineLogHelpers";
+import { submitInlineLogs } from "./submitInlineLogs";
 
 export type { AllocationRow } from "./inlineLogHelpers";
 export { disciplineOptionsFor, combineDateAndTime } from "./inlineLogHelpers";
