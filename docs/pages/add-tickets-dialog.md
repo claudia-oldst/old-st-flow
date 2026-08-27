@@ -9,6 +9,11 @@ PMBA-only. Opened from the **+ Add tickets** button on the Tickets tab.
 - **+ Add row** button appends a blank line. Rows can be removed with a trash icon.
 - Paste support — pasting multi-line text from a spreadsheet fills multiple rows at once.
 
+## Copy tickets
+- The split **Add ticket** button's dropdown includes **Copy tickets…**, which opens a separate paste dialog.
+- Paste one ticket per line (a column copied from Excel/Sheets; only the first tab-separated cell is used). A live counter shows how many tickets are detected; duplicates are kept and noted.
+- **Continue** closes the paste dialog and opens the row editor above with one pre-titled draft row per line; everything else uses defaults and rows are completed as normal.
+
 ## Interactions
 - Inline validation: title required, estimates non-negative numbers.
 - Epic select includes a "Create new epic…" option (inline create).

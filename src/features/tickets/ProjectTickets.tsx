@@ -6,6 +6,7 @@ import { useTimerStore } from "@/store/timer";
 import { AlertCircle, FileText, RefreshCw } from "lucide-react";
 import { StartGroupTimerDialog } from "@/features/timelog/StartGroupTimerDialog";
 import { AddTicketsDialog } from "@/features/tickets/AddTicketsDialog";
+import { CopyTicketsDialog } from "@/features/tickets/CopyTicketsDialog";
 import { useProjectTickets, type TicketRow } from "@/features/tickets/useProjectTickets";
 import { useProjectTicketsPaged, type ServerSort } from "@/features/tickets/useProjectTicketsPaged";
 import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
@@ -34,6 +35,8 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
   const { tickets, loading, reload, error } = useProjectTickets(projectId);
   const [importOpen, setImportOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [copyOpen, setCopyOpen] = useState(false);
+  const [initialTitles, setInitialTitles] = useState<string[] | undefined>(undefined);
   const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
   const [groupTimerOpen, setGroupTimerOpen] = useState(false);
   const activeTimer = useTimerStore((s) => s.active);
@@ -165,6 +168,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
         onStartGroupTimer={() => setGroupTimerOpen(true)}
         onAdd={() => setAddOpen(true)}
         onImport={() => setImportOpen(true)}
+        onCopyTickets={() => setCopyOpen(true)}
         extras={
           v.view === "list" ? (
             <>
@@ -313,11 +317,25 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
         onImport={onImportClick}
       />
 
+      <CopyTicketsDialog
+        open={copyOpen}
+        onOpenChange={setCopyOpen}
+        onParsed={(titles) => {
+          setCopyOpen(false);
+          setInitialTitles(titles);
+          setAddOpen(true);
+        }}
+      />
+
       <AddTicketsDialog
         open={addOpen}
-        onOpenChange={setAddOpen}
+        onOpenChange={(o) => {
+          setAddOpen(o);
+          if (!o) setInitialTitles(undefined);
+        }}
         projectId={projectId}
         onCreated={reload}
+        initialTitles={initialTitles}
       />
 
       <TicketDetailSheet

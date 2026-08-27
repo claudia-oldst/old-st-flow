@@ -11,6 +11,7 @@ export function useDraftRows({
   projectId,
   defaultType,
   defaultStatusId,
+  initialTitles,
   onCreated,
   onClose,
 }: {
@@ -18,6 +19,7 @@ export function useDraftRows({
   projectId: string;
   defaultType: TicketType;
   defaultStatusId: string | null;
+  initialTitles?: string[];
   onCreated: () => void | Promise<void>;
   onClose: () => void;
 }) {
@@ -28,9 +30,15 @@ export function useDraftRows({
 
   useEffect(() => {
     if (open) {
-      setDrafts([newDraft(defaultStatusId, defaultType)]);
+      if (initialTitles && initialTitles.length > 0) {
+        setDrafts(
+          initialTitles.map((title) => ({ ...newDraft(defaultStatusId, defaultType), title })),
+        );
+      } else {
+        setDrafts([newDraft(defaultStatusId, defaultType)]);
+      }
     }
-  }, [open, defaultStatusId, defaultType]);
+  }, [open, defaultStatusId, defaultType, initialTitles]);
 
   useEffect(() => {
     if (!defaultStatusId) return;

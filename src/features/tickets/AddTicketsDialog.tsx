@@ -19,9 +19,10 @@ interface Props {
   projectId: string;
   onCreated: () => void | Promise<void>;
   defaultType?: TicketType;
+  initialTitles?: string[];
 }
 
-export function AddTicketsDialog({ open, onOpenChange, projectId, onCreated, defaultType = "Standard" }: Props) {
+export function AddTicketsDialog({ open, onOpenChange, projectId, onCreated, defaultType = "Standard", initialTitles }: Props) {
   const { statuses } = useStatuses();
   const defaultStatusId = useMemo(
     () => statuses.find((s) => s.category === "backlog")?.id ?? statuses[0]?.id ?? null,
@@ -33,6 +34,7 @@ export function AddTicketsDialog({ open, onOpenChange, projectId, onCreated, def
     projectId,
     defaultType,
     defaultStatusId,
+    initialTitles,
     onCreated,
     onClose: () => onOpenChange(false),
   });
