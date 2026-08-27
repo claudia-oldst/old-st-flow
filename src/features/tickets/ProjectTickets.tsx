@@ -1,14 +1,10 @@
 import { AlertCircle, FileText, RefreshCw } from "lucide-react";
-import { StartGroupTimerDialog } from "@/features/timelog/StartGroupTimerDialog";
-import { AddTicketsDialog } from "@/features/tickets/AddTicketsDialog";
-import { CopyTicketsDialog } from "@/features/tickets/CopyTicketsDialog";
-import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
 import { TicketsList } from "@/features/tickets/TicketsList";
 import { BulkActionsBar } from "@/features/tickets/BulkActionsBar";
 import { ProjectBoard } from "@/features/board/ProjectBoard";
 import { ProjectTicketsToolbar } from "./project-tickets/ProjectTicketsToolbar";
-import { ImportCsvDialog } from "./project-tickets/ImportCsvDialog";
 import { useProjectTicketsPage } from "./project-tickets/useProjectTicketsPage";
+import { ProjectTicketsDialogs } from "./project-tickets/ProjectTicketsDialogs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ListPagination } from "@/components/ListPagination";
 import { PAGE_SIZES } from "@/lib/pagination";
