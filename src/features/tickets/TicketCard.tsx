@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { cn, displayTitle, formatHours, healthRatio } from "@/lib/utils";
-import { MemberAvatar } from "@/components/MemberAvatar";
+import { MemberAvatarStack } from "@/components/MemberAvatar";
 import { Bug, GitPullRequest, FileText, FolderKanban, Play } from "lucide-react";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { DisciplineStatusChip } from "@/features/tickets/DisciplineStatusChip";
@@ -197,14 +197,16 @@ export function TicketCard({
 
       {prefs.assignees && (
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-[10px] text-dimmer">
+          <div className="flex flex-wrap items-center gap-2 text-[10px] text-dimmer">
             {isProj ? (
               team.length > 0 ? (
                 <div className="flex items-center gap-1">
                   <span>Team</span>
-                  <div className="flex -space-x-1.5">
-                    {team.map((m) => <MemberAvatar key={m.id} name={m.name} color={m.avatar_color} size="xs" />)}
-                  </div>
+                  <MemberAvatarStack
+                    members={team.map((m) => ({ id: m.id, name: m.name, avatar_color: m.avatar_color }))}
+                    size="xs"
+                    max={3}
+                  />
                 </div>
               ) : (
                 <span>Unassigned</span>
@@ -214,25 +216,31 @@ export function TicketCard({
                 {fe.length > 0 && (
                   <div className="flex items-center gap-1">
                     <span>FE</span>
-                    <div className="flex -space-x-1.5">
-                      {fe.map((m) => <MemberAvatar key={m.id} name={m.name} color={m.avatar_color} size="xs" />)}
-                    </div>
+                    <MemberAvatarStack
+                      members={fe.map((m) => ({ id: m.id, name: m.name, avatar_color: m.avatar_color }))}
+                      size="xs"
+                      max={3}
+                    />
                   </div>
                 )}
                 {be.length > 0 && (
                   <div className="flex items-center gap-1">
                     <span>BE</span>
-                    <div className="flex -space-x-1.5">
-                      {be.map((m) => <MemberAvatar key={m.id} name={m.name} color={m.avatar_color} size="xs" />)}
-                    </div>
+                    <MemberAvatarStack
+                      members={be.map((m) => ({ id: m.id, name: m.name, avatar_color: m.avatar_color }))}
+                      size="xs"
+                      max={3}
+                    />
                   </div>
                 )}
                 {team.length > 0 && (
                   <div className="flex items-center gap-1">
                     <span>P</span>
-                    <div className="flex -space-x-1.5">
-                      {team.map((m) => <MemberAvatar key={m.id} name={m.name} color={m.avatar_color} size="xs" />)}
-                    </div>
+                    <MemberAvatarStack
+                      members={team.map((m) => ({ id: m.id, name: m.name, avatar_color: m.avatar_color }))}
+                      size="xs"
+                      max={3}
+                    />
                   </div>
                 )}
                 {fe.length === 0 && be.length === 0 && team.length === 0 && <span>Unassigned</span>}

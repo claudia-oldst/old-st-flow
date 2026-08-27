@@ -42,6 +42,7 @@ export function MemberAvatarStack({
 }) {
   const visible = members.slice(0, max);
   const extra = members.length - visible.length;
+  const hiddenNames = members.slice(max).map((m) => m.name).join(", ");
   return (
     <div className="flex -space-x-2">
       {visible.map((m) => (
@@ -53,6 +54,7 @@ export function MemberAvatarStack({
             "inline-flex items-center justify-center rounded-full bg-white/10 text-white ring-1 ring-white/10",
             size === "xs" ? "h-5 w-5 text-[9px]" : size === "sm" ? "h-6 w-6 text-[10px]" : "h-8 w-8 text-xs"
           )}
+          title={hiddenNames || `${extra} more`}
         >
           +{extra}
         </div>
