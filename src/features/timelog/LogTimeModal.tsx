@@ -8,20 +8,15 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Play, Clock, Calendar as CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Play, Clock } from "lucide-react";
 import { useTimerStore } from "@/store/timer";
 import type { ProjectRole } from "@/lib/types";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { cn, displayTitle, formatHours } from "@/lib/utils";
 import { useLogTime } from "./log-time/useLogTime";
 import { DisciplinePicker } from "./log-time/DisciplinePicker";
-import { DurationInput } from "./log-time/DurationInput";
+import { MissingEstimatePanel } from "./log-time/MissingEstimatePanel";
+import { ManualEntryTab } from "./log-time/ManualEntryTab";
 import { hoursMinutesToDecimal } from "./utils";
 import { RequestMoreTimeDialog, type AdjustSlot } from "@/features/tickets/RequestMoreTimeDialog";
 
