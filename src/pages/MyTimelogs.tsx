@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { format, subDays } from "date-fns";
-import { Clock, ChevronDown, Plus } from "lucide-react";
+import { subDays } from "date-fns";
+import { Clock, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,10 +14,10 @@ import {
 import { DateRangeControl, type DateRange } from "@/features/_shared/DateRangeControl";
 import { MultiSelectFilter } from "@/features/estimates/MultiSelectFilter";
 import { ListPagination } from "@/components/ListPagination";
-import { MemberAvatar } from "@/components/MemberAvatar";
 import { EditTimeLogDialog } from "@/features/timelog/EditTimeLogDialog";
 import type { TicketLogEntry } from "@/features/timelog/useTicketTimeLogs";
 import { InlineLogRow } from "@/features/timelog/my-timelogs/InlineLogRow";
+import { TimelogGroupList } from "@/features/timelog/my-timelogs/TimelogGroupList";
 import {
   useMyTimeLogs,
   useGroupedLogs,
@@ -29,7 +29,7 @@ import { fetchTicketDetail } from "@/features/tickets/fetchTicketDetail";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { useCurrentUser } from "@/store/currentUser";
 import { usePersistentState } from "@/hooks/usePersistentState";
-import { cn, displayTitle, formatHours, PAGE_SHELL } from "@/lib/utils";
+import { cn, formatHours, PAGE_SHELL } from "@/lib/utils";
 
 const PAGE_SIZE = 50;
 
