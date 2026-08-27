@@ -1,4 +1,4 @@
-import { ChevronDown, Clock, LayoutGrid, List, Plus, Search, Upload, X } from "lucide-react";
+import { ChevronDown, ClipboardPaste, Clock, LayoutGrid, List, Plus, Search, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -58,6 +58,7 @@ export function ProjectTicketsToolbar({
   onStartGroupTimer,
   onAdd,
   onImport,
+  onCopyTickets,
   showViewToggle = true,
   showMineToggle = true,
   showGroupBy = true,
@@ -91,6 +92,7 @@ export function ProjectTicketsToolbar({
   onStartGroupTimer?: () => void;
   onAdd?: () => void;
   onImport?: () => void;
+  onCopyTickets?: () => void;
   showViewToggle?: boolean;
   showMineToggle?: boolean;
   showGroupBy?: boolean;

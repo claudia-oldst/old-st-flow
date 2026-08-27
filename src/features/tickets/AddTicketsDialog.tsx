@@ -34,6 +34,7 @@ export function AddTicketsDialog({ open, onOpenChange, projectId, onCreated, def
     projectId,
     defaultType,
     defaultStatusId,
+    initialTitles,
     onCreated,
     onClose: () => onOpenChange(false),
   });
