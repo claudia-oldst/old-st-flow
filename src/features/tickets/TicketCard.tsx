@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { cn, displayTitle, formatHours, healthRatio } from "@/lib/utils";
-import { MemberAvatarStack } from "@/components/MemberAvatar";
+import { CardAssignees } from "@/features/tickets/card/CardAssignees";
 import { Bug, GitPullRequest, FileText, FolderKanban, Play } from "lucide-react";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { DisciplineStatusChip } from "@/features/tickets/DisciplineStatusChip";
