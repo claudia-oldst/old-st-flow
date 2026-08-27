@@ -1,15 +1,6 @@
 import { useMemo, useState } from "react";
 import { usePersistentState } from "@/hooks/usePersistentState";
 
-import { format, parseISO } from "date-fns";
-import { cn } from "@/lib/utils";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { BulkActionsBar } from "@/features/tickets/BulkActionsBar";
 import { useProjectTickets, type TicketRow } from "@/features/tickets/useProjectTickets";
 import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
@@ -23,19 +14,17 @@ import {
   SprintSelectionProvider,
   useSprintSelection,
 } from "./SprintSelectionContext";
-import { CapacityIndicator } from "./CapacityIndicator";
 import { PlanningPoolPanel } from "./PlanningPoolPanel";
 import { PlanningDevColumn } from "./PlanningDevColumn";
 import { useWorkbenchData } from "./workbench/useWorkbenchData";
 import { useWorkbenchBulkActions } from "./workbench/useWorkbenchBulkActions";
 import { WorkbenchBulkBar } from "./workbench/WorkbenchBulkBar";
+import { WorkbenchTopBar } from "./workbench/WorkbenchTopBar";
+import { useDevColumnFilters } from "./workbench/useDevColumnFilters";
 import { DevColumnsToolbar } from "./planning-dev/DevColumnsToolbar";
 import type { DevColGroupBy } from "./planning-dev/useDevColumnGroups";
-import {
-  EMPTY_FILTERS,
-  applyFilters,
-  type TicketFilters,
-} from "@/features/tickets/TicketsFilter";
+import { EMPTY_FILTERS, type TicketFilters } from "@/features/tickets/TicketsFilter";
+
 
 interface Props {
   projectId: string;
@@ -93,42 +82,12 @@ function PlanningInner({ projectId, sprints, isPMBA }: Props) {
 
   const selectedArr = useMemo(() => Array.from(selected), [selected]);
 
-  const allAssignedTickets = useMemo(() => {
-    const seen = new Set<string>();
-    const out: TicketRow[] = [];
-    devAssignments.forEach((list) => {
-      list.forEach((t) => {
-        if (!seen.has(t.id)) {
-          seen.add(t.id);
-          out.push(t);
-        }
-      });
-    });
-    return out;
-  }, [devAssignments]);
+  const { allAssignedTickets, visibleAssignmentsByDev, visibleCount } = useDevColumnFilters(
+    devAssignments,
+    devFilters,
+    devSearch,
+  );
 
-  const visibleAssignmentsByDev = useMemo(() => {
-    const q = devSearch.trim().toLowerCase();
-    const out = new Map<string, TicketRow[]>();
-    devAssignments.forEach((list, userId) => {
-      let filtered = applyFilters(list, devFilters);
-      if (q) {
-        filtered = filtered.filter(
-          (t) =>
-            t.title.toLowerCase().includes(q) ||
-            (t.formatted_id ?? "").toLowerCase().includes(q),
-        );
-      }
-      out.set(userId, filtered);
-    });
-    return out;
-  }, [devAssignments, devFilters, devSearch]);
-
-  const visibleCount = useMemo(() => {
-    const s = new Set<string>();
-    visibleAssignmentsByDev.forEach((list) => list.forEach((t) => s.add(t.id)));
-    return s.size;
-  }, [visibleAssignmentsByDev]);
 
   const { assignToDev, moveToSprint, carryOver, removeFromSprint, invalidate } =
     useWorkbenchBulkActions({
@@ -159,48 +118,19 @@ function PlanningInner({ projectId, sprints, isPMBA }: Props) {
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Top bar */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <label className="text-[10px] uppercase tracking-wide text-dim">Sprint</label>
-        <Select value={targetSprintId} onValueChange={setTargetSprintId}>
-          <SelectTrigger className="h-8 w-56 text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {sprints.map((s) => (
-              <SelectItem key={s.id} value={s.id}>
-                Sprint {s.sprint_number} · {format(parseISO(s.start_date), "MMM d")} →{" "}
-                {format(parseISO(s.end_date), "MMM d")}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <WorkbenchTopBar
+        sprints={sprints}
+        targetSprintId={targetSprintId}
+        onSprintChange={setTargetSprintId}
+        discipline={discipline}
+        onDisciplineChange={(d) => {
+          setDiscipline(d);
+          clear();
+        }}
+        pooledHours={pooledHours}
+        totalCap={totalCap}
+      />
 
-        <div className="inline-flex rounded-md hairline overflow-hidden">
-          {(["FE", "BE"] as const).map((d) => (
-            <button
-              key={d}
-              onClick={() => {
-                setDiscipline(d);
-                clear();
-              }}
-              className={cn(
-                "px-3 h-8 text-xs font-medium transition",
-                discipline === d
-                  ? "bg-accent/15 text-accent"
-                  : "text-dim hover:text-foreground hover:bg-white/5",
-              )}
-            >
-              {d}
-            </button>
-          ))}
-        </div>
-
-        <div className="ml-auto flex items-center gap-2 min-w-64">
-          <span className="text-[10px] uppercase tracking-wide text-dim">Total</span>
-          <CapacityIndicator used={pooledHours} cap={totalCap} className="w-56" />
-        </div>
-      </div>
 
       {/* Body */}
       <div className="flex flex-row gap-3 h-[calc(100vh-280px)] min-h-[560px]">
