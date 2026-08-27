@@ -211,7 +211,7 @@ export function useInlineLogDraft(onLogged?: () => void) {
       date,
       startTime,
     });
-    if (!result.ok) {
+    if (result.ok !== true) {
       setBusy(false);
       return toast.error(result.message);
     }
