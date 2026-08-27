@@ -1,14 +1,10 @@
 import { AlertCircle, FileText, RefreshCw } from "lucide-react";
-import { StartGroupTimerDialog } from "@/features/timelog/StartGroupTimerDialog";
-import { AddTicketsDialog } from "@/features/tickets/AddTicketsDialog";
-import { CopyTicketsDialog } from "@/features/tickets/CopyTicketsDialog";
-import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
 import { TicketsList } from "@/features/tickets/TicketsList";
 import { BulkActionsBar } from "@/features/tickets/BulkActionsBar";
 import { ProjectBoard } from "@/features/board/ProjectBoard";
 import { ProjectTicketsToolbar } from "./project-tickets/ProjectTicketsToolbar";
-import { ImportCsvDialog } from "./project-tickets/ImportCsvDialog";
 import { useProjectTicketsPage } from "./project-tickets/useProjectTicketsPage";
+import { ProjectTicketsDialogs } from "./project-tickets/ProjectTicketsDialogs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ListPagination } from "@/components/ListPagination";
 import { PAGE_SIZES } from "@/lib/pagination";
@@ -204,57 +200,8 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
         />
       )}
 
-      <StartGroupTimerDialog
-        open={p.groupTimerOpen}
-        onOpenChange={p.setGroupTimerOpen}
-        tickets={tickets}
-        role={role}
-      />
+      <ProjectTicketsDialogs projectId={projectId} p={p} />
 
-      <ImportCsvDialog
-        open={p.importOpen}
-        onOpenChange={p.setImportOpen}
-        rows={csv.rows}
-        fileName={csv.fileName}
-        dragOver={csv.dragOver}
-        setDragOver={csv.setDragOver}
-        importing={csv.importing}
-        handleFile={csv.handleFile}
-        reset={csv.reset}
-        onImport={p.onImportClick}
-      />
-
-      <CopyTicketsDialog
-        open={p.copyOpen}
-        onOpenChange={p.setCopyOpen}
-        onParsed={(titles) => {
-          p.setCopyOpen(false);
-          p.setInitialTitles(titles);
-          p.setAddOpen(true);
-        }}
-      />
-
-      <AddTicketsDialog
-        open={p.addOpen}
-        onOpenChange={(o) => {
-          p.setAddOpen(o);
-          if (!o) p.setInitialTitles(undefined);
-        }}
-        projectId={projectId}
-        onCreated={reload}
-        initialTitles={p.initialTitles}
-      />
-
-      <TicketDetailSheet
-        open={!!p.openTicket}
-        onOpenChange={(o) => !o && p.setOpenTicket(null)}
-        ticket={p.openTicket}
-        projectId={projectId}
-        onChange={() => {
-          reload();
-          paged.reload();
-        }}
-      />
     </div>
   );
 }

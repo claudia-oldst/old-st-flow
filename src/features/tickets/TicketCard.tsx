@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { cn, displayTitle, formatHours, healthRatio } from "@/lib/utils";
-import { MemberAvatarStack } from "@/components/MemberAvatar";
+import { CardAssignees } from "@/features/tickets/card/CardAssignees";
 import { Bug, GitPullRequest, FileText, FolderKanban, Play } from "lucide-react";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { DisciplineStatusChip } from "@/features/tickets/DisciplineStatusChip";
@@ -195,60 +195,8 @@ export function TicketCard({
         </div>
       )}
 
-      {prefs.assignees && (
-        <div className="flex items-center justify-between">
-          <div className="flex flex-wrap items-center gap-2 text-[10px] text-dimmer">
-            {isProj ? (
-              team.length > 0 ? (
-                <div className="flex items-center gap-1">
-                  <span>Team</span>
-                  <MemberAvatarStack
-                    members={team.map((m) => ({ id: m.id, name: m.name, avatar_color: m.avatar_color }))}
-                    size="xs"
-                    max={3}
-                  />
-                </div>
-              ) : (
-                <span>Unassigned</span>
-              )
-            ) : (
-              <>
-                {fe.length > 0 && (
-                  <div className="flex items-center gap-1">
-                    <span>FE</span>
-                    <MemberAvatarStack
-                      members={fe.map((m) => ({ id: m.id, name: m.name, avatar_color: m.avatar_color }))}
-                      size="xs"
-                      max={3}
-                    />
-                  </div>
-                )}
-                {be.length > 0 && (
-                  <div className="flex items-center gap-1">
-                    <span>BE</span>
-                    <MemberAvatarStack
-                      members={be.map((m) => ({ id: m.id, name: m.name, avatar_color: m.avatar_color }))}
-                      size="xs"
-                      max={3}
-                    />
-                  </div>
-                )}
-                {team.length > 0 && (
-                  <div className="flex items-center gap-1">
-                    <span>P</span>
-                    <MemberAvatarStack
-                      members={team.map((m) => ({ id: m.id, name: m.name, avatar_color: m.avatar_color }))}
-                      size="xs"
-                      max={3}
-                    />
-                  </div>
-                )}
-                {fe.length === 0 && be.length === 0 && team.length === 0 && <span>Unassigned</span>}
-              </>
-            )}
-          </div>
-        </div>
-      )}
+      {prefs.assignees && <CardAssignees isProj={isProj} fe={fe} be={be} team={team} />}
+
     </div>
     {logOpen && (
       <LogTimeWithCapacityCheck
