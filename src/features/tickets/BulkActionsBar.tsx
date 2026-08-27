@@ -164,7 +164,7 @@ export function BulkActionsBar({
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={doDelete}
+              onClick={confirmAndDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete
