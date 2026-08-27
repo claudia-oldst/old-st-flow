@@ -1,144 +1,48 @@
-import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import { fetchTicketById } from "@/features/tickets/fetchTicketById";
-import { useCurrentUser } from "@/store/currentUser";
-import { useTimerStore } from "@/store/timer";
 import { AlertCircle, FileText, RefreshCw } from "lucide-react";
 import { StartGroupTimerDialog } from "@/features/timelog/StartGroupTimerDialog";
 import { AddTicketsDialog } from "@/features/tickets/AddTicketsDialog";
 import { CopyTicketsDialog } from "@/features/tickets/CopyTicketsDialog";
-import { useProjectTickets, type TicketRow } from "@/features/tickets/useProjectTickets";
-import { useProjectTicketsPaged, type ServerSort } from "@/features/tickets/useProjectTicketsPaged";
 import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
 import { TicketsList } from "@/features/tickets/TicketsList";
 import { BulkActionsBar } from "@/features/tickets/BulkActionsBar";
 import { ProjectBoard } from "@/features/board/ProjectBoard";
-import { useCardDisplayPrefs } from "@/features/tickets/useCardDisplayPrefs";
-import { useColumnDisplayPrefs } from "@/features/tickets/useColumnDisplayPrefs";
-import { useProjectRole } from "@/features/team/useProjectRole";
-import { useTicketsCsvImport } from "./project-tickets/useTicketsCsvImport";
-import { useProjectTicketsView } from "./project-tickets/useProjectTicketsView";
 import { ProjectTicketsToolbar } from "./project-tickets/ProjectTicketsToolbar";
 import { ImportCsvDialog } from "./project-tickets/ImportCsvDialog";
+import { useProjectTicketsPage } from "./project-tickets/useProjectTicketsPage";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ListPagination } from "@/components/ListPagination";
 import { PAGE_SIZES } from "@/lib/pagination";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { useSprints } from "@/features/sprints/useSprintBoard";
-import { usePoolData } from "@/features/sprints/usePoolData";
 import { SprintPoolFilter } from "@/features/sprints/SprintPoolFilter";
 
 export function ProjectTickets({ projectId }: { projectId: string }) {
-  const role = useProjectRole(projectId);
-  const user = useCurrentUser((s) => s.user);
-  const { tickets, loading, reload, error } = useProjectTickets(projectId);
-  const [importOpen, setImportOpen] = useState(false);
-  const [addOpen, setAddOpen] = useState(false);
-  const [copyOpen, setCopyOpen] = useState(false);
-  const [initialTitles, setInitialTitles] = useState<string[] | undefined>(undefined);
-  const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
-  const [groupTimerOpen, setGroupTimerOpen] = useState(false);
-  const activeTimer = useTimerStore((s) => s.active);
-  const { prefs: cardPrefs, setPrefs: setCardPrefs, reset: resetCardPrefs } = useCardDisplayPrefs();
-  const { prefs: columnPrefs, setPrefs: setColumnPrefs, reset: resetColumnPrefs } = useColumnDisplayPrefs();
-  const csv = useTicketsCsvImport(projectId, tickets, reload);
-  const { rows, fileName, dragOver, setDragOver, importing, handleFile, handleImport, reset: resetImport } = csv;
-
-  const v = useProjectTicketsView({ tickets, user, role, projectId });
-
-  const grouped = v.groupBy !== "none";
-
-  // List-view server pagination (only when ungrouped — grouping needs the full set)
-  const [page, setPage] = useState(1);
-  const sort: ServerSort = useMemo(() => ({ col: "position", dir: "asc" }), []);
-  const paged = useProjectTicketsPaged(v.view === "list" && !grouped ? projectId : undefined, {
-    filters: v.filters,
-    search: v.search,
-    sort,
+  const p = useProjectTicketsPage(projectId);
+  const {
+    role,
+    user,
+    tickets,
+    loading,
+    reload,
+    error,
+    v,
+    grouped,
     page,
-    pageSize: PAGE_SIZES.ticketsList,
-    filterMineUserId: v.filterMine && user ? user.id : null,
-  });
-
-  // Reset to page 1 whenever filters/search/filterMine change
-  const filterSig = useMemo(
-    () => JSON.stringify({ f: v.filters, s: v.search, m: v.filterMine }),
-    [v.filters, v.search, v.filterMine],
-  );
-  useEffect(() => setPage(1), [filterSig]);
-
-  // Deep link: /projects/:id?ticket=<uuid> opens that ticket's detail sheet.
-  const [searchParams, setSearchParams] = useSearchParams();
-  const deepTicketId = searchParams.get("ticket");
-  useEffect(() => {
-    if (!deepTicketId) return;
-    let cancelled = false;
-    (async () => {
-      const t = await fetchTicketById(deepTicketId);
-      if (!cancelled && t) setOpenTicket(t);
-      if (!cancelled) {
-        setSearchParams(
-          (prev) => {
-            const next = new URLSearchParams(prev);
-            next.delete("ticket");
-            return next;
-          },
-          { replace: true },
-        );
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [deepTicketId, setSearchParams]);
-
-  const onImportClick = async () => {
-    const ok = await handleImport();
-    if (ok) setImportOpen(false);
-  };
-
-  const { data: sprints = [] } = useSprints(v.view === "list" ? projectId : undefined);
-  const poolData = usePoolData(v.view === "list" ? projectId : undefined, sprints);
-
-  const [fePlannedFilter, setFePlannedFilter] = useState<string[]>([]);
-  const [feCommittedFilter, setFeCommittedFilter] = useState<number[]>([]);
-  const [bePlannedFilter, setBePlannedFilter] = useState<string[]>([]);
-  const [beCommittedFilter, setBeCommittedFilter] = useState<number[]>([]);
-
-  const sourceRows = grouped ? v.visibleTickets : paged.rows;
-  const listVisible = useMemo(() => {
-    let rows = sourceRows;
-    if (fePlannedFilter.length > 0) {
-      rows = rows.filter((t) => {
-        const fe = poolData.byTicket.get(t.id)?.fe ?? null;
-        return fe ? fePlannedFilter.includes(fe) : false;
-      });
-    }
-    if (feCommittedFilter.length > 0) {
-      rows = rows.filter((t) => {
-        const active = poolData.activeByTicket.get(t.id)?.fe ?? [];
-        return active.some((n) => feCommittedFilter.includes(n));
-      });
-    }
-    if (bePlannedFilter.length > 0) {
-      rows = rows.filter((t) => {
-        const be = poolData.byTicket.get(t.id)?.be ?? null;
-        return be ? bePlannedFilter.includes(be) : false;
-      });
-    }
-    if (beCommittedFilter.length > 0) {
-      rows = rows.filter((t) => {
-        const active = poolData.activeByTicket.get(t.id)?.be ?? [];
-        return active.some((n) => beCommittedFilter.includes(n));
-      });
-    }
-    return rows;
-  }, [sourceRows, poolData, fePlannedFilter, feCommittedFilter, bePlannedFilter, beCommittedFilter]);
-  const listLoading = v.view === "list" && (
-    grouped ? (loading && tickets.length === 0) : (paged.loading && listVisible.length === 0)
-  );
-
+    setPage,
+    paged,
+    csv,
+    sprints,
+    poolData,
+    listVisible,
+    listLoading,
+    sprintFilters: sf,
+  } = p;
+  const { prefs: cardPrefs, setPrefs: setCardPrefs, reset: resetCardPrefs } = p.cardDisplay;
+  const {
+    prefs: columnPrefs,
+    setPrefs: setColumnPrefs,
+    reset: resetColumnPrefs,
+  } = p.columnDisplay;
 
   return (
     <div>
@@ -164,29 +68,29 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
         setSearch={v.setSearch}
         role={role}
         user={user}
-        activeTimer={activeTimer}
-        onStartGroupTimer={() => setGroupTimerOpen(true)}
-        onAdd={() => setAddOpen(true)}
-        onImport={() => setImportOpen(true)}
-        onCopyTickets={() => setCopyOpen(true)}
+        activeTimer={p.activeTimer}
+        onStartGroupTimer={() => p.setGroupTimerOpen(true)}
+        onAdd={() => p.setAddOpen(true)}
+        onImport={() => p.setImportOpen(true)}
+        onCopyTickets={() => p.setCopyOpen(true)}
         extras={
           v.view === "list" ? (
             <>
               <SprintPoolFilter
                 label="FE Sprint"
                 sprints={sprints}
-                plannedSelected={fePlannedFilter}
-                committedSelected={feCommittedFilter}
-                onPlannedChange={setFePlannedFilter}
-                onCommittedChange={setFeCommittedFilter}
+                plannedSelected={sf.fePlannedFilter}
+                committedSelected={sf.feCommittedFilter}
+                onPlannedChange={sf.setFePlannedFilter}
+                onCommittedChange={sf.setFeCommittedFilter}
               />
               <SprintPoolFilter
                 label="BE Sprint"
                 sprints={sprints}
-                plannedSelected={bePlannedFilter}
-                committedSelected={beCommittedFilter}
-                onPlannedChange={setBePlannedFilter}
-                onCommittedChange={setBeCommittedFilter}
+                plannedSelected={sf.bePlannedFilter}
+                committedSelected={sf.beCommittedFilter}
+                onPlannedChange={sf.setBePlannedFilter}
+                onCommittedChange={sf.setBeCommittedFilter}
               />
             </>
           ) : undefined
@@ -247,9 +151,13 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
       ) : listVisible.length === 0 ? (
         <div className="glass rounded-2xl p-12 text-center">
           <FileText className="h-8 w-8 mx-auto text-dimmer mb-3" />
-          <div className="font-medium">{v.filterMine ? "No tickets assigned to you" : "No tickets yet"}</div>
+          <div className="font-medium">
+            {v.filterMine ? "No tickets assigned to you" : "No tickets yet"}
+          </div>
           <div className="text-dim text-sm mt-1">
-            {v.filterMine ? "Switch to All to see every ticket on this project." : "Add tickets from the Board, or import a CSV."}
+            {v.filterMine
+              ? "Switch to All to see every ticket on this project."
+              : "Add tickets from the Board, or import a CSV."}
           </div>
         </div>
       ) : (
@@ -257,7 +165,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
           <TicketsList
             tickets={listVisible}
             groupBy={v.groupBy}
-            onOpen={setOpenTicket}
+            onOpen={p.setOpenTicket}
             selectedIds={v.selectedIds}
             onToggleSelect={v.toggleSelect}
             onToggleSelectAll={v.toggleSelectAll}
@@ -283,7 +191,6 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
               />
             </div>
           )}
-
         </>
       )}
 
@@ -298,50 +205,50 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
       )}
 
       <StartGroupTimerDialog
-        open={groupTimerOpen}
-        onOpenChange={setGroupTimerOpen}
+        open={p.groupTimerOpen}
+        onOpenChange={p.setGroupTimerOpen}
         tickets={tickets}
         role={role}
       />
 
       <ImportCsvDialog
-        open={importOpen}
-        onOpenChange={setImportOpen}
-        rows={rows}
-        fileName={fileName}
-        dragOver={dragOver}
-        setDragOver={setDragOver}
-        importing={importing}
-        handleFile={handleFile}
-        reset={resetImport}
-        onImport={onImportClick}
+        open={p.importOpen}
+        onOpenChange={p.setImportOpen}
+        rows={csv.rows}
+        fileName={csv.fileName}
+        dragOver={csv.dragOver}
+        setDragOver={csv.setDragOver}
+        importing={csv.importing}
+        handleFile={csv.handleFile}
+        reset={csv.reset}
+        onImport={p.onImportClick}
       />
 
       <CopyTicketsDialog
-        open={copyOpen}
-        onOpenChange={setCopyOpen}
+        open={p.copyOpen}
+        onOpenChange={p.setCopyOpen}
         onParsed={(titles) => {
-          setCopyOpen(false);
-          setInitialTitles(titles);
-          setAddOpen(true);
+          p.setCopyOpen(false);
+          p.setInitialTitles(titles);
+          p.setAddOpen(true);
         }}
       />
 
       <AddTicketsDialog
-        open={addOpen}
+        open={p.addOpen}
         onOpenChange={(o) => {
-          setAddOpen(o);
-          if (!o) setInitialTitles(undefined);
+          p.setAddOpen(o);
+          if (!o) p.setInitialTitles(undefined);
         }}
         projectId={projectId}
         onCreated={reload}
-        initialTitles={initialTitles}
+        initialTitles={p.initialTitles}
       />
 
       <TicketDetailSheet
-        open={!!openTicket}
-        onOpenChange={(o) => !o && setOpenTicket(null)}
-        ticket={openTicket}
+        open={!!p.openTicket}
+        onOpenChange={(o) => !o && p.setOpenTicket(null)}
+        ticket={p.openTicket}
         projectId={projectId}
         onChange={() => {
           reload();
