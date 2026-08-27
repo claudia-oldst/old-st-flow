@@ -116,7 +116,13 @@ export function BulkActionsBar({
           {canEdit && (
             <>
               <BulkEpicPopover epics={epics} busy={busy} onSetEpic={setEpic} />
-              <BulkVersionPopover busy={busy} onApply={setVersion} />
+              <BulkVersionPopover
+                busy={busy}
+                onApply={async (v) => {
+                  await setVersion(v);
+                }}
+              />
+
 
 
               <div className="w-px h-6 bg-white/10 mx-1" />
