@@ -115,58 +115,9 @@ export function BulkActionsBar({
 
           {canEdit && (
             <>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button
-                    disabled={busy}
-                    className="px-3 py-1.5 rounded-lg text-xs hover:bg-white/5 transition inline-flex items-center gap-1.5 text-dim hover:text-foreground"
-                  >
-                    <Layers className="h-3.5 w-3.5" /> Epic
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-56 p-1 max-h-72 overflow-auto" align="center" side="top">
-                  <div className="text-[10px] uppercase tracking-wider text-dimmer px-2 py-1.5">
-                    Set epic
-                  </div>
-                  <BulkMenuRow onClick={() => setEpic(null)}>
-                    <span className="text-dim">No epic</span>
-                  </BulkMenuRow>
-                  {epics.map((e) => (
-                    <BulkMenuRow key={e.id} onClick={() => setEpic(e.id)}>
-                      <span className="truncate">{e.epic_name ?? "Untitled epic"}</span>
-                    </BulkMenuRow>
-                  ))}
-                </PopoverContent>
-              </Popover>
+              <BulkEpicPopover epics={epics} busy={busy} onSetEpic={setEpic} />
+              <BulkVersionPopover busy={busy} onApply={setVersion} />
 
-              <Popover open={versionOpen} onOpenChange={setVersionOpen}>
-                <PopoverTrigger asChild>
-                  <button
-                    disabled={busy}
-                    className="px-3 py-1.5 rounded-lg text-xs hover:bg-white/5 transition inline-flex items-center gap-1.5 text-dim hover:text-foreground"
-                  >
-                    <Hash className="h-3.5 w-3.5" /> Version
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-56 p-2" align="center" side="top">
-                  <div className="text-[10px] uppercase tracking-wider text-dimmer px-1 pb-1.5">
-                    Set version
-                  </div>
-                  <Input
-                    autoFocus
-                    value={versionVal}
-                    onChange={(e) => setVersionVal(e.target.value)}
-                    placeholder="e.g. v1 (blank to clear)"
-                    className="h-8 text-xs"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") applyVersion();
-                    }}
-                  />
-                  <Button size="sm" className="w-full mt-2 h-7 text-xs" onClick={applyVersion}>
-                    Apply
-                  </Button>
-                </PopoverContent>
-              </Popover>
 
               <div className="w-px h-6 bg-white/10 mx-1" />
 
