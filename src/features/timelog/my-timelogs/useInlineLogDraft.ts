@@ -9,12 +9,11 @@ import { useTicketCapacityByIds, capacityFor } from "@/features/timelog/useTicke
 import { evenSplit, hoursMinutesToDecimal } from "@/features/timelog/utils";
 import type { LogDiscipline } from "@/lib/types";
 import {
-  combineDateAndTime,
   disciplineOptionsFor,
   intersectOptions,
-  maybePromoteToActive,
   type AllocationRow,
 } from "./inlineLogHelpers";
+import { submitInlineLogs } from "./submitInlineLogs";
 
 export type { AllocationRow } from "./inlineLogHelpers";
 export { disciplineOptionsFor, combineDateAndTime } from "./inlineLogHelpers";
@@ -203,40 +202,29 @@ export function useInlineLogDraft(onLogged?: () => void) {
       return toast.error("Adjust estimates on flagged tickets before saving");
     }
 
-    const logs = rows
-      .filter((r) => r.minutes > 0)
-      .map((r) => ({
-        ticket_id: r.ticket.id,
-        user_id: user.id,
-        discipline,
-        hours: Math.round((r.minutes / 60) * 10000) / 10000,
-        note: note.trim() || null,
-        source: "manual" as const,
-        logged_at: combineDateAndTime(date, startTime).toISOString(),
-      }));
-
-    if (logs.length === 0) return toast.error("Nothing to log — every ticket was set to 0");
-
     setBusy(true);
-    const { error } = await supabase.from("time_logs").insert(logs);
-    if (error) {
+    const result = await submitInlineLogs({
+      rows,
+      userId: user.id,
+      discipline,
+      note,
+      date,
+      startTime,
+    });
+    if (result.ok !== true) {
       setBusy(false);
-      return toast.error(error.message);
-    }
-
-    for (const r of rows) {
-      if (r.minutes > 0) await maybePromoteToActive(r.ticket);
+      return toast.error(result.message);
     }
 
     await refetchCapacity();
     setBusy(false);
-    const totalH = logs.reduce((s, l) => s + l.hours, 0);
     toast.success(
-      `Logged ${totalH.toFixed(2)}h across ${logs.length} ticket${logs.length === 1 ? "" : "s"}`,
+      `Logged ${result.totalHours.toFixed(2)}h across ${result.count} ticket${result.count === 1 ? "" : "s"}`,
     );
     reset();
     onLogged?.();
   };
+
 
   return {
     projectId,

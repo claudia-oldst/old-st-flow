@@ -1,24 +1,16 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { format, parseISO } from "date-fns";
 import { ChevronRight, Trash2, X } from "lucide-react";
-import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { MemberAvatar, MemberAvatarStack } from "@/components/MemberAvatar";
 import { cn } from "@/lib/utils";
-import type { AssigneeSlot } from "@/lib/types";
 import type { Sprint, SprintMember } from "./types";
 import { memberDisciplines } from "./types";
-import {
-  useSprintCapacities,
-  usePlannedSprintAssignments,
-} from "./useSprintBoard";
-import { useProjectTickets } from "@/features/tickets/useProjectTickets";
 import { ThinCapBar } from "./sprint-block/ThinCapBar";
 import { DevDisciplineCell } from "./sprint-block/DevDisciplineCell";
 import { AddMemberInline } from "./sprint-block/AddMemberInline";
 import { EditSprintPopover } from "./sprint-block/EditSprintPopover";
+import { useSprintBlock } from "./sprint-block/useSprintBlock";
 
 interface Props {
   sprint: Sprint;
@@ -28,152 +20,28 @@ interface Props {
 }
 
 export function SprintBlockRow({ sprint, devMembers, projectId, isPMBA }: Props) {
-  const qc = useQueryClient();
   const [expanded, setExpanded] = useState(false);
-  const { data: capacities = [] } = useSprintCapacities(sprint.id);
-  const { data: assignments = [] } = usePlannedSprintAssignments(projectId);
-  const { tickets } = useProjectTickets(projectId);
-
-  const capFor = (uid: string, d: AssigneeSlot) =>
-    Number(capacities.find((c) => c.user_id === uid && c.discipline === d)?.hours ?? 0);
-
-  const addedUserIds = useMemo(() => {
-    const set = new Set<string>();
-    capacities.forEach((c) => set.add(c.user_id));
-    return set;
-  }, [capacities]);
-
-  const addedMembers = useMemo(
-    () => devMembers.filter((m) => addedUserIds.has(m.user_id)),
-    [devMembers, addedUserIds],
-  );
-  const availableMembers = useMemo(
-    () => devMembers.filter((m) => !addedUserIds.has(m.user_id)),
-    [devMembers, addedUserIds],
-  );
-
-  // Sprint-level pooled hours (across all devs) — same calc as old SprintBlockCard.
-  const { pooledFE, pooledBE } = useMemo(() => {
-    let fe = 0;
-    let be = 0;
-    const ticketMap = new Map(tickets.map((t) => [t.id, t]));
-    assignments.forEach((a) => {
-      const t = ticketMap.get(a.ticket_id);
-      if (!t) return;
-      if (a.planned_sprint_fe_id === sprint.id) fe += t.current_fe_estimate || 0;
-      if (a.planned_sprint_be_id === sprint.id) be += t.current_be_estimate || 0;
-    });
-    return { pooledFE: fe, pooledBE: be };
-  }, [assignments, tickets, sprint.id]);
-
-  // Per-dev pooled hours. For each (userId, discipline), sum estimates for
-  // tickets whose planned_sprint_{disc}_id matches this sprint AND who has
-  // an assignee row with slot=disc and user_id=userId.
-  const pooledPerDev = useMemo(() => {
-    const map = new Map<string, { FE: number; BE: number }>();
-    const ticketMap = new Map(tickets.map((t) => [t.id, t]));
-    assignments.forEach((a) => {
-      const t = ticketMap.get(a.ticket_id);
-      if (!t) return;
-      if (a.planned_sprint_fe_id === sprint.id) {
-        const est = t.current_fe_estimate || 0;
-        t.assignees
-          .filter((x) => x.slot === "FE")
-          .forEach((x) => {
-            const cur = map.get(x.user_id) ?? { FE: 0, BE: 0 };
-            cur.FE += est;
-            map.set(x.user_id, cur);
-          });
-      }
-      if (a.planned_sprint_be_id === sprint.id) {
-        const est = t.current_be_estimate || 0;
-        t.assignees
-          .filter((x) => x.slot === "BE")
-          .forEach((x) => {
-            const cur = map.get(x.user_id) ?? { FE: 0, BE: 0 };
-            cur.BE += est;
-            map.set(x.user_id, cur);
-          });
-      }
-    });
-    return map;
-  }, [assignments, tickets, sprint.id]);
-
-  const capFE = capacities
-    .filter((c) => c.discipline === "FE")
-    .reduce((s, c) => s + Number(c.hours), 0);
-  const capBE = capacities
-    .filter((c) => c.discipline === "BE")
-    .reduce((s, c) => s + Number(c.hours), 0);
-
-  const stackMembers = useMemo(
-    () =>
-      addedMembers.map((m) => ({
-        id: m.user_id,
-        name: m.member.name,
-        avatar_color: m.member.avatar_color,
-      })),
-    [addedMembers],
-  );
-
-  const invalidate = () =>
-    qc.invalidateQueries({ queryKey: ["sprint_capacities", sprint.id] });
-
-  const updateCap = async (userId: string, discipline: AssigneeSlot, hours: number) => {
-    const existing = capacities.find(
-      (c) => c.user_id === userId && c.discipline === discipline,
-    );
-    if (existing) {
-      const { error } = await supabase
-        .from("sprint_capacities")
-        .update({ hours })
-        .eq("id", existing.id);
-      if (error) toast.error(error.message);
-    } else {
-      const { error } = await supabase.from("sprint_capacities").insert({
-        sprint_id: sprint.id,
-        user_id: userId,
-        discipline,
-        hours,
-      });
-      if (error) toast.error(error.message);
-    }
-    invalidate();
-  };
-
-  const addMember = async (m: SprintMember) => {
-    const primary = memberDisciplines(m.role)[0] as AssigneeSlot;
-    const { error } = await supabase.from("sprint_capacities").insert({
-      sprint_id: sprint.id,
-      user_id: m.user_id,
-      discipline: primary,
-      hours: 0,
-    });
-    if (error) toast.error(error.message);
-    invalidate();
-  };
-
-  const removeMember = async (userId: string) => {
-    const { error } = await supabase
-      .from("sprint_capacities")
-      .delete()
-      .eq("sprint_id", sprint.id)
-      .eq("user_id", userId);
-    if (error) toast.error(error.message);
-    invalidate();
-  };
-
-  const remove = async () => {
-    if (!confirm(`Delete Sprint ${sprint.sprint_number}?`)) return;
-    const { error } = await supabase.from("sprints").delete().eq("id", sprint.id);
-    if (error) toast.error(error.message);
-    qc.invalidateQueries({ queryKey: ["sprints", sprint.project_id] });
-  };
+  const {
+    capFor,
+    addedMembers,
+    availableMembers,
+    pooledFE,
+    pooledBE,
+    pooledPerDev,
+    capFE,
+    capBE,
+    stackMembers,
+    updateCap,
+    addMember,
+    removeMember,
+    removeSprint,
+  } = useSprintBlock({ sprint, devMembers, projectId });
 
   const today = new Date();
   const start = parseISO(sprint.start_date);
   const end = parseISO(sprint.end_date);
   const isActive = today >= start && today <= end;
+
 
 
 
@@ -217,7 +85,7 @@ export function SprintBlockRow({ sprint, devMembers, projectId, isPMBA }: Props)
           <Button
             variant="ghost"
             size="icon"
-            onClick={remove}
+            onClick={removeSprint}
             className="h-7 w-7"
             title="Delete sprint"
           >

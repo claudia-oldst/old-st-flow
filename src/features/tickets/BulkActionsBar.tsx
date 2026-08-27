@@ -1,14 +1,7 @@
 import { useState } from "react";
-import { X, Trash2, Tag, Layers, Hash, Code2, Users } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { X, Trash2, Tag, Code2, Users } from "lucide-react";
 import { useStatuses } from "@/features/statuses/useStatuses";
 import { useProjectEpics } from "@/features/epics/useProjectEpics";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,23 +12,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DISCIPLINE_STATUS_LABEL, type DisciplineStatus } from "@/lib/types";
 import { BulkAssignDialog } from "@/features/tickets/BulkAssignDialog";
 import { BulkMenu, BulkMenuRow } from "./bulk-actions/BulkMenu";
+import { BulkEpicPopover, BulkVersionPopover } from "./bulk-actions/BulkEpicVersion";
+import { useBulkTicketActions } from "./bulk-actions/useBulkTicketActions";
 
 const DISC_OPTS: DisciplineStatus[] = ["todo", "in_progress", "for_integration", "done"];
-
-type TicketPatch = {
-  status_id?: string | null;
-  project_status_override?: boolean;
-  epic_id?: number | null;
-  fe_status?: DisciplineStatus;
-  be_status?: DisciplineStatus;
-  version?: string | null;
-};
 
 export function BulkActionsBar({
   projectId,
@@ -52,52 +36,20 @@ export function BulkActionsBar({
 }) {
   const { statuses } = useStatuses();
   const { epics } = useProjectEpics(projectId);
-  const [versionOpen, setVersionOpen] = useState(false);
-  const [versionVal, setVersionVal] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const { busy, setStatus, setEpic, setFeStatus, setBeStatus, setVersion, doDelete } =
+    useBulkTicketActions(selectedIds, onClear);
 
   const showStatus = canEdit || canEditStatus;
 
   if (selectedIds.length === 0) return null;
 
-  const update = async (patch: TicketPatch, msg: string) => {
-    setBusy(true);
-    const { error } = await supabase.from("tickets").update(patch).in("id", selectedIds);
-    setBusy(false);
-    if (error) return toast.error(error.message);
-    toast.success(
-      `${msg} for ${selectedIds.length} ticket${selectedIds.length === 1 ? "" : "s"}`
-    );
-  };
-
-  const setStatus = (status_id: string | null) =>
-    update({ status_id, project_status_override: status_id !== null }, "Status updated");
-  const setEpic = (epic_id: number | null) => update({ epic_id }, "Epic updated");
-  const setFeStatus = (fe_status: DisciplineStatus) =>
-    update({ fe_status }, "FE status updated");
-  const setBeStatus = (be_status: DisciplineStatus) =>
-    update({ be_status }, "BE status updated");
-
-  const applyVersion = async () => {
-    const v = versionVal.trim() || null;
-    await update({ version: v }, "Version updated");
-    setVersionOpen(false);
-    setVersionVal("");
-  };
-
-  const doDelete = async () => {
-    setBusy(true);
-    const { error } = await supabase.from("tickets").delete().in("id", selectedIds);
-    setBusy(false);
+  const confirmAndDelete = async () => {
     setConfirmDelete(false);
-    if (error) return toast.error(error.message);
-    toast.success(
-      `Deleted ${selectedIds.length} ticket${selectedIds.length === 1 ? "" : "s"}`
-    );
-    onClear();
+    await doDelete();
   };
+
 
   return (
     <>
@@ -163,58 +115,15 @@ export function BulkActionsBar({
 
           {canEdit && (
             <>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button
-                    disabled={busy}
-                    className="px-3 py-1.5 rounded-lg text-xs hover:bg-white/5 transition inline-flex items-center gap-1.5 text-dim hover:text-foreground"
-                  >
-                    <Layers className="h-3.5 w-3.5" /> Epic
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-56 p-1 max-h-72 overflow-auto" align="center" side="top">
-                  <div className="text-[10px] uppercase tracking-wider text-dimmer px-2 py-1.5">
-                    Set epic
-                  </div>
-                  <BulkMenuRow onClick={() => setEpic(null)}>
-                    <span className="text-dim">No epic</span>
-                  </BulkMenuRow>
-                  {epics.map((e) => (
-                    <BulkMenuRow key={e.id} onClick={() => setEpic(e.id)}>
-                      <span className="truncate">{e.epic_name ?? "Untitled epic"}</span>
-                    </BulkMenuRow>
-                  ))}
-                </PopoverContent>
-              </Popover>
+              <BulkEpicPopover epics={epics} busy={busy} onSetEpic={setEpic} />
+              <BulkVersionPopover
+                busy={busy}
+                onApply={async (v) => {
+                  await setVersion(v);
+                }}
+              />
 
-              <Popover open={versionOpen} onOpenChange={setVersionOpen}>
-                <PopoverTrigger asChild>
-                  <button
-                    disabled={busy}
-                    className="px-3 py-1.5 rounded-lg text-xs hover:bg-white/5 transition inline-flex items-center gap-1.5 text-dim hover:text-foreground"
-                  >
-                    <Hash className="h-3.5 w-3.5" /> Version
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-56 p-2" align="center" side="top">
-                  <div className="text-[10px] uppercase tracking-wider text-dimmer px-1 pb-1.5">
-                    Set version
-                  </div>
-                  <Input
-                    autoFocus
-                    value={versionVal}
-                    onChange={(e) => setVersionVal(e.target.value)}
-                    placeholder="e.g. v1 (blank to clear)"
-                    className="h-8 text-xs"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") applyVersion();
-                    }}
-                  />
-                  <Button size="sm" className="w-full mt-2 h-7 text-xs" onClick={applyVersion}>
-                    Apply
-                  </Button>
-                </PopoverContent>
-              </Popover>
+
 
               <div className="w-px h-6 bg-white/10 mx-1" />
 
@@ -261,7 +170,7 @@ export function BulkActionsBar({
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={doDelete}
+              onClick={confirmAndDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete
