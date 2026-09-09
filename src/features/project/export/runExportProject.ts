@@ -1,21 +1,9 @@
-import { format } from "date-fns";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import type { Project } from "@/lib/types";
+import { formatInTz, startOfDayInTz, endOfDayInTz, REPORTING_TZ } from "@/lib/reportingTz";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
-function endOfDay(d: Date) {
-  const x = new Date(d);
-  x.setHours(23, 59, 59, 999);
-  return x;
-}
-
-function startOfDay(d: Date) {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
-}
 
 interface RunArgs {
   project: Project;
@@ -29,8 +17,10 @@ interface RunArgs {
 export async function runExportProject({
   project, asOf, from, includeTickets, includeChanges, includeLogs,
 }: RunArgs): Promise<{ ok: true; filename: string } | { ok: false; error: string }> {
-  const cutoff = endOfDay(asOf).toISOString();
-  const fromIso = from ? startOfDay(from).toISOString() : null;
+  // Client-facing boundaries use UK time: from 00:00 UK on the From date
+  // through 23:59:59.999 UK on the As-of date.
+  const cutoff = endOfDayInTz(asOf).toISOString();
+  const fromIso = from ? startOfDayInTz(from).toISOString() : null;
 
   let ticketsQuery = supabase
     .from("tickets")
@@ -112,7 +102,7 @@ export async function runExportProject({
         .join(", ");
       return [
         t.formatted_id, t.ticket_type, t.title, t.epic?.epic_name ?? "",
-        format(new Date(t.created_at), "yyyy-MM-dd"),
+        formatInTz(new Date(t.created_at), "yyyy-MM-dd"),
         feOrig, beOrig, projOrig,
         feOrig + d.FE, beOrig + d.BE, Number(t.current_project_estimate) || projOrig,
         t.fe_status, t.be_status, a.FE, a.BE, a.Project, assignees,
@@ -139,8 +129,8 @@ export async function runExportProject({
       c.ticket?.title ?? "", c.ticket?.epic?.epic_name ?? "",
       c.discipline, Number(c.previous_hours) || 0, Number(c.new_hours) || 0,
       Number(c.delta) || 0, c.status, c.user?.name ?? "", c.reason ?? "",
-      format(new Date(c.created_at), "yyyy-MM-dd HH:mm"),
-      format(new Date(c.created_at), "yyyy-MM-dd HH:mm"),
+      formatInTz(new Date(c.created_at), "yyyy-MM-dd HH:mm"),
+      formatInTz(new Date(c.created_at), "yyyy-MM-dd HH:mm"),
     ]);
     const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
     ws["!cols"] = [
@@ -161,8 +151,8 @@ export async function runExportProject({
       l.ticket?.title ?? "", l.ticket?.epic?.epic_name ?? "",
       l.discipline, Number(l.hours) || 0, l.user?.name ?? "",
       l.source, l.note ?? "",
-      format(new Date(l.logged_at), "yyyy-MM-dd HH:mm"),
-      l.created_at ? format(new Date(l.created_at), "yyyy-MM-dd HH:mm") : "",
+      formatInTz(new Date(l.logged_at), "yyyy-MM-dd HH:mm"),
+      l.created_at ? formatInTz(new Date(l.created_at), "yyyy-MM-dd HH:mm") : "",
     ]);
     const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
     ws["!cols"] = [
@@ -178,8 +168,10 @@ export async function runExportProject({
   }
 
   const filename = from
-    ? `${project.acronym}-export-${format(from, "yyyy-MM-dd")}-to-${format(asOf, "yyyy-MM-dd")}.xlsx`
-    : `${project.acronym}-export-${format(asOf, "yyyy-MM-dd")}.xlsx`;
+    ? `${project.acronym}-export-${formatInTz(from, "yyyy-MM-dd")}-to-${formatInTz(asOf, "yyyy-MM-dd")}.xlsx`
+    : `${project.acronym}-export-${formatInTz(asOf, "yyyy-MM-dd")}.xlsx`;
   XLSX.writeFile(wb, filename);
   return { ok: true, filename };
 }
+
+export { REPORTING_TZ };

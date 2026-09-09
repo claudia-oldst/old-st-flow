@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import type { Project } from "@/lib/types";
 import { MultiSelectFilter } from "@/features/estimates/MultiSelectFilter";
 import { useProjectVersions } from "./useProjectVersions";
+import { reportingEndOfDay } from "@/lib/reportingTz";
 
 interface Props {
   project: Project | null;
@@ -56,7 +57,7 @@ export function PortalToolbar({
           <Calendar
             mode="single"
             selected={asOf}
-            onSelect={(d) => d && setAsOf(d)}
+            onSelect={(d) => d && setAsOf(reportingEndOfDay(d))}
             disabled={(d) => d > new Date()}
             initialFocus
             className={cn("p-3 pointer-events-auto")}

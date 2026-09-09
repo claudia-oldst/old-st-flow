@@ -16,6 +16,7 @@ vi.mock("xlsx", () => {
 import { setSupabaseHandler, resetSupabaseHandler, clearRecordedChains, recordedChains } from "@/test/mocks/supabase";
 import * as XLSX from "xlsx";
 import { runExportProject } from "./runExportProject";
+import { startOfDayInTz, endOfDayInTz } from "@/lib/reportingTz";
 import type { Project } from "@/lib/types";
 
 const project = { id: "p-1", acronym: "OLD" } as unknown as Project;
@@ -168,8 +169,7 @@ describe("runExportProject", () => {
     });
     expect(out).toEqual({ ok: true, filename: "OLD-export-2024-01-01-to-2024-06-15.xlsx" });
 
-    const fromGte = new Date("2024-01-01T12:30:00");
-    fromGte.setHours(0, 0, 0, 0);
+    const fromGte = startOfDayInTz(new Date("2024-01-01T12:30:00"));
     for (const [table, col] of [
       ["tickets", "created_at"],
       ["ticket_estimate_changes", "created_at"],
@@ -181,5 +181,12 @@ describe("runExportProject", () => {
         args: [col, fromGte.toISOString()],
       });
     }
+
+    // cutoff (lte) is the UK end-of-day for the as-of date
+    const cutoff = endOfDayInTz(new Date("2024-06-15")).toISOString();
+    expect(recordedChains.find((c) => c.table === "time_logs")?.ops).toContainEqual({
+      fn: "lte",
+      args: ["logged_at", cutoff],
+    });
   });
 });
