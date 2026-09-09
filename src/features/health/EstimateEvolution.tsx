@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { ALL_EPICS_KEY, NO_EPIC_KEY } from "./estimate-evolution/dateUtils";
 import { EpicRow } from "./estimate-evolution/EpicRow";
 import { useEstimateEvolution } from "./estimate-evolution/useEstimateEvolution";
+import { reportingEndOfDay } from "@/lib/reportingTz";
 
 interface EstimateEvolutionProps {
   projectId: string;
@@ -65,7 +66,7 @@ export function EstimateEvolution({
             <Calendar
               mode="single"
               selected={asOf}
-              onSelect={(d) => d && setAsOf(d)}
+              onSelect={(d) => d && setAsOf(reportingEndOfDay(d))}
               disabled={(d) => d > new Date()}
               initialFocus
             />
