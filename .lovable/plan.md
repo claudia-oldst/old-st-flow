@@ -10,7 +10,7 @@ Assigning a developer to a ticket should also commit that ticket to a sprint for
 - The people lists stay hidden until a sprint (or "No sprint") is picked, so the choice is always deliberate.
 - If the project has no sprints at all, the row shows a "Create a sprint" button that opens the project's Sprints tab, alongside the "No sprint" pill.
 - On save, every newly added Frontend/Backend person gets the ticket committed to their column in the chosen sprint (same result as dragging the ticket onto them in sprint planning). Picking "No sprint" assigns people without any sprint commitment.
-- Removing a person: on save, if that person has this ticket committed in any sprint, a short confirmation lists those sprints and defaults to clearing all of them, with the option to keep them. Commitments where they have already logged time are always kept so history stays intact.
+- People removed from the ticket have their commitment for the selected sprint removed too.
 
 **Bulk assign dialog (multiple tickets)**
 - Same sprint pills, same default, same hide-until-chosen behaviour — applied to every selected ticket.
