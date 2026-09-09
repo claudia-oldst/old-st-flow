@@ -155,21 +155,31 @@ describe("runExportProject", () => {
     expect(dataRow[8]).toBe(6);
   });
 
-  it("applies the from date as a 00:00 gte filter and includes created columns", async () => {
-    const filters: { table: string; method: string; value: unknown }[] = [];
-    setSupabaseHandler(({ table }) => {
-      return { data: [], error: null };
-    });
-    // Wrap handler to capture filter calls via the mock chain
+  it("applies the from date as a gte filter and includes created columns", async () => {
+    clearRecordedChains();
+    setSupabaseHandler(() => ({ data: [], error: null }));
     const out = await runExportProject({
       project,
       asOf: new Date("2024-06-15"),
-      from: new Date("2024-01-01"),
+      from: new Date("2024-01-01T12:30:00"),
       includeTickets: true,
       includeChanges: true,
       includeLogs: true,
     });
     expect(out).toEqual({ ok: true, filename: "OLD-export-2024-01-01-to-2024-06-15.xlsx" });
-    void filters;
+
+    const fromGte = new Date("2024-01-01T12:30:00");
+    fromGte.setHours(0, 0, 0, 0);
+    for (const [table, col] of [
+      ["tickets", "created_at"],
+      ["ticket_estimate_changes", "created_at"],
+      ["time_logs", "logged_at"],
+    ] as const) {
+      const chain = recordedChains.find((c) => c.table === table);
+      expect(chain?.ops).toContainEqual({
+        fn: "gte",
+        args: [col, fromGte.toISOString()],
+      });
+    }
   });
 });
