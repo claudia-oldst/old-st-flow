@@ -948,6 +948,7 @@ export type Database = {
           hours: number
           id: string
           logged_at: string
+          logged_tz: string | null
           logged_tz_offset: number | null
           note: string | null
           source: Database["public"]["Enums"]["log_source"]
@@ -960,6 +961,7 @@ export type Database = {
           hours: number
           id?: string
           logged_at?: string
+          logged_tz?: string | null
           logged_tz_offset?: number | null
           note?: string | null
           source?: Database["public"]["Enums"]["log_source"]
@@ -972,6 +974,7 @@ export type Database = {
           hours?: number
           id?: string
           logged_at?: string
+          logged_tz?: string | null
           logged_tz_offset?: number | null
           note?: string | null
           source?: Database["public"]["Enums"]["log_source"]
