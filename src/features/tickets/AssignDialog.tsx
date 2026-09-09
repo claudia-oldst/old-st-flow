@@ -164,8 +164,17 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
           </DialogTitle>
         </DialogHeader>
 
+        <div className="pt-1">
+          <SprintPicker
+            projectId={projectId}
+            sprints={sprints}
+            choice={choice}
+            onChange={setChoice}
+          />
+        </div>
+
         <div className="space-y-6 pt-2 max-h-[60vh] overflow-y-auto">
-          {isProj ? (
+          {!chosen ? null : isProj ? (
             <SlotPicker
               label="Team members"
               description="Anyone assigned can log time to this ticket's shared project estimate."
