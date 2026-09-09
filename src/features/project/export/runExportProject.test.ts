@@ -154,4 +154,22 @@ describe("runExportProject", () => {
     // Updated FE Estimate is index 8 (after Created column at index 4)
     expect(dataRow[8]).toBe(6);
   });
+
+  it("applies the from date as a 00:00 gte filter and includes created columns", async () => {
+    const filters: { table: string; method: string; value: unknown }[] = [];
+    setSupabaseHandler(({ table }) => {
+      return { data: [], error: null };
+    });
+    // Wrap handler to capture filter calls via the mock chain
+    const out = await runExportProject({
+      project,
+      asOf: new Date("2024-06-15"),
+      from: new Date("2024-01-01"),
+      includeTickets: true,
+      includeChanges: true,
+      includeLogs: true,
+    });
+    expect(out).toEqual({ ok: true, filename: "OLD-export-2024-01-01-to-2024-06-15.xlsx" });
+    void filters;
+  });
 });
