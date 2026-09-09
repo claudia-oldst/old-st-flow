@@ -19,6 +19,53 @@ Assigning a developer to a ticket should also commit that ticket to a sprint for
 - Project-type tickets and "Project contributors" are never committed to a sprint (sprints track Frontend/Backend work only); the sprint choice simply has no effect for them.
 - Existing commitments are left alone; nothing is duplicated if a person is already committed to that ticket in that sprint.
 
+## Wireframe
+
+Sprint chosen — people lists visible:
+
+```text
++---------------------------------------------------------------+
+|  Assign people                                          [x]   |
++---------------------------------------------------------------+
+|  Sprint                                                       |
+|  ( Sprint 6 ) (=Sprint 7=) ( Sprint 8 )  |  ( No sprint )     |
+|                    ^ hover: 28 Apr - 11 May                   |
+|---------------------------------------------------------------|
+|  Frontend            Drives FE estimates, status & timer.     |
+|  [ Ana ] [=Ben=] [ Chi ]                                      |
+|                                                               |
+|  Backend             Drives BE estimates, status & timer.      |
+|  [=Dev=] [ Eli ]                                              |
+|                                                               |
+|  Project contributors   QA, PMBA, Design — shared bucket.     |
+|  [ Fay ] [ Gus ]                                              |
++---------------------------------------------------------------+
+|                                      [ Cancel ]  [  Save  ]   |
++---------------------------------------------------------------+
+```
+
+No sprint picked yet — lists hidden:
+
+```text
++---------------------------------------------------------------+
+|  Assign people                                          [x]   |
++---------------------------------------------------------------+
+|  Sprint                                                       |
+|  ( Sprint 6 ) ( Sprint 7 ) ( Sprint 8 )  |  ( No sprint )     |
+|                                                               |
+|      Pick a sprint to choose who works on this ticket.        |
++---------------------------------------------------------------+
+|                                      [ Cancel ]  [  Save  ]   |
++---------------------------------------------------------------+
+```
+
+Project has no sprints:
+
+```text
+|  Sprint                                                       |
+|  ( No sprint )        [ + Create a sprint ]                   |
+```
+
 
 ## Technical notes
 
