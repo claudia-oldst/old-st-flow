@@ -100,8 +100,8 @@ export function useBulkAssign({
     setter(next);
   };
 
-  const hasProj = projTicketIds.size > 0;
-  const hasStandard = standardTicketIds.size > 0;
+  const hasProj = hasProjTickets;
+  const hasStandard = hasStandardTickets;
 
   // Helpers to compute partial / full for chip rendering.
   const partialFor = (slot: Slot): Set<string> => {
@@ -190,6 +190,7 @@ export function useBulkAssign({
     busy,
     hasProj,
     hasStandard,
+    listsVisible,
     partial,
     diff,
     handleSave,
