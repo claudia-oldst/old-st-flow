@@ -145,6 +145,18 @@ export function useBulkAssign({
 
     await resetUnassignedDisciplineStatuses(ticketIds, standardTicketIds);
 
+    await syncSprintCommitments(
+      sprint.sprintId,
+      inserts.map((r) => ({ ticket_id: r.ticket_id, user_id: r.user_id, slot: r.slot })),
+      deletes.flatMap((d) =>
+        d.ticket_ids.map((tid) => ({
+          ticket_id: tid,
+          user_id: d.user_id,
+          slot: slotColumnFor(d.slot),
+        })),
+      ),
+    );
+
     setBusy(false);
     toast.success(
       `Updated assignees on ${ticketIds.length} ticket${ticketIds.length === 1 ? "" : "s"}`,
