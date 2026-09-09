@@ -53,7 +53,6 @@ No sprint picked yet — lists hidden:
 |  Sprint                                                       |
 |  ( Sprint 6 ) ( Sprint 7 ) ( Sprint 8 )  |  ( No sprint )     |
 |                                                               |
-|      Pick a sprint to choose who works on this ticket.        |
 +---------------------------------------------------------------+
 |                                      [ Cancel ]  [  Save  ]   |
 +---------------------------------------------------------------+
