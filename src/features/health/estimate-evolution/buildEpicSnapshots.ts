@@ -94,7 +94,8 @@ export function buildEpicSnapshots({
   });
 
   discounts.forEach((d) => {
-    if (new Date(d.created_at).getTime() > asOfMs) return;
+    const effAt = new Date(d.applied_at ?? d.created_at).getTime();
+    if (effAt > asOfMs) return;
     const key = `e:${d.epic_id}`;
     const g = groups.get(key);
     if (!g) return;
