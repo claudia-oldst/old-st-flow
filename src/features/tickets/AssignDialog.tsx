@@ -39,7 +39,7 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
   const [busy, setBusy] = useState(false);
   const [repoPromptOpen, setRepoPromptOpen] = useState(false);
   const [projectRepoUrl, setProjectRepoUrl] = useState<string | null>(null);
-  const { sprints, choice, setChoice, sprintId, chosen } = useSprintChoice(projectId, open);
+  const { sprints, choice, setChoice, sprintId, chosen } = useSprintChoice(projectId, open, isProj);
 
   useEffect(() => {
     if (!open) return;
@@ -164,14 +164,16 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
           </DialogTitle>
         </DialogHeader>
 
-        <div className="pt-1">
-          <SprintPicker
-            projectId={projectId}
-            sprints={sprints}
-            choice={choice}
-            onChange={setChoice}
-          />
-        </div>
+        {!isProj && (
+          <div className="pt-1">
+            <SprintPicker
+              projectId={projectId}
+              sprints={sprints}
+              choice={choice}
+              onChange={setChoice}
+            />
+          </div>
+        )}
 
         <div className="space-y-6 pt-2 max-h-[60vh] overflow-y-auto">
           {!chosen ? null : isProj ? (

@@ -37,7 +37,14 @@ export function useBulkAssign({
   const [busy, setBusy] = useState(false);
   const [projTicketIds, setProjTicketIds] = useState<Set<string>>(new Set());
   const [standardTicketIds, setStandardTicketIds] = useState<Set<string>>(new Set());
-  const sprint = useSprintChoice(projectId, open);
+  // Sprint commitments only apply to non-Proj tickets.
+  const hasProjTickets = projTicketIds.size > 0;
+  const hasStandardTickets = standardTicketIds.size > 0;
+  const sprint = useSprintChoice(projectId, open, !hasStandardTickets);
+  // Only a pure standard selection has to pick a sprint before showing people.
+  const listsVisible = sprint.chosen || hasProjTickets;
+
+
 
 
   // existing[slot][userId] = Set of ticketIds the user is currently assigned on
@@ -93,8 +100,8 @@ export function useBulkAssign({
     setter(next);
   };
 
-  const hasProj = projTicketIds.size > 0;
-  const hasStandard = standardTicketIds.size > 0;
+  const hasProj = hasProjTickets;
+  const hasStandard = hasStandardTickets;
 
   // Helpers to compute partial / full for chip rendering.
   const partialFor = (slot: Slot): Set<string> => {
@@ -183,6 +190,7 @@ export function useBulkAssign({
     busy,
     hasProj,
     hasStandard,
+    listsVisible,
     partial,
     diff,
     handleSave,
