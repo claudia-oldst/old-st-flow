@@ -47,6 +47,7 @@ export function BulkAssignDialog({
     partial,
     diff,
     handleSave,
+    sprint,
   } = useBulkAssign({
     open,
     projectId,
