@@ -213,7 +213,7 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSave} disabled={busy}>Save</Button>
+          <Button onClick={handleSave} disabled={busy || !chosen}>Save</Button>
         </DialogFooter>
       </DialogContent>
       <GithubRepoPrompt
