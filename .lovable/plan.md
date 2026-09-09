@@ -5,19 +5,20 @@ Assigning a developer to a ticket should also commit that ticket to a sprint for
 ## What changes
 
 **Assign people dialog (single ticket)**
-- A new "Sprint" selector at the top of the dialog, listing the project's sprints.
-- Defaults to the sprint covering today's date. If no sprint covers today, the next upcoming one is pre-selected; if there are none, the picker shows "No sprints yet".
-- Choosing a sprint is required: Save is disabled with a short hint whenever a Frontend or Backend person is selected and no sprint is chosen.
-- On save, every newly added Frontend/Backend person gets the ticket committed to their column in that sprint (same result as dragging the ticket onto them in sprint planning).
+- A new "Sprint" row of pills at the top of the dialog: one pill per sprint, plus a "No sprint" pill.
+- Defaults to the sprint covering today's date. If no sprint covers today, the next upcoming one is pre-selected.
+- The people lists stay hidden until a sprint (or "No sprint") is picked, so the choice is always deliberate.
+- If the project has no sprints at all, the row shows a "Create a sprint" button that opens the project's Sprints tab, alongside the "No sprint" pill.
+- On save, every newly added Frontend/Backend person gets the ticket committed to their column in the chosen sprint (same result as dragging the ticket onto them in sprint planning). Picking "No sprint" assigns people without any sprint commitment.
 - People removed from the ticket have their commitment for that sprint removed too.
 
 **Bulk assign dialog (multiple tickets)**
-- Same sprint selector, same default, same requirement — applied to every selected ticket.
+- Same sprint pills, same default, same hide-until-chosen behaviour — applied to every selected ticket.
 
 **Scope rules**
-- Project-type tickets and "Project contributors" are never committed to a sprint (sprints track Frontend/Backend work only), so the sprint requirement does not apply when only those are being assigned.
+- Project-type tickets and "Project contributors" are never committed to a sprint (sprints track Frontend/Backend work only); the sprint choice simply has no effect for them.
 - Existing commitments are left alone; nothing is duplicated if a person is already committed to that ticket in that sprint.
-- If a project has no sprints, assignment still works exactly as it does today.
+
 
 ## Technical notes
 
