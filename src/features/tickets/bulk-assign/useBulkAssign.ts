@@ -36,6 +36,8 @@ export function useBulkAssign({
   const [busy, setBusy] = useState(false);
   const [projTicketIds, setProjTicketIds] = useState<Set<string>>(new Set());
   const [standardTicketIds, setStandardTicketIds] = useState<Set<string>>(new Set());
+  const sprint = useSprintChoice(projectId, open);
+
 
   // existing[slot][userId] = Set of ticketIds the user is currently assigned on
   const [existing, setExisting] = useState<SlotMaps>(emptySlotMaps());
