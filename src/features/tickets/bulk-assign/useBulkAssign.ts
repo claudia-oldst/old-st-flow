@@ -12,6 +12,8 @@ import {
   type SlotJob,
   type SlotMaps,
 } from "./bulkAssignOps";
+import { useSprintChoice } from "../assign/useSprintChoice";
+import { syncSprintCommitments } from "../assign/syncSprintCommitments";
 
 export function useBulkAssign({
   open,
