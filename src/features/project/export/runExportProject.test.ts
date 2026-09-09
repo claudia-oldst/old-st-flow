@@ -13,7 +13,7 @@ vi.mock("xlsx", () => {
   return { writeFile, utils };
 });
 
-import { setSupabaseHandler, resetSupabaseHandler, clearRecordedChains } from "@/test/mocks/supabase";
+import { setSupabaseHandler, resetSupabaseHandler, clearRecordedChains, recordedChains } from "@/test/mocks/supabase";
 import * as XLSX from "xlsx";
 import { runExportProject } from "./runExportProject";
 import type { Project } from "@/lib/types";
