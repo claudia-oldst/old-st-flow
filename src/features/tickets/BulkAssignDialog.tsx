@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Users } from "lucide-react";
 import { BulkAssignSlot } from "./bulk-assign/BulkAssignSlot";
+import { SprintPicker } from "./assign/SprintPicker";
 import { useBulkAssign } from "./bulk-assign/useBulkAssign";
 
 interface Props {

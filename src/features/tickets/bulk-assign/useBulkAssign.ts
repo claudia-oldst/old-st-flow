@@ -8,6 +8,7 @@ import {
   emptySlotMaps,
   loadBulkAssignState,
   resetUnassignedDisciplineStatuses,
+  slotColumnFor,
   type Slot,
   type SlotJob,
   type SlotMaps,
