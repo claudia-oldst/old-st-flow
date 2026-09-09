@@ -11,44 +11,59 @@ function endOfDay(d: Date) {
   return x;
 }
 
+function startOfDay(d: Date) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
 interface RunArgs {
   project: Project;
   asOf: Date;
+  from?: Date | null;
   includeTickets: boolean;
   includeChanges: boolean;
   includeLogs: boolean;
 }
 
 export async function runExportProject({
-  project, asOf, includeTickets, includeChanges, includeLogs,
+  project, asOf, from, includeTickets, includeChanges, includeLogs,
 }: RunArgs): Promise<{ ok: true; filename: string } | { ok: false; error: string }> {
   const cutoff = endOfDay(asOf).toISOString();
+  const fromIso = from ? startOfDay(from).toISOString() : null;
+
+  let ticketsQuery = supabase
+    .from("tickets")
+    .select(
+      "id,formatted_id,title,ticket_type,fe_status,be_status,original_fe_estimate,original_be_estimate,original_project_estimate,current_project_estimate,created_at,epic:project_epics(epic_name),assignees:ticket_assignees(slot,member:team_members(name))"
+    )
+    .eq("project_id", project.id)
+    .lte("created_at", cutoff)
+    .order("ticket_number", { ascending: true });
+  if (fromIso) ticketsQuery = ticketsQuery.gte("created_at", fromIso);
+
+  let changesQuery = supabase
+    .from("ticket_estimate_changes")
+    .select(
+      "id,ticket_id,discipline,previous_hours,new_hours,delta,reason,status,created_at,user:team_members(name),ticket:tickets!inner(formatted_id,title,ticket_type,project_id,epic:project_epics(epic_name))"
+    )
+    .eq("ticket.project_id", project.id)
+    .lte("created_at", cutoff)
+    .order("created_at", { ascending: true });
+  if (fromIso) changesQuery = changesQuery.gte("created_at", fromIso);
+
+  let logsQuery = supabase
+    .from("time_logs")
+    .select(
+      "id,ticket_id,hours,discipline,note,source,logged_at,created_at,user:team_members(name),ticket:tickets!inner(formatted_id,title,ticket_type,project_id,epic:project_epics(epic_name))"
+    )
+    .eq("ticket.project_id", project.id)
+    .lte("logged_at", cutoff)
+    .order("logged_at", { ascending: true });
+  if (fromIso) logsQuery = logsQuery.gte("logged_at", fromIso);
 
   const [ticketsRes, changesRes, logsRes] = await Promise.all([
-    supabase
-      .from("tickets")
-      .select(
-        "id,formatted_id,title,ticket_type,fe_status,be_status,original_fe_estimate,original_be_estimate,original_project_estimate,current_project_estimate,created_at,epic:project_epics(epic_name),assignees:ticket_assignees(slot,member:team_members(name))"
-      )
-      .eq("project_id", project.id)
-      .lte("created_at", cutoff)
-      .order("ticket_number", { ascending: true }),
-    supabase
-      .from("ticket_estimate_changes")
-      .select(
-        "id,ticket_id,discipline,previous_hours,new_hours,delta,reason,status,created_at,user:team_members(name),ticket:tickets!inner(formatted_id,title,ticket_type,project_id,epic:project_epics(epic_name))"
-      )
-      .eq("ticket.project_id", project.id)
-      .lte("created_at", cutoff)
-      .order("created_at", { ascending: true }),
-    supabase
-      .from("time_logs")
-      .select(
-        "id,ticket_id,hours,discipline,note,source,logged_at,user:team_members(name),ticket:tickets!inner(formatted_id,title,ticket_type,project_id,epic:project_epics(epic_name))"
-      )
-      .eq("ticket.project_id", project.id)
-      .lte("logged_at", cutoff)
-      .order("logged_at", { ascending: true }),
+    ticketsQuery, changesQuery, logsQuery,
   ]);
 
   if (ticketsRes.error) return { ok: false, error: ticketsRes.error.message };
@@ -81,7 +96,7 @@ export async function runExportProject({
 
   if (includeTickets) {
     const header = [
-      "Ticket ID","Ticket Type","Ticket Name","Epic",
+      "Ticket ID","Ticket Type","Ticket Name","Epic","Created",
       "FE Original Estimate","BE Original Estimate","Project Original Estimate",
       "Updated FE Estimate","Updated BE Estimate","Updated Project Estimate",
       "FE Status","BE Status","FE Actual","BE Actual","Project Actual","Assignees",
@@ -97,6 +112,7 @@ export async function runExportProject({
         .join(", ");
       return [
         t.formatted_id, t.ticket_type, t.title, t.epic?.epic_name ?? "",
+        format(new Date(t.created_at), "yyyy-MM-dd"),
         feOrig, beOrig, projOrig,
         feOrig + d.FE, beOrig + d.BE, Number(t.current_project_estimate) || projOrig,
         t.fe_status, t.be_status, a.FE, a.BE, a.Project, assignees,
@@ -104,7 +120,7 @@ export async function runExportProject({
     });
     const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
     ws["!cols"] = [
-      { wch: 12 },{ wch: 10 },{ wch: 40 },{ wch: 18 },
+      { wch: 12 },{ wch: 10 },{ wch: 40 },{ wch: 18 },{ wch: 12 },
       { wch: 10 },{ wch: 10 },{ wch: 10 },
       { wch: 12 },{ wch: 12 },{ wch: 12 },
       { wch: 12 },{ wch: 12 },
@@ -116,7 +132,7 @@ export async function runExportProject({
   if (includeChanges) {
     const header = [
       "Ticket ID","Ticket Type","Ticket Name","Epic","Discipline",
-      "Previous Hours","New Hours","Delta","Status","Assignee Requested","Reason","Date",
+      "Previous Hours","New Hours","Delta","Status","Assignee Requested","Reason","Date","Created",
     ];
     const rows = changes.map((c) => [
       c.ticket?.formatted_id ?? "", c.ticket?.ticket_type ?? "",
@@ -124,12 +140,13 @@ export async function runExportProject({
       c.discipline, Number(c.previous_hours) || 0, Number(c.new_hours) || 0,
       Number(c.delta) || 0, c.status, c.user?.name ?? "", c.reason ?? "",
       format(new Date(c.created_at), "yyyy-MM-dd HH:mm"),
+      format(new Date(c.created_at), "yyyy-MM-dd HH:mm"),
     ]);
     const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
     ws["!cols"] = [
       { wch: 12 },{ wch: 10 },{ wch: 40 },{ wch: 18 },
       { wch: 10 },{ wch: 12 },{ wch: 10 },{ wch: 8 },
-      { wch: 10 },{ wch: 20 },{ wch: 50 },{ wch: 18 },
+      { wch: 10 },{ wch: 20 },{ wch: 50 },{ wch: 18 },{ wch: 18 },
     ];
     XLSX.utils.book_append_sheet(wb, ws, "Change Requests");
   }
@@ -137,7 +154,7 @@ export async function runExportProject({
   if (includeLogs) {
     const header = [
       "Ticket ID","Ticket Type","Ticket Name","Epic","Discipline",
-      "Hours Logged","Assignee Logged","Source","Note","Date",
+      "Hours Logged","Assignee Logged","Source","Note","Log Date","Created",
     ];
     const rows = logs.map((l) => [
       l.ticket?.formatted_id ?? "", l.ticket?.ticket_type ?? "",
@@ -145,12 +162,13 @@ export async function runExportProject({
       l.discipline, Number(l.hours) || 0, l.user?.name ?? "",
       l.source, l.note ?? "",
       format(new Date(l.logged_at), "yyyy-MM-dd HH:mm"),
+      l.created_at ? format(new Date(l.created_at), "yyyy-MM-dd HH:mm") : "",
     ]);
     const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
     ws["!cols"] = [
       { wch: 12 },{ wch: 10 },{ wch: 40 },{ wch: 18 },
       { wch: 10 },{ wch: 12 },{ wch: 20 },{ wch: 10 },
-      { wch: 50 },{ wch: 18 },
+      { wch: 50 },{ wch: 18 },{ wch: 18 },
     ];
     XLSX.utils.book_append_sheet(wb, ws, "Time Logs");
   }
@@ -159,7 +177,9 @@ export async function runExportProject({
     return { ok: false, error: "Select at least one tab to export" };
   }
 
-  const filename = `${project.acronym}-export-${format(asOf, "yyyy-MM-dd")}.xlsx`;
+  const filename = from
+    ? `${project.acronym}-export-${format(from, "yyyy-MM-dd")}-to-${format(asOf, "yyyy-MM-dd")}.xlsx`
+    : `${project.acronym}-export-${format(asOf, "yyyy-MM-dd")}.xlsx`;
   XLSX.writeFile(wb, filename);
   return { ok: true, filename };
 }
