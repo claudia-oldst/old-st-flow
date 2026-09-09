@@ -12,6 +12,9 @@ import type { ProjectMember, TeamMember } from "@/lib/types";
 import { Users } from "lucide-react";
 import { toast } from "sonner";
 import { SlotPicker } from "./assign/SlotPicker";
+import { SprintPicker } from "./assign/SprintPicker";
+import { useSprintChoice } from "./assign/useSprintChoice";
+import { syncSprintCommitments } from "./assign/syncSprintCommitments";
 import { GithubRepoPrompt } from "@/features/github/GithubRepoPrompt";
 
 type Slot = "FE" | "BE" | "Project";
