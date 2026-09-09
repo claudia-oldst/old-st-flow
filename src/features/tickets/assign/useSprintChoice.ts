@@ -22,22 +22,29 @@ function defaultSprintId(sprints: Sprint[]): SprintChoice {
  * project has no sprints, which keeps the people lists hidden until the user
  * chooses "No sprint" or creates one.
  */
-export function useSprintChoice(projectId: string, open: boolean) {
-  const { data: sprints = [] } = useSprints(open ? projectId : undefined);
+export function useSprintChoice(projectId: string, open: boolean, skip = false) {
+  const { data: sprints = [] } = useSprints(open && !skip ? projectId : undefined);
   const [choice, setChoice] = useState<SprintChoice>("");
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || skip) return;
     setChoice((prev) => (prev ? prev : defaultSprintId(sprints)));
-  }, [open, sprints]);
+  }, [open, skip, sprints]);
 
   useEffect(() => {
     if (!open) setChoice("");
   }, [open]);
 
-  const sprintId = choice && choice !== "none" ? choice : null;
+  const sprintId = !skip && choice && choice !== "none" ? choice : null;
   return useMemo(
-    () => ({ sprints, choice, setChoice, sprintId, chosen: choice !== "" }),
-    [sprints, choice, sprintId],
+    () => ({
+      sprints: skip ? [] : sprints,
+      choice: skip ? ("none" as SprintChoice) : choice,
+      setChoice,
+      sprintId,
+      chosen: skip || choice !== "",
+    }),
+    [sprints, choice, sprintId, skip],
   );
 }
+
