@@ -185,5 +185,6 @@ export function useBulkAssign({
     partial,
     diff,
     handleSave,
+    sprint,
   };
 }
