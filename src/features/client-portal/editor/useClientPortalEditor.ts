@@ -46,8 +46,9 @@ export function useClientPortalEditor(projectId: string) {
     >();
     for (const c of changes) {
       if (c.status !== "approved") continue;
-      const occurredAt = new Date(c.created_at).getTime();
-      if (occurredAt > cutoffMs) continue;
+      // Approved CRs take effect at cr_effective_at; fall back to created_at.
+      const effectiveAt = new Date(c.cr_effective_at ?? c.created_at).getTime();
+      if (effectiveAt > cutoffMs) continue;
       const epicId = ticketEpic.get(c.ticket_id);
       if (epicId == null) continue;
       const entry = map.get(epicId) ?? { delta: 0, rows: [] };
