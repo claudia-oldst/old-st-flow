@@ -90,7 +90,7 @@ export function BulkAssignDialog({
         )}
 
         <div className="space-y-6 pt-2 max-h-[50vh] overflow-y-auto">
-          {sprint.chosen && hasStandard && (
+          {listsVisible && hasStandard && (
             <>
               <BulkAssignSlot
                 label="Frontend"
@@ -115,7 +115,7 @@ export function BulkAssignDialog({
               />
             </>
           )}
-          {sprint.chosen && hasProj && (
+          {listsVisible && hasProj && (
             <BulkAssignSlot
               label={`Project team${hasStandard ? " (Proj tickets only)" : ""}`}
               members={otherEligible}
@@ -140,7 +140,7 @@ export function BulkAssignDialog({
           </div>
           <div className="flex gap-2">
             <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button onClick={handleSave} disabled={busy || noChanges || !sprint.chosen}>
+            <Button onClick={handleSave} disabled={busy || noChanges || !listsVisible}>
               Save assignments
             </Button>
           </div>
