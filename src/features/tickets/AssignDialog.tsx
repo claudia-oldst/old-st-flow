@@ -164,14 +164,16 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
           </DialogTitle>
         </DialogHeader>
 
-        <div className="pt-1">
-          <SprintPicker
-            projectId={projectId}
-            sprints={sprints}
-            choice={choice}
-            onChange={setChoice}
-          />
-        </div>
+        {!isProj && (
+          <div className="pt-1">
+            <SprintPicker
+              projectId={projectId}
+              sprints={sprints}
+              choice={choice}
+              onChange={setChoice}
+            />
+          </div>
+        )}
 
         <div className="space-y-6 pt-2 max-h-[60vh] overflow-y-auto">
           {!chosen ? null : isProj ? (
