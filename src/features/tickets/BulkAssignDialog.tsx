@@ -48,6 +48,7 @@ export function BulkAssignDialog({
     diff,
     handleSave,
     sprint,
+    listsVisible,
   } = useBulkAssign({
     open,
     projectId,
@@ -77,14 +78,16 @@ export function BulkAssignDialog({
           </div>
         )}
 
-        <div className="pt-1">
-          <SprintPicker
-            projectId={projectId}
-            sprints={sprint.sprints}
-            choice={sprint.choice}
-            onChange={sprint.setChoice}
-          />
-        </div>
+        {hasStandard && (
+          <div className="pt-1">
+            <SprintPicker
+              projectId={projectId}
+              sprints={sprint.sprints}
+              choice={sprint.choice}
+              onChange={sprint.setChoice}
+            />
+          </div>
+        )}
 
         <div className="space-y-6 pt-2 max-h-[50vh] overflow-y-auto">
           {sprint.chosen && hasStandard && (
