@@ -39,6 +39,7 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
   const [busy, setBusy] = useState(false);
   const [repoPromptOpen, setRepoPromptOpen] = useState(false);
   const [projectRepoUrl, setProjectRepoUrl] = useState<string | null>(null);
+  const { sprints, choice, setChoice, sprintId, chosen } = useSprintChoice(projectId, open);
 
   useEffect(() => {
     if (!open) return;
