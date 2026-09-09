@@ -10,7 +10,7 @@ Assigning a developer to a ticket should also commit that ticket to a sprint for
 - The people lists stay hidden until a sprint (or "No sprint") is picked, so the choice is always deliberate.
 - If the project has no sprints at all, the row shows a "Create a sprint" button that opens the project's Sprints tab, alongside the "No sprint" pill.
 - On save, every newly added Frontend/Backend person gets the ticket committed to their column in the chosen sprint (same result as dragging the ticket onto them in sprint planning). Picking "No sprint" assigns people without any sprint commitment.
-- People removed from the ticket have their commitment for that sprint removed too.
+- Removing a person: on save, if that person has this ticket committed in any sprint, a short confirmation lists those sprints and defaults to clearing all of them, with the option to keep them. Commitments where they have already logged time are always kept so history stays intact.
 
 **Bulk assign dialog (multiple tickets)**
 - Same sprint pills, same default, same hide-until-chosen behaviour — applied to every selected ticket.
@@ -23,7 +23,7 @@ Assigning a developer to a ticket should also commit that ticket to a sprint for
 ## Technical notes
 
 - Reuse `addTicketToLane(sprintId, ticketId, userId, slot)` from `src/features/sprints/dnd.ts` — it already inserts the `sprint_tickets` row with the right discipline and is idempotent.
-- Reuse `removeTicketFromSprint` logic for un-assignment: delete the matching `sprint_tickets` row for (sprint, ticket, user, discipline). Assignee cleanup already happens in the dialogs' own diff.
+- Removal path: query `sprint_tickets` for (ticket, user, discipline) across all sprints to build the confirmation list; delete the chosen rows. Reuse the `cleanupAssignee` guard in `dnd.ts` — rows with existing `time_logs` for that (ticket, user, discipline) are preserved.
 - Sprint list comes from the existing sprints query for the project (`useSprintBoard` helpers); default selection picks the sprint where `start_date <= today <= end_date`, else the earliest sprint with `start_date > today`.
 - Wiring points: `src/features/tickets/AssignDialog.tsx` (add picker + gate `handleSave`/`performSave`) and `src/features/tickets/bulk-assign/useBulkAssign.ts` + `BulkAssignDialog.tsx`.
 - No schema, RLS, or trigger changes — `sprint_tickets` already has `discipline` and per-dev rows.
