@@ -39,7 +39,8 @@ export function ExportProjectDialog({ open, onOpenChange, project }: Props) {
     setBusy(true);
     try {
       const res = await runExportProject({
-        project, asOf, includeTickets, includeChanges, includeLogs,
+        project, asOf, from: fromDate ? new Date(fromDate) : null,
+        includeTickets, includeChanges, includeLogs,
       });
       if ("error" in res) {
         toast.error(res.error);
@@ -101,7 +102,8 @@ export function ExportProjectDialog({ open, onOpenChange, project }: Props) {
           </div>
 
           <p className="text-xs text-dimmer">
-            Estimates and actuals are computed as of the selected date.
+            Time logs included from 00:00 on the From date through 23:59 on the As-of date.
+            Clear the From date to export all history.
           </p>
 
           <div className="space-y-2 pt-1">

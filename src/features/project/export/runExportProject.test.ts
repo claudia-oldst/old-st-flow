@@ -13,7 +13,7 @@ vi.mock("xlsx", () => {
   return { writeFile, utils };
 });
 
-import { setSupabaseHandler, resetSupabaseHandler } from "@/test/mocks/supabase";
+import { setSupabaseHandler, resetSupabaseHandler, clearRecordedChains, recordedChains } from "@/test/mocks/supabase";
 import * as XLSX from "xlsx";
 import { runExportProject } from "./runExportProject";
 import type { Project } from "@/lib/types";
@@ -31,6 +31,7 @@ describe("runExportProject", () => {
     const out = await runExportProject({
       project,
       asOf: new Date("2024-06-15"),
+      from: null,
       includeTickets: false,
       includeChanges: false,
       includeLogs: false,
@@ -48,6 +49,7 @@ describe("runExportProject", () => {
     const out = await runExportProject({
       project,
       asOf: new Date("2024-06-15"),
+      from: null,
       includeTickets: true,
       includeChanges: true,
       includeLogs: true,
@@ -135,6 +137,7 @@ describe("runExportProject", () => {
     const out = await runExportProject({
       project,
       asOf: new Date("2024-06-15"),
+      from: null,
       includeTickets: true,
       includeChanges: true,
       includeLogs: true,
@@ -148,7 +151,35 @@ describe("runExportProject", () => {
     const ticketsSheetCall = (XLSX.utils.aoa_to_sheet as unknown as { mock: { calls: unknown[][] } }).mock.calls[0];
     const ticketsRows = ticketsSheetCall[0] as unknown[][];
     const dataRow = ticketsRows[1] as unknown[];
-    // Updated FE Estimate is index 7 (after header 0-indexed: id,type,name,epic,feOrig,beOrig,projOrig,UpdatedFE,...)
-    expect(dataRow[7]).toBe(6);
+    // Updated FE Estimate is index 8 (after Created column at index 4)
+    expect(dataRow[8]).toBe(6);
+  });
+
+  it("applies the from date as a gte filter and includes created columns", async () => {
+    clearRecordedChains();
+    setSupabaseHandler(() => ({ data: [], error: null }));
+    const out = await runExportProject({
+      project,
+      asOf: new Date("2024-06-15"),
+      from: new Date("2024-01-01T12:30:00"),
+      includeTickets: true,
+      includeChanges: true,
+      includeLogs: true,
+    });
+    expect(out).toEqual({ ok: true, filename: "OLD-export-2024-01-01-to-2024-06-15.xlsx" });
+
+    const fromGte = new Date("2024-01-01T12:30:00");
+    fromGte.setHours(0, 0, 0, 0);
+    for (const [table, col] of [
+      ["tickets", "created_at"],
+      ["ticket_estimate_changes", "created_at"],
+      ["time_logs", "logged_at"],
+    ] as const) {
+      const chain = recordedChains.find((c) => c.table === table);
+      expect(chain?.ops).toContainEqual({
+        fn: "gte",
+        args: [col, fromGte.toISOString()],
+      });
+    }
   });
 });
