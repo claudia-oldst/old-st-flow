@@ -37,7 +37,14 @@ export function useBulkAssign({
   const [busy, setBusy] = useState(false);
   const [projTicketIds, setProjTicketIds] = useState<Set<string>>(new Set());
   const [standardTicketIds, setStandardTicketIds] = useState<Set<string>>(new Set());
-  const sprint = useSprintChoice(projectId, open);
+  // Sprint commitments only apply to non-Proj tickets.
+  const hasProjTickets = projTicketIds.size > 0;
+  const hasStandardTickets = standardTicketIds.size > 0;
+  const sprint = useSprintChoice(projectId, open, !hasStandardTickets);
+  // Only a pure standard selection has to pick a sprint before showing people.
+  const listsVisible = sprint.chosen || hasProjTickets;
+
+
 
 
   // existing[slot][userId] = Set of ticketIds the user is currently assigned on
