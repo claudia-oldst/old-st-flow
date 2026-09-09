@@ -12,6 +12,9 @@ import type { ProjectMember, TeamMember } from "@/lib/types";
 import { Users } from "lucide-react";
 import { toast } from "sonner";
 import { SlotPicker } from "./assign/SlotPicker";
+import { SprintPicker } from "./assign/SprintPicker";
+import { useSprintChoice } from "./assign/useSprintChoice";
+import { syncSprintCommitments } from "./assign/syncSprintCommitments";
 import { GithubRepoPrompt } from "@/features/github/GithubRepoPrompt";
 
 type Slot = "FE" | "BE" | "Project";
@@ -36,6 +39,7 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
   const [busy, setBusy] = useState(false);
   const [repoPromptOpen, setRepoPromptOpen] = useState(false);
   const [projectRepoUrl, setProjectRepoUrl] = useState<string | null>(null);
+  const { sprints, choice, setChoice, sprintId, chosen } = useSprintChoice(projectId, open);
 
   useEffect(() => {
     if (!open) return;
@@ -114,6 +118,14 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
     }
 
     if (!isProj) {
+      await syncSprintCommitments(
+        sprintId,
+        toAdd.map((r) => ({ ticket_id: ticketId, user_id: r.user_id, slot: r.slot })),
+        toRemove.map((r) => ({ ticket_id: ticketId, user_id: r.user_id, slot: r.slot })),
+      );
+    }
+
+    if (!isProj) {
       // If a slot lost its last assignee in this save, reset that slot's status to "todo"
       // so an unassigned slot can't keep influencing the auto-derived project status.
       const hadFE = current.some((c) => c.slot === "FE");
@@ -152,8 +164,17 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
           </DialogTitle>
         </DialogHeader>
 
+        <div className="pt-1">
+          <SprintPicker
+            projectId={projectId}
+            sprints={sprints}
+            choice={choice}
+            onChange={setChoice}
+          />
+        </div>
+
         <div className="space-y-6 pt-2 max-h-[60vh] overflow-y-auto">
-          {isProj ? (
+          {!chosen ? null : isProj ? (
             <SlotPicker
               label="Team members"
               description="Anyone assigned can log time to this ticket's shared project estimate."
@@ -192,7 +213,7 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSave} disabled={busy}>Save</Button>
+          <Button onClick={handleSave} disabled={busy || !chosen}>Save</Button>
         </DialogFooter>
       </DialogContent>
       <GithubRepoPrompt

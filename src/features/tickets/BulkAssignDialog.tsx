@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Users } from "lucide-react";
 import { BulkAssignSlot } from "./bulk-assign/BulkAssignSlot";
+import { SprintPicker } from "./assign/SprintPicker";
 import { useBulkAssign } from "./bulk-assign/useBulkAssign";
 
 interface Props {
@@ -46,6 +47,7 @@ export function BulkAssignDialog({
     partial,
     diff,
     handleSave,
+    sprint,
   } = useBulkAssign({
     open,
     projectId,
@@ -75,8 +77,17 @@ export function BulkAssignDialog({
           </div>
         )}
 
+        <div className="pt-1">
+          <SprintPicker
+            projectId={projectId}
+            sprints={sprint.sprints}
+            choice={sprint.choice}
+            onChange={sprint.setChoice}
+          />
+        </div>
+
         <div className="space-y-6 pt-2 max-h-[50vh] overflow-y-auto">
-          {hasStandard && (
+          {sprint.chosen && hasStandard && (
             <>
               <BulkAssignSlot
                 label="Frontend"
@@ -101,7 +112,7 @@ export function BulkAssignDialog({
               />
             </>
           )}
-          {hasProj && (
+          {sprint.chosen && hasProj && (
             <BulkAssignSlot
               label={`Project team${hasStandard ? " (Proj tickets only)" : ""}`}
               members={otherEligible}
@@ -126,7 +137,7 @@ export function BulkAssignDialog({
           </div>
           <div className="flex gap-2">
             <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button onClick={handleSave} disabled={busy || noChanges}>
+            <Button onClick={handleSave} disabled={busy || noChanges || !sprint.chosen}>
               Save assignments
             </Button>
           </div>
