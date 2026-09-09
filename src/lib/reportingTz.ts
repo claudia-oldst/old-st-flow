@@ -47,3 +47,26 @@ export function reportingEndOfDay(d: Date, now: Date = new Date()): Date {
   }
   return end;
 }
+
+/** Minutes east of UTC for the current browser — captured on log insert so the
+ *  entered local time can be shown verbatim to other viewers. For example a
+ *  browser in UTC+8 returns 480; UTC-5 returns -300. */
+export function loggerOffset(): number {
+  return -new Date().getTimezoneOffset();
+}
+
+/**
+ * Format a time log's `logged_at` using the timezone offset the logger entered
+ * it in (stored as `logged_tz_offset`, minutes east of UTC). Falls back to the
+ * renderer's local time for legacy rows that have no stored offset, preserving
+ * the previous behaviour.
+ */
+export function formatLoggedAt(
+  date: Date,
+  offsetMin: number | null | undefined,
+  fmt: string,
+): string {
+  if (offsetMin == null || Number.isNaN(offsetMin)) return fnsFormat(date, fmt);
+  const wall = new Date(date.getTime() + offsetMin * 60000);
+  return fnsFormat(toZonedTime(wall, "UTC"), fmt);
+}

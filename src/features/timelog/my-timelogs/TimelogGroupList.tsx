@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { formatLoggedAt } from "@/lib/reportingTz";
 import { ChevronDown } from "lucide-react";
 import { MemberAvatar } from "@/components/MemberAvatar";
 import { cn, displayTitle, formatHours } from "@/lib/utils";
@@ -53,7 +54,7 @@ export function TimelogGroupList({
                     className="w-full text-left flex items-center gap-3 px-4 py-2.5 hover:bg-white/[0.02] transition"
                   >
                     <span className="text-[11px] text-dimmer w-16 shrink-0">
-                      {format(new Date(l.logged_at), "d MMM")}
+                      {formatLoggedAt(new Date(l.logged_at), l.logged_tz_offset, "d MMM")}
                     </span>
                     <span className="font-mono text-xs text-dimmer w-24 shrink-0 truncate">
                       {l.ticket?.formatted_id ?? "—"}

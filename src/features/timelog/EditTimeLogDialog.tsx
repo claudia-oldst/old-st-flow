@@ -26,6 +26,7 @@ import {
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { DurationInput } from "./log-time/DurationInput";
 import { hoursMinutesToDecimal, decimalToHoursMinutes } from "./utils";
+import { formatLoggedAt } from "@/lib/reportingTz";
 
 interface Props {
   open: boolean;
@@ -114,7 +115,7 @@ export function EditTimeLogDialog({
             </DialogTitle>
             <div className="text-xs text-dim mt-1">
               {log.discipline} · logged{" "}
-              {new Date(log.logged_at).toLocaleDateString()} ·{" "}
+              {formatLoggedAt(new Date(log.logged_at), log.logged_tz_offset, "d MMM yyyy")} ·{" "}
               <span className="capitalize">{log.source}</span>
             </div>
             {cap.available > 0 && (
