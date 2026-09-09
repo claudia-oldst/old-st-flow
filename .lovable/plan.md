@@ -23,7 +23,7 @@ Assigning a developer to a ticket should also commit that ticket to a sprint for
 ## Technical notes
 
 - Reuse `addTicketToLane(sprintId, ticketId, userId, slot)` from `src/features/sprints/dnd.ts` — it already inserts the `sprint_tickets` row with the right discipline and is idempotent.
-- Reuse `removeTicketFromSprint` logic for un-assignment: delete the matching `sprint_tickets` row for (sprint, ticket, user, discipline). Assignee cleanup already happens in the dialogs' own diff.
+- Removal path: query `sprint_tickets` for (ticket, user, discipline) across all sprints to build the confirmation list; delete the chosen rows. Reuse the `cleanupAssignee` guard in `dnd.ts` — rows with existing `time_logs` for that (ticket, user, discipline) are preserved.
 - Sprint list comes from the existing sprints query for the project (`useSprintBoard` helpers); default selection picks the sprint where `start_date <= today <= end_date`, else the earliest sprint with `start_date > today`.
 - Wiring points: `src/features/tickets/AssignDialog.tsx` (add picker + gate `handleSave`/`performSave`) and `src/features/tickets/bulk-assign/useBulkAssign.ts` + `BulkAssignDialog.tsx`.
 - No schema, RLS, or trigger changes — `sprint_tickets` already has `discipline` and per-dev rows.
