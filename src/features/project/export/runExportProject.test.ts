@@ -31,6 +31,7 @@ describe("runExportProject", () => {
     const out = await runExportProject({
       project,
       asOf: new Date("2024-06-15"),
+      from: null,
       includeTickets: false,
       includeChanges: false,
       includeLogs: false,
@@ -48,6 +49,7 @@ describe("runExportProject", () => {
     const out = await runExportProject({
       project,
       asOf: new Date("2024-06-15"),
+      from: null,
       includeTickets: true,
       includeChanges: true,
       includeLogs: true,
@@ -135,6 +137,7 @@ describe("runExportProject", () => {
     const out = await runExportProject({
       project,
       asOf: new Date("2024-06-15"),
+      from: null,
       includeTickets: true,
       includeChanges: true,
       includeLogs: true,
@@ -148,7 +151,7 @@ describe("runExportProject", () => {
     const ticketsSheetCall = (XLSX.utils.aoa_to_sheet as unknown as { mock: { calls: unknown[][] } }).mock.calls[0];
     const ticketsRows = ticketsSheetCall[0] as unknown[][];
     const dataRow = ticketsRows[1] as unknown[];
-    // Updated FE Estimate is index 7 (after header 0-indexed: id,type,name,epic,feOrig,beOrig,projOrig,UpdatedFE,...)
-    expect(dataRow[7]).toBe(6);
+    // Updated FE Estimate is index 8 (after Created column at index 4)
+    expect(dataRow[8]).toBe(6);
   });
 });
