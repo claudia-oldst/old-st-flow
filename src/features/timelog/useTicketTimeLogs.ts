@@ -8,6 +8,7 @@ export interface TicketLogEntry {
   discipline: "FE" | "BE" | "Project";
   note: string | null;
   logged_at: string;
+  logged_tz_offset: number | null;
   source: "timer" | "manual";
   user_id: string;
   user: { name: string; avatar_color: string };
@@ -27,7 +28,7 @@ export function useTicketTimeLogs(ticketId: string | undefined) {
     queryFn: async (): Promise<TicketLogEntry[]> => {
       const { data } = await supabase
         .from("time_logs")
-        .select("id,hours,discipline,note,logged_at,source,user_id,user:team_members(name,avatar_color)")
+        .select("id,hours,discipline,note,logged_at,logged_tz_offset,source,user_id,user:team_members(name,avatar_color)")
         .eq("ticket_id", ticketId!)
         .order("logged_at", { ascending: false });
       return (data as unknown as TicketLogEntry[]) ?? [];

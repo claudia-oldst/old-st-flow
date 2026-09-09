@@ -6,6 +6,7 @@ import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { useTicketCapacity, capacityFor } from "@/features/timelog/useTicketCapacity";
 import { toast } from "sonner";
 import { hoursMinutesToDecimal } from "../utils";
+import { loggerOffset } from "@/lib/reportingTz";
 
 export function useLogTime({
   open,
@@ -129,6 +130,7 @@ export function useLogTime({
       note: note || null,
       source: "manual",
       logged_at: loggedDate.toISOString(),
+      logged_tz_offset: loggerOffset(),
     });
     setBusy(false);
     if (error) return toast.error(error.message);

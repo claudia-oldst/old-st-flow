@@ -5,6 +5,7 @@ import type { ActiveTimer, DisciplineStatus, LogDiscipline } from "@/lib/types";
 import { toast } from "sonner";
 import { evenSplit } from "../utils";
 import { useTicketCapacityByIds, capacityFor } from "../useTicketCapacity";
+import { loggerOffset } from "@/lib/reportingTz";
 
 export interface StopRow {
   ticket: TimerTicket;
@@ -118,6 +119,7 @@ export function useStopGroup({
 
     setBusy(true);
 
+    const offset = loggerOffset();
     const logs = rows
       .filter((r) => r.minutes > 0)
       .map((r) => ({
@@ -127,6 +129,7 @@ export function useStopGroup({
         hours: Math.round((r.minutes / 60) * 10000) / 10000,
         note: note.trim() || null,
         source: "timer" as const,
+        logged_tz_offset: offset,
       }));
     if (logs.length === 0) {
       setBusy(false);

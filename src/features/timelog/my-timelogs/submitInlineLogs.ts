@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { LogDiscipline } from "@/lib/types";
 import { combineDateAndTime, maybePromoteToActive, type AllocationRow } from "./inlineLogHelpers";
+import { loggerOffset } from "@/lib/reportingTz";
 
 export interface InlineLogInput {
   rows: AllocationRow[];
@@ -24,6 +25,7 @@ export async function submitInlineLogs({
   date,
   startTime,
 }: InlineLogInput): Promise<InlineLogResult> {
+  const offset = loggerOffset();
   const logs = rows
     .filter((r) => r.minutes > 0)
     .map((r) => ({
@@ -34,6 +36,7 @@ export async function submitInlineLogs({
       note: note.trim() || null,
       source: "manual" as const,
       logged_at: combineDateAndTime(date, startTime).toISOString(),
+      logged_tz_offset: offset,
     }));
 
   if (logs.length === 0) {

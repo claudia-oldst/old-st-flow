@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, startOfWeek } from "date-fns";
+import { toZonedTime } from "date-fns-tz";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/store/currentUser";
 import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
@@ -14,6 +15,7 @@ export interface MyLogRow {
   discipline: "FE" | "BE" | "Project";
   note: string | null;
   logged_at: string;
+  logged_tz_offset: number | null;
   source: "timer" | "manual";
   user_id: string;
   ticket_id: string;
@@ -49,7 +51,7 @@ export function useMyTimeLogs(range: DateRange) {
       const { data } = await supabase
         .from("time_logs")
         .select(
-          "id,hours,discipline,note,logged_at,source,user_id,ticket_id,ticket:tickets(id,formatted_id,title,ticket_type,project_id,project:projects(id,name,acronym))",
+          "id,hours,discipline,note,logged_at,logged_tz_offset,source,user_id,ticket_id,ticket:tickets(id,formatted_id,title,ticket_type,project_id,project:projects(id,name,acronym))",
         )
         .eq("user_id", user!.id)
         .gte("logged_at", from)
@@ -78,13 +80,19 @@ export function useMyTimeLogs(range: DateRange) {
   };
 }
 
-function bucket(date: Date, by: LogGroupBy) {
-  if (by === "day") return { key: format(date, "yyyy-MM-dd"), label: format(date, "EEEE d MMMM yyyy") };
+function bucket(date: Date, by: LogGroupBy, offset: number | null) {
+  const zoned = offset == null || Number.isNaN(offset) ? date : offsetZoned(date, offset);
+  if (by === "day") return { key: format(zoned, "yyyy-MM-dd"), label: format(zoned, "EEEE d MMMM yyyy") };
   if (by === "week") {
-    const start = startOfWeek(date, { weekStartsOn: 1 });
+    const start = startOfWeek(zoned, { weekStartsOn: 1 });
     return { key: format(start, "yyyy-'W'II"), label: `Week of ${format(start, "d MMMM yyyy")}` };
   }
-  return { key: format(date, "yyyy-MM"), label: format(date, "MMMM yyyy") };
+  return { key: format(zoned, "yyyy-MM"), label: format(zoned, "MMMM yyyy") };
+}
+
+/** Wall-clock Date for an absolute instant viewed in a fixed UTC offset. */
+function offsetZoned(date: Date, offsetMin: number): Date {
+  return toZonedTime(new Date(date.getTime() + offsetMin * 60000), "UTC");
 }
 
 /** Buckets rows into month / week / day groups, newest first. */
@@ -92,7 +100,7 @@ export function useGroupedLogs(rows: MyLogRow[], by: LogGroupBy): LogGroup[] {
   return useMemo(() => {
     const map = new Map<string, LogGroup>();
     rows.forEach((r) => {
-      const { key, label } = bucket(new Date(r.logged_at), by);
+      const { key, label } = bucket(new Date(r.logged_at), by, r.logged_tz_offset);
       const g = map.get(key) ?? { key, label, hours: 0, rows: [] };
       g.hours += r.hours;
       g.rows.push(r);

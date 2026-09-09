@@ -91,6 +91,7 @@ export default function MyTimelogs() {
         discipline: row.discipline,
         note: row.note,
         logged_at: row.logged_at,
+        logged_tz_offset: row.logged_tz_offset,
         source: row.source,
         user_id: row.user_id,
         user: { name: user.name, avatar_color: user.avatar_color },

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Clock, Pencil } from "lucide-react";
 import { MemberAvatar } from "@/components/MemberAvatar";
 import { cn, formatHours } from "@/lib/utils";
+import { formatLoggedAt } from "@/lib/reportingTz";
 import { useTicketTimeLogs, type TicketLogEntry } from "@/features/timelog/useTicketTimeLogs";
 import { useCurrentUser } from "@/store/currentUser";
 import { EditTimeLogDialog } from "@/features/timelog/EditTimeLogDialog";
@@ -101,7 +102,7 @@ export function TimeLogsPanel({
                       {l.note && <span className="text-dimmer"> — {l.note}</span>}
                     </span>
                     {mine && <Pencil className="h-3 w-3 text-dimmer shrink-0" />}
-                    <span className="text-[10px] text-dimmer">{new Date(l.logged_at).toLocaleDateString()}</span>
+                    <span className="text-[10px] text-dimmer">{formatLoggedAt(new Date(l.logged_at), l.logged_tz_offset, "d MMM yyyy")}</span>
                   </button>
                 );
               })}
