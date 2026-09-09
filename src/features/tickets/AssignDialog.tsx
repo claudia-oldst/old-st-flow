@@ -118,6 +118,14 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
     }
 
     if (!isProj) {
+      await syncSprintCommitments(
+        sprintId,
+        toAdd.map((r) => ({ ticket_id: ticketId, user_id: r.user_id, slot: r.slot })),
+        toRemove.map((r) => ({ ticket_id: ticketId, user_id: r.user_id, slot: r.slot })),
+      );
+    }
+
+    if (!isProj) {
       // If a slot lost its last assignee in this save, reset that slot's status to "todo"
       // so an unassigned slot can't keep influencing the auto-derived project status.
       const hadFE = current.some((c) => c.slot === "FE");
