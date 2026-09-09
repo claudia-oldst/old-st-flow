@@ -5,7 +5,7 @@ Assigning a developer to a ticket should also commit that ticket to a sprint for
 ## What changes
 
 **Assign people dialog (single ticket)**
-- A new "Sprint" row of pills at the top of the dialog: one pill per sprint, plus a "No sprint" pill.
+- A new "Sprint" row of pills at the top of the dialog: one pill per sprint, plus a "No sprint" pill. Hovering a sprint pill shows its date range.
 - Defaults to the sprint covering today's date. If no sprint covers today, the next upcoming one is pre-selected.
 - The people lists stay hidden until a sprint (or "No sprint") is picked, so the choice is always deliberate.
 - If the project has no sprints at all, the row shows a "Create a sprint" button that opens the project's Sprints tab, alongside the "No sprint" pill.
