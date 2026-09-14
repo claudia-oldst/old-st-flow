@@ -96,6 +96,9 @@ export function PlanningPoolPanel({
     sortedSprints,
   });
 
+  const { setNodeRef: setDropRef, isOver: isPoolOver } = useDroppable({
+    id: planDndId.poolZone,
+  });
 
   return (
     <div
@@ -127,7 +130,13 @@ export function PlanningPoolPanel({
         />
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1">
+      <div
+        ref={setDropRef}
+        className={cn(
+          "flex-1 min-h-0 overflow-y-auto p-2 space-y-1 transition-colors",
+          isPoolOver && "bg-primary/5 ring-1 ring-primary/30",
+        )}
+      >
         {filtered.length === 0 ? (
           <div className="text-[11px] text-dim text-center py-6">
             No pooled tickets for this sprint
