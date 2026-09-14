@@ -10,6 +10,7 @@ Today, moving tickets in the Planning view only works through tick-boxes and the
 - Drag a multi-selection: if you tick several tickets and drag any one of them, the whole selection moves together. A small badge on the drag preview shows how many tickets are moving.
 - Visual feedback while dragging: the target column highlights, the dragged row dims, and the column header shows the capacity it would reach.
 - Everything saves immediately, with a toast confirming how many tickets moved, and an error toast if something is rejected.
+- A **Select all** checkbox in each developer column header, mirroring the pool's "Select all". It toggles only that dev's currently visible tickets in this sprint+discipline, supports the same indeterminate state, and feeds the existing `SprintSelectionContext` so the bulk bar and drag-multi work the same way as the pool.
 
 Project-type tickets and the Project slot stay out of this — only FE/BE commitments are affected, matching the current rules. Non-PMBA users keep read-only rows (no dragging).
 
