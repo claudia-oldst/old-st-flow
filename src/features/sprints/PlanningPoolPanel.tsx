@@ -1,4 +1,6 @@
 import { useMemo, useRef, useState } from "react";
+import { useDroppable } from "@dnd-kit/core";
+import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { EMPTY_FILTERS, type TicketFilters } from "@/features/tickets/TicketsFilter";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
@@ -7,6 +9,7 @@ import { PoolFilterBar } from "./planning-pool/PoolFilterBar";
 import { PoolRow } from "./planning-pool/PoolRow";
 import { usePoolGroups, type PoolGroupBy } from "./planning-pool/usePoolGroups";
 import { usePoolTickets } from "./planning-pool/usePoolTickets";
+import { planDndId } from "./workbench/useWorkbenchDnd";
 
 interface Props {
   projectId: string;
