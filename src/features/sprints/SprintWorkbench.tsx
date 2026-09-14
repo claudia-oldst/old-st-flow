@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { DndContext, DragOverlay } from "@dnd-kit/core";
 import { usePersistentState } from "@/hooks/usePersistentState";
 
 import { BulkActionsBar } from "@/features/tickets/BulkActionsBar";
@@ -18,12 +19,14 @@ import { PlanningPoolPanel } from "./PlanningPoolPanel";
 import { PlanningDevColumn } from "./PlanningDevColumn";
 import { useWorkbenchData } from "./workbench/useWorkbenchData";
 import { useWorkbenchBulkActions } from "./workbench/useWorkbenchBulkActions";
+import { useWorkbenchDnd } from "./workbench/useWorkbenchDnd";
 import { WorkbenchBulkBar } from "./workbench/WorkbenchBulkBar";
 import { WorkbenchTopBar } from "./workbench/WorkbenchTopBar";
 import { useDevColumnFilters } from "./workbench/useDevColumnFilters";
 import { DevColumnsToolbar } from "./planning-dev/DevColumnsToolbar";
 import type { DevColGroupBy } from "./planning-dev/useDevColumnGroups";
 import { EMPTY_FILTERS, type TicketFilters } from "@/features/tickets/TicketsFilter";
+import { formatHours } from "@/lib/utils";
 
 
 interface Props {
