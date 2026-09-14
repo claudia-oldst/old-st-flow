@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { CornerDownLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -11,6 +12,7 @@ import { useCarryoverTickets } from "./useSprintBoard";
 import type { Sprint } from "./types";
 import { formatHours } from "@/lib/utils";
 import { PlanningRowTooltip } from "./PlanningRowTooltip";
+import { planDndId } from "./workbench/useWorkbenchDnd";
 
 import {
   useDevColumnGroups,
@@ -31,6 +33,7 @@ interface Props {
   groupBy?: DevColGroupBy;
   selectedIds: Set<string>;
   onToggleSelect: (id: string, shiftKey: boolean) => void;
+  onToggleSelectAll: (ids: string[], select: boolean) => void;
   onOpenTicket: (t: TicketRow) => void;
   isPMBA: boolean;
   /** Set of ticket ids that arrived via the carryover flow — get a ↩ prefix. */
@@ -57,6 +60,7 @@ export function PlanningDevColumn({
   groupBy = "none",
   selectedIds,
   onToggleSelect,
+  onToggleSelectAll,
   onOpenTicket,
   isPMBA,
   carriedOverIds,
@@ -91,11 +95,23 @@ export function PlanningDevColumn({
   const over = capacityHours > 0 && usedHours > capacityHours;
   const overage = over ? usedHours - capacityHours : 0;
 
+  const { setNodeRef: setDropRef, isOver: isDevOver } = useDroppable({
+    id: planDndId.devZone(dev.user_id),
+  });
+
+  // Select-all state for this column's visible tickets.
+  const visibleIds = useMemo(() => renderTickets.map((t) => t.id), [renderTickets]);
+  const allSelected =
+    visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id));
+  const someSelected =
+    !allSelected && visibleIds.some((id) => selectedIds.has(id));
+
   return (
     <div
       className={cn(
-        "flex flex-col gap-2 h-full min-h-0 rounded-md hairline bg-surface-1/40 min-w-56 flex-1",
+        "flex flex-col gap-2 h-full min-h-0 rounded-md hairline bg-surface-1/40 min-w-56 flex-1 transition-colors",
         over && "ring-1 ring-primary/40",
+        isDevOver && "ring-1 ring-primary/50 bg-primary/5",
       )}
     >
       <div
@@ -118,9 +134,24 @@ export function PlanningDevColumn({
           )}
         </div>
         <CapacityIndicator used={usedHours} cap={capacityHours} />
+        {visibleIds.length > 0 && (
+          <div className="flex items-center gap-2 px-0.5">
+            <Checkbox
+              checked={allSelected ? true : someSelected ? "indeterminate" : false}
+              onCheckedChange={(v) => onToggleSelectAll(visibleIds, !!v)}
+              aria-label={`Select all tickets for ${dev.member.name}`}
+            />
+            <span className="text-[10px] uppercase tracking-wide text-dimmer">
+              Select all
+            </span>
+          </div>
+        )}
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1">
+      <div
+        ref={setDropRef}
+        className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1"
+      >
         {carryoverCandidates.length > 0 && (
           <CarryoverReviewPanel
             devName={dev.member.name}
@@ -164,46 +195,90 @@ export function PlanningDevColumn({
                   : t.actual_backend_hours || 0;
               const carried = carriedOverIds.has(t.id);
               return (
-                <PlanningRowTooltip key={t.id} ticket={t}>
-                  <div
-                    className={cn(
-                      "flex items-center gap-2 px-1.5 py-1.5 rounded hover:bg-white/[0.04] cursor-pointer",
-                      selected && "ring-1 ring-primary bg-primary/5",
-                    )}
-                    onClick={(e) => {
-                      if ((e.target as HTMLElement).closest("[data-checkbox]")) return;
-                      onOpenTicket(t);
-                    }}
-                  >
-                    <div data-checkbox onClick={(e) => e.stopPropagation()}>
-                      <Checkbox
-                        checked={selected}
-                        onCheckedChange={() => onToggleSelect(t.id, false)}
-                        aria-label="Select ticket"
-                      />
-                    </div>
-                    {carried && (
-                      <CornerDownLeft className="h-3 w-3 text-dimmer shrink-0" aria-label="Carried over" />
-                    )}
-                    <span className="font-mono text-[10px] text-dimmer w-14 shrink-0">
-                      {t.formatted_id}
-                    </span>
-                    <span className="text-xs truncate flex-1 min-w-0">{t.title}</span>
-                    {t.epic_name && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-dim truncate max-w-20 shrink-0">
-                        {t.epic_name}
-                      </span>
-                    )}
-                    <span className="font-mono text-[10px] text-dim shrink-0 w-16 text-right">
-                      {formatHours(spent)} / {formatHours(est)}
-                    </span>
-                  </div>
-                </PlanningRowTooltip>
+                <DevRow
+                  key={t.id}
+                  ticket={t}
+                  userId={dev.user_id}
+                  selected={selected}
+                  spent={spent}
+                  est={est}
+                  carried={carried}
+                  onToggleSelect={onToggleSelect}
+                  onOpenTicket={onOpenTicket}
+                />
               );
             })}
           </div>
         ))}
       </div>
     </div>
+  );
+}
+
+interface RowProps {
+  ticket: TicketRow;
+  userId: string;
+  selected: boolean;
+  spent: number;
+  est: number;
+  carried: boolean;
+  onToggleSelect: (id: string, shiftKey: boolean) => void;
+  onOpenTicket: (t: TicketRow) => void;
+}
+
+function DevRow({
+  ticket: t,
+  userId,
+  selected,
+  spent,
+  est,
+  carried,
+  onToggleSelect,
+  onOpenTicket,
+}: RowProps) {
+  const { setNodeRef, listeners, attributes, isDragging } = useDraggable({
+    id: planDndId.devCard(userId, t.id),
+    data: { source: "dev", ticketId: t.id, userId },
+  });
+  return (
+    <PlanningRowTooltip ticket={t}>
+      <div
+        ref={setNodeRef}
+        {...listeners}
+        {...attributes}
+        className={cn(
+          "flex items-center gap-2 px-1.5 py-1.5 rounded hover:bg-white/[0.04] cursor-pointer touch-none",
+          selected && "ring-1 ring-primary bg-primary/5",
+          isDragging && "opacity-40",
+        )}
+        onClick={(e) => {
+          if ((e.target as HTMLElement).closest("[data-checkbox]")) return;
+          onOpenTicket(t);
+        }}
+      >
+        <div data-checkbox onClick={(e) => e.stopPropagation()}>
+          <Checkbox
+            checked={selected}
+            onCheckedChange={() => onToggleSelect(t.id, false)}
+            aria-label="Select ticket"
+          />
+        </div>
+        {carried && (
+          <CornerDownLeft className="h-3 w-3 text-dimmer shrink-0" aria-label="Carried over" />
+        )}
+        <span className="font-mono text-[10px] text-dimmer w-14 shrink-0">
+          {t.formatted_id}
+        </span>
+        <span className="text-xs truncate flex-1 min-w-0">{t.title}</span>
+        {t.epic_name && (
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-dim truncate max-w-20 shrink-0">
+            {t.epic_name}
+          </span>
+        )}
+        <span className="font-mono text-[10px] text-dim shrink-0 w-16 text-right">
+          {formatHours(spent)} / {formatHours(est)}
+        </span>
+      </div>
+    </PlanningRowTooltip>
   );
 }
