@@ -82,6 +82,8 @@ function PlanningInner({ projectId, sprints, isPMBA }: Props) {
   const toggleDev = (id: string) => toggle(id, "dev");
   const toggleAllPool = (ids: string[], select: boolean) =>
     setMany(ids, select, "pool");
+  const toggleAllDev = (ids: string[], select: boolean) =>
+    setMany(ids, select, "dev");
 
   const selectedArr = useMemo(() => Array.from(selected), [selected]);
 
@@ -105,6 +107,18 @@ function PlanningInner({ projectId, sprints, isPMBA }: Props) {
       source,
       clear,
     });
+
+  const dnd = useWorkbenchDnd({
+    sprintId: targetSprintId,
+    discipline,
+    sprintTickets,
+    isPMBA,
+    selected,
+    source,
+    ticketById,
+    clear,
+    invalidate,
+  });
 
   if (sprints.length === 0) {
     return (
