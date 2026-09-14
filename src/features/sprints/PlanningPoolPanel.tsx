@@ -1,4 +1,6 @@
 import { useMemo, useRef, useState } from "react";
+import { useDroppable } from "@dnd-kit/core";
+import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { EMPTY_FILTERS, type TicketFilters } from "@/features/tickets/TicketsFilter";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
@@ -7,6 +9,7 @@ import { PoolFilterBar } from "./planning-pool/PoolFilterBar";
 import { PoolRow } from "./planning-pool/PoolRow";
 import { usePoolGroups, type PoolGroupBy } from "./planning-pool/usePoolGroups";
 import { usePoolTickets } from "./planning-pool/usePoolTickets";
+import { planDndId } from "./workbench/useWorkbenchDnd";
 
 interface Props {
   projectId: string;
@@ -93,6 +96,9 @@ export function PlanningPoolPanel({
     sortedSprints,
   });
 
+  const { setNodeRef: setDropRef, isOver: isPoolOver } = useDroppable({
+    id: planDndId.poolZone,
+  });
 
   return (
     <div
@@ -124,7 +130,13 @@ export function PlanningPoolPanel({
         />
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1">
+      <div
+        ref={setDropRef}
+        className={cn(
+          "flex-1 min-h-0 overflow-y-auto p-2 space-y-1 transition-colors",
+          isPoolOver && "bg-primary/5 ring-1 ring-primary/30",
+        )}
+      >
         {filtered.length === 0 ? (
           <div className="text-[11px] text-dim text-center py-6">
             No pooled tickets for this sprint

@@ -1,7 +1,9 @@
+import { useDraggable } from "@dnd-kit/core";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn, formatHours } from "@/lib/utils";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { PlanningRowTooltip } from "../PlanningRowTooltip";
+import { planDndId } from "../workbench/useWorkbenchDnd";
 
 interface Props {
   ticket: TicketRow;
@@ -25,12 +27,21 @@ export function PoolRow({
       ? Math.max(0, (t.current_fe_estimate || 0) - (t.actual_frontend_hours || 0))
       : Math.max(0, (t.current_be_estimate || 0) - (t.actual_backend_hours || 0));
 
+  const { setNodeRef, listeners, attributes, isDragging } = useDraggable({
+    id: planDndId.poolCard(t.id),
+    data: { source: "pool", ticketId: t.id },
+  });
+
   return (
     <PlanningRowTooltip ticket={t}>
       <div
+        ref={setNodeRef}
+        {...listeners}
+        {...attributes}
         className={cn(
-          "flex items-center gap-2 px-1.5 py-1.5 rounded hover:bg-white/[0.04] cursor-pointer",
+          "flex items-center gap-2 px-1.5 py-1.5 rounded hover:bg-white/[0.04] cursor-pointer touch-none",
           selected && "ring-1 ring-primary bg-primary/5",
+          isDragging && "opacity-40",
         )}
         onClick={(e) => {
           if ((e.target as HTMLElement).closest("[data-checkbox]")) return;
