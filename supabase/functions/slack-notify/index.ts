@@ -26,6 +26,7 @@ interface Payload {
   slot?: string;
   change_id?: string;
   comment_id?: string;
+  project_id?: string;
 }
 
 
