@@ -4,10 +4,11 @@ import { useRealtimeReload } from "@/hooks/useRealtimeReload";
 import { useCurrentUser } from "@/store/currentUser";
 import type { Project } from "@/lib/types";
 import { PAGE_SIZES } from "@/lib/pagination";
+import type { LifecycleStatus } from "@/features/project/settings/lifecycle";
 
 export type StatusFilter = "active" | "vaulted" | "all";
 export type SortKey = "newest" | "oldest" | "name" | "archived";
-export type LifecycleFilter = string | null;
+export type LifecycleFilter = LifecycleStatus | null;
 
 export function useDebounced<T>(value: T, delay = 200): T {
   const [v, setV] = useState(value);

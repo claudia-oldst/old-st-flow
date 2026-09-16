@@ -42,7 +42,10 @@ export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
       .eq("id", project.id)
       .select("*")
       .single();
-    if (error) return toast.error(error.message);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success("Timeline saved");
     onUpdated?.(data as Project);
   };
