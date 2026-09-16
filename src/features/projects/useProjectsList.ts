@@ -7,6 +7,7 @@ import { PAGE_SIZES } from "@/lib/pagination";
 
 export type StatusFilter = "active" | "vaulted" | "all";
 export type SortKey = "newest" | "oldest" | "name" | "archived";
+export type LifecycleFilter = string | null;
 
 export function useDebounced<T>(value: T, delay = 200): T {
   const [v, setV] = useState(value);
@@ -22,8 +23,9 @@ export function useProjectsList(args: {
   status: StatusFilter;
   sort: SortKey;
   debouncedQ: string;
+  lifecycle: LifecycleFilter;
 }) {
-  const { page, status, sort, debouncedQ } = args;
+  const { page, status, sort, debouncedQ, lifecycle } = args;
   const user = useCurrentUser((s) => s.user);
   const pageSize = PAGE_SIZES.projects;
   const [projects, setProjects] = useState<Project[]>([]);
@@ -72,6 +74,7 @@ export function useProjectsList(args: {
     if (allowedIds) query = query.in("id", allowedIds);
     if (status === "active") query = query.eq("is_archived", false);
     else if (status === "vaulted") query = query.eq("is_archived", true);
+    if (lifecycle) query = query.eq("lifecycle_status", lifecycle);
     if (term) query = query.or(searchExpr);
     if (favIds.length) query = query.not("id", "in", `(${favIds.join(",")})`);
 
@@ -86,6 +89,7 @@ export function useProjectsList(args: {
     if (allowedIds) pinnedQuery = pinnedQuery.in("id", allowedIds);
     if (status === "active") pinnedQuery = pinnedQuery.eq("is_archived", false);
     else if (status === "vaulted") pinnedQuery = pinnedQuery.eq("is_archived", true);
+    if (lifecycle) pinnedQuery = pinnedQuery.eq("lifecycle_status", lifecycle);
     if (term) pinnedQuery = pinnedQuery.or(searchExpr);
     pinnedQuery = pinnedQuery.order("name", { ascending: true });
 
@@ -119,7 +123,7 @@ export function useProjectsList(args: {
     } else {
       setCounts({});
     }
-  }, [page, pageSize, status, sort, debouncedQ, user]);
+  }, [page, pageSize, status, sort, debouncedQ, lifecycle, user]);
 
   useEffect(() => { load(); }, [load]);
 

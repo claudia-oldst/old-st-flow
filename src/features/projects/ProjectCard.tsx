@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Project } from "@/lib/types";
 import { relativeTime } from "./useProjectsList";
+import { LIFECYCLE_PILL, lifecycleCardDate, type LifecycleDates } from "@/features/project/settings/lifecycle";
 
 export function ProjectCard({
   project,
@@ -17,6 +18,8 @@ export function ProjectCard({
   onToggleFavorite?: (projectId: string, next: boolean) => void;
 }) {
   const archived = project.is_archived;
+  const status = project.lifecycle_status;
+  const cardDate = lifecycleCardDate(status, extractCardDates(project));
   return (
     <Link
       to={`/projects/${project.id}`}
@@ -31,6 +34,11 @@ export function ProjectCard({
           {project.acronym}
         </div>
         <div className="flex items-center gap-2 relative z-10">
+          {!archived && (
+            <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ring-1", LIFECYCLE_PILL[status])}>
+              {status}
+            </span>
+          )}
           {archived ? (
             <Badge className="bg-brand-gold/15 text-brand-gold ring-1 ring-brand-gold/30 hover:bg-brand-gold/20 gap-1">
               <Archive className="h-3 w-3" /> Vaulted
@@ -76,6 +84,22 @@ export function ProjectCard({
           </>
         )}
       </div>
+      {cardDate && !archived && (
+        <div className="mt-1 text-[10px] text-dimmer">{cardDate}</div>
+      )}
     </Link>
   );
+}
+
+function extractCardDates(p: Project): LifecycleDates {
+  return {
+    start_date: p.start_date ?? null,
+    development_start_date: p.development_start_date ?? null,
+    handover_date: p.handover_date ?? null,
+    closing_window_date: p.closing_window_date ?? null,
+    pause_date: p.pause_date ?? null,
+    pause_reason: p.pause_reason ?? null,
+    closed_date: p.closed_date ?? null,
+    closed_reason: p.closed_reason ?? null,
+  };
 }

@@ -26,6 +26,7 @@ export default function Projects() {
   const [q, setQ] = useState(params.get("q") ?? "");
   const status = (params.get("status") as StatusFilter) || "active";
   const sort = (params.get("sort") as SortKey) || "newest";
+  const lifecycle = params.get("lifecycle") || null;
   const page = Math.max(1, Number(params.get("page") ?? "1"));
   const debouncedQ = useDebounced(q, 200);
 
@@ -35,7 +36,7 @@ export default function Projects() {
   const [creating, setCreating] = useState(false);
 
   const { projects, pinned, favoriteIds, total, loading, counts, pageSize, reload } = useProjectsList({
-    page, status, sort, debouncedQ,
+    page, status, sort, debouncedQ, lifecycle,
   });
   const toggleFavorite = useToggleFavorite(reload);
   const favSet = new Set(favoriteIds);
@@ -72,7 +73,7 @@ export default function Projects() {
     reload();
   };
 
-  const hasFilters = !!debouncedQ || status !== "active" || sort !== "newest";
+  const hasFilters = !!debouncedQ || status !== "active" || sort !== "newest" || !!lifecycle;
   const clearFilters = () => {
     setQ("");
     setParams(new URLSearchParams(), { replace: true });
@@ -123,10 +124,12 @@ export default function Projects() {
         q={q}
         status={status}
         sort={sort}
+        lifecycle={lifecycle}
         hasFilters={hasFilters}
         onQChange={(v) => { setQ(v); setParam("q", v || null); }}
         onStatusChange={(v) => setParam("status", v === "active" ? null : v)}
         onSortChange={(v) => setParam("sort", v === "newest" ? null : v)}
+        onLifecycleChange={(v) => setParam("lifecycle", v)}
         onClear={clearFilters}
       />
 

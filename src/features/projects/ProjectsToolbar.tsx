@@ -6,21 +6,24 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import type { SortKey, StatusFilter } from "./useProjectsList";
+import { LIFECYCLE_STATUSES, LIFECYCLE_DOT } from "@/features/project/settings/lifecycle";
 
 interface Props {
   q: string;
   status: StatusFilter;
   sort: SortKey;
+  lifecycle: string | null;
   hasFilters: boolean;
   onQChange: (v: string) => void;
   onStatusChange: (v: StatusFilter) => void;
   onSortChange: (v: SortKey) => void;
+  onLifecycleChange: (v: string | null) => void;
   onClear: () => void;
 }
 
 export function ProjectsToolbar({
-  q, status, sort, hasFilters,
-  onQChange, onStatusChange, onSortChange, onClear,
+  q, status, sort, lifecycle, hasFilters,
+  onQChange, onStatusChange, onSortChange, onLifecycleChange, onClear,
 }: Props) {
   const sortOptions = useMemo(() => {
     const opts: Array<{ value: SortKey; label: string }> = [
@@ -59,6 +62,20 @@ export function ProjectsToolbar({
           <SelectItem value="active">Active</SelectItem>
           <SelectItem value="vaulted">Vaulted</SelectItem>
           <SelectItem value="all">All</SelectItem>
+        </SelectContent>
+      </Select>
+      <Select value={lifecycle ?? "all"} onValueChange={(v) => onLifecycleChange(v === "all" ? null : v)}>
+        <SelectTrigger className="w-[150px]"><SelectValue placeholder="All statuses" /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All statuses</SelectItem>
+          {LIFECYCLE_STATUSES.map((s) => (
+            <SelectItem key={s} value={s}>
+              <span className="inline-flex items-center gap-2">
+                <span className={`h-2 w-2 rounded-full ${LIFECYCLE_DOT[s]}`} />
+                {s}
+              </span>
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
       <Select value={sort} onValueChange={(v) => onSortChange(v as SortKey)}>

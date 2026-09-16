@@ -4,6 +4,7 @@ Opened from the cog icon in the project workspace header. Read-only for non-PMBA
 
 ## Tabs
 - **Details** — name, acronym (immutable after creation), client name, rate per hour, currency, project start date, GitHub repo URL, Userback project ID (feedback for that ID becomes "UB - " tickets here), links list (label + URL pairs).
+- **Timeline** — lifecycle status dropdown (Pre-live, Confirmed, Definition, In Progress, Bug-Fixing, Monitor, Completed, On Hold, Closed Lost) plus all lifecycle date and reason fields. Required fields per status are validated inline and block saving until filled. PMBA-only.
 - **Team** — add/remove project members and set per-member role (PMBA / FE / BE / Project). Inline avatar + name search.
 
 ## Interactions

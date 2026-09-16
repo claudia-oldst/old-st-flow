@@ -312,14 +312,22 @@ export type Database = {
           client_summary_published: string | null
           client_summary_updated_at: string | null
           client_visibility_cutoff: string | null
+          closed_date: string | null
+          closed_reason: string | null
+          closing_window_date: string | null
           created_at: string
+          development_start_date: string | null
           github_owner: string | null
           github_repo: string | null
           github_repo_url: string | null
+          handover_date: string | null
           id: string
           is_archived: boolean
+          lifecycle_status: Database["public"]["Enums"]["project_lifecycle_status"]
           links: Json
           name: string
+          pause_date: string | null
+          pause_reason: string | null
           rate_per_hour: number
           start_date: string | null
           updated_at: string
@@ -341,14 +349,22 @@ export type Database = {
           client_summary_published?: string | null
           client_summary_updated_at?: string | null
           client_visibility_cutoff?: string | null
+          closed_date?: string | null
+          closed_reason?: string | null
+          closing_window_date?: string | null
           created_at?: string
+          development_start_date?: string | null
           github_owner?: string | null
           github_repo?: string | null
           github_repo_url?: string | null
+          handover_date?: string | null
           id?: string
           is_archived?: boolean
+          lifecycle_status?: Database["public"]["Enums"]["project_lifecycle_status"]
           links?: Json
           name: string
+          pause_date?: string | null
+          pause_reason?: string | null
           rate_per_hour?: number
           start_date?: string | null
           updated_at?: string
@@ -370,14 +386,22 @@ export type Database = {
           client_summary_published?: string | null
           client_summary_updated_at?: string | null
           client_visibility_cutoff?: string | null
+          closed_date?: string | null
+          closed_reason?: string | null
+          closing_window_date?: string | null
           created_at?: string
+          development_start_date?: string | null
           github_owner?: string | null
           github_repo?: string | null
           github_repo_url?: string | null
+          handover_date?: string | null
           id?: string
           is_archived?: boolean
+          lifecycle_status?: Database["public"]["Enums"]["project_lifecycle_status"]
           links?: Json
           name?: string
+          pause_date?: string | null
+          pause_reason?: string | null
           rate_per_hour?: number
           start_date?: string | null
           updated_at?: string
@@ -1099,6 +1123,16 @@ export type Database = {
       discipline_status: "todo" | "in_progress" | "for_integration" | "done"
       log_discipline: "FE" | "BE" | "Project"
       log_source: "timer" | "manual"
+      project_lifecycle_status:
+        | "Pre-live"
+        | "Confirmed"
+        | "Definition"
+        | "In Progress"
+        | "Bug-Fixing"
+        | "Monitor"
+        | "Completed"
+        | "On Hold"
+        | "Closed Lost"
       project_role:
         | "Frontend"
         | "Backend"
@@ -1240,6 +1274,17 @@ export const Constants = {
       discipline_status: ["todo", "in_progress", "for_integration", "done"],
       log_discipline: ["FE", "BE", "Project"],
       log_source: ["timer", "manual"],
+      project_lifecycle_status: [
+        "Pre-live",
+        "Confirmed",
+        "Definition",
+        "In Progress",
+        "Bug-Fixing",
+        "Monitor",
+        "Completed",
+        "On Hold",
+        "Closed Lost",
+      ],
       project_role: [
         "Frontend",
         "Backend",

@@ -14,14 +14,15 @@ A searchable, filterable grid of every project the user has access to.
 Below the header:
 - **Search** input (debounced 200 ms) — matches name, acronym, client name.
 - **Status** segmented control — Active / Archived / All. Default: Active.
+- **Lifecycle** dropdown — All statuses plus the nine lifecycle statuses (Pre-live, Confirmed, Definition, In Progress, Bug-Fixing, Monitor, Completed, On Hold, Closed Lost). Each option shows a coloured dot. Default: All statuses.
 - **Sort** dropdown — Newest, Oldest, Name A–Z, etc.
 - **Clear filters** chip — appears only when filters/search are non-default.
 
-All toolbar state is reflected in the URL (`?q=…&status=…&sort=…&page=…`), so links and refreshes preserve the view.
+All toolbar state is reflected in the URL (`?q=…&status=…&lifecycle=…&sort=…&page=…`), so links and refreshes preserve the view.
 
 ## Grid
 - Responsive 1/2/3-column grid of project cards.
-- Each card shows: acronym chip, project name, client name, ticket count, member avatars (overlapping), an archived badge when applicable, and a tiny last-activity timestamp.
+- Each card shows: acronym chip, lifecycle status pill (colour-coded), project name, client name, ticket count, member avatars (overlapping), an archived badge when applicable, and a subtle date line relevant to the current status (e.g. "Dev started 4 Mar", "Handover 2 Apr", "Paused 1 May").
 - Clicking anywhere on a card opens that project's workspace.
 
 ## Pagination

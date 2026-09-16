@@ -1,5 +1,4 @@
 import { useState } from "react";
-import type { Project } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
@@ -11,10 +10,14 @@ import { Settings, Eye } from "lucide-react";
 import { ArchiveProjectDialog } from "@/features/vault/ArchiveProjectDialog";
 import { useProjectSettings } from "./settings/useProjectSettings";
 import { ProjectDetailsTab } from "./settings/ProjectDetailsTab";
+import { ProjectTimelineTab } from "./settings/ProjectTimelineTab";
 import { ProjectTeamTab } from "./settings/ProjectTeamTab";
 import { ProjectNotificationsTab } from "./settings/ProjectNotificationsTab";
 import { useNotificationPrefs } from "./settings/useNotificationPrefs";
 import { useCurrentUser } from "@/store/currentUser";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import type { Project } from "@/lib/types";
 
 
 export type { ProjectLink } from "./settings/types";
@@ -32,6 +35,17 @@ export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
   const currentUser = useCurrentUser((st) => st.user);
   const prefs = useNotificationPrefs(project.id, open);
 
+  const handleSaveTimeline = async (patch: Partial<Project>) => {
+    const { data, error } = await supabase
+      .from("projects")
+      .update(patch)
+      .eq("id", project.id)
+      .select("*")
+      .single();
+    if (error) return toast.error(error.message);
+    toast.success("Timeline saved");
+    onUpdated?.(data as Project);
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -54,8 +68,9 @@ export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
         </DialogHeader>
 
         <Tabs defaultValue="details" className="mt-2">
-          <TabsList className="grid grid-cols-3 w-full">
+          <TabsList className="grid grid-cols-4 w-full">
             <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="timeline">Timeline</TabsTrigger>
             <TabsTrigger value="team">Team</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
           </TabsList>
@@ -76,6 +91,15 @@ export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
               onSave={s.handleSaveDetails}
               onClose={() => setOpen(false)}
               onArchive={() => setArchiveOpen(true)}
+            />
+          </TabsContent>
+
+          <TabsContent value="timeline">
+            <ProjectTimelineTab
+              project={project}
+              canEdit={canEdit}
+              onSave={handleSaveTimeline}
+              onClose={() => setOpen(false)}
             />
           </TabsContent>
 
