@@ -23,8 +23,9 @@ export function useProjectsList(args: {
   status: StatusFilter;
   sort: SortKey;
   debouncedQ: string;
+  lifecycle: LifecycleFilter;
 }) {
-  const { page, status, sort, debouncedQ } = args;
+  const { page, status, sort, debouncedQ, lifecycle } = args;
   const user = useCurrentUser((s) => s.user);
   const pageSize = PAGE_SIZES.projects;
   const [projects, setProjects] = useState<Project[]>([]);
