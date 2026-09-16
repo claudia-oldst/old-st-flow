@@ -11,15 +11,15 @@ Give each of the nine lifecycle statuses its own distinct, semantically sensible
 | Definition | blue | planning / definition |
 | In Progress | coral / primary | active work — the brand CTA |
 | Bug-Fixing | orange | fixing, warm warning |
-| Monitor | gold / accent | watching, golden |
-| Completed | emerald / green | done |
+| Monitor | emerald / green | being watched / supported |
+| Completed | gold / accent | delivered, golden |
 | On Hold | violet | paused, distinct from amber |
-| Closed Lost | red / health-bad | lost |
+| Closed Lost | stone / dark grey | ended, inert |
 
-All nine now differ from one another and read in a sensible order (neutral → sky → blue → coral → orange → gold → green → violet → red).
+All nine now differ from one another and read in a sensible order (slate grey → sky → blue → coral → orange → emerald → gold → violet → dark grey).
 
 ## Change
 
 Only `src/features/project/settings/lifecycle.ts` — update `LIFECYCLE_PILL` (background/text/ring classes) and `LIFECYCLE_DOT` (dot colour) so each status maps to its new colour above. No other files change; the pill and dropdown already consume these maps.
 
-Colours reuse the existing tailwind palette already used by these maps (blue/amber already present; add sky, orange, emerald, violet, slate, red) plus the brand tokens (primary coral, accent gold, health-good, health-bad) already in `index.css`.
+Colours reuse the existing tailwind palette already used by these maps (blue/amber already present; add sky, orange, emerald, violet, slate, stone) plus the brand tokens (primary coral, accent gold, health-good) already in `index.css`.
