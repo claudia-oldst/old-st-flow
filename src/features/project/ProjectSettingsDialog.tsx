@@ -35,6 +35,17 @@ export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
   const currentUser = useCurrentUser((st) => st.user);
   const prefs = useNotificationPrefs(project.id, open);
 
+  const handleSaveTimeline = async (patch: Partial<Project>) => {
+    const { data, error } = await supabase
+      .from("projects")
+      .update(patch)
+      .eq("id", project.id)
+      .select("*")
+      .single();
+    if (error) return toast.error(error.message);
+    toast.success("Timeline saved");
+    onUpdated?.(data as Project);
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
