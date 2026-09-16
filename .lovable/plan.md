@@ -11,10 +11,10 @@ Give each of the nine lifecycle statuses its own distinct, semantically sensible
 | Definition | blue | planning / definition |
 | In Progress | coral / primary | active work — the brand CTA |
 | Bug-Fixing | orange | fixing, warm warning |
-| Monitor | gold / accent | watching, golden |
-| Completed | emerald / green | done |
+| Monitor | emerald / green | being watched / supported |
+| Completed | gold / accent | delivered, golden |
 | On Hold | violet | paused, distinct from amber |
-| Closed Lost | red / health-bad | lost |
+| Closed Lost | stone / dark grey | ended, inert |
 
 All nine now differ from one another and read in a sensible order (neutral → sky → blue → coral → orange → gold → green → violet → red).
 
