@@ -30,6 +30,7 @@ export function ProjectTimelineTab({ project, canEdit, onSave, onClose }: Props)
   const [saving, setSaving] = useState(false);
 
   const required = REQUIRED_FIELDS[status];
+  const visible = VISIBLE_FIELDS[status];
   const missing = missingRequiredField(status, dates);
 
   const setField = (k: keyof LifecycleDates, v: string | null) =>
