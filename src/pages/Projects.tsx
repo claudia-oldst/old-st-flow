@@ -73,7 +73,7 @@ export default function Projects() {
     reload();
   };
 
-  const hasFilters = !!debouncedQ || status !== "active" || sort !== "newest";
+  const hasFilters = !!debouncedQ || status !== "active" || sort !== "newest" || !!lifecycle;
   const clearFilters = () => {
     setQ("");
     setParams(new URLSearchParams(), { replace: true });
