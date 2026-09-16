@@ -399,6 +399,9 @@ Deno.serve(async (req) => {
     if (payload.event === "comment_mention") {
       return await handleCommentMention(admin, payload, base);
     }
+    if (payload.event === "closing_window_reminder") {
+      return await handleClosingWindow(admin, payload, base);
+    }
 
     return j({ error: `unknown event: ${payload.event}` }, 400);
   } catch (e) {
