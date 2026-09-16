@@ -45,7 +45,7 @@ const ALWAYS_REQUIRED: (keyof LifecycleDates)[] = ["start_date", "development_st
 
 /** Fields each status requires before it can be saved. */
 export const REQUIRED_FIELDS: Record<LifecycleStatus, (keyof LifecycleDates)[]> = {
-  "Pre-live": [...ALWAYS_REQUIRED],
+  "Pre-live": [],
   Confirmed: [...ALWAYS_REQUIRED],
   Definition: [...ALWAYS_REQUIRED],
   "In Progress": [...ALWAYS_REQUIRED],
@@ -58,7 +58,7 @@ export const REQUIRED_FIELDS: Record<LifecycleStatus, (keyof LifecycleDates)[]> 
 
 /** Fields shown on the Timeline tab for each status, in display order. */
 export const VISIBLE_FIELDS: Record<LifecycleStatus, (keyof LifecycleDates)[]> = {
-  "Pre-live": [...ALWAYS_REQUIRED],
+  "Pre-live": [],
   Confirmed: [...ALWAYS_REQUIRED],
   Definition: [...ALWAYS_REQUIRED],
   "In Progress": [...ALWAYS_REQUIRED],
