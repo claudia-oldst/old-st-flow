@@ -55,3 +55,20 @@ export const projectDetailsSchema = z.object({
 });
 
 export type ProjectDetailsInput = z.infer<typeof projectDetailsSchema>;
+
+export const lifecycleDatesSchema = z.object({
+  lifecycle_status: z.enum([
+    "Pre-live", "Confirmed", "Definition", "In Progress",
+    "Bug-Fixing", "Monitor", "Completed", "On Hold", "Closed Lost",
+  ]),
+  start_date: z.string().nullable().optional(),
+  development_start_date: z.string().nullable().optional(),
+  handover_date: z.string().nullable().optional(),
+  closing_window_date: z.string().nullable().optional(),
+  pause_date: z.string().nullable().optional(),
+  pause_reason: z.string().nullable().optional(),
+  closed_date: z.string().nullable().optional(),
+  closed_reason: z.string().nullable().optional(),
+});
+
+export type LifecycleDatesInput = z.infer<typeof lifecycleDatesSchema>;
