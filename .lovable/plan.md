@@ -29,6 +29,7 @@ A third settings tab (before Team) with:
 - All lifecycle dates and reasons listed in order, each editable.
 - Fields required by the currently selected status are marked and validated; saving with one missing shows an inline error and blocks the save.
 - Read-only for everyone except PMBA, matching the other settings tabs.
+- Reuse the existing Select, Input, Label, Button, Tabs, Badge, and inline validation patterns so the tab looks and behaves like the rest of Project Settings.
 
 ## Project card
 
@@ -44,5 +45,5 @@ A new status dropdown in the toolbar alongside the existing Active/Vaulted filte
 - Migration: new enum `project_lifecycle_status`; add to `public.projects`: `lifecycle_status` (not null, default `Confirmed`), `development_start_date`, `handover_date`, `closing_window_date`, `pause_date`, `pause_reason`, `closed_date`, `closed_reason`. Existing rows default to Confirmed. No RLS change needed — projects policies already cover it.
 - Validation lives in a shared helper (`src/features/project/settings/lifecycle.ts`) exporting the status list, colours, required-field map, per-status card date descriptors, and a validator reused by the Timeline tab; Zod schema extended in `src/lib/schemas/project.ts`.
 - New `ProjectTimelineTab.tsx` + state in `useProjectSettings.ts` (own save path so Details save is untouched).
-- `ProjectCard.tsx` renders the pill and the subtle date line; `ProjectsToolbar.tsx` / `Projects.tsx` / `useProjectsList.ts` gain the `lifecycle` filter param.
+- `ProjectCard.tsx` renders the pill with the existing Badge component and the subtle date line; the lifecycle filter reuses the toolbar's existing Select pattern in `ProjectsToolbar.tsx` / `Projects.tsx` / `useProjectsList.ts`.
 - Docs: update `docs/pages/project-settings-dialog.md` and `docs/pages/projects.md`.
