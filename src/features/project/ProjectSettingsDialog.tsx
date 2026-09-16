@@ -1,5 +1,4 @@
 import { useState } from "react";
-import type { Project } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
