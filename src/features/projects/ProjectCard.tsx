@@ -18,6 +18,8 @@ export function ProjectCard({
   onToggleFavorite?: (projectId: string, next: boolean) => void;
 }) {
   const archived = project.is_archived;
+  const status = project.lifecycle_status;
+  const cardDate = lifecycleCardDate(status, extractCardDates(project));
   return (
     <Link
       to={`/projects/${project.id}`}
