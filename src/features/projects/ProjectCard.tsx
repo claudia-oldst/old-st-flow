@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Project } from "@/lib/types";
 import { relativeTime } from "./useProjectsList";
+import { LIFECYCLE_PILL, lifecycleCardDate, type LifecycleDates } from "@/features/project/settings/lifecycle";
 
 export function ProjectCard({
   project,
