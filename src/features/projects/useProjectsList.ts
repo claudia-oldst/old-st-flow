@@ -89,6 +89,7 @@ export function useProjectsList(args: {
     if (allowedIds) pinnedQuery = pinnedQuery.in("id", allowedIds);
     if (status === "active") pinnedQuery = pinnedQuery.eq("is_archived", false);
     else if (status === "vaulted") pinnedQuery = pinnedQuery.eq("is_archived", true);
+    if (lifecycle) pinnedQuery = pinnedQuery.eq("lifecycle_status", lifecycle);
     if (term) pinnedQuery = pinnedQuery.or(searchExpr);
     pinnedQuery = pinnedQuery.order("name", { ascending: true });
 
