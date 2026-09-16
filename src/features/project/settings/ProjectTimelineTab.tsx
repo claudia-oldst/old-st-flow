@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import type { Project } from "@/lib/types";
 import {
   LIFECYCLE_STATUSES, LIFECYCLE_DOT, LIFECYCLE_PILL,
-  LIFECYCLE_FIELD_LABELS, REQUIRED_FIELDS,
+  LIFECYCLE_FIELD_LABELS, REQUIRED_FIELDS, VISIBLE_FIELDS, REASON_FIELD_SET,
   type LifecycleStatus, type LifecycleDates,
   lifecycleCardDate, missingRequiredField,
 } from "./lifecycle";
