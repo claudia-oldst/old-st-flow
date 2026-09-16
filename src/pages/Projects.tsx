@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ListPagination } from "@/components/ListPagination";
 import {
-  useDebounced, useProjectsList, type SortKey, type StatusFilter,
+  useDebounced, useProjectsList, type SortKey, type StatusFilter, type LifecycleFilter,
 } from "@/features/projects/useProjectsList";
 import { ProjectCard } from "@/features/projects/ProjectCard";
 import { useToggleFavorite } from "@/features/projects/useToggleFavorite";
