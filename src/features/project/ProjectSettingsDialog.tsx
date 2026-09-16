@@ -84,6 +84,15 @@ export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
             />
           </TabsContent>
 
+          <TabsContent value="timeline">
+            <ProjectTimelineTab
+              project={project}
+              canEdit={canEdit}
+              onSave={handleSaveTimeline}
+              onClose={() => setOpen(false)}
+            />
+          </TabsContent>
+
           <TabsContent value="team">
             <ProjectTeamTab
               canEdit={canEdit}
