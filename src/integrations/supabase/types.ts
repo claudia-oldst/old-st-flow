@@ -1107,6 +1107,7 @@ export type Database = {
         }
         Returns: Json
       }
+      notify_closing_window_due: { Args: never; Returns: undefined }
       purge_project_children: { Args: { _project_id: string }; Returns: Json }
       rehydrate_project: {
         Args: { _member_map?: Json; _payload: Json; _project_id: string }
