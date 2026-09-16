@@ -40,18 +40,37 @@ export const LIFECYCLE_DOT: Record<LifecycleStatus, string> = {
   "Closed Lost": "bg-health-bad",
 };
 
+/** Always required, whatever the status. */
+const ALWAYS_REQUIRED: (keyof LifecycleDates)[] = ["start_date", "development_start_date"];
+
 /** Fields each status requires before it can be saved. */
 export const REQUIRED_FIELDS: Record<LifecycleStatus, (keyof LifecycleDates)[]> = {
-  "Pre-live": [],
-  Confirmed: [],
-  Definition: ["start_date"],
-  "In Progress": ["development_start_date"],
-  "Bug-Fixing": ["handover_date", "closing_window_date"],
-  Monitor: [],
-  Completed: [],
-  "On Hold": ["pause_date", "pause_reason"],
-  "Closed Lost": ["closed_date", "closed_reason"],
+  "Pre-live": [...ALWAYS_REQUIRED],
+  Confirmed: [...ALWAYS_REQUIRED],
+  Definition: [...ALWAYS_REQUIRED],
+  "In Progress": [...ALWAYS_REQUIRED],
+  "Bug-Fixing": [...ALWAYS_REQUIRED, "handover_date", "closing_window_date"],
+  Monitor: [...ALWAYS_REQUIRED],
+  Completed: [...ALWAYS_REQUIRED],
+  "On Hold": [...ALWAYS_REQUIRED, "pause_date", "pause_reason"],
+  "Closed Lost": [...ALWAYS_REQUIRED, "closed_date", "closed_reason"],
 };
+
+/** Fields shown on the Timeline tab for each status, in display order. */
+export const VISIBLE_FIELDS: Record<LifecycleStatus, (keyof LifecycleDates)[]> = {
+  "Pre-live": [...ALWAYS_REQUIRED],
+  Confirmed: [...ALWAYS_REQUIRED],
+  Definition: [...ALWAYS_REQUIRED],
+  "In Progress": [...ALWAYS_REQUIRED],
+  "Bug-Fixing": [...ALWAYS_REQUIRED, "handover_date", "closing_window_date"],
+  Monitor: [...ALWAYS_REQUIRED, "handover_date", "closing_window_date"],
+  Completed: [...ALWAYS_REQUIRED],
+  "On Hold": [...ALWAYS_REQUIRED, "pause_date", "pause_reason"],
+  "Closed Lost": [...ALWAYS_REQUIRED, "closed_date", "closed_reason"],
+};
+
+/** Reason fields render as textareas rather than date inputs. */
+export const REASON_FIELD_SET = new Set<keyof LifecycleDates>(["pause_reason", "closed_reason"]);
 
 /** All editable date / reason fields on the timeline, in display order. */
 export interface LifecycleDates {
