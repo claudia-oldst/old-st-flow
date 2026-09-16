@@ -22,7 +22,7 @@ All toolbar state is reflected in the URL (`?q=…&status=…&lifecycle=…&sort
 
 ## Grid
 - Responsive 1/2/3-column grid of project cards.
-- Each card shows: acronym chip, project name, client name, ticket count, member avatars (overlapping), an archived badge when applicable, and a tiny last-activity timestamp.
+- Each card shows: acronym chip, lifecycle status pill (colour-coded), project name, client name, ticket count, member avatars (overlapping), an archived badge when applicable, and a subtle date line relevant to the current status (e.g. "Dev started 4 Mar", "Handover 2 Apr", "Paused 1 May").
 - Clicking anywhere on a card opens that project's workspace.
 
 ## Pagination
