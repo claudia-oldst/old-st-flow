@@ -4,7 +4,7 @@ Opened from the cog icon in the project workspace header. Read-only for non-PMBA
 
 ## Tabs
 - **Details** — name, acronym (immutable after creation), client name, rate per hour, currency, project start date, GitHub repo URL, Userback project ID (feedback for that ID becomes "UB - " tickets here), links list (label + URL pairs).
-- **Timeline** — lifecycle status dropdown (Pre-live, Confirmed, Definition, In Progress, Bug-Fixing, Monitor, Completed, On Hold, Closed Lost). Project start date and Development start date are always shown and always required. Only the fields relevant to the selected status are shown on top of those: Bug-Fixing/Monitor add handover + closing window dates, On Hold adds pause date + reason, Closed Lost adds closed date + reason. Hidden fields keep their saved values. Required fields are validated inline and block saving until filled. PMBA-only.
+- **Timeline** — lifecycle status dropdown (Pre-live, Confirmed, Definition, In Progress, Bug-Fixing, Monitor, Completed, On Hold, Closed Lost). Project start date and Development start date are always shown and always required. Only the fields relevant to the selected status are shown on top of those: Bug-Fixing/Monitor add handover + closing window dates, On Hold adds pause date + reason, Closed Lost adds closed date + reason. Hidden fields keep their saved values. Required fields are validated inline and block saving until filled. PMBA-only. When a Bug-Fixing project's closing window date is 7 days away, every PMBA on the project gets a one-off Slack reminder (sent by the daily 07:00 UTC check; muted projects are skipped).
 - **Team** — add/remove project members and set per-member role (PMBA / FE / BE / Project). Inline avatar + name search.
 
 ## Interactions
