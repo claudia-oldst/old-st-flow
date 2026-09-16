@@ -34,6 +34,11 @@ export function ProjectCard({
           {project.acronym}
         </div>
         <div className="flex items-center gap-2 relative z-10">
+          {!archived && (
+            <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ring-1", LIFECYCLE_PILL[status])}>
+              {status}
+            </span>
+          )}
           {archived ? (
             <Badge className="bg-brand-gold/15 text-brand-gold ring-1 ring-brand-gold/30 hover:bg-brand-gold/20 gap-1">
               <Archive className="h-3 w-3" /> Vaulted
