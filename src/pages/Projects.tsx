@@ -26,7 +26,7 @@ export default function Projects() {
   const [q, setQ] = useState(params.get("q") ?? "");
   const status = (params.get("status") as StatusFilter) || "active";
   const sort = (params.get("sort") as SortKey) || "newest";
-  const lifecycle = params.get("lifecycle") || null;
+  const lifecycle = (params.get("lifecycle") || null) as LifecycleFilter;
   const page = Math.max(1, Number(params.get("page") ?? "1"));
   const debouncedQ = useDebounced(q, 200);
 
