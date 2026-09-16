@@ -26,6 +26,7 @@ interface Payload {
   slot?: string;
   change_id?: string;
   comment_id?: string;
+  project_id?: string;
 }
 
 
@@ -311,7 +312,63 @@ async function handleCommentMention(admin: Admin, p: Payload, base: string | nul
   return j({ ok: true, event: "comment_mention", result });
 }
 
+/** One-week heads-up that a project's bug-fixing closing window is approaching. */
+async function handleClosingWindow(admin: Admin, p: Payload, base: string | null) {
+  if (!p.project_id) return j({ error: "missing project_id" }, 400);
+
+  const { data: project, error: pErr } = await admin
+    .from("projects")
+    .select("id, name, closing_window_date, lifecycle_status")
+    .eq("id", p.project_id)
+    .maybeSingle();
+  if (pErr) return j({ error: pErr.message }, 500);
+  if (!project) return j({ error: "project not found" }, 404);
+  const pr = project as Record<string, any>;
+
+  const { data: members } = await admin
+    .from("project_members")
+    .select("user_id, team_members(id, name, email, slack_user_id, role)")
+    .eq("project_id", pr.id);
+
+  const pmbas = ((members ?? []) as Record<string, any>[])
+    .map((m) => m.team_members)
+    .filter((tm) => tm && tm.role === "PMBA");
+
+  const when = pr.closing_window_date
+    ? new Date(`${pr.closing_window_date}T00:00:00Z`).toLocaleDateString("en-GB", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      timeZone: "UTC",
+    })
+    : "soon";
+  const projectUrl = base ? `${base.replace(/\/+$/, "")}/projects/${pr.id}` : null;
+
+  const mrkdwn =
+    `:warning: *Closing window approaching* — ${link(projectUrl, pr.name ?? "project")} ` +
+    `closes on ${esc(when)} (7 days).\n` +
+    `Wrap up any outstanding bug fixes before the window closes.`;
+  const text = `Closing window approaching — ${pr.name} closes on ${when} (7 days)`;
+
+  const blocks: unknown[] = [{ type: "section", text: { type: "mrkdwn", text: mrkdwn } }];
+  if (projectUrl) {
+    blocks.push({ type: "actions", elements: [linkButton("Open project", projectUrl)] });
+  }
+
+  const results: string[] = [];
+  for (const pmba of pmbas) {
+    try {
+      results.push(await dm(admin, pr.id as string, pmba, text, blocks));
+    } catch (e) {
+      console.error("PMBA DM failed:", (e as Error).message);
+      results.push("error");
+    }
+  }
+  return j({ ok: true, event: "closing_window_reminder", notified: results });
+}
+
 Deno.serve(async (req) => {
+
 
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -341,6 +398,9 @@ Deno.serve(async (req) => {
     }
     if (payload.event === "comment_mention") {
       return await handleCommentMention(admin, payload, base);
+    }
+    if (payload.event === "closing_window_reminder") {
+      return await handleClosingWindow(admin, payload, base);
     }
 
     return j({ error: `unknown event: ${payload.event}` }, 400);
