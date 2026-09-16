@@ -74,6 +74,7 @@ export function useProjectsList(args: {
     if (allowedIds) query = query.in("id", allowedIds);
     if (status === "active") query = query.eq("is_archived", false);
     else if (status === "vaulted") query = query.eq("is_archived", true);
+    if (lifecycle) query = query.eq("lifecycle_status", lifecycle);
     if (term) query = query.or(searchExpr);
     if (favIds.length) query = query.not("id", "in", `(${favIds.join(",")})`);
 
