@@ -112,8 +112,12 @@ export function lifecycleCardDate(
       return fmt(d.start_date) ? `Started ${fmt(d.start_date)}` : null;
     case "In Progress":
       return fmt(d.development_start_date) ? `Dev started ${fmt(d.development_start_date)}` : null;
-    case "Bug-Fixing":
-      return fmt(d.handover_date) ? `Handover ${fmt(d.handover_date)}` : null;
+    case "Bug-Fixing": {
+      const parts: string[] = [];
+      if (fmt(d.handover_date)) parts.push(`Handover ${fmt(d.handover_date)}`);
+      if (fmt(d.closing_window_date)) parts.push(`Closes ${fmt(d.closing_window_date)}`);
+      return parts.length ? parts.join(" · ") : null;
+    }
     case "Monitor":
       return fmt(d.handover_date) ? `Handover ${fmt(d.handover_date)}` : null;
     case "On Hold":
