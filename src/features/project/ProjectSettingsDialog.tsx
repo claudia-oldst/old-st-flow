@@ -11,10 +11,14 @@ import { Settings, Eye } from "lucide-react";
 import { ArchiveProjectDialog } from "@/features/vault/ArchiveProjectDialog";
 import { useProjectSettings } from "./settings/useProjectSettings";
 import { ProjectDetailsTab } from "./settings/ProjectDetailsTab";
+import { ProjectTimelineTab } from "./settings/ProjectTimelineTab";
 import { ProjectTeamTab } from "./settings/ProjectTeamTab";
 import { ProjectNotificationsTab } from "./settings/ProjectNotificationsTab";
 import { useNotificationPrefs } from "./settings/useNotificationPrefs";
 import { useCurrentUser } from "@/store/currentUser";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import type { Project } from "@/lib/types";
 
 
 export type { ProjectLink } from "./settings/types";
