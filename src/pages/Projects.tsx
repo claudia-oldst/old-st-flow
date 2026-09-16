@@ -36,7 +36,7 @@ export default function Projects() {
   const [creating, setCreating] = useState(false);
 
   const { projects, pinned, favoriteIds, total, loading, counts, pageSize, reload } = useProjectsList({
-    page, status, sort, debouncedQ,
+    page, status, sort, debouncedQ, lifecycle,
   });
   const toggleFavorite = useToggleFavorite(reload);
   const favSet = new Set(favoriteIds);
