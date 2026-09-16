@@ -25,7 +25,7 @@ Other statuses need nothing extra. Dates already captured stay in place when the
 ## Timeline tab
 
 A third settings tab (before Team) with:
-- Status picker showing the nine statuses as coloured options.
+- A dropdown (Select) showing the nine statuses as coloured options.
 - All lifecycle dates and reasons listed in order, each editable.
 - Fields required by the currently selected status are marked and validated; saving with one missing shows an inline error and blocks the save.
 - Read-only for everyone except PMBA, matching the other settings tabs.
