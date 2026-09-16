@@ -84,6 +84,22 @@ export function ProjectCard({
           </>
         )}
       </div>
+      {cardDate && !archived && (
+        <div className="mt-1 text-[10px] text-dimmer">{cardDate}</div>
+      )}
     </Link>
   );
+}
+
+function extractCardDates(p: Project): LifecycleDates {
+  return {
+    start_date: p.start_date ?? null,
+    development_start_date: p.development_start_date ?? null,
+    handover_date: p.handover_date ?? null,
+    closing_window_date: p.closing_window_date ?? null,
+    pause_date: p.pause_date ?? null,
+    pause_reason: p.pause_reason ?? null,
+    closed_date: p.closed_date ?? null,
+    closed_reason: p.closed_reason ?? null,
+  };
 }
