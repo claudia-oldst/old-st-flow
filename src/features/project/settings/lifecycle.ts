@@ -14,30 +14,30 @@ export const LIFECYCLE_STATUSES: LifecycleStatus[] = [
   "Closed Lost",
 ];
 
-/** Pill colour classes per status — reuses semantic tokens / tailwind palette. */
+/** Pill colour classes per status — each status a distinct colour. */
 export const LIFECYCLE_PILL: Record<LifecycleStatus, string> = {
-  "Pre-live": "bg-white/5 text-dim ring-white/10",
-  Confirmed: "bg-white/5 text-dim ring-white/10",
+  "Pre-live": "bg-slate-500/15 text-slate-300 ring-slate-400/20",
+  Confirmed: "bg-sky-500/15 text-sky-300 ring-sky-400/20",
   Definition: "bg-blue-500/15 text-blue-300 ring-blue-400/20",
   "In Progress": "bg-primary/15 text-primary ring-primary/30",
-  "Bug-Fixing": "bg-amber-500/15 text-amber-300 ring-amber-400/20",
-  Monitor: "bg-brand-gold/15 text-brand-gold ring-brand-gold/30",
-  Completed: "bg-health-good/15 text-health-good ring-health-good/30",
-  "On Hold": "bg-amber-500/15 text-amber-300 ring-amber-400/20",
-  "Closed Lost": "bg-health-bad/15 text-health-bad ring-health-bad/30",
+  "Bug-Fixing": "bg-orange-500/15 text-orange-300 ring-orange-400/20",
+  Monitor: "bg-health-good/15 text-health-good ring-health-good/30",
+  Completed: "bg-brand-gold/15 text-brand-gold ring-brand-gold/30",
+  "On Hold": "bg-violet-500/15 text-violet-300 ring-violet-400/20",
+  "Closed Lost": "bg-stone-500/15 text-stone-300 ring-stone-400/20",
 };
 
 /** A small dot in the status colour, for dropdown options. */
 export const LIFECYCLE_DOT: Record<LifecycleStatus, string> = {
-  "Pre-live": "bg-dim",
-  Confirmed: "bg-dim",
+  "Pre-live": "bg-slate-400",
+  Confirmed: "bg-sky-400",
   Definition: "bg-blue-400",
   "In Progress": "bg-primary",
-  "Bug-Fixing": "bg-amber-400",
-  Monitor: "bg-brand-gold",
-  Completed: "bg-health-good",
-  "On Hold": "bg-amber-400",
-  "Closed Lost": "bg-health-bad",
+  "Bug-Fixing": "bg-orange-400",
+  Monitor: "bg-health-good",
+  Completed: "bg-brand-gold",
+  "On Hold": "bg-violet-400",
+  "Closed Lost": "bg-stone-400",
 };
 
 /** Always required, whatever the status. */
