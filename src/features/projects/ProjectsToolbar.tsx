@@ -6,21 +6,24 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import type { SortKey, StatusFilter } from "./useProjectsList";
+import { LIFECYCLE_STATUSES, LIFECYCLE_DOT } from "@/features/project/settings/lifecycle";
 
 interface Props {
   q: string;
   status: StatusFilter;
   sort: SortKey;
+  lifecycle: string | null;
   hasFilters: boolean;
   onQChange: (v: string) => void;
   onStatusChange: (v: StatusFilter) => void;
   onSortChange: (v: SortKey) => void;
+  onLifecycleChange: (v: string | null) => void;
   onClear: () => void;
 }
 
 export function ProjectsToolbar({
-  q, status, sort, hasFilters,
-  onQChange, onStatusChange, onSortChange, onClear,
+  q, status, sort, lifecycle, hasFilters,
+  onQChange, onStatusChange, onSortChange, onLifecycleChange, onClear,
 }: Props) {
   const sortOptions = useMemo(() => {
     const opts: Array<{ value: SortKey; label: string }> = [
