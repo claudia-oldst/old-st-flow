@@ -34,7 +34,7 @@ A third settings tab (before Team) with:
 ## Project card
 
 - Colour pill with the status name, next to the acronym chip.
-- Beneath the existing ticket/member counts, a subtle line showing only the dates relevant to that status (e.g. In Progress → "Dev started 4 Mar"; Bug-Fixing → "Handover 2 Apr · Closes 16 Apr"; On Hold → "Paused 1 May").
+- Beneath the existing ticket/member counts, a subtle line showing only the date relevant to that status — no reasons, no supporting text (e.g. In Progress → "Dev started 4 Mar"; Bug-Fixing → "Handover 2 Apr"; On Hold → "Paused 1 May").
 
 ## Projects page filter
 
