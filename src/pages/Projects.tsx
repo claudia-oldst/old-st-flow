@@ -124,10 +124,12 @@ export default function Projects() {
         q={q}
         status={status}
         sort={sort}
+        lifecycle={lifecycle}
         hasFilters={hasFilters}
         onQChange={(v) => { setQ(v); setParam("q", v || null); }}
         onStatusChange={(v) => setParam("status", v === "active" ? null : v)}
         onSortChange={(v) => setParam("sort", v === "newest" ? null : v)}
+        onLifecycleChange={(v) => setParam("lifecycle", v)}
         onClear={clearFilters}
       />
 
