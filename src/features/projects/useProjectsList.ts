@@ -123,7 +123,7 @@ export function useProjectsList(args: {
     } else {
       setCounts({});
     }
-  }, [page, pageSize, status, sort, debouncedQ, user]);
+  }, [page, pageSize, status, sort, debouncedQ, lifecycle, user]);
 
   useEffect(() => { load(); }, [load]);
 
