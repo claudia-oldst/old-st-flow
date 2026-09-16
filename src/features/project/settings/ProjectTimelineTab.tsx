@@ -23,12 +23,6 @@ interface Props {
   onClose: () => void;
 }
 
-const DATE_FIELDS: (keyof LifecycleDates)[] = [
-  "start_date", "development_start_date", "handover_date",
-  "closing_window_date", "pause_date", "closed_date",
-];
-
-const REASON_FIELDS: (keyof LifecycleDates)[] = ["pause_reason", "closed_reason"];
 
 export function ProjectTimelineTab({ project, canEdit, onSave, onClose }: Props) {
   const [status, setStatus] = useState<LifecycleStatus>(project.lifecycle_status);
@@ -78,7 +72,7 @@ export function ProjectTimelineTab({ project, canEdit, onSave, onClose }: Props)
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        {DATE_FIELDS.map((f) => (
+        {visible.filter((f) => !REASON_FIELD_SET.has(f)).map((f) => (
           <div key={f} className="space-y-1.5">
             <Label htmlFor={`lc-${f}`}>
               {LIFECYCLE_FIELD_LABELS[f]}
@@ -96,26 +90,22 @@ export function ProjectTimelineTab({ project, canEdit, onSave, onClose }: Props)
       </div>
 
       <div className="space-y-3">
-        {REASON_FIELDS.map((f) => {
-          const showReason = status === "On Hold" || status === "Closed Lost" || (dates[f] ?? "").length > 0;
-          if (!showReason) return null;
-          return (
-            <div key={f} className="space-y-1.5">
-              <Label htmlFor={`lc-${f}`}>
-                {LIFECYCLE_FIELD_LABELS[f]}
-                {required.includes(f) && <span className="text-primary ml-1">*</span>}
-              </Label>
-              <Textarea
-                id={`lc-${f}`}
-                value={dates[f] ?? ""}
-                onChange={(e) => setField(f, e.target.value || null)}
-                disabled={!canEdit}
-                rows={2}
-                placeholder={f === "pause_reason" ? "Why is this project on hold?" : "Why was this project closed?"}
-              />
-            </div>
-          );
-        })}
+        {visible.filter((f) => REASON_FIELD_SET.has(f)).map((f) => (
+          <div key={f} className="space-y-1.5">
+            <Label htmlFor={`lc-${f}`}>
+              {LIFECYCLE_FIELD_LABELS[f]}
+              {required.includes(f) && <span className="text-primary ml-1">*</span>}
+            </Label>
+            <Textarea
+              id={`lc-${f}`}
+              value={dates[f] ?? ""}
+              onChange={(e) => setField(f, e.target.value || null)}
+              disabled={!canEdit}
+              rows={2}
+              placeholder={f === "pause_reason" ? "Why is this project on hold?" : "Why was this project closed?"}
+            />
+          </div>
+        ))}
       </div>
 
       {missing && canEdit && (
