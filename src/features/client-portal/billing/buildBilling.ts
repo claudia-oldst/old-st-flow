@@ -82,4 +82,4 @@ export function totalRow(rows: BillingRow[]): BillingRow {
   return t;
 }
 
-export const fmtHours = (h: number) => `${(Math.round(h * 10) / 10).toFixed(1)}`;
+export const fmtHours = (h: number) => String(Math.round(h * 10) / 10);
