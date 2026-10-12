@@ -38,7 +38,7 @@ export function BillingTable({ rows, total, months, rate }: {
       <table className="w-full text-sm border-collapse">
         <thead>
           <tr className="hairline-b text-[11px] uppercase tracking-wider text-dimmer">
-            <th className={cn(sticky, "font-medium")}>Epic</th>
+            <th className={cn(sticky, "font-medium")}>Epic <span className="normal-case text-dimmer/70">(hours)</span></th>
             {cols.map((c) => (
               <th key={c.key} className={cn("px-3 py-2 text-right align-bottom font-medium leading-tight max-w-[110px]", c.breakdown && "bg-surface-2/40")}>
                 {c.key === "original" ? (
