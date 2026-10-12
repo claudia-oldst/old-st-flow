@@ -13,6 +13,7 @@ import { PortalToolbar } from "./editor/PortalToolbar";
 import { useClientPortalEditor } from "./editor/useClientPortalEditor";
 import { SprintGanttOrEmpty } from "@/features/sprints/SprintGanttOrEmpty";
 import { PortalBilling } from "./billing/PortalBilling";
+import { parsePortalTab, type PortalTab } from "./portalTabs";
 import { OpenReportButton } from "./report/OpenReportButton";
 
 
@@ -23,6 +24,7 @@ export function ClientPortalEditor() {
   const role = useProjectRole(id);
   const canEdit = isPMBA(role);
   const [previewOpen, setPreviewOpen] = useState(true);
+  const [tab, setTab] = useState<PortalTab>("timeline");
   const editor = useClientPortalEditor(id ?? "");
 
   if (!id) return null;
@@ -75,6 +77,7 @@ export function ClientPortalEditor() {
           onUpdate={handleUpdate}
           onPublish={handlePublish}
           onDisable={handleDisable}
+          tab={tab}
         />
 
         <div className="glass rounded-2xl p-4 space-y-2">
@@ -144,7 +147,7 @@ export function ClientPortalEditor() {
           </div>
           <div className="glass rounded-2xl p-6 lg:p-8">
             {payload ? (
-              <Tabs defaultValue="timeline" className="w-full">
+              <Tabs value={tab} onValueChange={(v) => setTab(parsePortalTab(v))} className="w-full">
                 <TabsList className="grid w-full grid-cols-4 mb-6">
                   <TabsTrigger value="timeline">Timeline</TabsTrigger>
                   <TabsTrigger value="summary">Summary</TabsTrigger>

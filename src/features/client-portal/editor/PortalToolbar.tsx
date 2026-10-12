@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import type { Project } from "@/lib/types";
 import { MultiSelectFilter } from "@/features/estimates/MultiSelectFilter";
 import { useProjectVersions } from "./useProjectVersions";
+import { portalLink, type PortalTab } from "../portalTabs";
 import { reportingEndOfDay } from "@/lib/reportingTz";
 
 interface Props {
@@ -21,6 +22,8 @@ interface Props {
   onUpdate: () => void;
   onPublish: () => void;
   onDisable: () => void;
+  /** Tab shown in the preview; the share link opens on it. */
+  tab: PortalTab;
 }
 
 export function PortalToolbar({
@@ -34,8 +37,9 @@ export function PortalToolbar({
   onUpdate,
   onPublish,
   onDisable,
+  tab,
 }: Props) {
-  const portalUrl = hash ? `${window.location.origin}/h/${hash}` : null;
+  const portalUrl = hash ? portalLink(window.location.origin, hash, tab) : null;
   const { options: versionOpts } = useProjectVersions(project?.id);
   const scopeLabel = versions.length
     ? versions
