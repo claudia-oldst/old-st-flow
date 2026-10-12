@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
+import { epicRank, useEpicOrder } from "@/features/epics/useEpicOrder";
 import { useStatuses } from "@/features/statuses/useStatuses";
 
 export type DevColGroupBy = "none" | "epic" | "type" | "status";
@@ -23,6 +24,7 @@ export function useDevColumnGroups(
   groupBy: DevColGroupBy,
 ): DevColGroup[] {
   const { statuses } = useStatuses();
+  const epicOrder = useEpicOrder(tickets[0]?.project_id);
   const statusById = useMemo(() => {
     const m = new Map<string, { name: string; position: number }>();
     statuses.forEach((s) => m.set(s.id, { name: s.name, position: s.position }));
@@ -42,7 +44,7 @@ export function useDevColumnGroups(
     tickets.forEach((t) => {
       if (groupBy === "epic") {
         const key = t.epic_name ?? "__no_epic__";
-        push(key, t.epic_name ?? "No epic", t.epic_name ? 0 : 9999, t);
+        push(key, t.epic_name ?? "No epic", epicRank(epicOrder, t.epic_id), t);
       } else if (groupBy === "type") {
         push(t.ticket_type, t.ticket_type, 0, t);
       } else if (groupBy === "status") {
@@ -57,5 +59,5 @@ export function useDevColumnGroups(
     return [...map.entries()]
       .map(([key, v]) => ({ key, label: v.label, tickets: v.tickets, order: v.order }))
       .sort((a, b) => a.order - b.order || a.label.localeCompare(b.label));
-  }, [tickets, groupBy, statusById]);
+  }, [tickets, groupBy, statusById, epicOrder]);
 }
