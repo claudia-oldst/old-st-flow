@@ -9,6 +9,7 @@ export interface EpicLite {
 export type Risk = "at_risk" | "watch" | "healthy";
 
 export type SortKey =
+  | "order"
   | "originalEst"
   | "currentEst"
   | "actualHours"
@@ -36,6 +37,7 @@ export interface EpicRiskRow {
 }
 
 export const SORT_LABELS: Record<SortKey, string> = {
+  order: "Epic order",
   originalEst: "Original Estimate Size",
   currentEst: "Current Estimate Size",
   actualHours: "Actual Logs",
@@ -119,8 +121,10 @@ export function buildEpicRiskRows(
     result.push({ ...base, risk: computeRisk(base) });
   }
 
+  const rank = new Map(epics.map((e, i) => [e.id, i]));
   result.sort((a, b) => {
     const dir = sort.dir === "asc" ? 1 : -1;
+    if (sort.key === "order") return (rank.get(a.epicId)! - rank.get(b.epicId)!) * dir;
     if (sort.key === "name") return a.name.localeCompare(b.name) * dir;
     return (a[sort.key] - b[sort.key]) * dir;
   });

@@ -17,6 +17,8 @@ export interface GanttSegment {
 export interface GanttEpicRow {
   epicId: number | null;
   epicName: string;
+  /** Position in the project's epic order (lower first). */
+  rank?: number;
   segments: GanttSegment[];
   isCommitted: boolean;
   startDate: Date;
@@ -206,10 +208,11 @@ export function buildGanttRows(
     });
   });
 
-  rows.sort((a, b) =>
-    (a.epicId ?? Number.MAX_SAFE_INTEGER) - (b.epicId ?? Number.MAX_SAFE_INTEGER) ||
-    a.epicName.localeCompare(b.epicName, undefined, { sensitivity: "base" }),
-  );
+  const epicRankById = new Map(epics.map((e, i) => [e.id, i]));
+  rows.forEach((r) => {
+    r.rank = r.epicId != null ? epicRankById.get(r.epicId) ?? epics.length : Number.MAX_SAFE_INTEGER;
+  });
+  rows.sort((a, b) => a.rank! - b.rank! || a.epicName.localeCompare(b.epicName));
 
   return rows;
 }
