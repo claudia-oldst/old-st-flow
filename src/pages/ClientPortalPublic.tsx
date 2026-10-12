@@ -7,6 +7,7 @@ import { PortalView } from "@/features/client-portal/PortalView";
 import { PortalChangeRequests } from "@/features/client-portal/PortalChangeRequests";
 import { useClientPortalCRsByHash } from "@/features/client-portal/useClientPortalCRs";
 import { PortalTimeline } from "@/features/client-portal/PortalTimeline";
+import { PortalBilling } from "@/features/client-portal/billing/PortalBilling";
 import oldStLogo from "@/assets/oldst-logo.png";
 
 export default function ClientPortalPublic() {
@@ -51,9 +52,10 @@ export default function ClientPortalPublic() {
         )}
         {data && (
           <Tabs defaultValue="timeline" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-6">
+            <TabsList className="grid w-full grid-cols-4 mb-6">
               <TabsTrigger value="timeline">Timeline</TabsTrigger>
               <TabsTrigger value="summary">Summary</TabsTrigger>
+              <TabsTrigger value="billing">Billing</TabsTrigger>
               <TabsTrigger value="change-requests">Change Requests</TabsTrigger>
             </TabsList>
             <TabsContent value="timeline">
@@ -61,6 +63,9 @@ export default function ClientPortalPublic() {
             </TabsContent>
             <TabsContent value="summary">
               <PortalView payload={data} showRate />
+            </TabsContent>
+            <TabsContent value="billing">
+              {hash && <PortalBilling hash={hash} />}
             </TabsContent>
             <TabsContent value="change-requests">
               {crData ? (

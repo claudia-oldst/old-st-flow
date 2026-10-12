@@ -1074,6 +1074,7 @@ export type Database = {
         Returns: string
       }
       get_client_portal: { Args: { _hash: string }; Returns: Json }
+      get_client_portal_billing: { Args: { _hash: string }; Returns: Json }
       get_client_portal_change_requests: {
         Args: { _hash: string }
         Returns: Json
@@ -1081,6 +1082,10 @@ export type Database = {
       get_client_portal_gantt: { Args: { _hash: string }; Returns: Json }
       get_project_archive_payload: {
         Args: { _project_id: string }
+        Returns: Json
+      }
+      get_project_portal_billing: {
+        Args: { _cutoff: string; _project_id: string; _versions?: string[] }
         Returns: Json
       }
       get_project_portal_preview: {
@@ -1108,6 +1113,10 @@ export type Database = {
         Returns: Json
       }
       notify_closing_window_due: { Args: never; Returns: undefined }
+      portal_billing_payload: {
+        Args: { _cutoff: string; _project_id: string; _versions: string[] }
+        Returns: Json
+      }
       purge_project_children: { Args: { _project_id: string }; Returns: Json }
       rehydrate_project: {
         Args: { _member_map?: Json; _payload: Json; _project_id: string }
