@@ -25,7 +25,7 @@ export function BillingTable({ rows, total, months, rate }: {
         ]
       : []),
     { key: "original", label: "Total Original", get: (r) => r.original },
-    { key: "revised", label: "Latest Revised", get: (r) => r.revised },
+    { key: "revised", label: "Latest Revised Estimate", get: (r) => r.revised },
     ...months.map((m) => ({ key: m, label: monthLabel(m), get: (r: BillingRow) => r.months[m] ?? 0 })),
     { key: "actual", label: "Actual Total", get: (r) => r.actual },
   ];
