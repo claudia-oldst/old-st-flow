@@ -1,0 +1,1 @@
+ALTER FUNCTION public.reorder_project_epics(uuid, bigint[]) SECURITY INVOKER;

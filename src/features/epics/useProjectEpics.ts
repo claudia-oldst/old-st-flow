@@ -7,6 +7,7 @@ export interface Epic {
   id: number;
   project_id: string;
   epic_name: string | null;
+  order_index: number;
 }
 
 export function useProjectEpics(projectId: string | undefined) {
@@ -21,6 +22,7 @@ export function useProjectEpics(projectId: string | undefined) {
         .from("project_epics")
         .select("*")
         .eq("project_id", projectId!)
+        .order("order_index", { ascending: true })
         .order("id", { ascending: true });
       return (data as Epic[]) ?? [];
     },
@@ -87,8 +89,35 @@ export function useProjectEpics(projectId: string | undefined) {
     [projectId, qc],
   );
 
+  /** Persist a new epic order (PMBA only). Optimistically updates the cache. */
+  const reorderEpics = useCallback(
+    async (ids: number[]): Promise<boolean> => {
+      if (!projectId) return false;
+      const prev = qc.getQueryData<Epic[]>(queryKey);
+      if (prev) {
+        const byId = new Map(prev.map((e) => [e.id, e]));
+        qc.setQueryData(queryKey, [
+          ...ids.map((id, i) => ({ ...byId.get(id)!, order_index: i })).filter((e) => e.id != null),
+          ...prev.filter((e) => !ids.includes(e.id)),
+        ]);
+      }
+      const { error } = await (supabase.rpc as any).call(supabase, "reorder_project_epics", {
+        _project_id: projectId,
+        _epic_ids: ids,
+      });
+      if (error) {
+        if (prev) qc.setQueryData(queryKey, prev);
+        return false;
+      }
+      return true;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [projectId, qc],
+  );
+
   return {
     epics,
+    reorderEpics,
     loading: query.isPending && !!projectId,
     reload,
     createEpic,

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Check, ChevronDown, ChevronRight, Pencil, X } from "lucide-react";
+import type { HTMLAttributes } from "react";
+import { Check, ChevronDown, ChevronRight, GripVertical, Pencil, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useProjectEpics } from "@/features/epics/useProjectEpics";
 import { toast } from "@/hooks/use-toast";
@@ -13,6 +14,8 @@ interface Props {
   /** Epic id when the group is a real epic and renaming is allowed. */
   epicId?: number | null;
   projectId?: string;
+  /** Present when the PMBA can drag this epic group to reorder. */
+  dragHandleProps?: HTMLAttributes<HTMLSpanElement> | null;
 }
 
 export function TicketsGroupHeader({
@@ -23,6 +26,7 @@ export function TicketsGroupHeader({
   onToggle,
   epicId,
   projectId,
+  dragHandleProps,
 }: Props) {
   const canRename = !!epicId && !!projectId;
   const { renameEpic } = useProjectEpics(canRename ? projectId : undefined);
@@ -58,6 +62,15 @@ export function TicketsGroupHeader({
 
   return (
     <div className="group w-full flex items-center gap-2 px-4 py-3 hairline-b text-left hover:bg-white/[0.02] transition">
+      {dragHandleProps && (
+        <span
+          {...dragHandleProps}
+          aria-label={`Drag to reorder ${label}`}
+          className="cursor-grab active:cursor-grabbing text-dimmer hover:text-foreground -ml-2"
+        >
+          <GripVertical className="h-3.5 w-3.5" />
+        </span>
+      )}
       <button
         type="button"
         onClick={onToggle}

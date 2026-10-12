@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
+import { epicRank, useEpicOrder } from "@/features/epics/useEpicOrder";
 import type { Sprint } from "../types";
 
 export const UNPLANNED = "__unplanned__";
@@ -36,6 +37,7 @@ export function usePoolGroups({
   planByTicket,
   sortedSprints,
 }: Params): PoolGroup[] {
+  const epicOrder = useEpicOrder(filtered[0]?.project_id);
   const sprintNumberById = useMemo(() => {
     const m = new Map<string, number>();
     sortedSprints.forEach((s) => m.set(s.id, s.sprint_number));
@@ -55,7 +57,7 @@ export function usePoolGroups({
     filtered.forEach((t) => {
       if (groupBy === "epic") {
         const key = t.epic_name ?? "__no_epic__";
-        push(key, t.epic_name ?? "No epic", t.epic_name ? 0 : 1, t);
+        push(key, t.epic_name ?? "No epic", epicRank(epicOrder, t.epic_id), t);
       } else if (groupBy === "type") {
         push(t.ticket_type, t.ticket_type, 0, t);
       } else if (groupBy === "assignee") {
@@ -77,5 +79,5 @@ export function usePoolGroups({
     return [...map.entries()]
       .map(([key, v]) => ({ key, label: v.label, tickets: v.tickets, order: v.order }))
       .sort((a, b) => a.order - b.order || a.label.localeCompare(b.label));
-  }, [filtered, groupBy, discipline, planByTicket, sprintNumberById]);
+  }, [filtered, groupBy, discipline, planByTicket, sprintNumberById, epicOrder]);
 }

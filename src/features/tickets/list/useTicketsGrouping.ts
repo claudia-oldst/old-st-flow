@@ -8,10 +8,12 @@ export function useTicketsGrouping({
   tickets,
   statuses,
   groupBy,
+  epicOrder,
 }: {
   tickets: TicketRow[];
   statuses: Status[];
   groupBy: GroupBy;
+  epicOrder?: Map<number, number>;
 }): Group[] {
   return useMemo(() => {
     if (groupBy === "none") {
@@ -56,7 +58,11 @@ export function useTicketsGrouping({
         g.tickets.push(t);
         map.set(key, g);
       });
-      const out = [...map.values()].sort((a, b) => Number(a.key) - Number(b.key));
+      const out = [...map.values()].sort(
+        (a, b) =>
+          (epicOrder?.get(Number(a.key)) ?? Number(a.key)) -
+          (epicOrder?.get(Number(b.key)) ?? Number(b.key)),
+      );
       if (noEpic.tickets.length) out.push(noEpic);
       return out;
     }
@@ -112,5 +118,5 @@ export function useTicketsGrouping({
     const out = [...map.values()].sort((a, b) => a.label.localeCompare(b.label));
     if (unassigned.tickets.length) out.push(unassigned);
     return out;
-  }, [tickets, statuses, groupBy]);
+  }, [tickets, statuses, groupBy, epicOrder]);
 }

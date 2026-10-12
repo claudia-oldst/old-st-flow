@@ -12,6 +12,7 @@ import { TicketsListHeader } from "./list/TicketsListHeader";
 import { TicketsGroupHeader } from "./list/TicketsGroupHeader";
 import { TicketsListRow } from "./list/TicketsListRow";
 import type { PoolData } from "./list/poolData";
+import { useEpicGroupDrag } from "./list/useEpicGroupDrag";
 
 export type { GroupBy } from "./list/columns";
 export type { PoolData } from "./list/poolData";
@@ -74,7 +75,8 @@ export function TicketsList({
 
   const { widthFor, totalWidth, onResizeStart } = useColumnResize(visibleCols);
 
-  const groups = useTicketsGrouping({ tickets, statuses, groupBy });
+  const drag = useEpicGroupDrag(groupBy === "epic" ? projectId : undefined, canEditEpics);
+  const groups = useTicketsGrouping({ tickets, statuses, groupBy, epicOrder: drag.epicOrder });
 
   if (tickets.length === 0) return null;
 
@@ -110,7 +112,11 @@ export function TicketsList({
           const isCollapsed = groupBy === "none" ? false : (collapsed[g.key] ?? true);
           const ids = g.tickets.map((t) => t.id);
           return (
-            <div key={g.key} className="glass rounded-2xl overflow-hidden">
+            <div
+              key={g.key}
+              className={`glass rounded-2xl overflow-hidden transition ${drag.overKey === g.key ? "ring-1 ring-primary" : ""} ${drag.dragKey === g.key ? "opacity-50" : ""}`}
+              {...drag.dropProps(g.key)}
+            >
               {groupBy !== "none" && (
                 <TicketsGroupHeader
                   label={g.label}
@@ -126,6 +132,7 @@ export function TicketsList({
                       : null
                   }
                   projectId={projectId}
+                  dragHandleProps={drag.handleProps(g.key)}
                 />
               )}
               {!isCollapsed && (
