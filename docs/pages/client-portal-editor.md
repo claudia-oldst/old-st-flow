@@ -29,3 +29,4 @@ When open, replicates the public portal exactly, with three tabs:
 ## States
 - **Loading** — "Loading…" line in the preview pane.
 - **Non-PMBA** — entire page is replaced by a "Restricted" notice.
+- **Share link follows the preview tab** — the copied/opened link adds `?tab=…` for the tab shown in the preview, so clients open on that tab (Timeline needs no parameter).

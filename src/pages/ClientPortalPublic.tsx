@@ -1,4 +1,5 @@
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
+import { parsePortalTab } from "@/features/client-portal/portalTabs";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +13,7 @@ import oldStLogo from "@/assets/oldst-logo.png";
 
 export default function ClientPortalPublic() {
   const { hash } = useParams<{ hash: string }>();
+  const [params] = useSearchParams();
   const { data, loading, error } = usePublicPortal(hash);
   const { data: crData, refresh: refreshCR } = useClientPortalCRsByHash(hash);
 
@@ -51,7 +53,7 @@ export default function ClientPortalPublic() {
           </div>
         )}
         {data && (
-          <Tabs defaultValue="timeline" className="w-full">
+          <Tabs defaultValue={parsePortalTab(params.get("tab"))} className="w-full">
             <TabsList className="grid w-full grid-cols-4 mb-6">
               <TabsTrigger value="timeline">Timeline</TabsTrigger>
               <TabsTrigger value="summary">Summary</TabsTrigger>
