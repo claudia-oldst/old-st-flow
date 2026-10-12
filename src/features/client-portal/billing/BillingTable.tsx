@@ -33,6 +33,22 @@ export function BillingTable({ rows, total, months, rate }: {
   const cell = "px-3 py-2 text-right font-mono whitespace-nowrap";
   const sticky = "sticky left-0 z-10 bg-card text-left px-3 py-2 min-w-[180px]";
 
+  // Totals render above and below the epic rows so they're readable without scrolling.
+  const totals = (
+    <>
+      <tr className="hairline-b font-semibold text-sm normal-case tracking-normal text-foreground">
+        <td className={sticky}>Total (hours)</td>
+        {cols.map((c) => <td key={c.key} className={cell}>{fmtHours(c.get(total))}</td>)}
+      </tr>
+      {rate > 0 && (
+        <tr className="hairline-b font-semibold text-sm normal-case tracking-normal text-primary">
+          <td className={sticky}>Total (GBP)</td>
+          {cols.map((c) => <td key={c.key} className={cell}>{formatGBP(c.get(total) * rate)}</td>)}
+        </tr>
+      )}
+    </>
+  );
+
   return (
     <div className="glass rounded-2xl overflow-x-auto">
       <table className="w-full text-sm border-collapse">
@@ -58,6 +74,7 @@ export function BillingTable({ rows, total, months, rate }: {
               </th>
             ))}
           </tr>
+          {totals}
         </thead>
         <tbody>
           {rows.map((r) => (
@@ -69,18 +86,7 @@ export function BillingTable({ rows, total, months, rate }: {
             </tr>
           ))}
         </tbody>
-        <tfoot>
-          <tr className="hairline-b font-semibold">
-            <td className={sticky}>Total (hours)</td>
-            {cols.map((c) => <td key={c.key} className={cell}>{fmtHours(c.get(total))}</td>)}
-          </tr>
-          {rate > 0 && (
-            <tr className="font-semibold text-primary">
-              <td className={sticky}>Total (GBP)</td>
-              {cols.map((c) => <td key={c.key} className={cell}>{formatGBP(c.get(total) * rate)}</td>)}
-            </tr>
-          )}
-        </tfoot>
+        <tfoot>{totals}</tfoot>
       </table>
     </div>
   );
