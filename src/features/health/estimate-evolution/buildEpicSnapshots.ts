@@ -43,6 +43,8 @@ export function buildEpicSnapshots({
   asOf,
 }: Params): EpicSnapshot[] {
   const asOfMs = endOfDay(asOf).getTime();
+  const epicRank = new Map(epics.map((e, i) => [`e:${e.id}`, i]));
+  const rankOf = (key: string) => epicRank.get(key) ?? Number.MAX_SAFE_INTEGER;
 
   const groups = new Map<
     string,
@@ -107,5 +109,5 @@ export function buildEpicSnapshots({
   return Array.from(groups.entries())
     .map(([key, v]) => ({ key, ...v }))
     .filter((g) => g.original > 0 || g.current > 0 || g.actual > 0)
-    .sort((a, b) => b.current - a.current);
+    .sort((a, b) => rankOf(a.key) - rankOf(b.key));
 }

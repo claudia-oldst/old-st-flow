@@ -117,6 +117,7 @@ export function PortalChangeRequests({
 
   const groups = useMemo(() => {
     const epicMap = new Map(epics.map((e) => [e.id, e]));
+    const epicRank = new Map(epics.map((e, i) => [e.id, i]));
     type Bucket = {
       key: string;
       epicId: number | null;
@@ -150,7 +151,11 @@ export function PortalChangeRequests({
         ...b,
         baseline: baselineTickets.filter((t) => t.epic_id === b.epicId),
       }))
-      .sort((a, b) => b.all.length - a.all.length);
+      .sort((a, b) => {
+        const rank = (id: number | null) =>
+          id == null ? Number.MAX_SAFE_INTEGER : epicRank.get(id) ?? Number.MAX_SAFE_INTEGER - 1;
+        return rank(a.epicId) - rank(b.epicId);
+      });
   }, [crTickets, filteredCRs, baselineTickets, epics]);
 
   const pillBase =

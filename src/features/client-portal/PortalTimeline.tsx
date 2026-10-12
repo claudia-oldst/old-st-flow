@@ -55,7 +55,7 @@ function mergeRows(feRows: GanttEpicRow[], beRows: GanttEpicRow[]): GanttEpicRow
   addRows(feRows);
   addRows(beRows);
   return Array.from(merged.values()).sort((a, b) =>
-    (a.epicId ?? Number.MAX_SAFE_INTEGER) - (b.epicId ?? Number.MAX_SAFE_INTEGER) ||
+    (a.rank ?? Number.MAX_SAFE_INTEGER) - (b.rank ?? Number.MAX_SAFE_INTEGER) ||
     a.epicName.localeCompare(b.epicName, undefined, { sensitivity: "base" }),
   );
 }

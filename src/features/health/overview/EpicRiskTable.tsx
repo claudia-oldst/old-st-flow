@@ -21,8 +21,8 @@ interface Props {
 
 export function EpicRiskTable({ tickets, statuses, epics }: Props) {
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({
-    key: "burnPct",
-    dir: "desc",
+    key: "order",
+    dir: "asc",
   });
 
   const rows = useMemo(
@@ -54,7 +54,7 @@ export function EpicRiskTable({ tickets, statuses, epics }: Props) {
             <Select
               value={sort.key}
               onValueChange={(v) =>
-                setSort({ key: v as SortKey, dir: v === "name" ? "asc" : "desc" })
+                setSort({ key: v as SortKey, dir: v === "name" || v === "order" ? "asc" : "desc" })
               }
             >
               <SelectTrigger className="h-8 min-w-[10rem] w-auto text-xs bg-surface-2 border-white/10 hover:border-white/20">
