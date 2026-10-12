@@ -40,12 +40,12 @@ export function BillingTable({ rows, total, months, rate }: {
           <tr className="hairline-b text-[11px] uppercase tracking-wider text-dimmer">
             <th className={cn(sticky, "font-medium")}>Epic</th>
             {cols.map((c) => (
-              <th key={c.key} className={cn("px-3 py-2 text-right font-medium whitespace-nowrap", c.breakdown && "bg-surface-2/40")}>
+              <th key={c.key} className={cn("px-3 py-2 text-right align-bottom font-medium leading-tight max-w-[110px]", c.breakdown && "bg-surface-2/40")}>
                 {c.key === "original" ? (
                   <button
                     type="button"
                     onClick={() => setExpanded((v) => !v)}
-                    className="inline-flex items-center gap-1 hover:text-foreground"
+                    className="inline-flex items-end gap-1 text-right uppercase hover:text-foreground"
                     aria-expanded={expanded}
                     aria-label={expanded ? "Hide original breakdown" : "Show original breakdown"}
                   >
