@@ -207,6 +207,7 @@ export function buildGanttRows(
   });
 
   rows.sort((a, b) =>
+    (a.epicId ?? Number.MAX_SAFE_INTEGER) - (b.epicId ?? Number.MAX_SAFE_INTEGER) ||
     a.epicName.localeCompare(b.epicName, undefined, { sensitivity: "base" }),
   );
 
