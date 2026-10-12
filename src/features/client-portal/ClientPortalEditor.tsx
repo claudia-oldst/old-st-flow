@@ -12,6 +12,7 @@ import { PreviewChangeRequests } from "./editor/PreviewChangeRequests";
 import { PortalToolbar } from "./editor/PortalToolbar";
 import { useClientPortalEditor } from "./editor/useClientPortalEditor";
 import { SprintGanttOrEmpty } from "@/features/sprints/SprintGanttOrEmpty";
+import { PortalBilling } from "./billing/PortalBilling";
 import { OpenReportButton } from "./report/OpenReportButton";
 
 
@@ -144,9 +145,10 @@ export function ClientPortalEditor() {
           <div className="glass rounded-2xl p-6 lg:p-8">
             {payload ? (
               <Tabs defaultValue="timeline" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 mb-6">
+                <TabsList className="grid w-full grid-cols-4 mb-6">
                   <TabsTrigger value="timeline">Timeline</TabsTrigger>
                   <TabsTrigger value="summary">Summary</TabsTrigger>
+                  <TabsTrigger value="billing">Billing</TabsTrigger>
                   <TabsTrigger value="change-requests">Change Requests</TabsTrigger>
                 </TabsList>
                 <TabsContent value="timeline">
@@ -154,6 +156,9 @@ export function ClientPortalEditor() {
                 </TabsContent>
                 <TabsContent value="summary">
                   <PortalView payload={payload} showRate />
+                </TabsContent>
+                <TabsContent value="billing">
+                  <PortalBilling projectId={id} asOf={asOf} versions={versions} />
                 </TabsContent>
                 <TabsContent value="change-requests">
                   <PreviewChangeRequests projectId={id} />
