@@ -166,18 +166,21 @@ export type Database = {
           created_at: string
           epic_name: string | null
           id: number
+          order_index: number
           project_id: string
         }
         Insert: {
           created_at?: string
           epic_name?: string | null
           id?: number
+          order_index?: number
           project_id: string
         }
         Update: {
           created_at?: string
           epic_name?: string | null
           id?: number
+          order_index?: number
           project_id?: string
         }
         Relationships: [
@@ -1121,6 +1124,10 @@ export type Database = {
       rehydrate_project: {
         Args: { _member_map?: Json; _payload: Json; _project_id: string }
         Returns: Json
+      }
+      reorder_project_epics: {
+        Args: { _epic_ids: number[]; _project_id: string }
+        Returns: undefined
       }
       rotate_client_portal_hash: {
         Args: { _project_id: string }
