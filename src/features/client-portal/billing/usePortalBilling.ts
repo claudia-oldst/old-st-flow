@@ -16,7 +16,7 @@ export function usePortalBilling(src: BillingSource) {
     queryKey: key,
     queryFn: async (): Promise<BillingPayload | null> => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const rpc = supabase.rpc as any;
+      const rpc = supabase.rpc.bind(supabase) as any;
       const { data, error } =
         "hash" in src
           ? await rpc("get_client_portal_billing", { _hash: src.hash })
