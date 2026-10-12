@@ -194,6 +194,8 @@ export function SprintPoolingTable({ projectId, sprints, isPMBA }: Props) {
           extraCols={["fe_pool", "be_pool"]}
           poolData={poolData}
           columnPrefs={columnPrefs}
+          projectId={projectId}
+          canEditEpics={isPMBA}
         />
       )}
 
