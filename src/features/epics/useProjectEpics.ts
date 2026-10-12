@@ -21,7 +21,7 @@ export function useProjectEpics(projectId: string | undefined) {
         .from("project_epics")
         .select("*")
         .eq("project_id", projectId!)
-        .order("epic_name", { ascending: true });
+        .order("id", { ascending: true });
       return (data as Epic[]) ?? [];
     },
   });

@@ -56,7 +56,7 @@ export function useTicketsGrouping({
         g.tickets.push(t);
         map.set(key, g);
       });
-      const out = [...map.values()].sort((a, b) => a.label.localeCompare(b.label));
+      const out = [...map.values()].sort((a, b) => Number(a.key) - Number(b.key));
       if (noEpic.tickets.length) out.push(noEpic);
       return out;
     }
