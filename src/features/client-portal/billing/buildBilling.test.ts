@@ -38,3 +38,13 @@ describe("billing", () => {
     expect(t.actual).toBe(9);
   });
 });
+
+import { fmtHours } from "./buildBilling";
+describe("fmtHours", () => {
+  it("drops .0 and keeps one decimal", () => {
+    expect(fmtHours(10)).toBe("10");
+    expect(fmtHours(10.5)).toBe("10.5");
+    expect(fmtHours(10.04)).toBe("10");
+    expect(fmtHours(10.26)).toBe("10.3");
+  });
+});
