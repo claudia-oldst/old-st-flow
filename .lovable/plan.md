@@ -15,6 +15,7 @@ Table, one row per epic (only epics with in-scope tickets):
 - Latest Revised: current estimates across all tickets in the epic.
 - Month columns: actual hours logged per month (UK time), from project start date to the portal cutoff.
 - Actual Total: all logged hours for the epic across the whole project, regardless of which months are shown.
+- Original (Std/Proj), Change Requests and Bugs are collapsed by default: only Total Original shows, with an expand chevron in its header that reveals the three breakdown columns (and collapses them again).
 - Footer rows: **Total (hours)** and **Total (GBP)** at the project rate; GBP row hidden when rate is 0.
 - Month filter (multi-select): defaults to the latest 5 months up to cutoff; clients can add or remove months.
 - Respects the selected portal versions and cutoff, same as the other tabs.
