@@ -21,6 +21,7 @@ import { Ring } from "./overview/Ring";
 import { ProfitabilityPill } from "./overview/ProfitabilityPill";
 import { WeeklyBurnPanel } from "./overview/WeeklyBurnPanel";
 import { EpicRiskTable } from "./overview/EpicRiskTable";
+import { donenessHours } from "./overview/doneness";
 
 export function ProjectHealth({ projectId }: { projectId: string }) {
   const { tickets: allTickets } = useProjectTickets(projectId);
@@ -83,6 +84,14 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
     );
   }, [tickets]);
 
+  const doneness = useMemo(() => {
+    const pair = (d: "FE" | "BE" | "Project") => ({
+      donenessCurrent: donenessHours(tickets, statuses, d, "current"),
+      donenessOriginal: donenessHours(tickets, statuses, d, "original"),
+    });
+    return { FE: pair("FE"), BE: pair("BE"), Project: pair("Project") };
+  }, [tickets, statuses]);
+
   const discountTotals = useMemo(
     () => discountTotalsByDiscipline(discounts),
     [discounts],
@@ -139,9 +148,9 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        <Ring title="Frontend" actual={totals.feAct} estimate={totals.feEst} original={totals.feOrig} discounted={discountTotals.FE} />
-        <Ring title="Backend" actual={totals.beAct} estimate={totals.beEst} original={totals.beOrig} discounted={discountTotals.BE} />
-        <Ring title="Project" actual={totals.projAct} estimate={totals.projEst} original={totals.projOrig} discounted={discountTotals.Project} />
+        <Ring title="Frontend" actual={totals.feAct} estimate={totals.feEst} original={totals.feOrig} discounted={discountTotals.FE} {...doneness.FE} />
+        <Ring title="Backend" actual={totals.beAct} estimate={totals.beEst} original={totals.beOrig} discounted={discountTotals.BE} {...doneness.BE} />
+        <Ring title="Project" actual={totals.projAct} estimate={totals.projEst} original={totals.projOrig} discounted={discountTotals.Project} {...doneness.Project} />
         <WeeklyBurnPanel projectId={projectId} tickets={tickets} />
       </div>
 

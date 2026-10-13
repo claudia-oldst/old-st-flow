@@ -11,7 +11,7 @@ A KPI dashboard for the project. Two big sections: **Overview** and **Estimate E
 
 ## Overview
 - **Profitability pill** — large rounded badge: project margin %, colour-coded (green/amber/coral).
-- **Burn ring** — circular gauge: hours logged vs. current estimated total. Centre shows %.
+- **Discipline rings** (Frontend, Backend, Project) — two rings showing doneness. The outer ring splits current-estimate hours and the inner ring splits original-estimate hours by status, clockwise from 12 o'clock: In Progress (yellow), For Integration (purple), Done (green); the empty track is To Do. FE/BE use each ticket's discipline status; Project tickets use the same status as the board. Unapproved CRs are excluded. Centre shows hours burned vs. current and original estimate. Hover a ring for the hours per status.
 - **Weekly burn panel** — bar chart of hours logged per week, with a dashed line for planned-burn-rate.
 - **Epic risk table** — one row per epic showing: estimate vs. actuals, % done, profitability indicator, and a small sparkline of estimate changes over time. Rows are sorted by risk (over-budget first).
 
