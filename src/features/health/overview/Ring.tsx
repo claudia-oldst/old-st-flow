@@ -1,4 +1,6 @@
 import { healthRatio, formatHours } from "@/lib/utils";
+import type { Doneness } from "./doneness";
+import { DonenessArcs } from "./DonenessArcs";
 
 interface Props {
   title: string;
@@ -7,9 +9,13 @@ interface Props {
   original: number;
   /** Hours discounted at the epic level for this discipline. */
   discounted?: number;
+  /** Status split of current-estimate hours; replaces the outer burn arc. */
+  donenessCurrent?: Doneness;
+  /** Status split of original-estimate hours; replaces the inner burn arc. */
+  donenessOriginal?: Doneness;
 }
 
-export function Ring({ title, actual, estimate, original, discounted = 0 }: Props) {
+export function Ring({ title, actual, estimate, original, discounted = 0, donenessCurrent, donenessOriginal }: Props) {
   // "Effective" actual = what we charge / count once discounts are applied.
   const effective = Math.max(0, actual - discounted);
 
@@ -47,6 +53,10 @@ export function Ring({ title, actual, estimate, original, discounted = 0 }: Prop
       <div className="flex items-center gap-4">
         <div className="relative h-32 w-32 shrink-0">
           <svg viewBox="0 0 140 140" className="-rotate-90">
+            {donenessCurrent ? (
+              <DonenessArcs r={r} strokeWidth={10} doneness={donenessCurrent} label="Current" />
+            ) : (
+            <>
             <circle cx="70" cy="70" r={r} stroke="hsl(0 0% 100% / 0.06)" strokeWidth="10" fill="none" />
             <circle
               cx="70" cy="70" r={r}
@@ -57,6 +67,12 @@ export function Ring({ title, actual, estimate, original, discounted = 0 }: Prop
               strokeLinecap="round"
               className="transition-all"
             />
+            </>
+            )}
+            {donenessOriginal ? (
+              <DonenessArcs r={rInner} strokeWidth={6} doneness={donenessOriginal} label="Original" />
+            ) : (
+            <>
             <circle cx="70" cy="70" r={rInner} stroke="hsl(0 0% 100% / 0.05)" strokeWidth="6" fill="none" />
             {original > 0 && (
               <circle
@@ -69,6 +85,8 @@ export function Ring({ title, actual, estimate, original, discounted = 0 }: Prop
                 opacity={0.7}
                 className="transition-all"
               />
+            )}
+            </>
             )}
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
