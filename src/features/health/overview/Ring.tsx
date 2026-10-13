@@ -53,7 +53,7 @@ export function Ring({ title, actual, estimate, original, discounted = 0, donene
       <div className="flex items-center gap-4">
         <div className="relative h-36 w-36 shrink-0">
           <svg viewBox="-10 -10 160 160" className="-rotate-90">
-            {doneness && <DonenessArcs r={67} strokeWidth={5} doneness={doneness} label="Current" onHover={setTip} />}
+            {doneness && <DonenessArcs r={67} strokeWidth={5} doneness={doneness} label="Doneness by current" onHover={setTip} />}
             <>
             <circle cx="70" cy="70" r={r} stroke="hsl(0 0% 100% / 0.06)" strokeWidth="10" fill="none" />
             <circle
