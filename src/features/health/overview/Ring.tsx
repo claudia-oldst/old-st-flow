@@ -83,7 +83,7 @@ export function Ring({ title, actual, estimate, original, discounted = 0, donene
             </>
           </svg>
           {tip && (
-            <div className="pointer-events-none absolute left-1/2 top-full z-20 mt-1 -translate-x-1/2 whitespace-nowrap rounded-md border border-border bg-popover px-2.5 py-1.5 text-xs text-popover-foreground shadow-lg">
+            <div className="pointer-events-none absolute left-1/2 bottom-full z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded-md border border-border bg-popover px-2.5 py-1.5 text-xs text-popover-foreground shadow-lg">
               <div className="font-medium mb-0.5">{tip[0]}</div>
               {tip.slice(1).map((l) => <div key={l} className="font-mono">{l}</div>)}
             </div>
