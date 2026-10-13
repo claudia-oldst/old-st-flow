@@ -50,6 +50,9 @@
 
     /* Health colors — kept distinct, slightly tuned to fit navy ground */
     --health-good: 152 60% 50%;
+    --status-progress: 45 95% 58%;
+    --status-integration: 271 81% 66%;
+    --status-done: 142 69% 50%;
     --health-warn: 36 100% 65%;
     --health-bad: 5 85% 62%;
 
