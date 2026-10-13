@@ -10,13 +10,11 @@ interface Props {
   original: number;
   /** Hours discounted at the epic level for this discipline. */
   discounted?: number;
-  /** Status split of current-estimate hours; replaces the outer burn arc. */
-  donenessCurrent?: Doneness;
-  /** Status split of original-estimate hours; replaces the inner burn arc. */
-  donenessOriginal?: Doneness;
+  /** Status split of current-estimate hours; drawn as a third, outermost ring. */
+  doneness?: Doneness;
 }
 
-export function Ring({ title, actual, estimate, original, discounted = 0, donenessCurrent, donenessOriginal }: Props) {
+export function Ring({ title, actual, estimate, original, discounted = 0, doneness }: Props) {
   // "Effective" actual = what we charge / count once discounts are applied.
   const effective = Math.max(0, actual - discounted);
 
@@ -53,11 +51,9 @@ export function Ring({ title, actual, estimate, original, discounted = 0, donene
     <div className="glass rounded-2xl p-5">
       <div className="text-xs uppercase tracking-wider text-dimmer mb-3">{title}</div>
       <div className="flex items-center gap-4">
-        <div className="relative h-32 w-32 shrink-0">
-          <svg viewBox="0 0 140 140" className="-rotate-90">
-            {donenessCurrent ? (
-              <DonenessArcs r={r} strokeWidth={10} doneness={donenessCurrent} label="Current" onHover={setTip} />
-            ) : (
+        <div className="relative h-36 w-36 shrink-0">
+          <svg viewBox="-10 -10 160 160" className="-rotate-90">
+            {doneness && <DonenessArcs r={67} strokeWidth={5} doneness={doneness} label="Doneness by current" onHover={setTip} />}
             <>
             <circle cx="70" cy="70" r={r} stroke="hsl(0 0% 100% / 0.06)" strokeWidth="10" fill="none" />
             <circle
@@ -70,10 +66,6 @@ export function Ring({ title, actual, estimate, original, discounted = 0, donene
               className="transition-all"
             />
             </>
-            )}
-            {donenessOriginal ? (
-              <DonenessArcs r={rInner} strokeWidth={6} doneness={donenessOriginal} label="Original" onHover={setTip} />
-            ) : (
             <>
             <circle cx="70" cy="70" r={rInner} stroke="hsl(0 0% 100% / 0.05)" strokeWidth="6" fill="none" />
             {original > 0 && (
@@ -89,7 +81,6 @@ export function Ring({ title, actual, estimate, original, discounted = 0, donene
               />
             )}
             </>
-            )}
           </svg>
           {tip && (
             <div className="pointer-events-none absolute left-1/2 top-full z-20 mt-1 -translate-x-1/2 whitespace-nowrap rounded-md border border-border bg-popover px-2.5 py-1.5 text-xs text-popover-foreground shadow-lg">
@@ -105,7 +96,6 @@ export function Ring({ title, actual, estimate, original, discounted = 0, donene
                 <div className="text-[10px] uppercase tracking-wider text-dimmer leading-none mt-2">Original</div>
                 <div className="text-sm font-mono leading-none mt-1 text-dim text-destructive-foreground font-semibold">{Math.round(origRatio * 100)}%</div>
               </>
-            )}
           </div>
         </div>
         <div className="text-sm space-y-1">
@@ -124,7 +114,6 @@ export function Ring({ title, actual, estimate, original, discounted = 0, donene
                 <div className="font-mono">{formatHours(effective)}</div>
               </div>
             </>
-          )}
           <div>
             <div className="text-dimmer text-xs">Estimate</div>
             <div className="font-mono">{formatHours(estimate)}</div>

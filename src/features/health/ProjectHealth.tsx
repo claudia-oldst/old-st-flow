@@ -86,8 +86,7 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
 
   const doneness = useMemo(() => {
     const pair = (d: "FE" | "BE" | "Project") => ({
-      donenessCurrent: donenessHours(tickets, statuses, d, "current"),
-      donenessOriginal: donenessHours(tickets, statuses, d, "original"),
+      doneness: donenessHours(tickets, statuses, d, "current"),
     });
     return { FE: pair("FE"), BE: pair("BE"), Project: pair("Project") };
   }, [tickets, statuses]);
