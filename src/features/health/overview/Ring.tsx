@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { healthRatio, formatHours } from "@/lib/utils";
 import type { Doneness } from "./doneness";
 import { DonenessArcs } from "./DonenessArcs";
@@ -39,6 +40,7 @@ export function Ring({ title, actual, estimate, original, discounted = 0, donene
     origHealth === "bad" ? "hsl(var(--health-bad))" :
     "hsl(0 0% 30%)";
 
+  const [tip, setTip] = useState<string[] | null>(null);
   const r = 56;
   const c = 2 * Math.PI * r;
   const dash = (pct / 100) * c;
@@ -54,7 +56,7 @@ export function Ring({ title, actual, estimate, original, discounted = 0, donene
         <div className="relative h-32 w-32 shrink-0">
           <svg viewBox="0 0 140 140" className="-rotate-90">
             {donenessCurrent ? (
-              <DonenessArcs r={r} strokeWidth={10} doneness={donenessCurrent} label="Current" />
+              <DonenessArcs r={r} strokeWidth={10} doneness={donenessCurrent} label="Current" onHover={setTip} />
             ) : (
             <>
             <circle cx="70" cy="70" r={r} stroke="hsl(0 0% 100% / 0.06)" strokeWidth="10" fill="none" />
@@ -70,7 +72,7 @@ export function Ring({ title, actual, estimate, original, discounted = 0, donene
             </>
             )}
             {donenessOriginal ? (
-              <DonenessArcs r={rInner} strokeWidth={6} doneness={donenessOriginal} label="Original" />
+              <DonenessArcs r={rInner} strokeWidth={6} doneness={donenessOriginal} label="Original" onHover={setTip} />
             ) : (
             <>
             <circle cx="70" cy="70" r={rInner} stroke="hsl(0 0% 100% / 0.05)" strokeWidth="6" fill="none" />
@@ -89,7 +91,13 @@ export function Ring({ title, actual, estimate, original, discounted = 0, donene
             </>
             )}
           </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+          {tip && (
+            <div className="pointer-events-none absolute left-1/2 top-full z-20 mt-1 -translate-x-1/2 whitespace-nowrap rounded-md border border-border bg-popover px-2.5 py-1.5 text-xs text-popover-foreground shadow-lg">
+              <div className="font-medium mb-0.5">{tip[0]}</div>
+              {tip.slice(1).map((l) => <div key={l} className="font-mono">{l}</div>)}
+            </div>
+          )}
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
             <div className="text-[10px] uppercase tracking-wider text-dimmer leading-none">Current</div>
             <div className="text-sm font-mono leading-none mt-1 text-dim font-semibold">{Math.round(ratio * 100)}%</div>
             {original > 0 && (
