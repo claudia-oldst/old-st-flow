@@ -115,6 +115,7 @@ export function Ring({ title, actual, estimate, original, discounted = 0, donene
                 <div className="font-mono">{formatHours(effective)}</div>
               </div>
             </>
+          )}
           <div>
             <div className="text-dimmer text-xs">Estimate</div>
             <div className="font-mono">{formatHours(estimate)}</div>
