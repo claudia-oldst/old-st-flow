@@ -96,6 +96,7 @@ export function Ring({ title, actual, estimate, original, discounted = 0, donene
                 <div className="text-[10px] uppercase tracking-wider text-dimmer leading-none mt-2">Original</div>
                 <div className="text-sm font-mono leading-none mt-1 text-dim text-destructive-foreground font-semibold">{Math.round(origRatio * 100)}%</div>
               </>
+            )}
           </div>
         </div>
         <div className="text-sm space-y-1">
