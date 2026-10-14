@@ -40,20 +40,22 @@ export const LIFECYCLE_DOT: Record<LifecycleStatus, string> = {
   "Closed Lost": "bg-stone-400",
 };
 
-/** Always required, whatever the status. */
+/** Shown for every status except Pre-live. */
 const ALWAYS_REQUIRED: (keyof LifecycleDates)[] = ["start_date", "development_start_date"];
+/** Required for every status except Pre-live; dev start is only required for In Progress. */
+const BASE_REQUIRED: (keyof LifecycleDates)[] = ["start_date"];
 
 /** Fields each status requires before it can be saved. */
 export const REQUIRED_FIELDS: Record<LifecycleStatus, (keyof LifecycleDates)[]> = {
   "Pre-live": [],
-  Confirmed: [...ALWAYS_REQUIRED],
-  Definition: [...ALWAYS_REQUIRED],
-  "In Progress": [...ALWAYS_REQUIRED],
-  "Bug-Fixing": [...ALWAYS_REQUIRED, "handover_date", "closing_window_date"],
-  Monitor: [...ALWAYS_REQUIRED],
-  Completed: [...ALWAYS_REQUIRED],
-  "On Hold": [...ALWAYS_REQUIRED, "pause_date", "pause_reason"],
-  "Closed Lost": [...ALWAYS_REQUIRED, "closed_date", "closed_reason"],
+  Confirmed: [...BASE_REQUIRED],
+  Definition: [...BASE_REQUIRED],
+  "In Progress": [...BASE_REQUIRED, "development_start_date"],
+  "Bug-Fixing": [...BASE_REQUIRED, "handover_date", "closing_window_date"],
+  Monitor: [...BASE_REQUIRED],
+  Completed: [...BASE_REQUIRED],
+  "On Hold": [...BASE_REQUIRED, "pause_date", "pause_reason"],
+  "Closed Lost": [...BASE_REQUIRED, "closed_date", "closed_reason"],
 };
 
 /** Fields shown on the Timeline tab for each status, in display order. */
