@@ -16,7 +16,7 @@ export function DonenessArcs({ r, strokeWidth, doneness, label, onHover }: Props
   const pct = (h: number) => (total > 0 ? Math.round((h / total) * 100) : 0);
   const tip = [
     `${label} estimate`,
-    ...DONENESS_SEGMENTS.map((s) => `${s.label}: ${formatHours(doneness[s.key])} (${pct(doneness[s.key])}%)`),
+    ...DONENESS_SEGMENTS.map((s) => `${s.key === "done" ? "Done / logged" : s.label}: ${formatHours(doneness[s.key])} (${pct(doneness[s.key])}%)`),
     `To Do: ${formatHours(doneness.todo)} (${pct(doneness.todo)}%)`,
   ];
 
