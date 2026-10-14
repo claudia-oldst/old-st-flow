@@ -22,7 +22,12 @@ function hoursFor(t: TicketRow, d: DonenessDiscipline, basis: DonenessBasis): nu
   );
 }
 
-/** Estimate hours per status for one discipline (unapproved CRs excluded). */
+function actualFor(t: TicketRow, d: DonenessDiscipline): number {
+  return Number(d === "FE" ? t.actual_frontend_hours : d === "BE" ? t.actual_backend_hours : t.actual_project_hours) || 0;
+}
+
+/** Logged hours (capped at estimate) count as done; the remainder sits in the ticket's status.
+ * Estimate hours per status for one discipline (unapproved CRs excluded). */
 export function donenessHours(
   tickets: TicketRow[],
   statuses: Status[],
@@ -42,7 +47,9 @@ export function donenessHours(
       const cat = t.status_id ? catById.get(t.status_id) : undefined;
       status = (cat ? CATEGORY_TO_DISCIPLINE[cat] : undefined) ?? "todo";
     }
-    out[status] += h;
+    const logged = Math.min(actualFor(t, discipline), h);
+    out.done += logged;
+    out[status] += h - logged;
   }
   return out;
 }
