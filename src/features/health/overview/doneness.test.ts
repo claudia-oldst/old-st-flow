@@ -33,4 +33,10 @@ describe("donenessHours", () => {
     const tickets = [makeTicket({ ticket_type: "CR", cr_approval: "pending", fe_status: "done", current_fe_estimate: 9 })];
     expect(donenessHours(tickets, statuses, "FE", "current").done).toBe(0);
   });
+  it("shows only remaining hours in progress; logged hours count as done", () => {
+    const tickets = [makeTicket({ be_status: "in_progress", current_be_estimate: 4, actual_backend_hours: 3 })];
+    const d = donenessHours(tickets, statuses, "BE", "current");
+    expect(d.in_progress).toBe(1);
+    expect(d.done).toBe(3);
+  });
 });
