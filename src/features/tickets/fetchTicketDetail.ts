@@ -43,6 +43,7 @@ export async function fetchTicketDetail(ticketId: string): Promise<TicketRow | n
     actual_backend_hours: Number(tt.actual_backend_hours),
     actual_project_hours: Number(tt.actual_project_hours ?? 0),
     acceptance_criteria: tt.acceptance_criteria ?? null,
+    external_source: tt.external_source ?? null,
     position: tt.position,
     created_at: tt.created_at,
     cr_approval: (tt.ticket_type === "CR" ? (tt.cr_approval ?? "pending") : null) as TicketRow["cr_approval"],
