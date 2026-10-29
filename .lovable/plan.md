@@ -5,7 +5,7 @@
 - Feedback tickets are real tickets, but they **don't show up** in the normal ticket list, board, sprints, Health, client portal or billing. Developers won't see them.
 - Each project gets a **Feedback** tab (visible to PMBAs and project members) that lists them. Opening one shows the usual ticket view with its discussion thread.
 - The first comment in the thread is written by a "Thalamus" bot user and holds the report: description, page link, reporter, browser/viewport/app version, console errors, network errors and extra details. The screenshot is saved as an attachment on that comment.
-- A PMBA can click **Convert** and pick Standard, CR or Bug (a Bug can optionally get a parent ticket). The ticket then shows up in the normal log with a normal ID, keeps its whole discussion thread, and carries a "From Thalamus" badge that links back to the original report.
+- A PMBA can click **Convert** and pick Standard, CR, Bug or Project (a Bug can optionally get a parent ticket). The ticket then shows up in the normal log with a normal ID, keeps its whole discussion thread, and carries a "From Thalamus" badge that links back to the original report. Before conversion it shows exactly the same fields as a normal ticket. Converting to Project follows the existing Project rules: FE/BE hours move to project hours.
 - Thalamus gets back the ticket's internal id and link, plus a neutral Feedback label instead of a project ID, so its badge opens the ticket here. If the same report is sent twice, no duplicate ticket is made.
 
 ## Steps
