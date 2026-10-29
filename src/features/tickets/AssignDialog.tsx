@@ -25,7 +25,7 @@ interface Props {
   ticketId: string;
   projectId: string;
   /** Type of the ticket — drives which slot pickers are shown. */
-  ticketType?: "Standard" | "Bug" | "CR" | "Proj";
+  ticketType?: "Standard" | "Bug" | "CR" | "Proj" | "Feedback";
   current: Array<{ user_id: string; slot: Slot }>;
   onSaved: () => void;
 }
