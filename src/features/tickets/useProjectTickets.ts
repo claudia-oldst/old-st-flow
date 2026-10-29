@@ -11,7 +11,7 @@ export interface TicketRow {
   formatted_id: string;
   title: string;
   ticket_type: "Standard" | "Bug" | "CR" | "Proj" | "Feedback";
-  external_source: string | null;
+  external_source?: string | null;
   status_id: string | null;
   fe_status: DisciplineStatus;
   be_status: DisciplineStatus;
