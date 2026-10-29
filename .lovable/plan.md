@@ -6,14 +6,15 @@
 - Each project gets a **Feedback** tab (visible to PMBAs and project members) that lists them. Opening one shows the usual ticket view with its discussion thread.
 - The first comment in the thread is written by a "Thalamus" bot user and holds the report: description, page link, reporter, browser/viewport/app version, console errors, network errors and extra details. The screenshot is saved as an attachment on that comment.
 - A PMBA can click **Convert** and pick Standard, CR or Bug (a Bug can optionally get a parent ticket). The ticket then shows up in the normal log with a normal ID, keeps its whole discussion thread, and carries a "From Thalamus" badge that links back to the original report.
-- Thalamus gets the ticket ID and link back, so its badge opens the ticket here. If the same report is sent twice, no duplicate ticket is made.
+- Thalamus gets back the ticket's internal id and link, plus a neutral Feedback label instead of a project ID, so its badge opens the ticket here. If the same report is sent twice, no duplicate ticket is made.
 
 ## Steps
 1. **Database (one migration)**
    - Add `Feedback` to the ticket type list.
    - On tickets: add `external_source` (e.g. "thalamus") and `external_ref` (the Thalamus report id), with each pair kept unique so a retry can't create a duplicate. The source page link stays in the first comment, so no data is stored twice.
    - Add a "Thalamus" bot team member, the same way the Userback bot works.
-   - Add `convert_feedback_ticket(ticket_id, new_type, parent_id)`, for PMBAs only. It changes the type, lets the existing ID trigger re-issue the formatted ID, and keeps the comments.
+   - Feedback tickets get **no project prefix or number**: the ID triggers skip them, and they're shown with a neutral label such as "Feedback #a1b2" taken from the Thalamus report id. They don't use up the project's ticket number sequence.
+   - Add `convert_feedback_ticket(ticket_id, new_type, parent_id)`, for PMBAs only. At conversion the ticket takes the project's next ticket number and prefix (e.g. AMB-105, or a bug sub-number under its parent). It joins the end of the ticket order, and its comments stay.
    - Exclude `ticket_type = 'Feedback'` from the ticket list, portal and billing functions, and block Feedback tickets from sprints (reusing the guard that already stops Proj tickets).
 2. **Intake function `thalamus-feedback`** (built like `userback-webhook`)
    - Checks the shared secret from `x-feedback-secret` or `Bearer`, validates the payload, and looks up the project by acronym.
