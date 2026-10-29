@@ -41,12 +41,18 @@ export function useTicketEditor({
     const prevBE = ticket.current_be_estimate;
     const prevProj = ticket.current_project_estimate;
 
+    const isFeedback = ticket.ticket_type === "Feedback";
     const patch: any = { title: title.trim() };
     if (isProj) {
       patch.current_project_estimate = pj;
     } else {
       patch.current_fe_estimate = fe;
       patch.current_be_estimate = be;
+    }
+    // Triage: an estimate set on Feedback is the original estimate, not a revision.
+    if (isFeedback) {
+      patch.original_fe_estimate = fe;
+      patch.original_be_estimate = be;
     }
     const { error } = await supabase
       .from("tickets")
@@ -69,7 +75,7 @@ export function useTicketEditor({
     if (!isProj && fe !== prevFE) audit.push(baseAudit("FE", prevFE, fe));
     if (!isProj && be !== prevBE) audit.push(baseAudit("BE", prevBE, be));
     if (isProj && pj !== prevProj) audit.push(baseAudit("Project", prevProj, pj));
-    if (audit.length && userId) {
+    if (audit.length && userId && !isFeedback) {
       await supabase.from("ticket_estimate_changes").insert(audit);
     }
 
@@ -80,16 +86,8 @@ export function useTicketEditor({
   };
 
   const handleChangeType = async (nextType: "Standard" | "Bug" | "CR" | "Proj" | "Feedback") => {
-    if (!ticket || nextType === ticket.ticket_type) return;
-    if (ticket.ticket_type === "Feedback") {
-      // Conversion: server assigns the project prefix/number; existing triggers fold Proj estimates.
-      const { data, error } = await supabase.rpc("convert_feedback_ticket" as any, { _ticket_id: ticket.id, _new_type: nextType });
-      if (error) { toast.error(error.message); return; }
-      toast.success(`Converted to ${nextType} · ${data}`);
-      onChange();
-      onClose();
-      return;
-    }
+    // Feedback tickets convert through ConvertFeedbackDialog only.
+    if (!ticket || nextType === ticket.ticket_type || ticket.ticket_type === "Feedback") return;
     const patch: any = { ticket_type: nextType };
     if (nextType === "Proj") {
       const carried =
