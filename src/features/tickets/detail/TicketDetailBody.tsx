@@ -67,24 +67,29 @@ export function TicketDetailBody({
   onLocalPatch,
   onLogCount,
 }: Props) {
-  const showParent = ticket.ticket_type !== "Proj";
+  // Feedback tickets are in triage: no dev status, assignees or time tracking until converted.
+  const isFeedback = ticket.ticket_type === "Feedback";
+  const showParent = ticket.ticket_type !== "Proj" && !isFeedback;
 
   return (
     <>
-      <StatusBlock
-        ticket={ticket}
-        statuses={statuses}
-        status={status}
-        isPMBARole={isPMBARole}
-        isProj={isProj}
-        hasFE={hasFE}
-        hasBE={hasBE}
-        canEditFE={canEditFE}
-        canEditBE={canEditBE}
-        onAssign={onAssign}
-        onChange={onChange}
-        onLocalPatch={onLocalPatch}
-      />
+      {!isFeedback && (
+        <StatusBlock
+          ticket={ticket}
+          statuses={statuses}
+          status={status}
+          isPMBARole={isPMBARole}
+          isProj={isProj}
+          hasFE={hasFE}
+          hasBE={hasBE}
+          canEditFE={canEditFE}
+          canEditBE={canEditBE}
+          onAssign={onAssign}
+          onChange={onChange}
+          onLocalPatch={onLocalPatch}
+        />
+      )}
+
 
       <div>
         <EstimatesPanel
@@ -100,11 +105,11 @@ export function TicketDetailBody({
           beEst={editor.beEst} setBeEst={editor.setBeEst}
           projEst={editor.projEst} setProjEst={editor.setProjEst}
           onSave={editor.handleSaveEdit}
-          onAdjustEstimate={onAdjustEstimate}
-          estimateChanges={estimateChanges}
+          onAdjustEstimate={isFeedback ? () => editor.setEditing(true) : onAdjustEstimate}
+          estimateChanges={isFeedback ? [] : estimateChanges}
         />
         {isPMBARole && !editor.editing && !isProj && (canEditFE || canEditBE) && (
-          <div className="mt-1 text-xs text-dim">Click an estimate to revise</div>
+          <div className="mt-1 text-xs text-dim">{isFeedback ? "Click an estimate to set it" : "Click an estimate to revise"}</div>
         )}
       </div>
 
@@ -189,35 +194,39 @@ export function TicketDetailBody({
         )}
       </div>
 
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <div className="text-xs uppercase tracking-wider text-dimmer">Assignees</div>
-          {isPMBARole && (
-            <Button variant="ghost" size="sm" onClick={onAssign} className="gap-1 text-xs">
-              <Users className="h-3 w-3" /> Manage
-            </Button>
-          )}
-        </div>
-        {isProj ? (
-          <AssigneeBlock label="Members" assignees={ticket.assignees.filter(a => a.slot === "Project")} />
-        ) : (
-          <>
-            <AssigneeBlock label="Frontend" assignees={ticket.assignees.filter(a => a.slot === "FE")} />
-            <AssigneeBlock label="Backend" assignees={ticket.assignees.filter(a => a.slot === "BE")} />
-            {ticket.assignees.some((a) => a.slot === "Project") && (
-              <AssigneeBlock label="Project contributors" assignees={ticket.assignees.filter(a => a.slot === "Project")} />
+      {!isFeedback && (
+        <>
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-xs uppercase tracking-wider text-dimmer">Assignees</div>
+              {isPMBARole && (
+                <Button variant="ghost" size="sm" onClick={onAssign} className="gap-1 text-xs">
+                  <Users className="h-3 w-3" /> Manage
+                </Button>
+              )}
+            </div>
+            {isProj ? (
+              <AssigneeBlock label="Members" assignees={ticket.assignees.filter(a => a.slot === "Project")} />
+            ) : (
+              <>
+                <AssigneeBlock label="Frontend" assignees={ticket.assignees.filter(a => a.slot === "FE")} />
+                <AssigneeBlock label="Backend" assignees={ticket.assignees.filter(a => a.slot === "BE")} />
+                {ticket.assignees.some((a) => a.slot === "Project") && (
+                  <AssigneeBlock label="Project contributors" assignees={ticket.assignees.filter(a => a.slot === "Project")} />
+                )}
+              </>
             )}
-          </>
-        )}
-      </div>
+          </div>
 
-      <TimeLogsPanel
-        ticket={ticket}
-        canLog={canLog}
-        onOpenLog={onOpenLog}
-        reloadKey={logsReloadKey}
-        onLogCount={onLogCount}
-      />
+          <TimeLogsPanel
+            ticket={ticket}
+            canLog={canLog}
+            onOpenLog={onOpenLog}
+            reloadKey={logsReloadKey}
+            onLogCount={onLogCount}
+          />
+        </>
+      )}
 
       <div className="pt-4 hairline-t flex items-center justify-between">
         <span className="text-[11px] text-dimmer">
