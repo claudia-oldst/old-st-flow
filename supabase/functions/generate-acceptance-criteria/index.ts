@@ -60,6 +60,7 @@ Deno.serve(async (req) => {
         .select("formatted_id, title, ticket_type, acceptance_criteria")
         .eq("project_id", ticket.project_id)
         .neq("id", ticket.id)
+        .neq("ticket_type", "Feedback")
         .order("ticket_number", { ascending: true })
         .limit(40),
       userClient
