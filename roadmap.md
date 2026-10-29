@@ -4,5 +4,5 @@
 - [x] Hide Feedback from normal lists/board/health
 - [x] Feedback tab (only when integrated), Convert dialog, From Thalamus badge
 - [x] AC generator reads discussion thread
-- [ ] Secret THALAMUS_FEEDBACK_SECRET (waiting on user) + intake URL
+- [x] Secret THALAMUS_FEEDBACK_SECRET + intake URL
 - [x] Tests + docs
