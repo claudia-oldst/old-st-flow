@@ -22,12 +22,14 @@ export function TicketDetailHeader({
   onSave,
   onCancel,
   onChangeType,
+  onConvert,
 }: {
   canEdit?: boolean;
   onStartEdit?: () => void;
   onSave?: () => void;
   onCancel?: () => void;
   onChangeType?: (type: TicketType) => void | Promise<void>;
+  onConvert?: () => void;
   ticket: TicketRow;
   status: Status | undefined;
   editing: boolean;
@@ -48,7 +50,14 @@ export function TicketDetailHeader({
             )}
           </span>
         )}
-        {canEdit && onChangeType ? (
+        {ticket.ticket_type === "Feedback" ? (
+          <>
+            <span className="px-2 py-0.5 rounded-full text-[10px] bg-white/5 hairline">Feedback</span>
+            {canEdit && onConvert && (
+              <Button size="sm" onClick={onConvert} className="h-6 px-2 text-[11px]">Convert to ticket</Button>
+            )}
+          </>
+        ) : canEdit && onChangeType ? (
           <Select value={ticket.ticket_type} onValueChange={(v) => onChangeType(v as TicketType)}>
             <SelectTrigger className="h-6 w-auto gap-1 px-2 py-0 text-[10px] rounded-full bg-white/5 hairline border-0">
               <SelectValue />
@@ -58,7 +67,6 @@ export function TicketDetailHeader({
               <SelectItem value="Bug">Bug</SelectItem>
               <SelectItem value="CR">CR</SelectItem>
               <SelectItem value="Proj">Proj</SelectItem>
-              {ticket.ticket_type === "Feedback" && <SelectItem value="Feedback">Feedback · convert to…</SelectItem>}
             </SelectContent>
           </Select>
         ) : (
@@ -66,6 +74,7 @@ export function TicketDetailHeader({
             <span className="px-2 py-0.5 rounded-full text-[10px] bg-white/5 hairline">{ticket.ticket_type}</span>
           )
         )}
+
 
         {ticket.external_source === "thalamus" && (
           <span className="px-2 py-0.5 rounded-full text-[10px] bg-brand-gold/15 text-brand-gold ring-1 ring-brand-gold/30">From Thalamus</span>

@@ -16,6 +16,7 @@ import { TicketDetailBody } from "./detail/TicketDetailBody";
 import { TicketDetailMeta } from "./detail/TicketDetailMeta";
 import { useTicketEditor } from "./detail/useTicketEditor";
 import { useLiveTicket } from "./detail/useLiveTicket";
+import { ConvertFeedbackDialog } from "@/features/feedback/ConvertFeedbackDialog";
 
 interface Props {
   open: boolean;
@@ -38,6 +39,7 @@ export function TicketDetailSheet({ open, onOpenChange, ticket: ticketProp, proj
   const [requestSlot, setRequestSlot] = useState<"FE" | "BE" | undefined>(undefined);
   const [logsReloadKey, setLogsReloadKey] = useState(0);
   const [logCount, setLogCount] = useState(0);
+  const [convertOpen, setConvertOpen] = useState(false);
   const { changes: estimateChanges, reload: reloadChanges } =
     useTicketEstimateChanges(ticket?.id);
 
@@ -86,6 +88,7 @@ export function TicketDetailSheet({ open, onOpenChange, ticket: ticketProp, proj
               editor.setEditing(false);
             }}
             onChangeType={editor.handleChangeType}
+            onConvert={() => setConvertOpen(true)}
           />
 
           <TicketDetailMeta ticket={ticket} logCount={logCount} />
@@ -148,6 +151,15 @@ export function TicketDetailSheet({ open, onOpenChange, ticket: ticketProp, proj
         </SheetContent>
       </Sheet>
 
+
+      {isPMBARole && ticket.ticket_type === "Feedback" && (
+        <ConvertFeedbackDialog
+          open={convertOpen}
+          onOpenChange={setConvertOpen}
+          ticket={ticket}
+          onConverted={() => { onChange(); onOpenChange(false); }}
+        />
+      )}
 
       {isPMBARole && (
         <AssignDialog
