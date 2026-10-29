@@ -1,6 +1,6 @@
 # Thalamus Feedback tickets
 
-- Intake: edge function `thalamus-feedback` (POST, `x-feedback-secret` or `Authorization: Bearer`, secret `THALAMUS_FEEDBACK_SECRET`). Project is matched by acronym (`project_id` in payload). `Idempotency-Key` / `id` is stored in `tickets.external_ref` with `external_source = 'thalamus'`; retries return the existing ticket.
+- Intake: edge function `thalamus-feedback` (POST, `x-feedback-secret` or `Authorization: Bearer`, secret `THALAMUS_FEEDBACK_SECRET`). The payload must carry both `project_id` (the project UUID, taken from the Pulse URL) and `acronym`; both must match the same active (non-archived) project or the submission is rejected with 404. A non-UUID `project_id` or a missing `acronym` is rejected with 400. `Idempotency-Key` / `id` is stored in `tickets.external_ref` with `external_source = 'thalamus'`; retries return the existing ticket.
 - The report (description, page, reporter, environment, console/network errors, metadata) is posted as the first comment by the Thalamus bot member; the screenshot is re-hosted to `ticket-attachments`.
 - Feedback tickets (`ticket_type = 'Feedback'`) get labels `FB-n` (negative `ticket_number`) and are excluded from the ticket list, board, portal, billing, sprints, health trend and GitHub sync.
 - Feedback tab (`/projects/:id/feedback`) shows only for projects that have received a Thalamus ticket. It lists unconverted Feedback tickets with the standard list and detail sheet; all fields (estimates, epic, version, assignees, acceptance criteria) are editable.

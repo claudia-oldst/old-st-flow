@@ -10,7 +10,8 @@ const APP_URL = Deno.env.get("APP_PUBLIC_URL") ?? "https://oldst-pulse.lovable.a
 
 const Body = z.object({
   id: z.string().min(1).max(100),
-  project_id: z.string().min(1).max(50),
+  project_id: z.string().uuid("project_id must be the project UUID from the Pulse URL"),
+  acronym: z.string().min(1).max(20),
   type: z.string().optional().nullable(),
   title: z.string().max(500).optional().nullable(),
   screenshot: z.object({ url: z.string().url().nullable().optional() }).partial().optional().nullable(),
@@ -43,9 +44,9 @@ Deno.serve(async (req) => {
   if (existing) return respond(existing);
 
   const { data: project, error: projErr } = await supabase.from("projects").select("id")
-    .ilike("acronym", p.project_id).eq("is_archived", false).maybeSingle();
+    .eq("id", p.project_id).ilike("acronym", p.acronym).eq("is_archived", false).maybeSingle();
   if (projErr) return fail(projErr.message, 500);
-  if (!project) return fail(`Project '${p.project_id}' not found or inactive`, 404);
+  if (!project) return fail(`No active project found matching ID '${p.project_id}' and acronym '${p.acronym}'`, 404);
 
   const { data: ticket, error } = await supabase.from("tickets").insert({
     project_id: project.id,
