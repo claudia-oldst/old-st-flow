@@ -114,8 +114,8 @@ export function useProjectsList(args: {
         all.map(async (p) => {
           if (p.is_archived) return [p.id, { tickets: 0, members: 0 }] as const;
           const [{ count: tCount }, { count: mCount }] = await Promise.all([
-            supabase.from("tickets").select("id", { count: "exact", head: true }).eq("project_id", p.id),
-            supabase.from("project_members").select("user_id", { count: "exact", head: true }).eq("project_id", p.id),
+            supabase.from("tickets").select("id", { count: "exact", head: true }).eq("project_id", p.id).neq("ticket_type", "Feedback"),
+            supabase.from("project_members").select("user_id", { count: "exact", head: true }).eq("project_id", p.id).neq("ticket_type", "Feedback"),
           ]);
           return [p.id, { tickets: tCount ?? 0, members: mCount ?? 0 }] as const;
         }),

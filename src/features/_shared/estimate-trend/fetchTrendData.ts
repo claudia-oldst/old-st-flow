@@ -30,7 +30,8 @@ export async function fetchTrendData(projectId: string): Promise<TrendDataset> {
       .select(
         "id, created_at, epic_id, version, ticket_type, original_fe_estimate, original_be_estimate, original_project_estimate, cr_approval, cr_decided_at",
       )
-      .eq("project_id", projectId),
+      .eq("project_id", projectId)
+      .neq("ticket_type", "Feedback"),
   ]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -79,8 +79,17 @@ export function useTicketEditor({
     reloadChanges();
   };
 
-  const handleChangeType = async (nextType: "Standard" | "Bug" | "CR" | "Proj") => {
+  const handleChangeType = async (nextType: "Standard" | "Bug" | "CR" | "Proj" | "Feedback") => {
     if (!ticket || nextType === ticket.ticket_type) return;
+    if (ticket.ticket_type === "Feedback") {
+      // Conversion: server assigns the project prefix/number; existing triggers fold Proj estimates.
+      const { data, error } = await supabase.rpc("convert_feedback_ticket" as any, { _ticket_id: ticket.id, _new_type: nextType });
+      if (error) { toast.error(error.message); return; }
+      toast.success(`Converted to ${nextType} · ${data}`);
+      onChange();
+      onClose();
+      return;
+    }
     const patch: any = { ticket_type: nextType };
     if (nextType === "Proj") {
       const carried =

@@ -14,7 +14,8 @@ export function useProjectVersions(projectId: string | undefined) {
       const { data, error } = await supabase
         .from("tickets")
         .select("version")
-        .eq("project_id", projectId!);
+        .eq("project_id", projectId!)
+        .neq("ticket_type", "Feedback");
       if (error) throw error;
       return versionOptions((data ?? []).map((r) => r.version as string | null));
     },

@@ -58,6 +58,7 @@ export function TicketDetailHeader({
               <SelectItem value="Bug">Bug</SelectItem>
               <SelectItem value="CR">CR</SelectItem>
               <SelectItem value="Proj">Proj</SelectItem>
+              {ticket.ticket_type === "Feedback" && <SelectItem value="Feedback">Feedback · convert to…</SelectItem>}
             </SelectContent>
           </Select>
         ) : (
@@ -66,6 +67,9 @@ export function TicketDetailHeader({
           )
         )}
 
+        {ticket.external_source === "thalamus" && (
+          <span className="px-2 py-0.5 rounded-full text-[10px] bg-brand-gold/15 text-brand-gold ring-1 ring-brand-gold/30">From Thalamus</span>
+        )}
         {ticket.ticket_type === "CR" && (
           <StatusBadge status={ticket.cr_approval} />
         )}
