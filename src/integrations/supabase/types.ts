@@ -830,6 +830,8 @@ export type Database = {
           current_fe_estimate: number | null
           current_project_estimate: number | null
           epic_id: number | null
+          external_ref: string | null
+          external_source: string | null
           fe_status: Database["public"]["Enums"]["discipline_status"] | null
           formatted_id: string
           github_issue_node_id: string | null
@@ -866,6 +868,8 @@ export type Database = {
           current_fe_estimate?: number | null
           current_project_estimate?: number | null
           epic_id?: number | null
+          external_ref?: string | null
+          external_source?: string | null
           fe_status?: Database["public"]["Enums"]["discipline_status"] | null
           formatted_id: string
           github_issue_node_id?: string | null
@@ -902,6 +906,8 @@ export type Database = {
           current_fe_estimate?: number | null
           current_project_estimate?: number | null
           epic_id?: number | null
+          external_ref?: string | null
+          external_source?: string | null
           fe_status?: Database["public"]["Enums"]["discipline_status"] | null
           formatted_id?: string
           github_issue_node_id?: string | null
@@ -1158,7 +1164,7 @@ export type Database = {
         | "PMBA"
         | "Design"
       status_category: "backlog" | "active" | "dev done" | "done"
-      ticket_type: "Standard" | "Bug" | "CR" | "Proj"
+      ticket_type: "Standard" | "Bug" | "CR" | "Proj" | "Feedback"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1311,7 +1317,7 @@ export const Constants = {
         "Design",
       ],
       status_category: ["backlog", "active", "dev done", "done"],
-      ticket_type: ["Standard", "Bug", "CR", "Proj"],
+      ticket_type: ["Standard", "Bug", "CR", "Proj", "Feedback"],
     },
   },
 } as const
