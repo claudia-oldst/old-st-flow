@@ -1069,6 +1069,14 @@ export type Database = {
         Args: { _hash: string; _ticket_id: string }
         Returns: boolean
       }
+      convert_feedback_ticket: {
+        Args: {
+          _new_type: Database["public"]["Enums"]["ticket_type"]
+          _parent_id?: string
+          _ticket_id: string
+        }
+        Returns: string
+      }
       current_can_access_ticket: {
         Args: { _ticket_id: string }
         Returns: boolean
