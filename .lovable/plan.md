@@ -30,13 +30,13 @@
 
 ## Assumptions
 - Report types map only to a suggested type shown in Convert: bug→Bug, feature→CR, general→Standard. The PMBA makes the final choice.
-- Feedback tickets have no estimates or time logs until they're converted.
+- Feedback tickets can be edited like any ticket in the existing detail view: estimates, epic, version, assignees and acceptance criteria. Their hours count towards Health, billing and the portal only after conversion, so triage doesn't skew the figures.
 
 ## Reuse rules (no duplicates)
 - **Intake:** `userback-webhook` and `thalamus-feedback` share one helper module for checking the secret, resolving the project, inserting the ticket and posting the first comment. There is no second copy of that logic.
 - **Bot user:** the Thalamus bot is a row in `team_members`, just like the Userback bot. There's no new user system.
 - **Numbering:** the existing `before_ticket_insert` and `sync_ticket_formatted_ids` triggers are extended to skip Feedback tickets and to assign the number and prefix when the type changes at conversion. No new numbering trigger is added.
-- **Sprint guard:** the existing `block_proj_ticket_in_sprint` and `enforce_proj_ticket_zero_fe_be` checks are widened to cover Feedback too.
+- **Sprint guard:** only the existing `block_proj_ticket_in_sprint` check is widened to cover Feedback. Estimates use the existing estimate, epic and version triggers with no changes.
 - **Bug parent:** conversion to Bug goes through the existing `enforce_bug_parent` trigger and the existing ParentTicketSelect.
 - **Screens:** the Feedback tab reuses `TicketsList` with a type filter, and the existing `TicketDetailSheet` and comment thread. Attachments are uploaded with `uploadCommentAttachment`. Convert is a small dialog that uses the existing type select and ParentTicketSelect.
 - **Hiding Feedback:** one shared filter is applied in `list_project_tickets` and in the shared ticket fetch hooks, not scattered across each screen.
