@@ -31,6 +31,8 @@ export interface UseProjectTicketsPagedOpts {
   page: number;
   pageSize: number;
   filterMineUserId?: string | null;
+  /** List only not-yet-converted Feedback tickets instead of normal ones. */
+  feedback?: boolean;
 }
 
 interface RpcResult {
@@ -66,6 +68,7 @@ function normalize(raw: any): TicketRow {
     actual_backend_hours: Number(raw.actual_backend_hours),
     actual_project_hours: Number(raw.actual_project_hours ?? 0),
     acceptance_criteria: raw.acceptance_criteria ?? null,
+    external_source: raw.external_source ?? null,
     position: raw.position,
     created_at: raw.created_at,
     cr_approval: (raw.ticket_type === "CR" ? (raw.cr_approval ?? "pending") : null) as TicketRow["cr_approval"],
@@ -93,11 +96,11 @@ export function useProjectTicketsPaged(
   opts: UseProjectTicketsPagedOpts,
 ) {
   const qc = useQueryClient();
-  const { filters, search, sort, page, pageSize, filterMineUserId } = opts;
+  const { filters, search, sort, page, pageSize, filterMineUserId, feedback = false } = opts;
   const queryKey = [
     "projectTicketsPaged",
     projectId,
-    { filters, search, sort, page, pageSize, filterMineUserId: filterMineUserId ?? null },
+    { filters, search, sort, page, pageSize, filterMineUserId: filterMineUserId ?? null, feedback },
   ] as const;
 
   const query = useQuery({
@@ -105,7 +108,7 @@ export function useProjectTicketsPaged(
     enabled: !!projectId,
     placeholderData: keepPreviousData,
     queryFn: async (): Promise<{ rows: TicketRow[]; total: number }> => {
-      const payload = { ...filters, filterMineUserId: filterMineUserId ?? null };
+      const payload = { ...filters, filterMineUserId: filterMineUserId ?? null, feedback };
       const { data, error } = await supabase.rpc("list_project_tickets", {
         _project_id: projectId!,
         _filters: payload as any,

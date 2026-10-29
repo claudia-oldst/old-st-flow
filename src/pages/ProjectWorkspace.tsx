@@ -15,6 +15,8 @@ import { useProjectRole, isPMBA } from "@/features/team/useProjectRole";
 import { useProjectAccess } from "@/features/auth/useProjectAccess";
 import { VaultDashboard } from "@/features/vault/VaultDashboard";
 import { SprintsPage } from "@/features/sprints/SprintsPage";
+import { ProjectFeedback } from "@/features/feedback/ProjectFeedback";
+import { useHasThalamus } from "@/features/feedback/useHasThalamus";
 import { ArrowLeft, Download, Archive } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,6 +29,7 @@ export default function ProjectWorkspace() {
   const canEdit = isPMBA(role);
   const { allowed, loading: accessLoading } = useProjectAccess(id);
   const [exportOpen, setExportOpen] = useState(false);
+  const hasThalamus = useHasThalamus(id);
 
   const loadProject = useCallback(() => {
     if (!id) return;
@@ -49,11 +52,12 @@ export default function ProjectWorkspace() {
         { to: "", label: "Tickets", end: true },
         { to: "change-requests-cr", label: "Change Requests" },
         canEdit ? { to: "change-requests", label: "Estimate Revisions" } : null,
+        hasThalamus ? { to: "feedback", label: "Feedback" } : null,
         { to: "sprints", label: "Sprints" },
         { to: "health", label: "Health" },
         canEdit ? { to: "client", label: "Client" } : null,
       ].filter(Boolean) as Array<{ to: string; label: string; end?: boolean }>,
-    [canEdit]
+    [canEdit, hasThalamus]
   );
 
   if (!id) return null;
@@ -154,6 +158,7 @@ export default function ProjectWorkspace() {
             <Route index element={<ProjectTickets projectId={id} />} />
             <Route path="change-requests-cr" element={<ProjectChangeRequestTickets projectId={id} />} />
             <Route path="change-requests" element={<ProjectChangeRequests projectId={id} />} />
+            {hasThalamus && <Route path="feedback" element={<ProjectFeedback projectId={id} />} />}
             <Route path="sprints" element={<SprintsPage projectId={id} />} />
             <Route path="health" element={<ProjectHealth projectId={id} />} />
             <Route path="client" element={<ClientPortalEditor />} />

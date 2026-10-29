@@ -10,7 +10,8 @@ export interface TicketRow {
   ticket_number: number;
   formatted_id: string;
   title: string;
-  ticket_type: "Standard" | "Bug" | "CR" | "Proj";
+  ticket_type: "Standard" | "Bug" | "CR" | "Proj" | "Feedback";
+  external_source?: string | null;
   status_id: string | null;
   fe_status: DisciplineStatus;
   be_status: DisciplineStatus;
@@ -90,6 +91,7 @@ export function normalizeTicket(raw: any): TicketRow {
     actual_backend_hours: Number(raw.actual_backend_hours),
     actual_project_hours: Number(raw.actual_project_hours ?? 0),
     acceptance_criteria: raw.acceptance_criteria ?? null,
+    external_source: raw.external_source ?? null,
     position: raw.position,
     created_at: raw.created_at,
     cr_approval: (raw.ticket_type === "CR" ? (raw.cr_approval ?? "pending") : null) as TicketRow["cr_approval"],
