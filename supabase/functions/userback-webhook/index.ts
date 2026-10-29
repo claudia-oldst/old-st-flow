@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3";
+import { json, postIntakeComment, rehostScreenshot } from "../_shared/intake.ts";
 
 const USERBACK_MEMBER_ID = "00000000-0000-0000-0000-0000000000b1";
 
@@ -14,12 +15,6 @@ const BodySchema = z.object({
   reporter_email: z.string().optional().nullable(),
   widget_data: z.unknown().optional().nullable(),
 });
-
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
 
 function mapType(category?: string | null): "CR" | "Bug" {
   return (category ?? "").toLowerCase().trim() === "feature_request" ? "CR" : "Bug";
@@ -91,38 +86,7 @@ Deno.serve(async (req) => {
     .single();
   if (ticketErr) return json({ error: ticketErr.message }, 500);
 
-  // --- Re-host screenshot ---
-  const attachments: Array<Record<string, unknown>> = [];
-  if (payload.screenshot_url) {
-    try {
-      const res = await fetch(payload.screenshot_url);
-      if (res.ok) {
-        const bytes = new Uint8Array(await res.arrayBuffer());
-        const mime = res.headers.get("content-type")?.split(";")[0] || "image/png";
-        const ext = mime.split("/")[1]?.replace(/[^a-z0-9]/gi, "") || "png";
-        const path = `${ticket.id}/${crypto.randomUUID()}.${ext}`;
-        const { error: upErr } = await supabase.storage
-          .from("ticket-attachments")
-          .upload(path, bytes, { contentType: mime, upsert: false });
-        if (!upErr) {
-          attachments.push({
-            url: "",
-            path,
-            name: `userback-screenshot.${ext}`,
-            mime,
-            size: bytes.byteLength,
-            kind: mime.startsWith("image/") ? "image" : "file",
-          });
-        } else {
-          console.error("screenshot upload failed", upErr.message);
-        }
-      } else {
-        console.error("screenshot fetch failed", res.status);
-      }
-    } catch (e) {
-      console.error("screenshot error", e instanceof Error ? e.message : String(e));
-    }
-  }
+  const attachments = await rehostScreenshot(supabase, ticket.id, payload.screenshot_url, "userback");
 
   // --- Discussion comment ---
   const who = [payload.reporter_name?.trim(), payload.reporter_email?.trim()].filter(Boolean);
@@ -137,13 +101,7 @@ Deno.serve(async (req) => {
     renderEnvironment(payload.widget_data),
   ].join("");
 
-  const { error: commentErr } = await supabase.from("ticket_comments").insert({
-    ticket_id: ticket.id,
-    user_id: USERBACK_MEMBER_ID,
-    body,
-    attachments,
-  });
-  if (commentErr) console.error("comment insert failed", commentErr.message);
+  await postIntakeComment(supabase, ticket.id, USERBACK_MEMBER_ID, body, attachments);
 
   return json({ ok: true, ticket_id: ticket.id, formatted_id: ticket.formatted_id });
 });
