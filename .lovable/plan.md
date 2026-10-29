@@ -6,6 +6,7 @@
 - Each project gets a **Feedback** tab (visible to PMBAs and project members) that lists them. Opening one shows the usual ticket view with its discussion thread.
 - The first comment in the thread is written by a "Thalamus" bot user and holds the report: description, page link, reporter, browser/viewport/app version, console errors, network errors and extra details. The screenshot is saved as an attachment on that comment.
 - A PMBA can click **Convert** and pick Standard, CR, Bug or Project (a Bug can optionally get a parent ticket). The ticket then shows up in the normal log with a normal ID, keeps its whole discussion thread, and carries a "From Thalamus" badge that links back to the original report. Before conversion it shows exactly the same fields as a normal ticket. Converting to Project follows the existing Project rules: FE/BE hours move to project hours.
+- Acceptance criteria can be written or generated on Feedback tickets using the existing button. The existing generator also reads the ticket's discussion thread (on every ticket, not just Feedback): it takes the latest comments, trimmed and with personal details removed. This means the bug report, client replies and PMBA clarifications all shape the criteria. It's a small change to the existing generator, and no new function is added.
 - Thalamus gets back the ticket's internal id and link, plus a neutral Feedback label instead of a project ID, so its badge opens the ticket here. If the same report is sent twice, no duplicate ticket is made.
 
 ## Steps
