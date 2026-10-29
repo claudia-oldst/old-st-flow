@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
 
   const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   const respond = (t: { id: string; formatted_id: string; project_id: string }, status = 200) =>
-    json({ ok: true, ticket_id: t.id, formatted_id: t.formatted_id, url: `${APP_URL}/projects/${t.project_id}?tab=feedback&ticket=${t.id}` }, status);
+    json({ ok: true, ticket_id: t.id, formatted_id: t.formatted_id, url: `${APP_URL}/projects/${t.project_id}/feedback?ticket=${t.id}` }, status);
 
   const { data: existing } = await supabase.from("tickets").select("id, formatted_id, project_id")
     .eq("external_source", SOURCE).eq("external_ref", ref).maybeSingle();
