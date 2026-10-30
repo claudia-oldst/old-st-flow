@@ -7,7 +7,9 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, FolderKanban } from "lucide-react";
+import { Plus, FolderKanban, Download } from "lucide-react";
+import { BulkExportDialog } from "@/features/projects/BulkExportDialog";
+import { useCurrentUser } from "@/store/currentUser";
 import { cn, PAGE_SHELL } from "@/lib/utils";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,6 +33,8 @@ export default function Projects() {
   const debouncedQ = useDebounced(q, 200);
 
   const [open, setOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const isPMBAUser = useCurrentUser((s) => s.user?.role === "PMBA");
   const [name, setName] = useState("");
   const [acronym, setAcronym] = useState("");
   const [creating, setCreating] = useState(false);
@@ -87,6 +91,19 @@ export default function Projects() {
           <h1 className="font-display text-3xl font-semibold tracking-tight">Projects</h1>
           <p className="text-dim mt-1">Active client engagements and internal builds.</p>
         </div>
+        <div className="flex items-center gap-2">
+        {isPMBAUser && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setExportOpen(true)}
+            aria-label="Export projects"
+            title="Export projects"
+          >
+            <Download className="h-4 w-4" />
+          </Button>
+        )}
+        <BulkExportDialog open={exportOpen} onOpenChange={setExportOpen} />
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2"><Plus className="h-4 w-4" /> New project</Button>
@@ -118,6 +135,7 @@ export default function Projects() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <ProjectsToolbar
