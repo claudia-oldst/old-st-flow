@@ -21,7 +21,8 @@ export type FilterSection =
   | "health"
   | "epic"
   | "assignee"
-  | "version";
+  | "version"
+  | "source";
 
 const ALL_SECTIONS: FilterSection[] = [
   "type",
@@ -32,6 +33,7 @@ const ALL_SECTIONS: FilterSection[] = [
   "epic",
   "assignee",
   "version",
+  "source",
 ];
 
 // Re-export public API at original module path for existing imports.
@@ -78,7 +80,7 @@ export function TicketsFilter({
   const count = activeFilterCount(filters);
 
   function toggle<K extends keyof TicketFilters>(key: K, value: string) {
-    const arr = filters[key] as string[];
+    const arr = (filters[key] as string[] | undefined) ?? [];
     const next = arr.includes(value)
       ? arr.filter((v) => v !== value)
       : [...arr, value];

@@ -13,6 +13,8 @@ export interface TicketFilters {
   assigneeIds: string[];
   types: string[];
   health: HealthColor[];
+  /** External origin, e.g. "thalamus" for converted Thalamus feedback. */
+  sources?: string[];
 }
 
 export const EMPTY_FILTERS: TicketFilters = {
@@ -35,7 +37,8 @@ export function activeFilterCount(f: TicketFilters): number {
     f.beStatuses.length +
     f.assigneeIds.length +
     f.types.length +
-    f.health.length
+    f.health.length +
+    (f.sources?.length ?? 0)
   );
 }
 
@@ -71,6 +74,7 @@ export function applyFilters(tickets: TicketRow[], f: TicketFilters): TicketRow[
         if (!ids.some((id) => f.assigneeIds.includes(id))) return false;
       }
     }
+    if (f.sources?.length && !f.sources.includes(t.external_source ?? "")) return false;
     if (f.types.length && !f.types.includes(t.ticket_type)) return false;
     if (f.health.length) {
       const candidates: HealthColor[] = [];

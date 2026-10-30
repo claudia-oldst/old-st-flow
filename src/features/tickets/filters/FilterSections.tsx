@@ -134,6 +134,16 @@ export function FilterSections({
               </FilterSectionPrimitive>
             )}
 
+            {sections.includes("source") && (
+              <FilterSectionPrimitive title="Source">
+                <FilterRow
+                  label="Thalamus"
+                  selected={filters.sources?.includes("thalamus") ?? false}
+                  onClick={() => toggle("sources", "thalamus")}
+                />
+              </FilterSectionPrimitive>
+            )}
+
             {sections.includes("assignee") && (
               <FilterSectionPrimitive title="Assignee">
                 {assigneeOptions.map((a) => (
