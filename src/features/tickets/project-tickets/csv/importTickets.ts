@@ -121,10 +121,10 @@ function buildTicketPayload(
       version: r.version.trim() || null,
       acceptance_criteria: r.acceptance_criteria.trim() || null,
       parent_ticket_id:
-        r.type !== "Proj" && r.parent_ticket_number != null
+        r.type !== "Proj" && r.type !== "Feedback" && r.parent_ticket_number != null
           ? parentNumToId.get(r.parent_ticket_number) ?? null
           : null,
-      ticket_number: r.ticket_number ?? nextFree(),
+      ticket_number: r.type === "Feedback" ? 0 : r.ticket_number ?? nextFree(),
       formatted_id: "",
     };
   });

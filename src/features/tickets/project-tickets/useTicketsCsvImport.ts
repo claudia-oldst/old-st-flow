@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Papa from "papaparse";
 import { toast } from "sonner";
+import type { TicketType } from "@/lib/types";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { parseCsvRows } from "./csv/parseCsvRows";
 import { importParsedRows } from "./csv/importTickets";
@@ -13,6 +14,7 @@ export function useTicketsCsvImport(
   projectId: string,
   tickets: TicketRow[],
   onImported: () => void,
+  forceType?: TicketType,
 ) {
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -41,7 +43,16 @@ export function useTicketsCsvImport(
           setFileName(null);
           return;
         }
-        setRows(parsed);
+        setRows(
+          forceType === "Feedback"
+            ? parsed.map((r) => ({
+                ...r, type: "Feedback", ticket_number: null, parent_ticket_number: null, proj: 0,
+                fe_status: "todo", be_status: "todo", project_status_name: "",
+                fe_assignee_emails: [], be_assignee_emails: [], project_assignee_emails: [],
+                error: r.title ? undefined : "Missing title",
+              }))
+            : parsed,
+        );
       },
       error: (err) => {
         toast.error("Failed to parse CSV: " + err.message);
