@@ -1,21 +1,12 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-import { z } from "npm:zod@3";
-import { json, postIntakeComment, rehostScreenshot } from "../_shared/intake.ts";
+import { json, postIntakeComment, rehostScreenshot, rehostRecording } from "../_shared/intake.ts";
 import { renderReport } from "./format.ts";
+import { Body } from "./schema.ts";
 
 const THALAMUS_MEMBER_ID = "00000000-0000-0000-0000-0000000000b2";
 const SOURCE = "thalamus";
 const APP_URL = Deno.env.get("APP_PUBLIC_URL") ?? "https://oldst-pulse.lovable.app";
-
-const Body = z.object({
-  id: z.string().min(1).max(100),
-  project_id: z.string().uuid("project_id must be the project UUID from the Pulse URL"),
-  acronym: z.string().min(1).max(20),
-  type: z.string().optional().nullable(),
-  title: z.string().max(500).optional().nullable(),
-  screenshot: z.object({ url: z.string().url().nullable().optional() }).partial().optional().nullable(),
-}).passthrough();
 
 const fail = (error: string, status: number) => json({ ok: false, error }, status);
 
@@ -35,7 +26,10 @@ Deno.serve(async (req) => {
   const p = parsed.data;
   const ref = req.headers.get("idempotency-key") || p.id;
 
-  const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !serviceKey) return fail("Intake is not configured", 500);
+  const supabase = createClient(supabaseUrl, serviceKey);
   const respond = (t: { id: string; formatted_id: string; project_id: string }, status = 200) =>
     json({ ok: true, ticket_id: t.id, formatted_id: t.formatted_id, url: `${APP_URL}/projects/${t.project_id}/feedback?ticket=${t.id}` }, status);
 
@@ -57,7 +51,11 @@ Deno.serve(async (req) => {
   }).select("id, formatted_id, project_id").single();
   if (error) return fail(error.message, 500);
 
-  const attachments = await rehostScreenshot(supabase, ticket.id, p.screenshot?.url, "thalamus");
+  const [screenshots, recordings] = await Promise.all([
+    rehostScreenshot(supabase, ticket.id, p.screenshot?.url, "thalamus"),
+    rehostRecording(supabase, ticket.id, p.recording?.url),
+  ]);
+  const attachments = [...screenshots, ...recordings];
   await postIntakeComment(supabase, ticket.id, THALAMUS_MEMBER_ID, renderReport(p as never), attachments);
   await notifySlack(supabase, ticket.id, project.slack_channel_id);
   return respond(ticket, 201);

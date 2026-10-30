@@ -6,3 +6,5 @@
 - [x] AC generator reads discussion thread
 - [x] Secret THALAMUS_FEEDBACK_SECRET + intake URL
 - [x] Tests + docs
+- [x] Accept and re-host optional Thalamus WebM recordings in the first discussion comment
+- [x] Test and deploy recording support (9 tests passed)
