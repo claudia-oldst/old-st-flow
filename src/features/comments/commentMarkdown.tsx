@@ -19,6 +19,24 @@ export function relTime(iso: string) {
 
 export const markdownComponents = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  p: ({ children, ...rest }: any) => (
+    <p className="my-3 first:mt-0 last:mb-0" {...rest}>
+      {children}
+    </p>
+  ),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  pre: ({ children, ...rest }: any) => (
+    <pre className="my-3 last:mb-0" {...rest}>
+      {children}
+    </pre>
+  ),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ul: ({ children, ...rest }: any) => (
+    <ul className="my-3 list-disc pl-5 last:mb-0" {...rest}>
+      {children}
+    </ul>
+  ),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   a: ({ href, children, ...rest }: any) => {
     const href_ = typeof href === "string" ? href : "";
     if (MENTION_HREF.test(href_)) {
