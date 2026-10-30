@@ -50,9 +50,9 @@ export default function ProjectWorkspace() {
     () =>
       [
         { to: "", label: "Tickets", end: true },
+        hasThalamus ? { to: "feedback", label: "Feedback" } : null,
         { to: "change-requests-cr", label: "Change Requests" },
         canEdit ? { to: "change-requests", label: "Estimate Revisions" } : null,
-        hasThalamus ? { to: "feedback", label: "Feedback" } : null,
         { to: "sprints", label: "Sprints" },
         { to: "health", label: "Health" },
         canEdit ? { to: "client", label: "Client" } : null,
