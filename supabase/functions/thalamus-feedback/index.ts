@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
     .eq("external_source", SOURCE).eq("external_ref", ref).maybeSingle();
   if (existing) return respond(existing);
 
-  const { data: project, error: projErr } = await supabase.from("projects").select("id")
+  const { data: project, error: projErr } = await supabase.from("projects").select("id, slack_channel_id")
     .eq("id", p.project_id).ilike("acronym", p.acronym).eq("is_archived", false).maybeSingle();
   if (projErr) return fail(projErr.message, 500);
   if (!project) return fail(`No active project found matching ID '${p.project_id}' and acronym '${p.acronym}'`, 404);
@@ -59,5 +59,30 @@ Deno.serve(async (req) => {
 
   const attachments = await rehostScreenshot(supabase, ticket.id, p.screenshot?.url, "thalamus");
   await postIntakeComment(supabase, ticket.id, THALAMUS_MEMBER_ID, renderReport(p as never), attachments);
+  await notifySlack(supabase, ticket.id, project.slack_channel_id);
   return respond(ticket, 201);
 });
+
+/** Post to the project's Slack channel via slack-notify; never fails the intake. */
+async function notifySlack(
+  supabase: ReturnType<typeof createClient>,
+  ticketId: string,
+  channel: string | null,
+) {
+  if (!channel) return;
+  try {
+    const { data: settings } = await supabase.from("app_settings")
+      .select("key, value").in("key", ["slack_notify_secret", "app_base_url"]);
+    const byKey = new Map(((settings ?? []) as { key: string; value: string }[]).map((r) => [r.key, r.value]));
+    const secret = byKey.get("slack_notify_secret");
+    if (!secret) return;
+    const res = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/slack-notify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-notify-secret": secret },
+      body: JSON.stringify({ event: "feedback_created", ticket_id: ticketId }),
+    });
+    if (!res.ok) console.error("slack-notify failed:", res.status, await res.text());
+  } catch (e) {
+    console.error("slack-notify error:", (e as Error).message);
+  }
+}
