@@ -5,7 +5,7 @@ import { formatInTz, startOfDayInTz, endOfDayInTz, REPORTING_TZ } from "@/lib/re
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-interface RunArgs {
+export interface RunArgs {
   project: Project;
   asOf: Date;
   from?: Date | null;
@@ -14,9 +14,9 @@ interface RunArgs {
   includeLogs: boolean;
 }
 
-export async function runExportProject({
+export async function buildProjectWorkbook({
   project, asOf, from, includeTickets, includeChanges, includeLogs,
-}: RunArgs): Promise<{ ok: true; filename: string } | { ok: false; error: string }> {
+}: RunArgs): Promise<{ ok: true; wb: XLSX.WorkBook; filename: string } | { ok: false; error: string }> {
   // Client-facing boundaries use UK time: from 00:00 UK on the From date
   // through 23:59:59.999 UK on the As-of date.
   const cutoff = endOfDayInTz(asOf).toISOString();
@@ -170,8 +170,16 @@ export async function runExportProject({
   const filename = from
     ? `${project.acronym}-export-${formatInTz(from, "yyyy-MM-dd")}-to-${formatInTz(asOf, "yyyy-MM-dd")}.xlsx`
     : `${project.acronym}-export-${formatInTz(asOf, "yyyy-MM-dd")}.xlsx`;
-  XLSX.writeFile(wb, filename);
-  return { ok: true, filename };
+  return { ok: true, wb, filename };
+}
+
+export async function runExportProject(
+  args: RunArgs,
+): Promise<{ ok: true; filename: string } | { ok: false; error: string }> {
+  const res = await buildProjectWorkbook(args);
+  if (!res.ok) return res;
+  XLSX.writeFile(res.wb, res.filename);
+  return { ok: true, filename: res.filename };
 }
 
 export { REPORTING_TZ };
