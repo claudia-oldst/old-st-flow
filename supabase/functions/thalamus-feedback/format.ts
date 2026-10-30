@@ -35,12 +35,12 @@ export function renderReport(r: ThalamusReport): string {
     r.environment?.app_version && `App version: ${r.environment.app_version}`,
     r.environment?.user_agent && `User agent: ${r.environment.user_agent}`,
   ].filter(Boolean);
-  if (ctx.length) parts.push(`**Context**\n${ctx.map((l) => `- ${l}`).join("\n")}`);
+  if (ctx.length) parts.push(`**Context**\n\n${ctx.map((l) => `- ${l}`).join("\n")}`);
   const logs = (r.diagnostics?.console_logs ?? []).slice(0, MAX_LINES);
-  if (logs.length) parts.push("**Console**\n```\n" + logs.map((l) => `[${l.level ?? "log"}] ${clip(l.message ?? "")}`).join("\n") + "\n```");
+  if (logs.length) parts.push("**Console**\n\n```\n" + logs.map((l) => `[${l.level ?? "log"}] ${clip(l.message ?? "")}`).join("\n") + "\n```");
   const net = (r.diagnostics?.network_errors ?? []).slice(0, MAX_LINES);
-  if (net.length) parts.push("**Network errors**\n```\n" + net.map((n) => `${n.method ?? "GET"} ${n.url ?? ""} → ${n.status ?? "?"} ${n.statusText ?? ""}`.trim()).join("\n") + "\n```");
+  if (net.length) parts.push("**Network errors**\n\n```\n" + net.map((n) => `${n.method ?? "GET"} ${n.url ?? ""} → ${n.status ?? "?"} ${n.statusText ?? ""}`.trim()).join("\n") + "\n```");
   const meta = r.diagnostics?.metadata;
-  if (meta && Object.keys(meta).length) parts.push("**Metadata**\n```\n" + JSON.stringify(meta, null, 2) + "\n```");
+  if (meta && Object.keys(meta).length) parts.push("**Metadata**\n\n```\n" + JSON.stringify(meta, null, 2) + "\n```");
   return parts.join("\n\n");
 }
