@@ -16,7 +16,6 @@ export function useProjectSettings(project: Project, open: boolean, onUpdated?: 
     Array.isArray(project.links) ? (project.links as unknown as ProjectLink[]) : []
   );
   const [githubRepoUrl, setGithubRepoUrl] = useState<string>(project.github_repo_url ?? "");
-  const [userbackProjectId, setUserbackProjectId] = useState<string>(project.userback_project_id ?? "");
 
   const [members, setMembers] = useState<(ProjectMember & { member: TeamMember })[]>([]);
   const [allMembers, setAllMembers] = useState<TeamMember[]>([]);
@@ -43,7 +42,6 @@ export function useProjectSettings(project: Project, open: boolean, onUpdated?: 
       setStartDate(project.start_date ?? "");
       setLinks(Array.isArray(project.links) ? (project.links as unknown as ProjectLink[]) : []);
       setGithubRepoUrl(project.github_repo_url ?? "");
-      setUserbackProjectId(project.userback_project_id ?? "");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, project.id]);
@@ -62,7 +60,6 @@ export function useProjectSettings(project: Project, open: boolean, onUpdated?: 
       start_date: startDate || null,
       links: cleanedLinks,
       github_repo_url: trimmedRepo,
-      userback_project_id: userbackProjectId.trim() || null,
     });
     if (!parsed.success) {
       return toast.error(parsed.error.issues[0]?.message ?? "Invalid project details");
@@ -85,7 +82,6 @@ export function useProjectSettings(project: Project, open: boolean, onUpdated?: 
         github_repo_url: canonicalRepoUrl,
         github_owner: repoParsed?.owner ?? null,
         github_repo: repoParsed?.repo ?? null,
-        userback_project_id: parsed.data.userback_project_id ?? null,
       })
       .eq("id", project.id)
       .select("*")
@@ -133,7 +129,6 @@ export function useProjectSettings(project: Project, open: boolean, onUpdated?: 
     startDate, setStartDate,
     links, setLinks,
     githubRepoUrl, setGithubRepoUrl,
-    userbackProjectId, setUserbackProjectId,
     members, allMembers,
     handleSaveDetails, addMember, updateMemberRole, removeMember,
   };
