@@ -156,9 +156,9 @@ export default function ProjectWorkspace() {
 
           <Routes>
             <Route index element={<ProjectTickets projectId={id} />} />
+            {hasThalamus && <Route path="feedback" element={<ProjectFeedback projectId={id} />} />}
             <Route path="change-requests-cr" element={<ProjectChangeRequestTickets projectId={id} />} />
             <Route path="change-requests" element={<ProjectChangeRequests projectId={id} />} />
-            {hasThalamus && <Route path="feedback" element={<ProjectFeedback projectId={id} />} />}
             <Route path="sprints" element={<SprintsPage projectId={id} />} />
             <Route path="health" element={<ProjectHealth projectId={id} />} />
             <Route path="client" element={<ClientPortalEditor />} />
