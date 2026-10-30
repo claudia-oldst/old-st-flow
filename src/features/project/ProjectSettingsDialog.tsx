@@ -90,7 +90,6 @@ export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
               startDate={s.startDate} setStartDate={s.setStartDate}
               links={s.links} setLinks={s.setLinks}
               githubRepoUrl={s.githubRepoUrl} setGithubRepoUrl={s.setGithubRepoUrl}
-              userbackProjectId={s.userbackProjectId} setUserbackProjectId={s.setUserbackProjectId}
               onSave={s.handleSaveDetails}
               onClose={() => setOpen(false)}
               onArchive={() => setArchiveOpen(true)}

@@ -1,4 +1,4 @@
-// Shared helpers for external feedback intakes (Userback, Thalamus).
+// Shared helpers for external feedback intakes (Thalamus).
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
 export const json = (body: unknown, status = 200) =>
