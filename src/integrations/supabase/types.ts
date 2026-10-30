@@ -334,7 +334,6 @@ export type Database = {
           rate_per_hour: number
           start_date: string | null
           updated_at: string
-          userback_project_id: string | null
           vault_checksum: string | null
           vault_row_counts: Json | null
           vault_storage_path: string | null
@@ -371,7 +370,6 @@ export type Database = {
           rate_per_hour?: number
           start_date?: string | null
           updated_at?: string
-          userback_project_id?: string | null
           vault_checksum?: string | null
           vault_row_counts?: Json | null
           vault_storage_path?: string | null
@@ -408,7 +406,6 @@ export type Database = {
           rate_per_hour?: number
           start_date?: string | null
           updated_at?: string
-          userback_project_id?: string | null
           vault_checksum?: string | null
           vault_row_counts?: Json | null
           vault_storage_path?: string | null
