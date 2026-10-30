@@ -15,6 +15,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/store/currentUser";
 import { ConvertFeedbackDialog } from "./ConvertFeedbackDialog";
+import { CopyTicketsDialog } from "@/features/tickets/CopyTicketsDialog";
+import { ImportCsvDialog } from "@/features/tickets/project-tickets/ImportCsvDialog";
+import { useTicketsCsvImport } from "@/features/tickets/project-tickets/useTicketsCsvImport";
 
 const PAGE_SIZE = 100;
 const SORT = { col: "created_at", dir: "desc" } as const;
@@ -32,12 +35,16 @@ export function ProjectFeedback({ projectId }: { projectId: string }) {
   const [search, setSearch] = useState("");
   const [groupBy, setGroupBy] = useState<GroupBy>("none");
   const [addOpen, setAddOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [copyOpen, setCopyOpen] = useState(false);
+  const [initialTitles, setInitialTitles] = useState<string[] | undefined>();
   const [convert, setConvert] = useState<TicketRow | null>(null);
   const [params, setParams] = useSearchParams();
   const [openId, setOpenId] = useState<string | null>(params.get("ticket"));
   const { rows, total, loading, reload } = useProjectTicketsPaged(projectId, {
     filters, search, sort: SORT, page, pageSize: PAGE_SIZE, feedback: true,
   });
+  const csv = useTicketsCsvImport(projectId, rows, () => reload(), "Feedback");
   const open = useMemo<TicketRow | null>(() => rows.find((r) => r.id === openId) ?? null, [rows, openId]);
 
   useEffect(() => setPage(1), [filters, search]);
@@ -52,6 +59,7 @@ export function ProjectFeedback({ projectId }: { projectId: string }) {
         view="list" filterMine={false} groupBy={groupBy} setGroupBy={setGroupBy}
         search={search} setSearch={setSearch} role={role} user={user}
         onAdd={() => setAddOpen(true)} addLabel="Add feedback"
+        onImport={() => setImportOpen(true)} onCopyTickets={() => setCopyOpen(true)}
         showViewToggle={false} showMineToggle={false} showGroupTimer={false}
         groupOptions={GROUPS} filterSections={FILTERS}
       />
@@ -78,7 +86,22 @@ export function ProjectFeedback({ projectId }: { projectId: string }) {
       {convert && (
         <ConvertFeedbackDialog open onOpenChange={(o) => !o && setConvert(null)} ticket={convert} onConverted={() => { setConvert(null); reload(); }} />
       )}
-      <AddTicketsDialog open={addOpen} onOpenChange={setAddOpen} projectId={projectId} onCreated={reload} defaultType="Feedback" lockType />
+      <AddTicketsDialog
+        open={addOpen}
+        onOpenChange={(o) => { setAddOpen(o); if (!o) setInitialTitles(undefined); }}
+        projectId={projectId} onCreated={reload} defaultType="Feedback" lockType initialTitles={initialTitles}
+      />
+      <CopyTicketsDialog
+        open={copyOpen}
+        onOpenChange={setCopyOpen}
+        onParsed={(titles) => { setCopyOpen(false); setInitialTitles(titles); setAddOpen(true); }}
+      />
+      <ImportCsvDialog
+        open={importOpen} onOpenChange={setImportOpen}
+        rows={csv.rows} fileName={csv.fileName} dragOver={csv.dragOver} setDragOver={csv.setDragOver}
+        importing={csv.importing} handleFile={csv.handleFile} reset={csv.reset}
+        onImport={async () => { if (await csv.handleImport()) setImportOpen(false); }}
+      />
     </div>
   );
 }
