@@ -37,7 +37,8 @@ Deno.test("recording URL must be signed HTTPS Supabase storage, not an arbitrary
 Deno.test("recording is re-hosted as a private playable video attachment", async () => {
   const db = storageMock();
   const fetcher: typeof fetch = (_input, init) => {
-    assertEquals(init?.redirect, "error");
+    assert(init && "redirect" in init);
+    assertEquals(init.redirect, "error");
     return Promise.resolve(new Response(webm, { headers: { "content-type": "video/webm" } }));
   };
   const attachments = await rehostRecording(db, "ticket-id", signedUrl, fetcher);
