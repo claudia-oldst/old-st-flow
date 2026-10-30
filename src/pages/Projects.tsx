@@ -9,6 +9,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Plus, FolderKanban, Download } from "lucide-react";
 import { BulkExportDialog } from "@/features/projects/BulkExportDialog";
+import { useCurrentUser } from "@/store/currentUser";
 import { cn, PAGE_SHELL } from "@/lib/utils";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
