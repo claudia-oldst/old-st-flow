@@ -20,9 +20,11 @@ interface Props {
   onCreated: () => void | Promise<void>;
   defaultType?: TicketType;
   initialTitles?: string[];
+  /** Lock every draft to defaultType (used for Feedback). */
+  lockType?: boolean;
 }
 
-export function AddTicketsDialog({ open, onOpenChange, projectId, onCreated, defaultType = "Standard", initialTitles }: Props) {
+export function AddTicketsDialog({ open, onOpenChange, projectId, onCreated, defaultType = "Standard", initialTitles, lockType = false }: Props) {
   const { statuses } = useStatuses();
   const defaultStatusId = useMemo(
     () => statuses.find((s) => s.category === "backlog")?.id ?? statuses[0]?.id ?? null,
@@ -51,7 +53,7 @@ export function AddTicketsDialog({ open, onOpenChange, projectId, onCreated, def
         }}
       >
         <DialogHeader>
-          <DialogTitle>Add tickets</DialogTitle>
+          <DialogTitle>{lockType ? `Add ${defaultType.toLowerCase()} tickets` : "Add tickets"}</DialogTitle>
           <div className="text-xs text-dim mt-1">
             Add one or more tickets. Use “Add another ticket” to queue more before saving.
           </div>
@@ -71,6 +73,7 @@ export function AddTicketsDialog({ open, onOpenChange, projectId, onCreated, def
               onChange={(patch) => update(d.key, patch)}
               onRemove={() => remove(d.key)}
               onEnterAtLast={addAnother}
+              lockType={lockType}
             />
           ))}
         </div>

@@ -24,6 +24,7 @@ export function TicketsListRow({
   statuses,
   groupKey,
   poolData,
+  action,
 }: {
   t: TicketRow;
   visibleCols: ColKey[];
@@ -36,6 +37,7 @@ export function TicketsListRow({
   statuses: Status[];
   groupKey: string;
   poolData?: PoolData;
+  action?: React.ReactNode;
 }) {
 
   // activeTimer no longer gates the play button — it now opens the Log Time modal.
@@ -233,6 +235,11 @@ export function TicketsListRow({
             </td>
           );
         })}
+        {action !== undefined && (
+          <td className="px-4 py-2 align-middle text-right" onClick={(e) => e.stopPropagation()}>
+            {action}
+          </td>
+        )}
       </tr>
       {logOpen && (
         <LogTimeWithCapacityCheck

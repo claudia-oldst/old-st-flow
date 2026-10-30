@@ -66,6 +66,8 @@ export function ProjectTicketsToolbar({
   showGroupTimer = true,
   extras,
   filterSections,
+  groupOptions,
+  addLabel = "Add ticket",
 }: {
   projectId: string;
   tickets: TicketRow[];
@@ -100,6 +102,8 @@ export function ProjectTicketsToolbar({
   showGroupTimer?: boolean;
   extras?: React.ReactNode;
   filterSections?: FilterSection[];
+  groupOptions?: GroupBy[];
+  addLabel?: string;
 }) {
   return (
     <div className="sticky top-14 z-30 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 mb-4 flex items-center gap-3 flex-wrap bg-background/85 backdrop-blur-md hairline-b">
@@ -145,7 +149,7 @@ export function ProjectTicketsToolbar({
             </div>
           )}
           {showGroupBy && setGroupBy && (
-            <GroupBySelect value={groupBy} onChange={setGroupBy} />
+            <GroupBySelect value={groupBy} onChange={setGroupBy} options={groupOptions} />
           )}
         </>
       )}
@@ -211,7 +215,7 @@ export function ProjectTicketsToolbar({
               onClick={onAdd}
               className="gap-2 rounded-r-none"
             >
-              <Plus className="h-4 w-4" /> Add ticket
+              <Plus className="h-4 w-4" /> {addLabel}
             </Button>
             {(onImport || onCopyTickets) && (
               <DropdownMenu>
