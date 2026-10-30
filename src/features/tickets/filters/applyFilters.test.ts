@@ -90,3 +90,12 @@ describe("applyFilters", () => {
     expect(out).toHaveLength(1);
   });
 });
+
+describe("source filter", () => {
+  it("keeps only tickets that came from Thalamus", () => {
+    const rows = [{ external_source: "thalamus" }, { external_source: null }] as any[];
+    const out = applyFilters(rows, { ...EMPTY_FILTERS, sources: ["thalamus"] });
+    expect(out).toHaveLength(1);
+    expect(out[0].external_source).toBe("thalamus");
+  });
+});

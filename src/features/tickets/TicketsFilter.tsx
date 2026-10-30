@@ -33,6 +33,7 @@ const ALL_SECTIONS: FilterSection[] = [
   "epic",
   "assignee",
   "version",
+  "source",
 ];
 
 // Re-export public API at original module path for existing imports.
