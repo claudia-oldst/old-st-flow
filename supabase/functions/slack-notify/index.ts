@@ -367,6 +367,48 @@ async function handleClosingWindow(admin: Admin, p: Payload, base: string | null
   return j({ ok: true, event: "closing_window_reminder", notified: results });
 }
 
+/** Post new Thalamus feedback to the project's Slack channel. */
+async function handleFeedbackCreated(admin: Admin, p: Payload, base: string | null) {
+  if (!p.ticket_id) return j({ error: "missing ticket_id" }, 400);
+
+  const { data: ticket, error: tErr } = await admin
+    .from("tickets")
+    .select("id, formatted_id, title, project_id, projects(name, slack_channel_id)")
+    .eq("id", p.ticket_id)
+    .maybeSingle();
+  if (tErr) return j({ error: tErr.message }, 500);
+  if (!ticket) return j({ error: "ticket not found" }, 404);
+  const t = ticket as Record<string, any>;
+
+  const channel = t.projects?.slack_channel_id;
+  if (!channel) return j({ ok: true, skipped: "no channel configured" });
+
+  const feedbackUrl = base
+    ? `${base.replace(/\/+$/, "")}/projects/${t.project_id}/feedback?ticket=${t.id}`
+    : null;
+
+  const mrkdwn =
+    `:inbox_tray: *New feedback from Thalamus*\n` +
+    `${link(feedbackUrl, `${t.formatted_id} — ${t.title}`)} · ` +
+    `${link(base ? `${base.replace(/\/+$/, "")}/projects/${t.project_id}` : null, t.projects?.name ?? "project")}\n` +
+    `Discuss and triage it on the feedback ticket.`;
+  const text = `New feedback from Thalamus — ${t.formatted_id} ${t.title}`;
+
+  const blocks: unknown[] = [{ type: "section", text: { type: "mrkdwn", text: mrkdwn } }];
+  if (feedbackUrl) {
+    blocks.push({ type: "actions", elements: [linkButton("Open discussion", feedbackUrl)] });
+  }
+
+  await slack("chat.postMessage", {
+    channel,
+    text,
+    unfurl_links: false,
+    unfurl_media: false,
+    blocks,
+  });
+  return j({ ok: true, event: "feedback_created", result: "sent" });
+}
+
 Deno.serve(async (req) => {
 
 
@@ -401,6 +443,9 @@ Deno.serve(async (req) => {
     }
     if (payload.event === "closing_window_reminder") {
       return await handleClosingWindow(admin, payload, base);
+    }
+    if (payload.event === "feedback_created") {
+      return await handleFeedbackCreated(admin, payload, base);
     }
 
     return j({ error: `unknown event: ${payload.event}` }, 400);

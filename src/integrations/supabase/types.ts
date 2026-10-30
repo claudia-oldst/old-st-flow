@@ -332,6 +332,7 @@ export type Database = {
           pause_date: string | null
           pause_reason: string | null
           rate_per_hour: number
+          slack_channel_id: string | null
           start_date: string | null
           updated_at: string
           vault_checksum: string | null
@@ -368,6 +369,7 @@ export type Database = {
           pause_date?: string | null
           pause_reason?: string | null
           rate_per_hour?: number
+          slack_channel_id?: string | null
           start_date?: string | null
           updated_at?: string
           vault_checksum?: string | null
@@ -404,6 +406,7 @@ export type Database = {
           pause_date?: string | null
           pause_reason?: string | null
           rate_per_hour?: number
+          slack_channel_id?: string | null
           start_date?: string | null
           updated_at?: string
           vault_checksum?: string | null
