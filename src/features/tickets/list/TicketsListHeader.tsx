@@ -11,6 +11,7 @@ export function TicketsListHeader({
   sort,
   toggleSort,
   onResizeStart,
+  trailing = false,
 }: {
   visibleCols: ColKey[];
   selectionEnabled: boolean;
@@ -20,6 +21,7 @@ export function TicketsListHeader({
   sort: SortState | null;
   toggleSort: (k: ColKey) => void;
   onResizeStart: (key: ColKey) => (e: React.MouseEvent) => void;
+  trailing?: boolean;
 }) {
   return (
     <thead className="text-left text-xs text-dimmer uppercase tracking-wider">
@@ -103,6 +105,7 @@ export function TicketsListHeader({
             </th>
           );
         })}
+        {trailing && <th aria-label="Actions" />}
       </tr>
     </thead>
   );

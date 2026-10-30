@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { ChevronsDownUp, ChevronsUpDown } from "lucide-react";
 import { useStatuses } from "@/features/statuses/useStatuses";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
@@ -31,6 +31,8 @@ export function TicketsList({
   columnPrefs,
   canEditEpics = false,
   projectId,
+  columns,
+  rowAction,
 }: {
   tickets: TicketRow[];
   groupBy: GroupBy;
@@ -45,6 +47,10 @@ export function TicketsList({
   columnPrefs?: ColumnDisplayPrefs;
   canEditEpics?: boolean;
   projectId?: string;
+  /** Fixed column set (grouped column is dropped); overrides the default layout. */
+  columns?: ColKey[];
+  /** Optional trailing cell per row (e.g. a Convert button). */
+  rowAction?: (t: TicketRow) => ReactNode;
 }) {
 
   const selectionEnabled = !!selectedIds && !!onToggleSelect;
@@ -54,6 +60,7 @@ export function TicketsList({
   const { sort, toggleSort, sortTickets } = useTicketsSort(statuses, poolData);
 
   const visibleCols: ColKey[] = useMemo(() => {
+    if (columns) return columns.filter((c) => c !== groupBy);
     const out: ColKey[] = ["id", "title"];
     if (groupBy !== "epic") out.push("epic");
     if (groupBy !== "version") out.push("version");
@@ -70,7 +77,7 @@ export function TicketsList({
       return out.filter((c) => c === "title" || columnPrefs[c] !== false);
     }
     return out;
-  }, [groupBy, extraCols, columnPrefs]);
+  }, [groupBy, extraCols, columnPrefs, columns]);
 
 
   const { widthFor, totalWidth, onResizeStart } = useColumnResize(visibleCols);
@@ -146,6 +153,7 @@ export function TicketsList({
                       {visibleCols.map((k) => (
                         <col key={k} style={{ width: widthFor(k) }} />
                       ))}
+                      {rowAction && <col style={{ width: 120 }} />}
                     </colgroup>
                     <TicketsListHeader
                       visibleCols={visibleCols}
@@ -156,6 +164,7 @@ export function TicketsList({
                       sort={sort}
                       toggleSort={toggleSort}
                       onResizeStart={onResizeStart}
+                      trailing={!!rowAction}
                     />
                     <tbody>
                       {g.tickets.map((t) => (
@@ -172,6 +181,7 @@ export function TicketsList({
                           statuses={statuses}
                           groupKey={g.key}
                           poolData={poolData}
+                          action={rowAction?.(t)}
                         />
 
                       ))}

@@ -26,6 +26,7 @@ export function DraftRow({
   onChange,
   onRemove,
   onEnterAtLast,
+  lockType = false,
 }: {
   draft: Draft;
   idx: number;
@@ -37,6 +38,8 @@ export function DraftRow({
   onChange: (patch: Partial<Draft>) => void;
   onRemove: () => void;
   onEnterAtLast: () => void;
+  /** Fixed ticket type (Feedback): hides type, parent, status and assignees. */
+  lockType?: boolean;
 }) {
   const isProj = draft.type === "Proj";
   const titleEmpty = !draft.title.trim();
@@ -80,7 +83,7 @@ export function DraftRow({
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-12 gap-2 pl-8">
-        <div className="md:col-span-2">
+        {!lockType && <div className="md:col-span-2">
           <Select
             value={draft.type}
             onValueChange={(v) => {
@@ -102,9 +105,9 @@ export function DraftRow({
               <SelectItem value="Proj">Proj</SelectItem>
             </SelectContent>
           </Select>
-        </div>
+        </div>}
 
-        {draft.type !== "Proj" ? (
+        {!lockType && draft.type !== "Proj" ? (
           <div className="md:col-span-3">
             <ParentTicketSelect
               projectId={projectId}
@@ -149,7 +152,7 @@ export function DraftRow({
           </div>
         )}
 
-        <div className="md:col-span-3">
+        {!lockType && <div className="md:col-span-3">
           <Select
             value={draft.statusId ?? undefined}
             onValueChange={(v) => onChange({ statusId: v })}
@@ -171,7 +174,7 @@ export function DraftRow({
               ))}
             </SelectContent>
           </Select>
-        </div>
+        </div>}
 
         {isProj ? (
           <div className="md:col-span-2">
@@ -219,7 +222,7 @@ export function DraftRow({
           />
         </div>
 
-        <div className={cn("md:col-span-2", isProj && "md:col-span-2")}>
+        {!lockType && <div className={cn("md:col-span-2", isProj && "md:col-span-2")}>
           <AssignPopover
             members={members}
             type={draft.type}
@@ -227,7 +230,7 @@ export function DraftRow({
             onChange={(a) => onChange({ assignees: a })}
             count={assigneeCount}
           />
-        </div>
+        </div>}
       </div>
     </div>
   );
