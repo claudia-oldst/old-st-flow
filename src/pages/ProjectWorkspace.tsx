@@ -50,9 +50,9 @@ export default function ProjectWorkspace() {
     () =>
       [
         { to: "", label: "Tickets", end: true },
+        hasThalamus ? { to: "feedback", label: "Feedback" } : null,
         { to: "change-requests-cr", label: "Change Requests" },
         canEdit ? { to: "change-requests", label: "Estimate Revisions" } : null,
-        hasThalamus ? { to: "feedback", label: "Feedback" } : null,
         { to: "sprints", label: "Sprints" },
         { to: "health", label: "Health" },
         canEdit ? { to: "client", label: "Client" } : null,
@@ -156,9 +156,9 @@ export default function ProjectWorkspace() {
 
           <Routes>
             <Route index element={<ProjectTickets projectId={id} />} />
+            {hasThalamus && <Route path="feedback" element={<ProjectFeedback projectId={id} />} />}
             <Route path="change-requests-cr" element={<ProjectChangeRequestTickets projectId={id} />} />
             <Route path="change-requests" element={<ProjectChangeRequests projectId={id} />} />
-            {hasThalamus && <Route path="feedback" element={<ProjectFeedback projectId={id} />} />}
             <Route path="sprints" element={<SprintsPage projectId={id} />} />
             <Route path="health" element={<ProjectHealth projectId={id} />} />
             <Route path="client" element={<ClientPortalEditor />} />
