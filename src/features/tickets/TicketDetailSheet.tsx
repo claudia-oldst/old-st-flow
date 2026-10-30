@@ -68,7 +68,11 @@ export function TicketDetailSheet({ open, onOpenChange, ticket: ticketProp, proj
   const isPMBARole = canManage;
 
   const defaultTab =
-    ticket.acceptance_criteria && ticket.acceptance_criteria.trim() ? "acceptance" : "status";
+    ticket.ticket_type === "Feedback"
+      ? "discussion"
+      : ticket.acceptance_criteria && ticket.acceptance_criteria.trim()
+        ? "acceptance"
+        : "status";
 
   return (
     <>
