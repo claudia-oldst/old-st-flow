@@ -50,6 +50,21 @@ export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
     onUpdated?.(data as Project);
   };
 
+  const handleSaveChannel = async (channelId: string | null) => {
+    const { data, error } = await supabase
+      .from("projects")
+      .update({ slack_channel_id: channelId })
+      .eq("id", project.id)
+      .select("*")
+      .single();
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(channelId ? "Feedback channel saved" : "Feedback channel cleared");
+    onUpdated?.(data as Project);
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -123,6 +138,8 @@ export function ProjectSettingsDialog({ project, canEdit, onUpdated }: Props) {
               canEditAll={canEdit}
               isEnabled={prefs.isEnabled}
               onToggle={prefs.setEnabled}
+              slackChannelId={project.slack_channel_id}
+              onSaveChannel={handleSaveChannel}
             />
           </TabsContent>
 
