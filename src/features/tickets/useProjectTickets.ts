@@ -110,29 +110,38 @@ export function normalizeTicket(raw: any): TicketRow {
   };
 }
 
-async function fetchProjectTickets(projectId: string): Promise<FetchResult> {
-  const cap = PAGE_SIZES.ticketsKanban;
-  const { data, error } = await withTimeout(
-    supabase.rpc("list_project_tickets", {
-      _project_id: projectId,
-      _filters: {} as any,
-      _search: null,
-      _sort_col: "position",
-      _sort_dir: "asc",
-      _page: 1,
-      _page_size: cap,
-    }),
-    12_000,
-    "Ticket loading",
-  );
+export const FETCH_ALL_PAGE_SIZE = 1000;
 
-  if (error) {
-    throw new Error(`Could not load tickets: ${error.message}`);
+export async function fetchProjectTickets(projectId: string): Promise<FetchResult> {
+  // The RPC caps each call at 1000 rows, so fetch page by page until all are loaded.
+  const cap = FETCH_ALL_PAGE_SIZE;
+  const all: any[] = [];
+  let total = 0;
+  for (let page = 1; page <= 100; page++) {
+    const { data, error } = await withTimeout(
+      supabase.rpc("list_project_tickets", {
+        _project_id: projectId,
+        _filters: {} as any,
+        _search: null,
+        _sort_col: "position",
+        _sort_dir: "asc",
+        _page: page,
+        _page_size: cap,
+      }),
+      12_000,
+      "Ticket loading",
+    );
+    if (error) {
+      throw new Error(`Could not load tickets: ${error.message}`);
+    }
+    const result = (data ?? { rows: [], total: 0 }) as unknown as RpcResult;
+    const rows = result.rows ?? [];
+    all.push(...rows);
+    total = result.total ?? all.length;
+    if (rows.length < cap || all.length >= total) break;
   }
-
-  const result = (data ?? { rows: [], total: 0 }) as unknown as RpcResult;
-  const tickets = (result.rows ?? []).map(normalizeTicket);
-  return { tickets, totalCount: result.total ?? tickets.length };
+  const tickets = all.map(normalizeTicket);
+  return { tickets, totalCount: total || tickets.length };
 }
 
 export function useProjectTickets(projectId: string | undefined) {
