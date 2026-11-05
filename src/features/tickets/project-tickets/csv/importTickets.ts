@@ -208,6 +208,19 @@ export async function importParsedRows(
   if (assigneeRows.length > 0) {
     const { error: aErr } = await supabase.from("ticket_assignees").insert(assigneeRows);
     if (aErr) toast.error("Tickets imported, but assignment failed: " + aErr.message);
+    else {
+      // New tickets start blank; assignment sets 'todo'. Apply the CSV's
+      // dev status only on sides that actually got an assignee.
+      const updates = (createdTickets as { id: string }[]).map((row, idx) => {
+        const r = valid[idx];
+        if (!r || r.type === "Proj") return null;
+        const patch: Record<string, string> = {};
+        if (assigneeRows.some((a) => a.ticket_id === row.id && a.slot === "FE") && r.fe_status !== "todo") patch.fe_status = r.fe_status;
+        if (assigneeRows.some((a) => a.ticket_id === row.id && a.slot === "BE") && r.be_status !== "todo") patch.be_status = r.be_status;
+        return Object.keys(patch).length ? supabase.from("tickets").update(patch as any).eq("id", row.id) : null;
+      }).filter(Boolean);
+      await Promise.all(updates);
+    }
   }
 
   toast.success(`Imported ${valid.length} ticket${valid.length === 1 ? "" : "s"}`);

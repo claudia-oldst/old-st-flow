@@ -56,6 +56,20 @@ export function StatusRulesPreviewMatrix({ rules, statuses }: Props) {
             ))}
           </tbody>
         </table>
+        <div className="mt-3 flex items-center gap-2 text-xs">
+          <span className="text-dim font-medium">No dev status (unassigned)</span>
+          <span className="text-dimmer">→</span>
+          {(() => {
+            const b = statuses.find((s) => s.name === "BACKLOG" && s.category === "backlog");
+            return (
+              <span className="inline-flex items-center gap-2 px-2 py-1 rounded-md bg-white/[0.03] ring-1 ring-white/5">
+                {b && <span className="h-2 w-2 rounded-full" style={{ background: b.color }} />}
+                BACKLOG
+              </span>
+            );
+          })()}
+          <span className="text-[11px] text-dimmer">New tickets with no time logged only.</span>
+        </div>
         <div className="text-[11px] text-dimmer mt-3">
           Cells marked "No rule" mean tickets with that FE/BE combo will keep their existing project status.
         </div>
