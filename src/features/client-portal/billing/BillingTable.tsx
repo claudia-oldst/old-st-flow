@@ -78,7 +78,7 @@ export function BillingTable({ rows, total, months, rate }: {
         </thead>
         <tbody>
           {rows.map((r) => (
-            <tr key={r.id} className="group hairline-b hover:bg-surface-2/60">
+            <tr key={r.id ?? "no-epic"} className="group hairline-b hover:bg-surface-2/60">
               <td className={cn(sticky, "group-hover:bg-surface-2")}>{r.name}</td>
               {cols.map((c) => (
                 <td key={c.key} className={cn(cell, c.breakdown && "bg-surface-2/40 text-dim")}>{fmtHours(c.get(r))}</td>

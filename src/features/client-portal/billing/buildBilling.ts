@@ -1,7 +1,8 @@
 /** Pure helpers for the client portal Billing tab. All values are hours. */
 
 export interface BillingEpic {
-  id: number;
+  /** null = the "No Epic" bucket. */
+  id: number | null;
   epic_name: string | null;
   original_std: number | null;
   original_cr: number | null;
@@ -61,7 +62,7 @@ export function buildRows(p: BillingPayload): BillingRow[] {
     const months = byEpic.get(e.id) ?? {};
     return {
       id: e.id,
-      name: e.epic_name ?? "Untitled epic",
+      name: e.id === null ? "No Epic" : e.epic_name ?? "Untitled epic",
       std, cr, bug,
       original: std + cr + bug,
       revised: Number(e.revised ?? 0),
