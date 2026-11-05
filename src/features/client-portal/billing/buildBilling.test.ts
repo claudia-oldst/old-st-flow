@@ -48,3 +48,14 @@ describe("fmtHours", () => {
     expect(fmtHours(10.26)).toBe("10.3");
   });
 });
+
+import { buildRows as _buildRows } from "./buildBilling";
+import { it as _it, expect as _expect } from "vitest";
+_it("shows tickets without an epic as a 'No Epic' row with its logs", () => {
+  const rows = _buildRows({
+    project: { id: "p", name: "P", rate_per_hour: 1, start_date: null, cutoff: "2026-11-01" },
+    epics: [{ id: null, epic_name: "No Epic", original_std: 4, original_cr: null, original_bug: 1, revised: 6 }],
+    logs: [{ epic_id: null, month: "2026-10", hours: 3 }],
+  });
+  _expect(rows[0]).toMatchObject({ name: "No Epic", original: 5, revised: 6, actual: 3 });
+});
