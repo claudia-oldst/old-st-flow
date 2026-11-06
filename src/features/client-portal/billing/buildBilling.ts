@@ -14,6 +14,8 @@ export interface BillingPayload {
   project: { id: string; name: string; rate_per_hour: number; start_date: string | null; cutoff: string };
   epics: BillingEpic[];
   logs: { epic_id: number | null; month: string; hours: number }[];
+  /** Discount/unbilled hours per epic per month (month the discount was applied). */
+  discounts?: { epic_id: number | null; month: string; hours: number }[];
 }
 
 export interface BillingRow {
@@ -26,6 +28,12 @@ export interface BillingRow {
   revised: number;
   months: Record<string, number>;
   actual: number;
+  /** Discount hours per month. */
+  discountMonths: Record<string, number>;
+  /** Whole-project discount hours. */
+  discount: number;
+  /** actual - discount (whole project). */
+  grand: number;
 }
 
 const ym = (d: Date) => `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
@@ -47,19 +55,28 @@ export function monthRange(start: string | null, cutoff: string, firstLog?: stri
 /** Default month selection: the most recent `n` months up to the cutoff. */
 export const defaultMonths = (months: string[], n = 5) => months.slice(-n);
 
-export function buildRows(p: BillingPayload): BillingRow[] {
+const group = (list: { epic_id: number | null; month: string; hours: number }[]) => {
   const byEpic = new Map<number | null, Record<string, number>>();
-  for (const l of p.logs) {
+  for (const l of list) {
     const m = byEpic.get(l.epic_id) ?? {};
     m[l.month] = (m[l.month] ?? 0) + Number(l.hours);
     byEpic.set(l.epic_id, m);
   }
+  return byEpic;
+};
+
+export function buildRows(p: BillingPayload): BillingRow[] {
+  const byEpic = group(p.logs);
+  const discByEpic = group(p.discounts ?? []);
   const sum = (m: Record<string, number>) => Object.values(m).reduce((s, h) => s + h, 0);
   return p.epics.map((e) => {
     const std = Number(e.original_std ?? 0);
     const cr = Number(e.original_cr ?? 0);
     const bug = Number(e.original_bug ?? 0);
     const months = byEpic.get(e.id) ?? {};
+    const discountMonths = discByEpic.get(e.id) ?? {};
+    const actual = sum(months);
+    const discount = sum(discountMonths);
     return {
       id: e.id,
       name: e.id === null ? "No Epic" : e.epic_name ?? "Untitled epic",
@@ -67,20 +84,28 @@ export function buildRows(p: BillingPayload): BillingRow[] {
       original: std + cr + bug,
       revised: Number(e.revised ?? 0),
       months,
-      actual: sum(months),
+      actual,
+      discountMonths,
+      discount,
+      grand: actual - discount,
     };
   });
 }
 
 /** Column-wise totals across rows (same shape as a row). */
 export function totalRow(rows: BillingRow[]): BillingRow {
-  const t: BillingRow = { id: null, name: "Total", std: 0, cr: 0, bug: 0, original: 0, revised: 0, months: {}, actual: 0 };
+  const t: BillingRow = { id: null, name: "Total", std: 0, cr: 0, bug: 0, original: 0, revised: 0, months: {}, actual: 0, discountMonths: {}, discount: 0, grand: 0 };
   for (const r of rows) {
     t.std += r.std; t.cr += r.cr; t.bug += r.bug;
     t.original += r.original; t.revised += r.revised; t.actual += r.actual;
+    t.discount += r.discount; t.grand += r.grand;
     for (const [m, h] of Object.entries(r.months)) t.months[m] = (t.months[m] ?? 0) + h;
+    for (const [m, h] of Object.entries(r.discountMonths)) t.discountMonths[m] = (t.discountMonths[m] ?? 0) + h;
   }
   return t;
 }
 
 export const fmtHours = (h: number) => String(Math.round(h * 10) / 10);
+
+/** Monthly billed hours after discounts: month total minus that month's discount. */
+export const grandMonth = (total: BillingRow, m: string) => (total.months[m] ?? 0) - (total.discountMonths[m] ?? 0);

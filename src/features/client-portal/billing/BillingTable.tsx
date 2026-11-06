@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { formatGBP } from "../types";
-import { fmtHours, type BillingRow } from "./buildBilling";
+import { fmtHours, grandMonth, type BillingRow } from "./buildBilling";
 
 type Col = { key: string; label: string; get: (r: BillingRow) => number; breakdown?: boolean };
 
@@ -28,6 +28,19 @@ export function BillingTable({ rows, total, months, rate }: {
     { key: "revised", label: "Latest Revised Estimate", get: (r) => r.revised },
     ...months.map((m) => ({ key: m, label: monthLabel(m), get: (r: BillingRow) => r.months[m] ?? 0 })),
     { key: "actual", label: "Actual Total", get: (r) => r.actual },
+    { key: "discount", label: "Discount/Unbilled", get: (r) => r.discount },
+    { key: "grand", label: "Grand Total", get: (r) => r.grand },
+  ];
+
+  /** Value for the Discount/Unbilled and Grand Total rows; null = blank cell (estimates don't take discounts). */
+  const isMonth = (k: string) => months.includes(k);
+  const discountCell = (k: string): number | null =>
+    isMonth(k) ? total.discountMonths[k] ?? 0 : k === "discount" ? total.discount : null;
+  const grandCell = (k: string): number | null =>
+    isMonth(k) ? grandMonth(total, k) : k === "grand" ? total.grand : null;
+  const extraRows: { label: string; get: (k: string) => number | null }[] = [
+    { label: "Discount/Unbilled", get: discountCell },
+    { label: "Grand Total", get: grandCell },
   ];
 
   const cell = "px-3 py-2 text-right font-mono whitespace-nowrap";
@@ -46,6 +59,26 @@ export function BillingTable({ rows, total, months, rate }: {
           {cols.map((c) => <td key={c.key} className={cell}>{formatGBP(c.get(total) * rate)}</td>)}
         </tr>
       )}
+      {extraRows.map((x) => (
+        <Fragment key={x.label}>
+          <tr className="hairline-b font-semibold text-sm normal-case tracking-normal text-foreground">
+            <td className={sticky}>{x.label} (hours)</td>
+            {cols.map((c) => {
+              const v = x.get(c.key);
+              return <td key={c.key} className={cell}>{v === null ? "" : fmtHours(v)}</td>;
+            })}
+          </tr>
+          {rate > 0 && (
+            <tr className="hairline-b font-semibold text-sm normal-case tracking-normal text-primary">
+              <td className={sticky}>{x.label} (GBP)</td>
+              {cols.map((c) => {
+                const v = x.get(c.key);
+                return <td key={c.key} className={cell}>{v === null ? "" : formatGBP(v * rate)}</td>;
+              })}
+            </tr>
+          )}
+        </Fragment>
+      ))}
     </>
   );
 
