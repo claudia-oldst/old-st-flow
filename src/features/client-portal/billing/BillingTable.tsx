@@ -43,58 +43,77 @@ export function BillingTable({ rows, total, months, rate }: {
     { label: "Grand Total", get: grandCell },
   ];
 
-  const cell = "px-3 py-2 text-right font-mono whitespace-nowrap";
-  const sticky = "sticky left-0 z-10 bg-card text-left px-3 py-2 min-w-[180px]";
+  const groupOf = (k: string): "est" | "month" | "total" =>
+    isMonth(k) ? "month" : ["actual", "discount", "grand"].includes(k) ? "total" : "est";
+  // First column of each block gets a divider so the three groups read separately.
+  const firstOfGroup = new Set<string>();
+  cols.forEach((c, i) => { if (i === 0 || groupOf(cols[i - 1].key) !== groupOf(c.key)) firstOfGroup.add(c.key); });
+  const colCls = (k: string) =>
+    cn(
+      firstOfGroup.has(k) && "border-l border-border",
+      groupOf(k) === "total" && "bg-surface-2/50",
+      k === "grand" && "font-semibold text-foreground",
+    );
 
-  // Totals render above and below the epic rows so they're readable without scrolling.
-  const totals = (
-    <>
-      <tr className="hairline-b font-semibold text-sm normal-case tracking-normal text-foreground">
-        <td className={sticky}>Total (hours)</td>
-        {cols.map((c) => <td key={c.key} className={cell}>{fmtHours(c.get(total))}</td>)}
-      </tr>
-      {rate > 0 && (
-        <tr className="hairline-b font-semibold text-sm normal-case tracking-normal text-primary">
-          <td className={sticky}>Total (GBP)</td>
-          {cols.map((c) => <td key={c.key} className={cell}>{formatGBP(c.get(total) * rate)}</td>)}
-        </tr>
+  const cell = "px-3 py-2 text-right font-mono whitespace-nowrap tabular-nums";
+  const sticky = "sticky left-0 z-10 bg-card text-left px-3 py-2 min-w-[180px] border-r border-border";
+  const num = (v: number, fmt: (n: number) => string) =>
+    Math.abs(v) < 0.005 ? <span className="text-dimmer">–</span> : fmt(v);
+  const gbp = (n: number) => formatGBP(n * rate);
+
+  const totalRow = (label: string, get: (k: string) => number | null, opts: { gbp?: boolean; first?: boolean; strong?: boolean; dim?: boolean }) => (
+    <tr
+      key={label + (opts.gbp ? "-gbp" : "")}
+      className={cn(
+        "bg-surface-2/70 text-sm normal-case tracking-normal border-b border-border/50",
+        opts.first && "border-t-2 border-t-border",
+        opts.strong ? "font-semibold" : "font-medium",
+        opts.gbp ? "text-primary" : opts.dim ? "text-dim" : "text-foreground",
       )}
-      {extraRows.map((x) => (
-        <Fragment key={x.label}>
-          <tr className="hairline-b font-semibold text-sm normal-case tracking-normal text-foreground">
-            <td className={sticky}>{x.label} (hours)</td>
-            {cols.map((c) => {
-              const v = x.get(c.key);
-              return <td key={c.key} className={cell}>{v === null ? "" : fmtHours(v)}</td>;
-            })}
-          </tr>
-          {rate > 0 && (
-            <tr className="hairline-b font-semibold text-sm normal-case tracking-normal text-primary">
-              <td className={sticky}>{x.label} (GBP)</td>
-              {cols.map((c) => {
-                const v = x.get(c.key);
-                return <td key={c.key} className={cell}>{v === null ? "" : formatGBP(v * rate)}</td>;
-              })}
-            </tr>
-          )}
-        </Fragment>
-      ))}
-    </>
+    >
+      <td className={cn(sticky, "bg-surface-2")}>{label} ({opts.gbp ? "GBP" : "hours"})</td>
+      {cols.map((c) => {
+        const v = get(c.key);
+        return (
+          <td key={c.key} className={cn(cell, colCls(c.key), opts.gbp && "text-primary", opts.dim && !opts.gbp && "text-dim")}>
+            {v === null ? "" : num(v, opts.gbp ? gbp : fmtHours)}
+          </td>
+        );
+      })}
+    </tr>
   );
 
+  const totals = (top: boolean) => {
+    const totalGet = (k: string) => { const c = cols.find((x) => x.key === k)!; return c.get(total); };
+    const defs = [
+      { label: "Total", get: totalGet, strong: true, dim: false },
+      ...extraRows.map((x) => ({ label: x.label, get: x.get, strong: x.label === "Grand Total", dim: x.label !== "Grand Total" })),
+    ];
+    return (
+      <>
+        {defs.map((d, i) => (
+          <Fragment key={d.label}>
+            {totalRow(d.label, d.get, { first: i === 0 && !top, strong: d.strong, dim: d.dim })}
+            {rate > 0 && totalRow(d.label, d.get, { gbp: true, strong: d.strong })}
+          </Fragment>
+        ))}
+      </>
+    );
+  };
+
   return (
-    <div className="glass rounded-2xl overflow-x-auto">
+    <div className="glass rounded-2xl overflow-auto max-h-[75vh] border border-border">
       <table className="w-full text-sm border-collapse">
-        <thead>
-          <tr className="hairline-b text-[11px] uppercase tracking-wider text-dimmer">
-            <th className={cn(sticky, "font-medium")}>Epic <span className="normal-case text-dimmer/70">(hours)</span></th>
+        <thead className="sticky top-0 z-20">
+          <tr className="bg-surface-2 border-b-2 border-border text-[11px] uppercase tracking-wider text-foreground/80">
+            <th className={cn(sticky, "z-30 bg-surface-2 font-semibold")}>Epic <span className="normal-case text-dimmer">(hours)</span></th>
             {cols.map((c) => (
-              <th key={c.key} className={cn("px-3 py-2 text-right align-bottom font-medium leading-tight max-w-[110px]", c.breakdown && "bg-surface-2/40")}>
+              <th key={c.key} className={cn("px-3 py-2.5 text-right align-bottom font-semibold leading-tight max-w-[110px] bg-surface-2", colCls(c.key), c.key === "grand" && "text-foreground")}>
                 {c.key === "original" ? (
                   <button
                     type="button"
                     onClick={() => setExpanded((v) => !v)}
-                    className="inline-flex items-end gap-1 text-right uppercase hover:text-foreground"
+                    className="inline-flex items-end gap-1 text-right uppercase hover:text-primary"
                     aria-expanded={expanded}
                     aria-label={expanded ? "Hide original breakdown" : "Show original breakdown"}
                   >
@@ -107,19 +126,19 @@ export function BillingTable({ rows, total, months, rate }: {
               </th>
             ))}
           </tr>
-          {totals}
         </thead>
         <tbody>
-          {rows.map((r) => (
-            <tr key={r.id ?? "no-epic"} className="group hairline-b hover:bg-surface-2/60">
-              <td className={cn(sticky, "group-hover:bg-surface-2")}>{r.name}</td>
+          {totals(true)}
+          {rows.map((r, i) => (
+            <tr key={r.id ?? "no-epic"} className={cn("group border-b border-border/40 hover:bg-primary/10", i % 2 === 1 && "bg-surface-2/25")}>
+              <td className={cn(sticky, "font-medium text-foreground group-hover:bg-surface-2", i === 0 && "border-t-2 border-t-border")}>{r.name}</td>
               {cols.map((c) => (
-                <td key={c.key} className={cn(cell, c.breakdown && "bg-surface-2/40 text-dim")}>{fmtHours(c.get(r))}</td>
+                <td key={c.key} className={cn(cell, colCls(c.key), c.breakdown && "text-dim", i === 0 && "border-t-2 border-t-border")}>{num(c.get(r), fmtHours)}</td>
               ))}
             </tr>
           ))}
         </tbody>
-        <tfoot>{totals}</tfoot>
+        <tfoot>{totals(false)}</tfoot>
       </table>
     </div>
   );
