@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Trash2, Pencil, Check, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Trash2, Pencil, Check, X, ArrowUp, ArrowDown } from "lucide-react";
+import { MultiSelectFilter } from "@/features/estimates/MultiSelectFilter";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,8 @@ interface Props {
   canManage: boolean;
 }
 
+type SortKey = "epic" | "discipline" | "hours" | "reason" | "date";
+
 const disciplineLabel: Record<string, string> = {
   FE: "Frontend",
   BE: "Backend",
@@ -34,6 +37,47 @@ export function DiscountsList({ projectId, epics, canManage }: Props) {
 
   const epicName = (id: number) =>
     epics.find((e) => e.id === id)?.epic_name ?? `Epic ${id}`;
+  const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "date", dir: -1 });
+  const [epicFilter, setEpicFilter] = useState<string[] | null>(null);
+  const [discFilter, setDiscFilter] = useState<string[] | null>(null);
+
+  const epicOptions = useMemo(
+    () =>
+      [...new Set(discounts.map((d) => d.epic_id))].map((id) => ({
+        value: String(id),
+        label: epics.find((e) => e.id === id)?.epic_name ?? `Epic ${id}`,
+      })),
+    [discounts, epics],
+  );
+  const discOptions = useMemo(
+    () => [...new Set(discounts.map((d) => d.discipline))].map((v) => ({ value: v, label: disciplineLabel[v] ?? v })),
+    [discounts],
+  );
+
+  const visible = useMemo(() => {
+    const rank = (id: number) => { const i = epics.findIndex((e) => e.id === id); return i < 0 ? 1e9 : i; };
+    const val = (d: (typeof discounts)[number]): string | number =>
+      sort.key === "epic" ? rank(d.epic_id)
+      : sort.key === "discipline" ? d.discipline
+      : sort.key === "hours" ? Number(d.hours)
+      : sort.key === "reason" ? (d.reason ?? "").toLowerCase()
+      : new Date(d.applied_at ?? d.created_at).getTime();
+    return discounts
+      .filter((d) => !epicFilter || epicFilter.includes(String(d.epic_id)))
+      .filter((d) => !discFilter || discFilter.includes(d.discipline))
+      .sort((a, b) => { const x = val(a), y = val(b); return (x < y ? -1 : x > y ? 1 : 0) * sort.dir; });
+  }, [discounts, epics, sort, epicFilter, discFilter]);
+
+  const head = (key: SortKey, label: string, cls: string) => (
+    <button
+      type="button"
+      onClick={() => setSort((s) => (s.key === key ? { key, dir: s.dir === 1 ? -1 : 1 } : { key, dir: 1 }))}
+      className={cn("inline-flex items-center gap-1 uppercase hover:text-foreground", cls, sort.key === key && "text-foreground")}
+    >
+      {label}
+      {sort.key === key && (sort.dir === 1 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
+    </button>
+  );
 
   if (discounts.length === 0) {
     return (
@@ -57,16 +101,23 @@ export function DiscountsList({ projectId, epics, canManage }: Props) {
 
   return (
     <div className="glass rounded-2xl overflow-hidden">
+      <div className="flex items-center justify-end gap-2 px-4 py-2 border-b border-white/5">
+        <MultiSelectFilter label="Epic" options={epicOptions} selected={epicFilter ?? epicOptions.map((o) => o.value)} onChange={setEpicFilter} searchable />
+        <MultiSelectFilter label="Discipline" options={discOptions} selected={discFilter ?? discOptions.map((o) => o.value)} onChange={setDiscFilter} />
+      </div>
       <div className="flex items-center gap-3 px-4 py-2 border-b border-white/5 text-[10px] uppercase tracking-wider text-dimmer">
-        <div className="flex-1">Epic</div>
-        <div className="w-24">Discipline</div>
-        <div className="w-20 text-right">Hours</div>
-        <div className="flex-[2]">Reason</div>
-        <div className="w-28 text-right">Applies from</div>
+        <div className="flex-1">{head("epic", "Epic", "")}</div>
+        <div className="w-24">{head("discipline", "Discipline", "")}</div>
+        <div className="w-20 text-right">{head("hours", "Hours", "justify-end w-full")}</div>
+        <div className="flex-[2]">{head("reason", "Reason", "")}</div>
+        <div className="w-28 text-right">{head("date", "Applies from", "justify-end w-full")}</div>
         {canManage && <div className="w-16" />}
       </div>
       <div className="divide-y divide-white/5">
-        {discounts.map((d) => {
+        {visible.length === 0 && (
+          <div className="px-4 py-4 text-xs text-dim text-center">No discounts match these filters.</div>
+        )}
+        {visible.map((d) => {
           const isEditing = editingId === d.id;
           return (
             <div
