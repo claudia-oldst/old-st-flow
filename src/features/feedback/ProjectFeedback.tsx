@@ -14,6 +14,7 @@ import { ListPagination } from "@/components/ListPagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/store/currentUser";
+import { BulkActionsBar } from "@/features/tickets/BulkActionsBar";
 import { ConvertFeedbackDialog } from "./ConvertFeedbackDialog";
 import { CopyTicketsDialog } from "@/features/tickets/CopyTicketsDialog";
 import { ImportCsvDialog } from "@/features/tickets/project-tickets/ImportCsvDialog";
@@ -38,6 +39,8 @@ export function ProjectFeedback({ projectId }: { projectId: string }) {
   const [importOpen, setImportOpen] = useState(false);
   const [copyOpen, setCopyOpen] = useState(false);
   const [initialTitles, setInitialTitles] = useState<string[] | undefined>();
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [lastId, setLastId] = useState<string | null>(null);
   const [convert, setConvert] = useState<TicketRow | null>(null);
   const [params, setParams] = useSearchParams();
   const [openId, setOpenId] = useState<string | null>(params.get("ticket"));
@@ -48,6 +51,24 @@ export function ProjectFeedback({ projectId }: { projectId: string }) {
   const open = useMemo<TicketRow | null>(() => rows.find((r) => r.id === openId) ?? null, [rows, openId]);
 
   useEffect(() => setPage(1), [filters, search]);
+  const toggleSelect = (id: string, shift: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      const ids = rows.map((r) => r.id);
+      const a = lastId ? ids.indexOf(lastId) : -1, b = ids.indexOf(id);
+      if (shift && a !== -1 && b !== -1 && a !== b) {
+        const sel = !prev.has(id);
+        for (let i = Math.min(a, b); i <= Math.max(a, b); i++) sel ? next.add(ids[i]) : next.delete(ids[i]);
+        return next;
+      }
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+    setLastId(id);
+  };
+  const toggleSelectAll = (ids: string[], select: boolean) =>
+    setSelectedIds((prev) => { const n = new Set(prev); ids.forEach((i) => (select ? n.add(i) : n.delete(i))); return n; });
+  const clearSelection = () => { setSelectedIds(new Set()); setLastId(null); reload(); };
   useEffect(() => {
     if (!openId && params.has("ticket")) { params.delete("ticket"); setParams(params, { replace: true }); }
   }, [openId, params, setParams]);
@@ -75,12 +96,19 @@ export function ProjectFeedback({ projectId }: { projectId: string }) {
           <TicketsList
             tickets={rows} groupBy={groupBy} onOpen={(t) => setOpenId(t.id)}
             currentUserId={user?.id} projectId={projectId} columns={COLUMNS}
+            selectedIds={canManage ? selectedIds : undefined}
+            onToggleSelect={canManage ? toggleSelect : undefined}
+            onToggleSelectAll={canManage ? toggleSelectAll : undefined}
+            canEditEpics={canManage}
             rowAction={canManage ? (t) => (
               <Button size="sm" className="h-7" onClick={() => setConvert(t)}>Convert</Button>
             ) : undefined}
           />
           <ListPagination page={page} total={total} pageSize={PAGE_SIZE} onChange={setPage} />
         </>
+      )}
+      {canManage && (
+        <BulkActionsBar projectId={projectId} selectedIds={Array.from(selectedIds)} onClear={clearSelection} canEdit feedback />
       )}
       <TicketDetailSheet open={!!open} onOpenChange={(o) => !o && setOpenId(null)} ticket={open} projectId={projectId} onChange={reload} />
       {convert && (
