@@ -27,12 +27,15 @@ export function BulkActionsBar({
   onClear,
   canEdit,
   canEditStatus = false,
+  feedback = false,
 }: {
   projectId: string;
   selectedIds: string[];
   onClear: () => void;
   canEdit: boolean;
   canEditStatus?: boolean;
+  /** Feedback tickets: no assign/status/dev-status actions (not in live development). */
+  feedback?: boolean;
 }) {
   const { statuses } = useStatuses();
   const { epics } = useProjectEpics(projectId);
@@ -41,7 +44,7 @@ export function BulkActionsBar({
   const { busy, setStatus, setEpic, setFeStatus, setBeStatus, setVersion, doDelete } =
     useBulkTicketActions(selectedIds, onClear);
 
-  const showStatus = canEdit || canEditStatus;
+  const showStatus = !feedback && (canEdit || canEditStatus);
 
   if (selectedIds.length === 0) return null;
 
@@ -62,7 +65,7 @@ export function BulkActionsBar({
             <span className="text-xs text-dim">selected</span>
           </div>
 
-          {canEdit && (
+          {canEdit && !feedback && (
             <button
               disabled={busy}
               onClick={() => setAssignOpen(true)}
