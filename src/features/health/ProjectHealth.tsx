@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { usePersistentState } from "@/hooks/usePersistentState";
-import { Plus, AlertTriangle } from "lucide-react";
+import { Plus, AlertTriangle, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useProjectTickets } from "@/features/tickets/useProjectTickets";
 import { useStatuses } from "@/features/statuses/useStatuses";
@@ -31,6 +31,11 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
   const { epics } = useProjectEpics(projectId);
   const { discounts: allDiscounts } = useEpicDiscounts(projectId);
   const [discountsOpen, setDiscountsOpen] = useState(false);
+  const [discountsCollapsed, setDiscountsCollapsed] = usePersistentState(
+    `health-discounts-collapsed:${projectId}`,
+    false,
+    { storage: "local" },
+  );
   // Persisted per project so the version scope survives tab switches.
   const [selectedVersions, setSelectedVersions] = usePersistentState<string[]>(
     `health:${projectId}:versions`,
@@ -161,10 +166,18 @@ export function ProjectHealth({ projectId }: { projectId: string }) {
 
       {allVersions && discounts.length > 0 && (
         <div className="space-y-2">
-          <div className="text-xs uppercase tracking-wider text-dimmer px-1">
+          <button
+            type="button"
+            onClick={() => setDiscountsCollapsed((v) => !v)}
+            aria-expanded={!discountsCollapsed}
+            className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-dimmer hover:text-foreground px-1"
+          >
+            {discountsCollapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
             Discounts ({discounts.length})
-          </div>
-          <DiscountsList projectId={projectId} epics={epics} canManage={canManageDiscounts} />
+          </button>
+          {!discountsCollapsed && (
+            <DiscountsList projectId={projectId} epics={epics} canManage={canManageDiscounts} />
+          )}
         </div>
       )}
 
