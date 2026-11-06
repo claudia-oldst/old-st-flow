@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -60,9 +60,24 @@ export function BillingTable({ rows, total, months, rate }: {
         </tr>
       )}
       {extraRows.map((x) => (
-        <tr key={x.label} className="contents">
-          <td colSpan={0} className="hidden" />
-        </tr>
+        <Fragment key={x.label}>
+          <tr className="hairline-b font-semibold text-sm normal-case tracking-normal text-foreground">
+            <td className={sticky}>{x.label} (hours)</td>
+            {cols.map((c) => {
+              const v = x.get(c.key);
+              return <td key={c.key} className={cell}>{v === null ? "" : fmtHours(v)}</td>;
+            })}
+          </tr>
+          {rate > 0 && (
+            <tr className="hairline-b font-semibold text-sm normal-case tracking-normal text-primary">
+              <td className={sticky}>{x.label} (GBP)</td>
+              {cols.map((c) => {
+                const v = x.get(c.key);
+                return <td key={c.key} className={cell}>{v === null ? "" : formatGBP(v * rate)}</td>;
+              })}
+            </tr>
+          )}
+        </Fragment>
       ))}
     </>
   );

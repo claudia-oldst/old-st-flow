@@ -49,7 +49,7 @@ export function PortalBilling(props: BillingSource) {
       </div>
       <BillingTable rows={rows} total={total} months={months} rate={rate} />
       <div className="text-[11px] text-dimmer">
-        {rate > 0 && `Rate ${formatGBP(rate)}/h · `}Actual Total covers the whole project
+        {rate > 0 && `Rate ${formatGBP(rate)}/h · `}Actual Total, Discount/Unbilled and Grand Total cover the whole project
         {data.project.start_date && ` since ${format(new Date(data.project.start_date), "d MMM yyyy")}`}.
       </div>
     </div>

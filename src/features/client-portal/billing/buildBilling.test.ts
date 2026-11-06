@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { monthRange, defaultMonths, buildRows, totalRow, type BillingPayload } from "./buildBilling";
+import { monthRange, defaultMonths, buildRows, totalRow, grandMonth, type BillingPayload } from "./buildBilling";
 
 const payload: BillingPayload = {
   project: { id: "p", name: "Amber", rate_per_hour: 48, start_date: "2026-04-10", cutoff: "2026-09-30T22:59:59Z" },
@@ -58,4 +58,27 @@ _it("shows tickets without an epic as a 'No Epic' row with its logs", () => {
     logs: [{ epic_id: null, month: "2026-10", hours: 3 }],
   });
   _expect(rows[0]).toMatchObject({ name: "No Epic", original: 5, revised: 6, actual: 3 });
+});
+
+describe("billing discounts", () => {
+  const p: BillingPayload = {
+    ...payload,
+    discounts: [
+      { epic_id: 1, month: "2026-09", hours: 1.5 },
+      { epic_id: 1, month: "2026-04", hours: 1 },
+    ],
+  };
+  it("totals discount per epic and grand total = actual - discount", () => {
+    const [auth, cart] = buildRows(p);
+    expect(auth.discount).toBe(2.5);
+    expect(auth.grand).toBe(2.5);
+    expect(cart.discount).toBe(0);
+    expect(cart.grand).toBe(4);
+  });
+  it("sums discounts per month and nets them off monthly totals", () => {
+    const t = totalRow(buildRows(p));
+    expect(t.discountMonths["2026-09"]).toBe(1.5);
+    expect(grandMonth(t, "2026-09")).toBe(4.5);
+    expect(t.grand).toBe(6.5);
+  });
 });
