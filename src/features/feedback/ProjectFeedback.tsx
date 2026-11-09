@@ -14,6 +14,8 @@ import { ListPagination } from "@/components/ListPagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/store/currentUser";
+import { usePersistentState } from "@/hooks/usePersistentState";
+import { ProjectBoard } from "@/features/board/ProjectBoard";
 import { BulkActionsBar } from "@/features/tickets/BulkActionsBar";
 import { ConvertFeedbackDialog } from "./ConvertFeedbackDialog";
 import { CopyTicketsDialog } from "@/features/tickets/CopyTicketsDialog";
@@ -32,6 +34,7 @@ export function ProjectFeedback({ projectId }: { projectId: string }) {
   const role = useProjectRole(projectId);
   const canManage = canManageTickets(role);
   const [page, setPage] = useState(1);
+  const [view, setView] = usePersistentState<"board" | "list">(`pf:${projectId}:view`, "board");
   const [filters, setFilters] = useState<TicketFilters>(EMPTY_FILTERS);
   const [search, setSearch] = useState("");
   const [groupBy, setGroupBy] = useState<GroupBy>("none");
@@ -45,12 +48,18 @@ export function ProjectFeedback({ projectId }: { projectId: string }) {
   const [params, setParams] = useSearchParams();
   const [openId, setOpenId] = useState<string | null>(params.get("ticket"));
   const { rows, total, loading, reload } = useProjectTicketsPaged(projectId, {
-    filters, search, sort: SORT, page, pageSize: PAGE_SIZE, feedback: true,
+    filters, search, sort: SORT,
+    page: view === "board" ? 1 : page,
+    pageSize: view === "board" ? 1000 : PAGE_SIZE,
+    feedback: true,
   });
   const csv = useTicketsCsvImport(projectId, rows, () => reload(), "Feedback");
   const open = useMemo<TicketRow | null>(() => rows.find((r) => r.id === openId) ?? null, [rows, openId]);
 
   useEffect(() => setPage(1), [filters, search]);
+  useEffect(() => {
+    if (view !== "list") { setSelectedIds(new Set()); setLastId(null); }
+  }, [view]);
   const toggleSelect = (id: string, shift: boolean) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -77,15 +86,23 @@ export function ProjectFeedback({ projectId }: { projectId: string }) {
     <div className="space-y-4">
       <ProjectTicketsToolbar
         projectId={projectId} tickets={rows} filters={filters} setFilters={setFilters}
-        view="list" filterMine={false} groupBy={groupBy} setGroupBy={setGroupBy}
+        view={view} setView={setView} filterMine={false} groupBy={groupBy} setGroupBy={setGroupBy}
         search={search} setSearch={setSearch} role={role} user={user}
         onAdd={() => setAddOpen(true)} addLabel="Add feedback"
         onImport={() => setImportOpen(true)} onCopyTickets={() => setCopyOpen(true)}
-        showViewToggle={false} showMineToggle={false} showGroupTimer={false}
+        showMineToggle={false} showGroupTimer={false}
         groupOptions={GROUPS} filterSections={FILTERS}
       />
       {loading ? (
         <Skeleton className="h-40 w-full" />
+      ) : view === "board" ? (
+        <ProjectBoard
+          projectId={projectId}
+          search={search}
+          filterMine={false}
+          tickets={rows}
+          reload={reload}
+        />
       ) : !rows.length ? (
         <div className="py-16 text-center text-dim text-sm">
           <Inbox className="h-6 w-6 mx-auto mb-2 opacity-60" />
@@ -107,7 +124,7 @@ export function ProjectFeedback({ projectId }: { projectId: string }) {
           <ListPagination page={page} total={total} pageSize={PAGE_SIZE} onChange={setPage} />
         </>
       )}
-      {canManage && (
+      {canManage && view === "list" && (
         <BulkActionsBar projectId={projectId} selectedIds={Array.from(selectedIds)} onClear={clearSelection} canEdit feedback />
       )}
       <TicketDetailSheet open={!!open} onOpenChange={(o) => !o && setOpenId(null)} ticket={open} projectId={projectId} onChange={reload} />
