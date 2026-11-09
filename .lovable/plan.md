@@ -1,66 +1,65 @@
 # Cleaner Status tab in ticket details
 
-Goal: same features, less visual noise. Changes are styling and layout in the ticket detail Status tab only. No data or logic changes.
+Goal: the same features with less clutter, taking ideas from your prototype. It uses only the app's existing parts (dropdowns, buttons, pills, collapsible sections, tooltips, status colours). No data or rule changes.
 
 ## Wireframe
 
 ```text
- Status | Acceptance | Discussion
-+------------------------------------------------------------+
-| Project status          ( * FOR INTEGRATION v )  [pin] Auto |
+ COU-070 (* FOR INTEGRATION) [Standard v] [Applications] [Sprint 18] [+ Parent]
+ COU-70: As an Admin, I want to ...                                [edit]
+                                   [========] 6.4h / 6.4h
+
+ [ Acceptance ] [ Status & time ] [ Discussion ]
+
++-- Status --------------------------------------------------+
+| FE   o----o----(o)---o    For integration                   |
+| BE   o----o----(o)---o    For integration                   |
 |------------------------------------------------------------|
-| FE  (L) Lind     [To do|In progress|*For integration*|Done] |
-| BE  (G) Gino     [To do|In progress|*For integration*|Done] |
+| Overall  [ * FOR INTEGRATION  v ]  (pin Set manually | Auto) |
 +------------------------------------------------------------+
 
- Estimates & actuals                                  [Edit]
-+------------------------------------------------------------+
-| Frontend  3.4h / 3.4h   orig 3h (+25m)  [=============]     |
-| Backend   3.0h / 3.0h   orig 2h (+58m)  [=============]     |
-| > Estimate changes (2)                        (collapsed)   |
++-- Time ---------------------------------- [Edit estimates] -+
+| FE (L)(+)  [============]  3.4h / 3.4h   [Request more time] |
+|                            Originally 3h (+24m)              |
+| BE (G)(+)  [============]  3.0h / 3.0h   [Request more time] |
+|                            Originally 2h (+1h)               |
+|------------------------------------------------------------|
+| > Estimate history (2)                                       |
 +------------------------------------------------------------+
 
- Epic            Version           Parent ticket
- ...
++------------------------------------------------------------+
+| > Time logs (7)                     (L) Lind 3.4h (G) Gino 3h |
++------------------------------------------------------------+
+
+ Epic / Version / Parent fields (unchanged, matching spacing)
 ```
 
-Unassigned side example:
-
-```text
-| BE  Unassigned                                     Assign  |
-```
+Unassigned side: `BE  Unassigned  [Assign]` in place of the steps.
 
 ## What changes
 
-1. **One status card instead of three boxes**
-   - Remove the extra "STATUS" heading and the separate "Discipline" and "Project status" boxes.
-   - A single card with three rows: **Project status**, **FE** and **BE**.
+1. **Status card**
+   - One card instead of the "Status" heading plus two boxes.
+   - FE and BE dev status are shown as a 4-step track (To do, In progress, For integration, Done) in the status colours, with the current step's name next to it. Clicking a step sets it; read-only users see the track without clicking.
+   - An **Overall** row below holds the project status dropdown (PMBA) or pill (others). When it was set by hand, a small "Set manually" tag appears with **Reset to auto**; otherwise a quiet "Auto" note.
 
-2. **Project status row (top)**
-   - Label on the left, the status as a coloured pill on the right (PMBAs can click it to change it, same dropdown as today).
-   - The "Manual override" / "Auto from FE/BE" note becomes a small icon next to the pill, with a tooltip. The **Auto** reset button stays next to it when overridden.
+2. **Time card** (estimates and assignees together)
+   - One row per side: avatar(s) and a "+" to assign, progress bar, logged / current estimate, "Originally …" with the change in gold.
+   - **Edit estimates** at the top right. "Request more time" per row replaces the "Click an estimate to revise" hint, and opens the same revision request.
+   - Estimate history is collapsed under a chevron.
 
-3. **FE / BE rows**
-   - Each row: FE/BE label, assignee avatar + name, then the dev status.
-   - The dev status picker becomes a compact segmented control in the status colours (To Do grey, In Progress yellow, For Integration purple, Done green), instead of the bright white highlight.
-   - Unassigned side: a short "Unassigned · Assign" line instead of the long sentence.
-   - Read-only users still see a status chip.
+3. **Time logs**
+   - Collapsed by default, with each person's total as small pills in the header row. Expand to see and manage logs as today.
 
-4. **Estimates & actuals**
-   - FE and BE estimate cards become one compact row each: "Frontend 3.4h / 3.4h · originally 3h (+25m)", with a thin progress bar. The overrun colour stays, but lighter.
-   - Edit stays where it is, and clicking an estimate still opens a revision.
-   - "Estimate changes (2)" becomes collapsed by default behind a chevron, so history is one click away.
-   - The "Click an estimate to revise" hint becomes a tooltip on the estimates.
-
-5. **Spacing and headings**
-   - Consistent section headings (small, dim), even spacing between sections, fewer borders.
+4. **Header and tabs**
+   - The separate assignee row under the title is removed (assignees now sit in the Time card).
+   - The Status tab is renamed **Status & time**. Tab order stays the same, and Feedback tickets still open on Discussion.
 
 ## Not changing
-- Header (ID, pills, title, assignees, time bar), Acceptance and Discussion tabs.
-- Epic/Version/Parent fields and time logs, except for matching spacing.
-- All permissions: who can change dev status, project status, estimates.
+- Acceptance and Discussion tabs, Feedback-ticket triage view, convert flow.
+- Who can change dev status, project status, estimates, assignees and time logs.
 
 ## Technical details
-- Files: `StatusBlock.tsx`, `DisciplineRow.tsx`, `EstimatesPanel.tsx`, `EstimateChangesPanel.tsx`, small spacing tweaks in `TicketDetailBody.tsx`.
-- Reuse existing `Select`, `Tooltip`, `Collapsible`, `DisciplineStatusChip`, and the `--status-progress/--status-integration/--status-done` tokens; replace `bg-white/[0.02]` and `amber-300` with semantic tokens.
-- Assignee names passed into StatusBlock from existing ticket data already loaded in TicketDetailBody.
+- Files: `StatusBlock.tsx`, `DisciplineRow.tsx` (stepper), `EstimatesPanel.tsx` + `EstimateChangesPanel.tsx` (Time card, `Collapsible`), `TimeLogsPanel.tsx` (collapsible wrapper + per-person totals), `AssigneeBlock.tsx` (compact avatar + add, used inside rows), `TicketDetailBody.tsx`/`TicketDetailSheet.tsx` (layout, tab label).
+- Stepper colours from `--status-progress/--status-integration/--status-done` tokens; replace `bg-white/[0.02]` and `amber-300` with semantic tokens (`surface-2`, `brand-gold`).
+- Reuses existing `Select`, `Button`, `Tooltip`, `Collapsible`, `DisciplineStatusChip`; no new libraries.
