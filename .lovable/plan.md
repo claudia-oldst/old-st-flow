@@ -5,7 +5,7 @@ Goal: the same features with less clutter, taking ideas from your prototype. It 
 ## Wireframe
 
 ```text
- COU-070 (* FOR INTEGRATION) [Standard v] [Applications] [Sprint 18] [+ Parent]
+ COU-070 [Standard v] [Applications] [Sprint 18] [+ Parent]
  COU-70: As an Admin, I want to ...                                [edit]
                                    [========] 6.4h / 6.4h
 
@@ -31,7 +31,13 @@ Goal: the same features with less clutter, taking ideas from your prototype. It 
 | > Time logs (7)                     (L) Lind 3.4h (G) Gino 3h |
 +------------------------------------------------------------+
 
- Epic / Version / Parent fields (unchanged, matching spacing)
++-- Related tickets ----------------------------- [+ Link] --+
+| Parent   COU-052  Payments admin screen      (* IN PROGRESS) |
+| Children COU-070:01  Wrong total shown       (* TO DO)      |
+|          COU-070:02  Status not saved        (* DONE)       |
++------------------------------------------------------------+
+
+ Epic / Version fields (unchanged, matching spacing)
 ```
 
 Unassigned side: `BE  Unassigned  [Assign]` in place of the steps.
@@ -51,7 +57,12 @@ Unassigned side: `BE  Unassigned  [Assign]` in place of the steps.
 3. **Time logs**
    - Collapsed by default, with each person's total as small pills in the header row. Expand to see and manage logs as today.
 
-4. **Header and tabs**
+4. **Related tickets**
+   - One small card listing the parent ticket and every child (bug) ticket, each with its ID, title and status pill. Click any row to open that ticket.
+   - PMBAs can change or clear the parent from here (same picker as today). Empty card hides when there is no parent and no children.
+
+5. **Header and tabs**
+   - The status pill next to the ticket ID is removed, since the Overall row shows it.
    - The separate assignee row under the title is removed (assignees now sit in the Time card).
    - The Status tab is renamed **Status & time**. Tab order stays the same, and Feedback tickets still open on Discussion.
 
@@ -62,4 +73,5 @@ Unassigned side: `BE  Unassigned  [Assign]` in place of the steps.
 ## Technical details
 - Files: `StatusBlock.tsx`, `DisciplineRow.tsx` (stepper), `EstimatesPanel.tsx` + `EstimateChangesPanel.tsx` (Time card, `Collapsible`), `TimeLogsPanel.tsx` (collapsible wrapper + per-person totals), `AssigneeBlock.tsx` (compact avatar + add, used inside rows), `TicketDetailBody.tsx`/`TicketDetailSheet.tsx` (layout, tab label).
 - Stepper colours from `--status-progress/--status-integration/--status-done` tokens; replace `bg-white/[0.02]` and `amber-300` with semantic tokens (`surface-2`, `brand-gold`).
+- Related tickets: parent from the existing `ticket.parent`; children via a small query on `tickets.parent_ticket_id = ticket.id` (no schema change); clicking reuses the sheet's existing open-ticket handler. Parent picker moves from `TicketDetailBody` into this card. Status pill removed from `TicketDetailHeader`.
 - Reuses existing `Select`, `Button`, `Tooltip`, `Collapsible`, `DisciplineStatusChip`; no new libraries.
