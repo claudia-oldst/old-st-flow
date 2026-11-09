@@ -29,6 +29,7 @@ export function useProjectTicketsPage(projectId: string) {
   const [initialTitles, setInitialTitles] = useState<string[] | undefined>(undefined);
   const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
   const [groupTimerOpen, setGroupTimerOpen] = useState(false);
+  const [timerPreselect, setTimerPreselect] = useState<string[] | undefined>(undefined);
   const activeTimer = useTimerStore((s) => s.active);
 
   const cardDisplay = useCardDisplayPrefs();
@@ -162,6 +163,8 @@ export function useProjectTicketsPage(projectId: string) {
     setOpenTicket,
     groupTimerOpen,
     setGroupTimerOpen,
+    timerPreselect,
+    setTimerPreselect,
     sprintFilters: {
       fePlannedFilter,
       setFePlannedFilter,

@@ -14,7 +14,9 @@ export function useStartGroup({
   tickets,
   role,
   onClose,
+  preselectedIds,
 }: {
+  preselectedIds?: string[];
   open: boolean;
   tickets: TicketRow[];
   role: ProjectRole | null;
@@ -57,6 +59,17 @@ export function useStartGroup({
       return myAssignments.some((a) => a.slot === discipline);
     });
   }, [tickets, user, discipline]);
+
+  // Seed selection from preselected ids (bulk bar) when the dialog opens.
+  const [skippedCount, setSkippedCount] = useState(0);
+  useEffect(() => {
+    if (!open || !preselectedIds?.length) { setSkippedCount(0); return; }
+    const mine = new Set(myTickets.map((t) => t.id));
+    const keep = preselectedIds.filter((id) => mine.has(id));
+    setSelected(new Set(keep));
+    setSkippedCount(preselectedIds.length - keep.length);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, preselectedIds, myTickets]);
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -198,5 +211,6 @@ export function useStartGroup({
     isOver,
     blockedSelectedTickets,
     refetchCapacity,
+    skippedCount,
   };
 }

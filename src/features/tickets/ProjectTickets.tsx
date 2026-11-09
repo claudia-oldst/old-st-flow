@@ -65,7 +65,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
         role={role}
         user={user}
         activeTimer={p.activeTimer}
-        onStartGroupTimer={() => p.setGroupTimerOpen(true)}
+        onStartGroupTimer={() => { p.setTimerPreselect(undefined); p.setGroupTimerOpen(true); }}
         onAdd={() => p.setAddOpen(true)}
         onImport={() => p.setImportOpen(true)}
         onCopyTickets={() => p.setCopyOpen(true)}
@@ -197,6 +197,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
           onClear={v.clearSelection}
           canEdit={v.pmba}
           canEditStatus={!!role}
+          onStartTimer={role ? () => { p.setTimerPreselect(Array.from(v.selectedIds)); p.setGroupTimerOpen(true); } : undefined}
         />
       )}
 

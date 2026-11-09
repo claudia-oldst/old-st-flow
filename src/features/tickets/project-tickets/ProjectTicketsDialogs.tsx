@@ -21,6 +21,7 @@ export function ProjectTicketsDialogs({
         onOpenChange={p.setGroupTimerOpen}
         tickets={tickets}
         role={role}
+        preselectedIds={p.timerPreselect}
       />
 
       <ImportCsvDialog
