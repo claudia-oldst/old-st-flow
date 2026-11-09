@@ -1,13 +1,7 @@
 import { Pin, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import type { DisciplineStatus, Status } from "@/lib/types";
@@ -50,10 +44,7 @@ export function StatusBlock({
 
   const setProjectStatus = async (statusId: string) => {
     onLocalPatch?.({ status_id: statusId, project_status_override: true });
-    const { error } = await supabase
-      .from("tickets")
-      .update({ status_id: statusId })
-      .eq("id", ticket.id);
+    const { error } = await supabase.from("tickets").update({ status_id: statusId }).eq("id", ticket.id);
     if (error) return toast.error(error.message);
     onChange();
   };
@@ -69,14 +60,11 @@ export function StatusBlock({
   };
 
   return (
-    <div className="space-y-3">
-      <div className="text-xs uppercase tracking-wider text-dimmer">Status</div>
+    <section className="rounded-xl hairline bg-surface-2/40 p-4 space-y-3">
+      <h3 className="text-sm font-semibold">Status</h3>
 
       {!isProj && (
-        <div className="rounded-xl hairline bg-white/[0.02] p-3 space-y-2.5">
-          <div className="flex items-center gap-2 text-[11px] text-dimmer uppercase tracking-wider">
-            Discipline
-          </div>
+        <div className="space-y-2">
           <DisciplineRow
             slot="FE"
             value={ticket.fe_status}
@@ -96,55 +84,53 @@ export function StatusBlock({
         </div>
       )}
 
-      <div className="rounded-xl hairline bg-white/[0.02] p-3 space-y-2.5">
-        <div className="flex items-center justify-between gap-2">
-          <div className="text-[11px] text-dimmer uppercase tracking-wider">Project status</div>
-          {isProj ? (
-            <span className="inline-flex items-center gap-1 text-[10px] text-dim">
-              <Pin className="h-2.5 w-2.5" /> Manual
-            </span>
-          ) : ticket.project_status_override ? (
-            <span className="inline-flex items-center gap-1 text-[10px] text-amber-300/80">
-              <Pin className="h-2.5 w-2.5" /> Manual override
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 text-[10px] text-dim">
-              <Sparkles className="h-2.5 w-2.5" /> Auto from FE/BE
-            </span>
-          )}
-        </div>
+      <div className={`flex flex-wrap items-center gap-3 ${isProj ? "" : "pt-3 hairline-t"}`}>
+        <div className="w-16 text-xs font-medium text-dim">Overall</div>
         {isPMBARole ? (
-          <div className="flex items-center gap-2">
-            <Select value={ticket.status_id ?? undefined} onValueChange={setProjectStatus}>
-              <SelectTrigger className="h-8 text-xs flex-1">
-                <SelectValue placeholder="Pick a status" />
-              </SelectTrigger>
-              <SelectContent>
-                {statuses.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>
-                    <span className="inline-flex items-center gap-2">
-                      <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.color }} />
-                      {s.name}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {ticket.project_status_override && (
-              <Button variant="ghost" size="sm" className="text-xs gap-1" onClick={resetProjectStatusToAuto}>
-                <Sparkles className="h-3 w-3" /> Auto
-              </Button>
-            )}
-          </div>
+          <Select value={ticket.status_id ?? undefined} onValueChange={setProjectStatus}>
+            <SelectTrigger className="h-8 w-56 text-xs" aria-label="Overall status">
+              <SelectValue placeholder="Pick a status" />
+            </SelectTrigger>
+            <SelectContent>
+              {statuses.map((s) => (
+                <SelectItem key={s.id} value={s.id}>
+                  <span className="inline-flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full" style={{ background: s.color }} />
+                    {s.name}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         ) : status ? (
-          <span className="inline-flex items-center gap-1.5 text-xs">
-            <span className="h-1.5 w-1.5 rounded-full" style={{ background: status.color }} />
+          <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-surface-2 hairline text-xs">
+            <span className="h-2 w-2 rounded-full" style={{ background: status.color }} />
             {status.name}
           </span>
         ) : (
           <span className="text-xs text-dimmer">—</span>
         )}
+
+        {isProj || ticket.project_status_override ? (
+          <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] bg-brand-gold/10 text-brand-gold ring-1 ring-brand-gold/30">
+            <Pin className="h-3 w-3" /> Set manually
+            {!isProj && isPMBARole && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-5 ml-1 px-1.5 text-[11px] gap-1 text-brand-gold hover:text-foreground"
+                onClick={resetProjectStatusToAuto}
+              >
+                <Sparkles className="h-3 w-3" /> Reset to auto
+              </Button>
+            )}
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 text-[11px] text-dimmer">
+            <Sparkles className="h-3 w-3" /> Auto
+          </span>
+        )}
       </div>
-    </div>
+    </section>
   );
 }
