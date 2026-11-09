@@ -12,8 +12,8 @@ Goal: the same features with less clutter, taking ideas from your prototype. It 
  [ Details ] [ Acceptance ] [ Discussion ]
 
 +-- Status --------------------------------------------------+
-| FE   o----o----(o)---o    For integration                   |
-| BE   o----o----(o)---o    For integration                   |
+| FE       [ * For integration  v ]                          |
+| BE       [ * For integration  v ]                          |
 |------------------------------------------------------------|
 | Overall  [ * FOR INTEGRATION  v ]  (pin Set manually | Auto) |
 +------------------------------------------------------------+
@@ -40,13 +40,13 @@ Goal: the same features with less clutter, taking ideas from your prototype. It 
  Epic / Version fields (unchanged, matching spacing)
 ```
 
-Unassigned side: `BE  Unassigned  [Assign]` in place of the steps.
+Unassigned side: `BE  Unassigned  [Assign]` in place of the dropdown.
 
 ## What changes
 
 1. **Status card**
    - One card instead of the "Status" heading plus two boxes.
-   - FE and BE dev status are shown as a 4-step track (To do, In progress, For integration, Done) in the status colours, with the current step's name next to it. Clicking a step sets it; read-only users see the track without clicking.
+   - FE and BE dev status are each a dropdown (To do, In progress, For integration, Done) with a coloured dot per status, matching the Overall dropdown. Read-only users see a status pill instead.
    - An **Overall** row below holds the project status dropdown (PMBA) or pill (others). When it was set by hand, a small "Set manually" tag appears with **Reset to auto**; otherwise a quiet "Auto" note.
 
 2. **Time card** (estimates and assignees together)
@@ -73,7 +73,7 @@ Unassigned side: `BE  Unassigned  [Assign]` in place of the steps.
 - Who can change dev status, project status, estimates, assignees and time logs.
 
 ## Technical details
-- Files: `StatusBlock.tsx`, `DisciplineRow.tsx` (stepper), `EstimatesPanel.tsx` + `EstimateChangesPanel.tsx` (Time card, `Collapsible`), `TimeLogsPanel.tsx` (collapsible wrapper + per-person totals), `AssigneeBlock.tsx` (compact avatar + add, used inside rows), `TicketDetailBody.tsx`/`TicketDetailSheet.tsx` (layout, tab label).
-- Stepper colours from `--status-progress/--status-integration/--status-done` tokens; replace `bg-white/[0.02]` and `amber-300` with semantic tokens (`surface-2`, `brand-gold`).
+- Files: `StatusBlock.tsx`, `DisciplineRow.tsx` (Select dropdown), `EstimatesPanel.tsx` + `EstimateChangesPanel.tsx` (Time card, `Collapsible`), `TimeLogsPanel.tsx` (collapsible wrapper + per-person totals), `AssigneeBlock.tsx` (compact avatar + add, used inside rows), `TicketDetailBody.tsx`/`TicketDetailSheet.tsx` (layout, tab label).
+- Dropdown dot colours from `--status-progress/--status-integration/--status-done` tokens; replace `bg-white/[0.02]` and `amber-300` with semantic tokens (`surface-2`, `brand-gold`).
 - Related tickets: parent from the existing `ticket.parent`; children via a small query on `tickets.parent_ticket_id = ticket.id` (no schema change); clicking reuses the sheet's existing open-ticket handler. Parent picker moves from `TicketDetailBody` into this card. Status pill removed from `TicketDetailHeader`.
 - Reuses existing `Select`, `Button`, `Tooltip`, `Collapsible`, `DisciplineStatusChip`; no new libraries.
