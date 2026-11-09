@@ -44,8 +44,20 @@ export function DisciplineRow({
           )}
         </div>
       ) : canEdit ? (
+        <div className="flex items-center">
+        {current !== "done" && (
+          <button
+            type="button"
+            onClick={() => onChange(DISCIPLINE_OPTIONS[DISCIPLINE_OPTIONS.indexOf(current) + 1])}
+            title={`Move to ${DISCIPLINE_STATUS_LABEL[DISCIPLINE_OPTIONS[DISCIPLINE_OPTIONS.indexOf(current) + 1]]}`}
+            className="h-8 mr-2 inline-flex items-center gap-1.5 px-2.5 rounded-md hairline bg-surface-2 text-xs hover:bg-primary/15 hover:text-foreground transition"
+          >
+            <Dot s={DISCIPLINE_OPTIONS[DISCIPLINE_OPTIONS.indexOf(current) + 1]} />
+            {DISCIPLINE_STATUS_LABEL[DISCIPLINE_OPTIONS[DISCIPLINE_OPTIONS.indexOf(current) + 1]]} →
+          </button>
+        )}
         <Select value={current} onValueChange={(v) => onChange(v as DisciplineStatus)}>
-          <SelectTrigger className="h-8 w-56 text-xs" aria-label={`${slot} dev status`}>
+          <SelectTrigger className="h-8 w-48 text-xs order-first mr-2" aria-label={`${slot} dev status`}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -58,6 +70,7 @@ export function DisciplineRow({
             ))}
           </SelectContent>
         </Select>
+        </div>
       ) : (
         <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-surface-2 hairline text-xs">
           <Dot s={current} /> {DISCIPLINE_STATUS_LABEL[current]}
