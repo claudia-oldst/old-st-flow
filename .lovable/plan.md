@@ -9,7 +9,7 @@ Goal: the same features with less clutter, taking ideas from your prototype. It 
  COU-70: As an Admin, I want to ...                                [edit]
                                    [========] 6.4h / 6.4h
 
- [ Acceptance ] [ Status & time ] [ Discussion ]
+ [ Details ] [ Acceptance ] [ Discussion ]
 
 +-- Status --------------------------------------------------+
 | FE   o----o----(o)---o    For integration                   |
@@ -66,7 +66,7 @@ Unassigned side: `BE  Unassigned  [Assign]` in place of the steps.
 5. **Header and tabs**
    - The status pill next to the ticket ID is removed, since the Overall row shows it.
    - The separate assignee row under the title is removed (assignees now sit in the Time card).
-   - The Status tab is renamed **Status & time**. Tab order stays the same, and Feedback tickets still open on Discussion.
+   - The Status tab is renamed **Details**. Tab order stays the same, and Feedback tickets still open on Discussion.
 
 ## Not changing
 - Acceptance and Discussion tabs, Feedback-ticket triage view, convert flow.
