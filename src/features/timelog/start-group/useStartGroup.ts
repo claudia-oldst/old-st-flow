@@ -68,7 +68,6 @@ export function useStartGroup({
     const keep = preselectedIds.filter((id) => mine.has(id));
     setSelected(new Set(keep));
     setSkippedCount(preselectedIds.length - keep.length);
-    setStatusFilter("all" as StatusFilter);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, preselectedIds, myTickets]);
 
@@ -212,5 +211,6 @@ export function useStartGroup({
     isOver,
     blockedSelectedTickets,
     refetchCapacity,
+    skippedCount,
   };
 }
