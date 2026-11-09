@@ -48,12 +48,18 @@ export function ProjectFeedback({ projectId }: { projectId: string }) {
   const [params, setParams] = useSearchParams();
   const [openId, setOpenId] = useState<string | null>(params.get("ticket"));
   const { rows, total, loading, reload } = useProjectTicketsPaged(projectId, {
-    filters, search, sort: SORT, page, pageSize: PAGE_SIZE, feedback: true,
+    filters, search, sort: SORT,
+    page: view === "board" ? 1 : page,
+    pageSize: view === "board" ? 1000 : PAGE_SIZE,
+    feedback: true,
   });
   const csv = useTicketsCsvImport(projectId, rows, () => reload(), "Feedback");
   const open = useMemo<TicketRow | null>(() => rows.find((r) => r.id === openId) ?? null, [rows, openId]);
 
   useEffect(() => setPage(1), [filters, search]);
+  useEffect(() => {
+    if (view !== "list") { setSelectedIds(new Set()); setLastId(null); }
+  }, [view]);
   const toggleSelect = (id: string, shift: boolean) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
