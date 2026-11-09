@@ -14,6 +14,8 @@ import { ListPagination } from "@/components/ListPagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/store/currentUser";
+import { usePersistentState } from "@/hooks/usePersistentState";
+import { ProjectBoard } from "@/features/board/ProjectBoard";
 import { BulkActionsBar } from "@/features/tickets/BulkActionsBar";
 import { ConvertFeedbackDialog } from "./ConvertFeedbackDialog";
 import { CopyTicketsDialog } from "@/features/tickets/CopyTicketsDialog";
@@ -32,6 +34,7 @@ export function ProjectFeedback({ projectId }: { projectId: string }) {
   const role = useProjectRole(projectId);
   const canManage = canManageTickets(role);
   const [page, setPage] = useState(1);
+  const [view, setView] = usePersistentState<"board" | "list">(`pf:${projectId}:view`, "board");
   const [filters, setFilters] = useState<TicketFilters>(EMPTY_FILTERS);
   const [search, setSearch] = useState("");
   const [groupBy, setGroupBy] = useState<GroupBy>("none");
