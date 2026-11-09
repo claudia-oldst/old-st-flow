@@ -100,12 +100,12 @@ export function TicketDetailSheet({ open, onOpenChange, ticket: ticketProp, proj
 
           <Tabs defaultValue={defaultTab} className="mt-4 flex-1 flex flex-col min-h-0">
             <TabsList className="grid w-full grid-cols-3 shrink-0">
-              <TabsTrigger value="status">Status</TabsTrigger>
+              <TabsTrigger value="status">Details</TabsTrigger>
               <TabsTrigger value="acceptance">Acceptance</TabsTrigger>
               <TabsTrigger value="discussion">Discussion</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="status" className="mt-4 space-y-6 flex-1 overflow-y-auto">
+            <TabsContent value="status" className="mt-4 space-y-4 flex-1 overflow-y-auto">
               <TicketDetailBody
                 ticket={ticket}
                 projectId={projectId}

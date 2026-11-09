@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { History } from "lucide-react";
-import { formatHours } from "@/lib/utils";
+import { ChevronRight, History } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { cn, formatHours } from "@/lib/utils";
 
 interface ChangeRow {
   id: string;
@@ -11,33 +12,20 @@ interface ChangeRow {
   user?: { name?: string } | null;
 }
 
+/** Collapsed-by-default estimate history, shown inside the Time card. */
 export function EstimateChangesPanel({ changes }: { changes: ChangeRow[] }) {
-  const [showAll, setShowAll] = useState(false);
+  const [open, setOpen] = useState(false);
   if (changes.length === 0) return null;
   return (
-    <div className="mt-4 rounded-lg bg-white/[0.02] hairline p-3">
-      <div className="flex items-center justify-between mb-2">
-        <div className="text-[11px] text-dimmer uppercase tracking-wider inline-flex items-center gap-1.5">
-          <History className="h-3 w-3" /> Estimate changes ({changes.length})
-        </div>
-        {changes.length > 3 && (
-          <button
-            onClick={() => setShowAll((v) => !v)}
-            className="text-[10px] text-dim hover:text-foreground transition"
-          >
-            {showAll ? "Show less" : "View all"}
-          </button>
-        )}
-      </div>
-      <div className="space-y-1.5">
-        {(showAll ? changes : changes.slice(0, 3)).map((c) => {
+    <Collapsible open={open} onOpenChange={setOpen} className="pt-3 hairline-t">
+      <CollapsibleTrigger className="flex items-center gap-1.5 text-xs font-medium text-dim hover:text-foreground transition">
+        <ChevronRight className={cn("h-3.5 w-3.5 transition-transform", open && "rotate-90")} />
+        <History className="h-3.5 w-3.5" /> Estimate history ({changes.length})
+      </CollapsibleTrigger>
+      <CollapsibleContent className="mt-2 space-y-1.5">
+        {changes.map((c) => {
           const sign = c.delta > 0 ? "+" : "";
-          const color =
-            c.delta > 0
-              ? "text-health-warn"
-              : c.delta < 0
-              ? "text-health-good"
-              : "text-dim";
+          const color = c.delta > 0 ? "text-health-warn" : c.delta < 0 ? "text-health-good" : "text-dim";
           const isAuto = (c.reason ?? "").startsWith("Auto-trimmed");
           return (
             <div key={c.id} className="flex items-start gap-2 text-xs">
@@ -46,11 +34,11 @@ export function EstimateChangesPanel({ changes }: { changes: ChangeRow[] }) {
               </span>
               <span className="text-dim shrink-0">{c.discipline}</span>
               <span className="flex-1 min-w-0 text-dim truncate">
-                {isAuto ? (
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded ring-1 ring-white/10 bg-white/5 text-[10px] uppercase tracking-wider text-dimmer mr-1">
+                {isAuto && (
+                  <span className="px-1.5 py-0.5 rounded hairline bg-surface-2 text-[10px] uppercase tracking-wider text-dimmer mr-1">
                     auto
                   </span>
-                ) : null}
+                )}
                 {c.user?.name ?? "—"}
                 {c.reason && <span className="text-dimmer"> — {c.reason}</span>}
               </span>
@@ -60,7 +48,7 @@ export function EstimateChangesPanel({ changes }: { changes: ChangeRow[] }) {
             </div>
           );
         })}
-      </div>
-    </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
