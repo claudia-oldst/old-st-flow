@@ -27,14 +27,14 @@ Goal: the same features with less clutter, taking ideas from your prototype. It 
 | > Estimate history (2)                                       |
 +------------------------------------------------------------+
 
-+------------------------------------------------------------+
-| > Time logs (7)                     (L) Lind 3.4h (G) Gino 3h |
-+------------------------------------------------------------+
-
 +-- v Related tickets (3) ------------------------- [+ Link] --+
 | Parent   COU-052  Payments admin screen      (* IN PROGRESS) |
 | Children COU-070:01  Wrong total shown       (* TO DO)      |
 |          COU-070:02  Status not saved        (* DONE)       |
++------------------------------------------------------------+
+
++------------------------------------------------------------+
+| > Time logs (7)                     (L) Lind 3.4h (G) Gino 3h |
 +------------------------------------------------------------+
 
  Epic / Version fields (unchanged, matching spacing)
@@ -58,6 +58,7 @@ Unassigned side: `BE  Unassigned  [Assign]` in place of the steps.
    - Collapsed by default, with each person's total as small pills in the header row. Expand to see and manage logs as today.
 
 4. **Related tickets**
+   - Sits between the Time card and Time logs.
    - Collapsible under a chevron with a count in the header, like Estimate history and Time logs; it remembers whether you left it open.
    - One small card listing the parent ticket and every child (bug) ticket, each with its ID, title and status pill. Click any row to open that ticket.
    - PMBAs can change or clear the parent from here (same picker as today). Empty card hides when there is no parent and no children.
