@@ -124,7 +124,7 @@ export function ProjectFeedback({ projectId }: { projectId: string }) {
           <ListPagination page={page} total={total} pageSize={PAGE_SIZE} onChange={setPage} />
         </>
       )}
-      {canManage && (
+      {canManage && view === "list" && (
         <BulkActionsBar projectId={projectId} selectedIds={Array.from(selectedIds)} onClear={clearSelection} canEdit feedback />
       )}
       <TicketDetailSheet open={!!open} onOpenChange={(o) => !o && setOpenId(null)} ticket={open} projectId={projectId} onChange={reload} />
