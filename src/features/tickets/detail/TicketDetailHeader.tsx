@@ -1,4 +1,4 @@
-import { Bookmark, GitBranch, Sparkles, Pencil, Check, X } from "lucide-react";
+import { Bookmark, GitBranch, Pencil, Check, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -42,14 +42,6 @@ export function TicketDetailHeader({
       <div className="flex items-center gap-2 text-xs">
         <span className="font-mono text-dimmer">{ticket.formatted_id}</span>
         <GithubIssueBadge projectId={ticket.project_id} issueNumber={ticket.github_issue_number} />
-        {status && (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] ring-1 ring-white/10" style={{ background: `${status.color}22`, color: status.color }}>
-            {status.name}
-            {!ticket.project_status_override && (
-              <Sparkles className="h-2.5 w-2.5 opacity-70" />
-            )}
-          </span>
-        )}
         {ticket.ticket_type === "Feedback" ? (
           <>
             <span className="px-2 py-0.5 rounded-full text-[10px] bg-white/5 hairline">Feedback</span>

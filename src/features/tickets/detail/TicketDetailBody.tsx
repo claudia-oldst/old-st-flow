@@ -1,18 +1,17 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Users, Trash2, MoreHorizontal } from "lucide-react";
+import { Trash2, MoreHorizontal } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { EpicSelect } from "@/features/epics/EpicSelect";
-import { ParentTicketSelect } from "@/features/tickets/ParentTicketSelect";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { AssigneeBlock } from "./AssigneeBlock";
+import { RelatedTickets } from "./RelatedTickets";
 import { StatusBlock } from "./StatusBlock";
 import { EstimatesPanel } from "./EstimatesPanel";
 import { TimeLogsPanel } from "./TimeLogsPanel";
@@ -91,29 +90,26 @@ export function TicketDetailBody({
       )}
 
 
-      <div>
-        <EstimatesPanel
-          ticket={ticket}
-          isProj={isProj}
-          isPMBARole={isPMBARole}
-          canEditFE={canEditFE}
-          canEditBE={canEditBE}
-          canEditProj={canEditProj}
-          editing={editor.editing}
-          setEditing={editor.setEditing}
-          feEst={editor.feEst} setFeEst={editor.setFeEst}
-          beEst={editor.beEst} setBeEst={editor.setBeEst}
-          projEst={editor.projEst} setProjEst={editor.setProjEst}
-          onSave={editor.handleSaveEdit}
-          onAdjustEstimate={isFeedback ? () => editor.setEditing(true) : onAdjustEstimate}
-          estimateChanges={isFeedback ? [] : estimateChanges}
-        />
-        {isPMBARole && !editor.editing && !isProj && (canEditFE || canEditBE) && (
-          <div className="mt-1 text-xs text-dim">{isFeedback ? "Click an estimate to set it" : "Click an estimate to revise"}</div>
-        )}
-      </div>
+      <EstimatesPanel
+        ticket={ticket}
+        isProj={isProj}
+        isPMBARole={isPMBARole}
+        isFeedback={isFeedback}
+        onAssign={onAssign}
+        canEditFE={canEditFE}
+        canEditBE={canEditBE}
+        canEditProj={canEditProj}
+        editing={editor.editing}
+        setEditing={editor.setEditing}
+        feEst={editor.feEst} setFeEst={editor.setFeEst}
+        beEst={editor.beEst} setBeEst={editor.setBeEst}
+        projEst={editor.projEst} setProjEst={editor.setProjEst}
+        onSave={editor.handleSaveEdit}
+        onAdjustEstimate={isFeedback ? () => editor.setEditing(true) : onAdjustEstimate}
+        estimateChanges={isFeedback ? [] : estimateChanges}
+      />
 
-      <div className={`grid gap-4 ${showParent ? "grid-cols-3" : "grid-cols-2"}`}>
+      <div className={`grid gap-4 grid-cols-2`}>
         <div>
           <div className="text-xs uppercase tracking-wider text-dimmer mb-2">Epic</div>
           {isPMBARole ? (
@@ -164,59 +160,18 @@ export function TicketDetailBody({
           )}
         </div>
 
-        {showParent && (
-          <div>
-            <div className="text-xs uppercase tracking-wider text-dimmer mb-2">Parent ticket</div>
-            {isPMBARole ? (
-              <ParentTicketSelect
-                projectId={projectId}
-                value={ticket.parent_ticket_id}
-                excludeId={ticket.id}
-                size="sm"
-                onChange={async (id) => {
-                  const { error } = await supabase
-                    .from("tickets")
-                    .update({ parent_ticket_id: id })
-                    .eq("id", ticket.id);
-                  if (error) return toast.error(error.message);
-                  onChange();
-                }}
-              />
-            ) : ticket.parent ? (
-              <div className="text-sm">
-                <span className="font-mono text-dimmer mr-2">{ticket.parent.formatted_id}</span>
-                {ticket.parent.title}
-              </div>
-            ) : (
-              <span className="text-sm text-dimmer">—</span>
-            )}
-          </div>
-        )}
       </div>
 
       {!isFeedback && (
         <>
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-xs uppercase tracking-wider text-dimmer">Assignees</div>
-              {isPMBARole && (
-                <Button variant="ghost" size="sm" onClick={onAssign} className="gap-1 text-xs">
-                  <Users className="h-3 w-3" /> Manage
-                </Button>
-              )}
-            </div>
-            {isProj ? (
-              <AssigneeBlock label="Members" assignees={ticket.assignees.filter(a => a.slot === "Project")} />
-            ) : (
-              <>
-                <AssigneeBlock label="Frontend" assignees={ticket.assignees.filter(a => a.slot === "FE")} />
-                <AssigneeBlock label="Backend" assignees={ticket.assignees.filter(a => a.slot === "BE")} />
-                {ticket.assignees.some((a) => a.slot === "Project") && (
-                  <AssigneeBlock label="Project contributors" assignees={ticket.assignees.filter(a => a.slot === "Project")} />
-                )}
-              </>
-            )}
-          </div>
+          <RelatedTickets
+            ticket={ticket}
+            projectId={projectId}
+            statuses={statuses}
+            isPMBARole={isPMBARole}
+            canHaveParent={showParent}
+            onChange={onChange}
+          />
 
           <TimeLogsPanel
             ticket={ticket}
