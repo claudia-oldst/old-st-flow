@@ -199,13 +199,13 @@ export function ProjectTicketsToolbar({
             </button>
           )}
         </div>
-        {showGroupTimer && filterMine && user && role && !activeTimer && onStartGroupTimer && (
+        {showGroupTimer && user && role && !activeTimer && onStartGroupTimer && (
           <Button
             size="sm"
             onClick={onStartGroupTimer}
             className="gap-2"
           >
-            <Clock className="h-4 w-4" /> Start group timer
+            <Clock className="h-4 w-4" /> Start Timer
           </Button>
         )}
         {showAddButtons && canManageTickets(role) && onAdd && (

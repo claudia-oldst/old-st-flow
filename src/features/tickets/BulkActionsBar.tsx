@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Trash2, Tag, Code2, Users } from "lucide-react";
+import { X, Play, Trash2, Tag, Code2, Users } from "lucide-react";
 import { useStatuses } from "@/features/statuses/useStatuses";
 import { useProjectEpics } from "@/features/epics/useProjectEpics";
 import {
@@ -28,7 +28,9 @@ export function BulkActionsBar({
   canEdit,
   canEditStatus = false,
   feedback = false,
+  onStartTimer,
 }: {
+  onStartTimer?: () => void;
   projectId: string;
   selectedIds: string[];
   onClear: () => void;
@@ -64,6 +66,18 @@ export function BulkActionsBar({
             </span>
             <span className="text-xs text-dim">selected</span>
           </div>
+
+          {onStartTimer && !feedback && (
+            <button
+              disabled={busy}
+              onClick={onStartTimer}
+              title="Start timer"
+              aria-label="Start timer"
+              className="px-2.5 py-1.5 rounded-lg hover:bg-primary/15 transition inline-flex items-center text-primary"
+            >
+              <Play className="h-4 w-4 fill-current" />
+            </button>
+          )}
 
           {canEdit && !feedback && (
             <button

@@ -23,9 +23,11 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   tickets: TicketRow[];
   role: ProjectRole | null;
+  /** Ticket ids to preselect (e.g. from the bulk bar). */
+  preselectedIds?: string[];
 }
 
-export function StartGroupTimerDialog({ open, onOpenChange, tickets, role }: Props) {
+export function StartGroupTimerDialog({ open, onOpenChange, tickets, role, preselectedIds }: Props) {
   const activeTimer = useTimerStore((s) => s.active);
   const {
     discipline,
@@ -47,7 +49,9 @@ export function StartGroupTimerDialog({ open, onOpenChange, tickets, role }: Pro
     capMap,
     blockedSelectedTickets,
     refetchCapacity,
+    skippedCount,
   } = useStartGroup({
+    preselectedIds,
     open,
     tickets,
     role,
@@ -73,7 +77,7 @@ export function StartGroupTimerDialog({ open, onOpenChange, tickets, role }: Pro
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Clock className="h-4 w-4" />
-              Start group timer
+              Start Timer
             </DialogTitle>
           </DialogHeader>
 
@@ -110,6 +114,12 @@ export function StartGroupTimerDialog({ open, onOpenChange, tickets, role }: Pro
           ) : (
             <div className="text-xs text-dim">
               Logging to <span className="text-foreground font-medium">{disciplineLabel[discipline]}</span> hours.
+            </div>
+          )}
+
+          {skippedCount > 0 && (
+            <div className="text-xs text-dim">
+              {skippedCount} selected ticket{skippedCount === 1 ? "" : "s"} skipped — you're not assigned.
             </div>
           )}
 
