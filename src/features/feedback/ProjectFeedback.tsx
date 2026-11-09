@@ -86,15 +86,23 @@ export function ProjectFeedback({ projectId }: { projectId: string }) {
     <div className="space-y-4">
       <ProjectTicketsToolbar
         projectId={projectId} tickets={rows} filters={filters} setFilters={setFilters}
-        view="list" filterMine={false} groupBy={groupBy} setGroupBy={setGroupBy}
+        view={view} setView={setView} filterMine={false} groupBy={groupBy} setGroupBy={setGroupBy}
         search={search} setSearch={setSearch} role={role} user={user}
         onAdd={() => setAddOpen(true)} addLabel="Add feedback"
         onImport={() => setImportOpen(true)} onCopyTickets={() => setCopyOpen(true)}
-        showViewToggle={false} showMineToggle={false} showGroupTimer={false}
+        showMineToggle={false} showGroupTimer={false}
         groupOptions={GROUPS} filterSections={FILTERS}
       />
       {loading ? (
         <Skeleton className="h-40 w-full" />
+      ) : view === "board" ? (
+        <ProjectBoard
+          projectId={projectId}
+          search={search}
+          filterMine={false}
+          tickets={rows}
+          reload={reload}
+        />
       ) : !rows.length ? (
         <div className="py-16 text-center text-dim text-sm">
           <Inbox className="h-6 w-6 mx-auto mb-2 opacity-60" />
