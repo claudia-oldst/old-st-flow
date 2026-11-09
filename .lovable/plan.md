@@ -2,6 +2,34 @@
 
 Goal: same features, less visual noise. Changes are styling and layout in the ticket detail Status tab only. No data or logic changes.
 
+## Wireframe
+
+```text
+ Status | Acceptance | Discussion
++------------------------------------------------------------+
+| Project status          ( * FOR INTEGRATION v )  [pin] Auto |
+|------------------------------------------------------------|
+| FE  (L) Lind     [To do|In progress|*For integration*|Done] |
+| BE  (G) Gino     [To do|In progress|*For integration*|Done] |
++------------------------------------------------------------+
+
+ Estimates & actuals                                  [Edit]
++------------------------------------------------------------+
+| Frontend  3.4h / 3.4h   orig 3h (+25m)  [=============]     |
+| Backend   3.0h / 3.0h   orig 2h (+58m)  [=============]     |
+| > Estimate changes (2)                        (collapsed)   |
++------------------------------------------------------------+
+
+ Epic            Version           Parent ticket
+ ...
+```
+
+Unassigned side example:
+
+```text
+| BE  Unassigned                                     Assign  |
+```
+
 ## What changes
 
 1. **One status card instead of three boxes**
