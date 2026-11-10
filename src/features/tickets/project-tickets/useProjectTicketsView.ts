@@ -25,7 +25,7 @@ export function useProjectTicketsView({
 }) {
   const pmba = canManageTickets(role);
   const k = (name: string) => `pt:${projectId ?? "_"}:${name}`;
-  const [view, setView] = usePersistentState<ViewMode>(k("view"), "board");
+  const [view, setView] = usePersistentState<ViewMode>(k("view"), "list");
   const [groupBy, setGroupBy] = usePersistentState<GroupBy>(k("groupBy"), "status");
   const [filterMine, setFilterMine] = usePersistentState<boolean>(k("filterMine"), true);
   const [touched, setTouched] = usePersistentState<boolean>(k("touched"), false);
