@@ -35,7 +35,9 @@ export function useBoardDnd({
       if (!t || t.status_id === overId) return;
       const { error } = await supabase
         .from("tickets")
-        .update({ status_id: overId })
+        .update(t.ticket_type === "Feedback"
+          ? { status_id: overId, project_status_override: true }
+          : { status_id: overId })
         .eq("id", ticketId);
       if (error) toast.error(error.message);
       else {

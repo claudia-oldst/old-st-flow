@@ -26,6 +26,7 @@ export function ProjectBoard({
   onFilterMineChange,
   tickets: ticketsProp,
   reload: reloadProp,
+  feedback = false,
 }: {
   projectId: string;
   search?: string;
@@ -33,6 +34,7 @@ export function ProjectBoard({
   onFilterMineChange?: (v: boolean) => void;
   tickets?: TicketRow[];
   reload?: () => void;
+  feedback?: boolean;
 }) {
   const { statuses, loading: statusesLoading, error: statusesError, reload: reloadStatuses } = useStatuses();
   const local = useProjectTickets(ticketsProp ? undefined : projectId);
@@ -62,7 +64,8 @@ export function ProjectBoard({
     if (onFilterMineChange) onFilterMineChange(v);
     else setInternalFilterMine(v);
   };
-  const [mode, setMode] = useState<BoardMode>("discipline");
+  const [selectedMode, setMode] = useState<BoardMode>("discipline");
+  const mode: BoardMode = feedback ? "project" : selectedMode;
   const [touched, setTouched] = useState(false);
   const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
   const { prefs } = useCardDisplayPrefs();
@@ -110,7 +113,7 @@ export function ProjectBoard({
       : null;
 
   const toolbar = (
-    <BoardToolbar
+    feedback ? <div className="text-xs text-dim mb-4">{visible.length} feedback</div> : <BoardToolbar
       mode={mode}
       setMode={(m) => { setTouched(true); setMode(m); }}
       filterMine={filterMine}
@@ -175,7 +178,7 @@ export function ProjectBoard({
                   status={status}
                   tickets={byStatus[status.id] ?? []}
                   projectId={projectId}
-                  canQuickAdd={pmba}
+                  canQuickAdd={pmba && !feedback}
                   onCardClick={setOpenTicket}
                   onCreated={reload}
                   prefs={prefs}

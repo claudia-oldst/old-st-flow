@@ -24,9 +24,9 @@ import { useTicketsCsvImport } from "@/features/tickets/project-tickets/useTicke
 
 const PAGE_SIZE = 100;
 const SORT = { col: "created_at", dir: "desc" } as const;
-const COLUMNS: ColKey[] = ["id", "title", "epic", "fe", "be"];
-const GROUPS: GroupBy[] = ["none", "epic", "version"];
-const FILTERS: FilterSection[] = ["epic", "version"];
+const COLUMNS: ColKey[] = ["id", "title", "status", "epic", "fe", "be"];
+const GROUPS: GroupBy[] = ["none", "status", "epic", "version"];
+const FILTERS: FilterSection[] = ["status", "epic", "version"];
 
 /** Thalamus Feedback inbox: unconverted Feedback tickets, using the standard toolbar, list + detail sheet. */
 export function ProjectFeedback({ projectId }: { projectId: string }) {
@@ -97,6 +97,7 @@ export function ProjectFeedback({ projectId }: { projectId: string }) {
         <Skeleton className="h-40 w-full" />
       ) : view === "board" ? (
         <ProjectBoard
+          feedback
           projectId={projectId}
           search={search}
           filterMine={false}

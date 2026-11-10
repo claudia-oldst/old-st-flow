@@ -13,7 +13,7 @@ export type TicketPatch = {
 };
 
 /** Bulk mutations applied to the current ticket selection. */
-export function useBulkTicketActions(selectedIds: string[], onClear: () => void) {
+export function useBulkTicketActions(selectedIds: string[], onClear: () => void, onUpdated?: () => void) {
   const [busy, setBusy] = useState(false);
 
   const update = async (patch: TicketPatch, msg: string) => {
@@ -24,6 +24,7 @@ export function useBulkTicketActions(selectedIds: string[], onClear: () => void)
     toast.success(
       `${msg} for ${selectedIds.length} ticket${selectedIds.length === 1 ? "" : "s"}`,
     );
+    onUpdated?.();
   };
 
   const setStatus = (status_id: string | null) =>
