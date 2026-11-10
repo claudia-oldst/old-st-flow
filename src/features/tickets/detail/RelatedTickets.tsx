@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { childTypesFor, parentTypesFor } from "@/features/tickets/linkRules";
 import { toast } from "sonner";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,6 +31,7 @@ export function RelatedTickets({
   onChange: () => void;
 }) {
   const [rows, setRows] = useState<Rel[]>([]);
+  const [reload, setReload] = useState(0);
   const [open, setOpen] = usePersistentState("ticket-related-open", true, { storage: "local" });
 
   useEffect(() => {
@@ -43,12 +46,12 @@ export function RelatedTickets({
       .order("ticket_number")
       .then(({ data }) => alive && setRows((data ?? []) as Rel[]));
     return () => { alive = false; };
-  }, [ticket.id, ticket.parent_ticket_id]);
+  }, [ticket.id, ticket.parent_ticket_id, reload]);
 
   const parent = rows.find((r) => r.id === ticket.parent_ticket_id);
   const children = rows.filter((r) => r.parent_ticket_id === ticket.id);
   const count = (parent ? 1 : 0) + children.length;
-  if (count === 0 && !(isPMBARole && canHaveParent)) return null;
+  if (count === 0 && !(isPMBARole && (canHaveParent || childTypesFor(ticket.ticket_type).length > 0))) return null;
 
   const pill = (statusId: string | null) => {
     const s = statuses.find((x) => x.id === statusId);
@@ -79,6 +82,16 @@ export function RelatedTickets({
     onChange();
   };
 
+  const setChild = async (childId: string, parentId: string | null) => {
+    const { error } = await supabase.from("tickets").update({ parent_ticket_id: parentId }).eq("id", childId);
+    if (error) return toast.error(error.message);
+    setReload((n) => n + 1);
+    onChange();
+  };
+
+  const childTypes = childTypesFor(ticket.ticket_type);
+  const canAddChild = isPMBARole && childTypes.length > 0;
+
   return (
     <Collapsible open={open} onOpenChange={setOpen} className="rounded-xl hairline bg-surface-2/40 p-4">
       <CollapsibleTrigger className="flex items-center gap-1.5 text-sm font-semibold">
@@ -95,6 +108,8 @@ export function RelatedTickets({
                   projectId={projectId}
                   value={ticket.parent_ticket_id}
                   excludeId={ticket.id}
+                  excludeIds={children.map((c) => c.id)}
+                  types={parentTypesFor(ticket.ticket_type)}
                   size="sm"
                   onChange={setParent}
                 />
@@ -103,10 +118,44 @@ export function RelatedTickets({
             </div>
           </div>
         )}
-        {children.length > 0 && (
+        {(children.length > 0 || canAddChild) && (
           <div className="flex gap-3">
             <div className="w-16 pt-2 text-xs font-medium text-dim">Children</div>
-            <div className="flex-1 min-w-0 space-y-0.5">{children.map(row)}</div>
+            <div className="flex-1 min-w-0 space-y-0.5">
+              {children.map((c) => (
+                <div key={c.id} className="flex items-center gap-1">
+                  <div className="flex-1 min-w-0">{row(c)}</div>
+                  {isPMBARole && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 shrink-0"
+                      aria-label={`Unlink ${c.formatted_id}`}
+                      onClick={() => setChild(c.id, null)}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+              {canAddChild && (
+                <div className="pt-1">
+                  <ParentTicketSelect
+                    key={`add-${children.length}`}
+                    projectId={projectId}
+                    value={null}
+                    excludeId={ticket.id}
+                    excludeIds={[...children.map((c) => c.id), ...(ticket.parent_ticket_id ? [ticket.parent_ticket_id] : [])]}
+                    types={childTypes}
+                    size="sm"
+                    clearable={false}
+                    placeholder="Add child ticket…"
+                    onChange={(id) => id && setChild(id, ticket.id)}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         )}
       </CollapsibleContent>
