@@ -34,6 +34,7 @@ export interface TicketRow {
   acceptance_criteria: string | null;
   position: number;
   created_at: string;
+  updated_at?: string | null;
   cr_approval: "pending" | "approved" | "rejected" | null;
   cr_decided_by: string | null;
   cr_decided_at: string | null;
@@ -94,6 +95,7 @@ export function normalizeTicket(raw: any): TicketRow {
     external_source: raw.external_source ?? null,
     position: raw.position,
     created_at: raw.created_at,
+    updated_at: raw.updated_at ?? null,
     cr_approval: (raw.ticket_type === "CR" ? (raw.cr_approval ?? "pending") : null) as TicketRow["cr_approval"],
     cr_decided_by: raw.cr_decided_by ?? null,
     cr_decided_at: raw.cr_decided_at ?? null,

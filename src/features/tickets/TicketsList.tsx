@@ -60,7 +60,14 @@ export function TicketsList({
   const { sort, toggleSort, sortTickets } = useTicketsSort(statuses, poolData);
 
   const visibleCols: ColKey[] = useMemo(() => {
-    if (columns) return columns.filter((c) => c !== groupBy);
+    if (columns) {
+      const base = [...columns, "created_at", "updated_at"].filter(
+        (c, i, a) => c !== groupBy && a.indexOf(c) === i,
+      ) as ColKey[];
+      return columnPrefs
+        ? base.filter((c) => !["created_at", "updated_at"].includes(c) || columnPrefs[c] !== false)
+        : base.filter((c) => !["created_at", "updated_at"].includes(c));
+    }
     const out: ColKey[] = ["id", "title"];
     if (groupBy !== "epic") out.push("epic");
     if (groupBy !== "version") out.push("version");
@@ -69,6 +76,7 @@ export function TicketsList({
     if (extraCols?.includes("fe_pool")) out.push("fe_pool");
     if (extraCols?.includes("be_pool")) out.push("be_pool");
     if (groupBy !== "assignee") out.push("assignees");
+    out.push("created_at", "updated_at");
     extraCols?.forEach((c) => {
       if (!out.includes(c)) out.push(c);
     });

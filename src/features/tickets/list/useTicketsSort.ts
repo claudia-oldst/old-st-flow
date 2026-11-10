@@ -57,6 +57,10 @@ export function useTicketsSort(statuses: Status[], poolData?: PoolData) {
             const be = hasBE ? DISC_ORDER[t.be_status] : 99;
             return fe * 100 + be;
           }
+          case "created_at":
+            return t.created_at ? Date.parse(t.created_at) : 0;
+          case "updated_at":
+            return t.updated_at ? Date.parse(t.updated_at) : 0;
           case "fe":
             return Number(t.actual_frontend_hours ?? 0);
           case "be":

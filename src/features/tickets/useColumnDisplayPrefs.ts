@@ -15,14 +15,21 @@ export const TOGGLEABLE_COLS: { key: ColKey; label: string }[] = [
   { key: "assignees", label: "Assignees" },
   { key: "fe_pool", label: "FE Sprint" },
   { key: "be_pool", label: "BE Sprint" },
+  { key: "created_at", label: "Created" },
+  { key: "updated_at", label: "Updated" },
 ];
 
+// Toggleable columns that start hidden.
+export const HIDDEN_BY_DEFAULT: ColKey[] = ["created_at", "updated_at"];
+
 export const DEFAULT_COLUMN_PREFS: ColumnDisplayPrefs = Object.fromEntries(
-  TOGGLEABLE_COLS.map((c) => [c.key, true]),
+  TOGGLEABLE_COLS.map((c) => [c.key, !HIDDEN_BY_DEFAULT.includes(c.key)]),
 ) as ColumnDisplayPrefs;
 
 export function isAllColsOn(p: ColumnDisplayPrefs): boolean {
-  return TOGGLEABLE_COLS.every((c) => p[c.key] !== false);
+  return TOGGLEABLE_COLS.every(
+    (c) => (p[c.key] !== false) === (DEFAULT_COLUMN_PREFS[c.key] !== false),
+  );
 }
 
 const STORAGE_KEY = "tickets-list-col-display-v1";
