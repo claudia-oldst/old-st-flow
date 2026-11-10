@@ -4,6 +4,7 @@ import { Inbox } from "lucide-react";
 import { TicketsList, type GroupBy } from "@/features/tickets/TicketsList";
 import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
 import { AddTicketsDialog } from "@/features/tickets/AddTicketsDialog";
+import { useColumnDisplayPrefs } from "@/features/tickets/useColumnDisplayPrefs";
 import { ProjectTicketsToolbar } from "@/features/tickets/project-tickets/ProjectTicketsToolbar";
 import { EMPTY_FILTERS, type TicketFilters, type FilterSection } from "@/features/tickets/TicketsFilter";
 import { useProjectTicketsPaged } from "@/features/tickets/useProjectTicketsPaged";
@@ -77,6 +78,7 @@ export function ProjectFeedback({ projectId }: { projectId: string }) {
   };
   const toggleSelectAll = (ids: string[], select: boolean) =>
     setSelectedIds((prev) => { const n = new Set(prev); ids.forEach((i) => (select ? n.add(i) : n.delete(i))); return n; });
+  const colDisplay = useColumnDisplayPrefs();
   const clearSelection = () => { setSelectedIds(new Set()); setLastId(null); reload(); };
   useEffect(() => {
     if (!openId && params.has("ticket")) { params.delete("ticket"); setParams(params, { replace: true }); }
@@ -92,6 +94,7 @@ export function ProjectFeedback({ projectId }: { projectId: string }) {
         onImport={() => setImportOpen(true)} onCopyTickets={() => setCopyOpen(true)}
         showMineToggle={false} showGroupTimer={false}
         groupOptions={GROUPS} filterSections={FILTERS}
+        columnPrefs={colDisplay.prefs} setColumnPrefs={colDisplay.setPrefs} resetColumnPrefs={colDisplay.reset}
       />
       {loading ? (
         <Skeleton className="h-40 w-full" />
@@ -113,7 +116,7 @@ export function ProjectFeedback({ projectId }: { projectId: string }) {
         <>
           <TicketsList
             tickets={rows} groupBy={groupBy} onOpen={(t) => setOpenId(t.id)}
-            currentUserId={user?.id} projectId={projectId} columns={COLUMNS}
+            currentUserId={user?.id} projectId={projectId} columns={COLUMNS} columnPrefs={colDisplay.prefs}
             selectedIds={canManage ? selectedIds : undefined}
             onToggleSelect={canManage ? toggleSelect : undefined}
             onToggleSelectAll={canManage ? toggleSelectAll : undefined}

@@ -23,7 +23,9 @@ export type ColKey =
   | "be"
   | "assignees"
   | "fe_pool"
-  | "be_pool";
+  | "be_pool"
+  | "created_at"
+  | "updated_at";
 
 
 export interface ColDef {
@@ -46,6 +48,8 @@ export const COLS: Record<ColKey, ColDef> = {
   assignees: { key: "assignees", label: "Assignees", default: 200, min: 120 },
   fe_pool: { key: "fe_pool", label: "FE Sprint", default: 120, min: 90 },
   be_pool: { key: "be_pool", label: "BE Sprint", default: 120, min: 90 },
+  created_at: { key: "created_at", label: "Created", default: 110, min: 90 },
+  updated_at: { key: "updated_at", label: "Updated", default: 110, min: 90 },
 };
 
 
@@ -70,6 +74,8 @@ export const SORTABLE: Record<ColKey, boolean> = {
   assignees: true,
   fe_pool: true,
   be_pool: true,
+  created_at: true,
+  updated_at: true,
 };
 
 

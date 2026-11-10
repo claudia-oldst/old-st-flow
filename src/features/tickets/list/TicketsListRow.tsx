@@ -165,6 +165,17 @@ export function TicketsListRow({
               : t.assignees.map((a) => a.member.name).join(", ")}
           </span>
         );
+      case "created_at":
+      case "updated_at": {
+        const v = t[key];
+        if (!v) return <span className="text-dimmer text-xs">—</span>;
+        const d = new Date(v);
+        return (
+          <span className="text-xs font-mono text-dim whitespace-nowrap" title={d.toLocaleString()}>
+            {d.toLocaleDateString("en-GB")}
+          </span>
+        );
+      }
       case "fe_pool":
       case "be_pool": {
         const disc = key === "fe_pool" ? "fe" : "be";
