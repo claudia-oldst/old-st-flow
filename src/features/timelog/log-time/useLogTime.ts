@@ -114,11 +114,11 @@ export function useLogTime({
   const wouldOverflowManual = (h: number) =>
     capacity.available <= 0 || capacity.actual + h > capacity.available + 1e-6;
 
-  const handleManualLog = async () => {
+  const handleManualLog = async (opts?: { force?: boolean; prefix?: string }) => {
     if (!user) return toast.error("Pick a user first");
     const h = hoursMinutesToDecimal(durH, durM);
     if (!h || h <= 0) return toast.error("Enter a duration greater than 0");
-    if (wouldOverflowManual(h)) {
+    if (!opts?.force && wouldOverflowManual(h)) {
       return toast.error("Adjust the estimate first — this would exceed available hours.");
     }
     setBusy(true);
@@ -134,7 +134,7 @@ export function useLogTime({
     });
     setBusy(false);
     if (error) return toast.error(error.message);
-    toast.success(`Logged ${h}h`);
+    toast.success(opts?.prefix ? `${opts.prefix} · ${h}h logged` : `Logged ${h}h`);
     setDuration("", "");
     setNote("");
     await maybePromoteToActive();

@@ -162,7 +162,7 @@ export function LogTimeModal({ open, onOpenChange, ticket, role, onLogged }: Pro
                   busy={busy}
                   onCancel={() => onOpenChange(false)}
                   onAdjust={() => setAdjustOpen(true)}
-                  onLog={handleManualLog}
+                  onLog={() => handleManualLog()}
                 />
               </TabsContent>
             </Tabs>
@@ -186,9 +186,16 @@ export function LogTimeModal({ open, onOpenChange, ticket, role, onLogged }: Pro
           allowedSlots={[adjustSlot]}
           defaultSlot={adjustSlot}
           helperText={`You're trying to log ${formatHours(enteredHours)} but only ${formatHours(Math.max(0, capacity.available - capacity.actual))} is available. Adjust the estimate to continue.`}
-          onSaved={() => {
+          onSaved={({ delta, approved }) => {
             setAdjustOpen(false);
-            refetchCapacity();
+            void refetchCapacity();
+            // Request is saved (pending or approved) — log the entered hours now.
+            if (delta > 0 && enteredHours > 0) {
+              void handleManualLog({
+                force: true,
+                prefix: approved ? "Estimate updated" : "Revision submitted for PMBA approval",
+              });
+            }
           }}
         />
       )}

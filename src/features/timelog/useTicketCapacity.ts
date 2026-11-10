@@ -194,3 +194,30 @@ export function useTicketCapacityByIds(ids: string[], enabled = true) {
 
   return { map: data ?? {}, refetch, isLoading };
 }
+
+/**
+ * Optimistically add `delta` hours to a ticket's available capacity in every
+ * cached capacity query, so dialogs unblock immediately after a time request.
+ * Real values replace these on the next refetch.
+ */
+export function bumpCapacityCaches(
+  qc: import("@tanstack/react-query").QueryClient,
+  ticketId: string,
+  slot: "FE" | "BE" | "Proj",
+  delta: number,
+) {
+  const k = slot === "Proj" ? "Proj" : slot;
+  qc.setQueriesData({ queryKey: ["ticket-capacity-by-ids"] }, (old: any) => {
+    if (!old?.[ticketId]) return old;
+    const r = { ...old[ticketId] };
+    r[`pending${k}`] = (r[`pending${k}`] ?? 0) + delta;
+    r[`available${k}`] = (r[`available${k}`] ?? 0) + delta;
+    return { ...old, [ticketId]: r };
+  });
+  const pk = slot === "Proj" ? "Project" : slot;
+  qc.setQueriesData({ queryKey: ["ticket-capacity-pending"] }, (old: any) => {
+    if (!old) return old;
+    const t = old[ticketId] ?? { FE: 0, BE: 0, Project: 0 };
+    return { ...old, [ticketId]: { ...t, [pk]: (t[pk] ?? 0) + delta } };
+  });
+}
