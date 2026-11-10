@@ -8,4 +8,4 @@
 - [x] Tests + docs
 - [x] Accept and re-host optional Thalamus WebM recordings in the first discussion comment
 - [x] Test and deploy recording support (9 tests passed)
-- [ ] Add shared overall status to Feedback details, list, filtering, grouping and bulk actions; verify triage controls remain restricted.
+- [x] Add shared overall status to Feedback details, list, filtering, grouping and bulk actions; 17 tests passed, preview compiles. Authenticated end-to-end checks unavailable with external unmanaged sign-in.
