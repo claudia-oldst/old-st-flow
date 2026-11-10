@@ -5,7 +5,7 @@ export type ThalamusReport = {
   page_url?: string | null;
   site?: { name?: string | null; origin?: string | null } | null;
   reporter?: { name?: string | null; email?: string | null } | null;
-  environment?: { user_agent?: string | null; viewport?: string | null; app_version?: string | null } | null;
+  environment?: { user_agent?: string | null; viewport?: string | null; app_version?: string | null; screen?: string | null; pixel_ratio?: number | null; browser?: string | null; os?: string | null } | null;
   diagnostics?: {
     console_logs?: Array<{ level?: string; message?: string; timestamp?: string }> | null;
     network_errors?: Array<{ url?: string; method?: string; status?: number; statusText?: string }> | null;
@@ -28,11 +28,16 @@ export function renderReport(r: ThalamusReport): string {
     `📥 Submitted via Thalamus by ${who}${email ? ` (${email})` : ""} · suggested type: ${suggestedType(r.type)}`,
   ];
   if (r.description?.trim()) parts.push(r.description.trim());
+  const env = r.environment;
+  const size = (s: string) => s.replace(/^(\d+)x(\d+)$/, "$1×$2");
   const ctx = [
     r.site?.name && `Site: ${r.site.name}${r.site.origin ? ` (${r.site.origin})` : ""}`,
     r.page_url && `Page: ${r.page_url}`,
-    r.environment?.viewport && `Viewport: ${r.environment.viewport}`,
-    r.environment?.app_version && `App version: ${r.environment.app_version}`,
+    env?.browser && `Browser: ${env.browser}`,
+    env?.os && `OS: ${env.os}`,
+    env?.viewport && `Window: ${size(env.viewport)}`,
+    env?.screen && `Screen: ${size(env.screen)}${typeof env.pixel_ratio === "number" && env.pixel_ratio > 0 ? ` @${Number(env.pixel_ratio.toFixed(2))}x` : ""}`,
+    env && `App version: ${env.app_version?.trim() || "Not set by the site"}`,
     r.environment?.user_agent && `User agent: ${r.environment.user_agent}`,
   ].filter(Boolean);
   if (ctx.length) parts.push(`**Context**\n\n${ctx.map((l) => `- ${l}`).join("\n")}`);
