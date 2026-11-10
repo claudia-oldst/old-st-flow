@@ -24,3 +24,16 @@ Deno.test("report renders reporter, page, console and network errors", () => {
   assert(body.includes("[error] TypeError: token"));
   assert(body.includes("POST https://api/x → 500 Internal Server Error"));
 });
+
+Deno.test("renders 1.3.0 device details", () => {
+  const out = renderReport({ environment: { viewport: "1440x813", screen: "1440x900", pixel_ratio: 2, browser: "Chrome 128.0.6613.120", os: "macOS 14.5.0", app_version: "2.4.0" } });
+  for (const l of ["Browser: Chrome 128.0.6613.120", "OS: macOS 14.5.0", "Window: 1440×813", "Screen: 1440×900 @2x", "App version: 2.4.0"]) {
+    if (!out.includes(l)) throw new Error(`missing ${l}`);
+  }
+});
+
+Deno.test("older report skips missing device lines", () => {
+  const out = renderReport({ environment: { viewport: "393x852" } });
+  if (out.includes("Browser:") || out.includes("Screen:")) throw new Error("unexpected lines");
+  if (!out.includes("App version: Not set by the site")) throw new Error("missing fallback");
+});
