@@ -18,4 +18,19 @@ describe("Ring", () => {
     // The right-hand 'Original' value renders as "—"
     expect(screen.getByText("—")).toBeInTheDocument();
   });
+
+  it("shows the true percent past 150% while capping the arc at one full circle", () => {
+    const { container } = render(<Ring title="Frontend" actual={27} estimate={10} original={8} />);
+    // Labels are the real ratios, not clamped to 150%.
+    expect(screen.getByText("270%")).toBeInTheDocument(); // vs current estimate
+    expect(screen.getByText("338%")).toBeInTheDocument(); // vs original estimate
+    const arcs = Array.from(container.querySelectorAll("circle[stroke-dasharray]"));
+    const dash = (el: Element) =>
+      Number((el.getAttribute("stroke-dasharray") || "").split(" ")[0]);
+    // Outer arc (r=56) and inner arc (r=30) never exceed their own circumference.
+    const outer = arcs.find((el) => el.getAttribute("r") === "56")!;
+    const inner = arcs.find((el) => el.getAttribute("r") === "30")!;
+    expect(dash(outer)).toBeCloseTo(2 * Math.PI * 56, 1);
+    expect(dash(inner)).toBeCloseTo(2 * Math.PI * 30, 1);
+  });
 });

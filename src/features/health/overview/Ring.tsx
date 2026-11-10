@@ -19,7 +19,9 @@ export function Ring({ title, actual, estimate, original, discounted = 0, donene
   const effective = Math.max(0, actual - discounted);
 
   // Outer arc reflects EFFECTIVE / estimate (per direction: arcs use effective ratio).
-  const ratio = estimate > 0 ? Math.min(effective / estimate, 1.5) : 0;
+  // `ratio` is the true, uncapped ratio (shown as the label); `pct` is what the
+  // arc draws, capped at one full circle so it can't wrap around.
+  const ratio = estimate > 0 ? effective / estimate : 0;
   const pct = Math.min(ratio * 100, 100);
   const health = healthRatio(effective, estimate);
   const color =
@@ -28,8 +30,9 @@ export function Ring({ title, actual, estimate, original, discounted = 0, donene
     health === "bad" ? "hsl(var(--health-bad))" :
     "hsl(0 0% 30%)";
 
-  // Inner arc reflects EFFECTIVE / original.
-  const origRatio = original > 0 ? Math.min(effective / original, 1.5) : 0;
+  // Inner arc reflects EFFECTIVE / original — same split: true ratio in the
+  // label, arc capped at one full circle.
+  const origRatio = original > 0 ? effective / original : 0;
   const origPct = Math.min(origRatio * 100, 100);
   const origHealth = healthRatio(effective, original);
   const origColor =
