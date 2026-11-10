@@ -39,7 +39,6 @@ const MANIFEST: Row[] = [
   { route: "sprints", state: "empty", link: `/projects/${DEM}/sprints` },
   { route: "health", state: "populated", link: `/projects/${COU}/health` },
   { route: "client-portal-editor", state: "populated", link: `/projects/${COU}/client` },
-  { route: "my-work", state: "default", link: "/my-work" },
   { route: "admin", state: "populated", link: "/admin" },
   { route: "client-portal-public", state: "populated", link: `/h/${HASH}` },
   { route: "login", state: "default", link: "/login" },

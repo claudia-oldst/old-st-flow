@@ -1,5 +1,9 @@
 # My Work screen
 
+**Status:** hidden — the page and its `/my-work` route are removed from the app for now
+(`src/pages/MyWork.tsx` kept intact; re-add the route and the TopBar nav item to restore it).
+The description below documents the screen as built.
+
 **Route:** `/my-work`
 
 A flat list of every open ticket assigned to the current user, across all projects. Designed to be the developer's daily home screen.

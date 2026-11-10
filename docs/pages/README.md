@@ -13,7 +13,7 @@ One markdown file per screen the user sees, focused on **features, UI elements, 
 
 ### Workspace
 - [projects.md](./projects.md) — Projects list (home)
-- [my-work.md](./my-work.md) — Cross-project assignments
+- [my-work.md](./my-work.md) — Cross-project assignments (hidden; route not registered)
 
 ### Project workspace (tabs under `/projects/:id/*`)
 - [project-workspace-shell.md](./project-workspace-shell.md) — Project header, tab bar, access gate
