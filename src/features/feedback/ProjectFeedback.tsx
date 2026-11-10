@@ -97,6 +97,7 @@ export function ProjectFeedback({ projectId }: { projectId: string }) {
         <Skeleton className="h-40 w-full" />
       ) : view === "board" ? (
         <ProjectBoard
+          feedback
           projectId={projectId}
           search={search}
           filterMine={false}

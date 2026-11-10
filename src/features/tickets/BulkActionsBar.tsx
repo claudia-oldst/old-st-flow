@@ -44,7 +44,7 @@ export function BulkActionsBar({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const { busy, setStatus, setEpic, setFeStatus, setBeStatus, setVersion, doDelete } =
-    useBulkTicketActions(selectedIds, onClear);
+    useBulkTicketActions(selectedIds, onClear, feedback ? onClear : undefined);
 
   const showStatus = canEdit || canEditStatus;
 

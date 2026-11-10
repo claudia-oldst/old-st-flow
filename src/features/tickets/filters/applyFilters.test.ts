@@ -3,6 +3,16 @@ import { applyFilters, activeFilterCount, EMPTY_FILTERS } from "./applyFilters";
 import { makeTicket, withFeAssignee, withBeAssignee } from "@/test/fixtures/tickets";
 
 describe("applyFilters", () => {
+  it("filters Feedback by shared overall status together with epic and version", () => {
+    const match = makeTicket({ ticket_type: "Feedback", status_id: "s-review", epic_id: 1, version: "v1" });
+    const rows = [match,
+      makeTicket({ ticket_type: "Feedback", status_id: "s-todo", epic_id: 1, version: "v1" }),
+      makeTicket({ ticket_type: "Feedback", status_id: "s-review", epic_id: 2, version: "v1" }),
+      makeTicket({ ticket_type: "Feedback", status_id: "s-review", epic_id: 1, version: "v2" }),
+    ];
+    expect(applyFilters(rows, { ...EMPTY_FILTERS, statusIds: ["s-review"], epicIds: ["1"], versions: ["v1"] })).toEqual([match]);
+  });
+
   it("returns all when no filters active", () => {
     const tickets = [makeTicket(), makeTicket(), makeTicket()];
     expect(applyFilters(tickets, EMPTY_FILTERS)).toHaveLength(3);
