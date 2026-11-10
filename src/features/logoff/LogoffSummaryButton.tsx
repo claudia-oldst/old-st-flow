@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { MessageSquare } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
@@ -20,15 +21,18 @@ export function LogoffSummaryButton() {
       <TooltipProvider delayDuration={150}>
         <Tooltip>
           <TooltipTrigger asChild>
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setOpen(true)}
-              className="inline-flex items-center justify-center h-8 w-8 rounded-full hairline hover:bg-white/5 transition text-dim hover:text-foreground"
-              aria-label="Logging off summary"
+              className="h-8 gap-1.5 rounded-lg px-2.5 text-xs font-medium text-muted-foreground hover:text-accent-foreground"
+              aria-label="Generate logoff message"
             >
-              <CalendarIcon className="h-4 w-4" />
-            </button>
+              <MessageSquare className="h-3.5 w-3.5 shrink-0" />
+              Generate Logoff Message
+            </Button>
           </TooltipTrigger>
-          <TooltipContent side="bottom">Logging off summary</TooltipContent>
+          <TooltipContent side="bottom">Generate logoff message</TooltipContent>
         </Tooltip>
       </TooltipProvider>
 
