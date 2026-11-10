@@ -1,3 +1,5 @@
+import { useQueryClient } from "@tanstack/react-query";
+import { bumpCapacityCaches } from "@/features/timelog/useTicketCapacity";
 import { useEffect, useState } from "react";
 import {
   Dialog,
@@ -42,7 +44,7 @@ interface Props {
   defaultSlot?: AdjustSlot;
   /** Optional contextual blurb shown at the top (e.g. "Used X of Yh — add more to log"). */
   helperText?: string;
-  onSaved: () => void;
+  onSaved: (info: { slot: AdjustSlot; delta: number; approved: boolean }) => void;
 }
 
 export function RequestMoreTimeDialog({
@@ -70,6 +72,7 @@ export function RequestMoreTimeDialog({
   const [hours, setHours] = useState("");
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!open) return;
@@ -130,8 +133,11 @@ export function RequestMoreTimeDialog({
       setBusy(false);
       toast.success("Estimate revision submitted for PMBA approval");
     }
+    // Reflect the new time immediately in any open capacity views so the
+    // caller can log straight away without waiting for a reload.
+    bumpCapacityCaches(queryClient, ticketId, slot, additional);
     onOpenChange(false);
-    onSaved();
+    onSaved({ slot, delta: additional, approved: canAutoApprove });
   };
 
   const slotLabel = (s: AdjustSlot) =>
