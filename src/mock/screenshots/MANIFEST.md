@@ -26,7 +26,6 @@ State fixture ids (real, from the live app):
 | sprints | empty | desktop | dark | `/projects/36aa2c91-61e3-4098-9fc5-f3d41313852c/sprints` | network-idle |
 | health | populated | desktop | dark | `/projects/f77acac6-09f3-4da8-97e6-ec125afcbb22/health` | network-idle |
 | client-portal-editor | populated | desktop | dark | `/projects/f77acac6-09f3-4da8-97e6-ec125afcbb22/client` | network-idle |
-| my-work | default | desktop | dark | `/my-work` | network-idle |
 | admin | populated | desktop | dark | `/admin` | network-idle |
 | client-portal-public | populated | desktop | dark | `/h/c16bf94a8e01ac8e0da588e2426b4a19aa81e7d370742e4cb365e3a85ecaa6d6` | network-idle |
 | login | default | desktop | dark | `/login` | network-idle |

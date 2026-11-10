@@ -165,7 +165,8 @@ export function TopBar() {
 
   const navItems = [
     { to: "/", label: "Projects", icon: FolderKanban },
-    { to: "/my-work", label: "My Work", icon: ListChecks },
+    // My Work is hidden for now (page kept at src/pages/MyWork.tsx); re-add
+    // { to: "/my-work", label: "My Work", icon: ListChecks } to bring it back.
     { to: "/my-timelogs", label: "My Timelogs", icon: Clock },
     // Admin is a PMBA-only surface (the /admin route is guarded by RequirePMBA),
     // so hide the link entirely for non-PMBA users to avoid confusion.

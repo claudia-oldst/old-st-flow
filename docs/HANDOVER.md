@@ -14,7 +14,7 @@ Three audiences, three surfaces:
 
 | Audience       | Surface                       | Auth                              |
 | -------------- | ----------------------------- | --------------------------------- |
-| Team members   | `/`, `/my-work`, `/projects/:id/*` | Supabase Auth (email/OAuth)  |
+| Team members   | `/`, `/projects/:id/*` | Supabase Auth (email/OAuth)  |
 | PMBAs (admins) | `/admin`, vault, portal editor | Same + `PMBA` role in `user_roles` |
 | Clients        | `/h/:hash`                    | Hashed portal token, no login     |
 

@@ -11,7 +11,6 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Projects from "./pages/Projects";
 import ProjectWorkspace from "./pages/ProjectWorkspace";
 import Admin from "./pages/Admin";
-import MyWork from "./pages/MyWork";
 import MyTimelogs from "./pages/MyTimelogs";
 import ClientPortalPublic from "./pages/ClientPortalPublic";
 import ProjectReport from "./pages/ProjectReport";
@@ -66,7 +65,8 @@ const App = () => (
                       <Route path="/" element={wrap("projects", <Projects />)} />
                       <Route path="/projects/:id/*" element={wrap("project", <ProjectWorkspace />)} />
                       <Route path="/admin" element={<RequirePMBA>{wrap("admin", <Admin />)}</RequirePMBA>} />
-                      <Route path="/my-work" element={wrap("my work", <MyWork />)} />
+                      {/* My Work hidden for now: page kept at src/pages/MyWork.tsx,
+                          re-add the /my-work route to bring it back. */}
                       <Route path="/my-timelogs" element={wrap("my timelogs", <MyTimelogs />)} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
