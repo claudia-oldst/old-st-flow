@@ -9,7 +9,7 @@ The app is an **internal tool**. Every authenticated user is a trusted teammate 
 | Surface           | Who can reach it                    | How it's gated                                |
 | ----------------- | ----------------------------------- | --------------------------------------------- |
 | `/login`          | Anyone                              | Public                                         |
-| `/`, `/projects/*`, `/my-work` | Signed-in team members  | `RequireAuth` (client) + RLS (server)         |
+| `/`, `/projects/*` | Signed-in team members  | `RequireAuth` (client) + RLS (server)         |
 | `/admin`          | Signed-in PMBAs                     | `RequirePMBA` (client) + `current_is_pmba()` RLS (server) |
 | `/h/:hash`        | Anyone with the portal URL          | sha256-hashed token resolved server-side       |
 
