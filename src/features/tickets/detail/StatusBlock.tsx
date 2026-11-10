@@ -34,6 +34,7 @@ export function StatusBlock({
   onChange: () => void;
   onLocalPatch?: (patch: Partial<TicketRow>) => void;
 }) {
+  const isFeedback = ticket.ticket_type === "Feedback";
   const updateDiscipline = async (slot: "FE" | "BE", value: DisciplineStatus) => {
     const patch = slot === "FE" ? { fe_status: value } : { be_status: value };
     onLocalPatch?.(patch);
@@ -44,7 +45,7 @@ export function StatusBlock({
 
   const setProjectStatus = async (statusId: string) => {
     onLocalPatch?.({ status_id: statusId, project_status_override: true });
-    const { error } = await supabase.from("tickets").update({ status_id: statusId }).eq("id", ticket.id);
+    const { error } = await supabase.from("tickets").update({ status_id: statusId, project_status_override: true }).eq("id", ticket.id);
     if (error) return toast.error(error.message);
     onChange();
   };
@@ -63,7 +64,7 @@ export function StatusBlock({
     <section className="rounded-xl hairline bg-surface-2/40 p-4 space-y-3">
       <h3 className="text-sm font-semibold">Status</h3>
 
-      {!isProj && (
+      {!isProj && !isFeedback && (
         <div className="space-y-2">
           <DisciplineRow
             slot="FE"
@@ -84,7 +85,7 @@ export function StatusBlock({
         </div>
       )}
 
-      <div className={`flex flex-wrap items-center gap-3 ${isProj ? "" : "pt-3 hairline-t"}`}>
+      <div className={`flex flex-wrap items-center gap-3 ${isProj || isFeedback ? "" : "pt-3 hairline-t"}`}>
         <div className="w-16 text-xs font-medium text-dim">Overall</div>
         {isPMBARole ? (
           <Select value={ticket.status_id ?? undefined} onValueChange={setProjectStatus}>
@@ -111,7 +112,7 @@ export function StatusBlock({
           <span className="text-xs text-dimmer">—</span>
         )}
 
-        {isProj || ticket.project_status_override ? (
+        {!isFeedback && (isProj || ticket.project_status_override ? (
           <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] bg-brand-gold/10 text-brand-gold ring-1 ring-brand-gold/30">
             <Pin className="h-3 w-3" /> Set manually
             {!isProj && isPMBARole && (
@@ -129,7 +130,7 @@ export function StatusBlock({
           <span className="inline-flex items-center gap-1 text-[11px] text-dimmer">
             <Sparkles className="h-3 w-3" /> Auto
           </span>
-        )}
+        ))}
       </div>
     </section>
   );

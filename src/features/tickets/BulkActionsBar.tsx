@@ -36,7 +36,7 @@ export function BulkActionsBar({
   onClear: () => void;
   canEdit: boolean;
   canEditStatus?: boolean;
-  /** Feedback tickets: no assign/status/dev-status actions (not in live development). */
+  /** Feedback tickets allow overall status, but no assignment or development actions. */
   feedback?: boolean;
 }) {
   const { statuses } = useStatuses();
@@ -46,7 +46,7 @@ export function BulkActionsBar({
   const { busy, setStatus, setEpic, setFeStatus, setBeStatus, setVersion, doDelete } =
     useBulkTicketActions(selectedIds, onClear);
 
-  const showStatus = !feedback && (canEdit || canEditStatus);
+  const showStatus = canEdit || canEditStatus;
 
   if (selectedIds.length === 0) return null;
 
@@ -100,7 +100,7 @@ export function BulkActionsBar({
                 ))}
               </BulkMenu>
 
-              <BulkMenu
+              {!feedback && <BulkMenu
                 icon={Code2}
                 label="FE"
                 title="Set FE status"
@@ -112,9 +112,9 @@ export function BulkActionsBar({
                     {DISCIPLINE_STATUS_LABEL[s]}
                   </BulkMenuRow>
                 ))}
-              </BulkMenu>
+              </BulkMenu>}
 
-              <BulkMenu
+              {!feedback && <BulkMenu
                 icon={Code2}
                 label="BE"
                 title="Set BE status"
@@ -126,7 +126,7 @@ export function BulkActionsBar({
                     {DISCIPLINE_STATUS_LABEL[s]}
                   </BulkMenuRow>
                 ))}
-              </BulkMenu>
+              </BulkMenu>}
             </>
           )}
 

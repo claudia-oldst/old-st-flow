@@ -72,7 +72,6 @@ export function TicketDetailBody({
 
   return (
     <>
-      {!isFeedback && (
         <StatusBlock
           ticket={ticket}
           statuses={statuses}
@@ -87,7 +86,6 @@ export function TicketDetailBody({
           onChange={onChange}
           onLocalPatch={onLocalPatch}
         />
-      )}
 
 
       <EstimatesPanel
