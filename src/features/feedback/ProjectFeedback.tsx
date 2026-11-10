@@ -35,7 +35,7 @@ export function ProjectFeedback({ projectId }: { projectId: string }) {
   const role = useProjectRole(projectId);
   const canManage = canManageTickets(role);
   const [page, setPage] = useState(1);
-  const [view, setView] = usePersistentState<"board" | "list">(`pf:${projectId}:view`, "board");
+  const [view, setView] = usePersistentState<"board" | "list">(`pf:${projectId}:view`, "list");
   const [filters, setFilters] = useState<TicketFilters>(EMPTY_FILTERS);
   const [search, setSearch] = useState("");
   const [groupBy, setGroupBy] = useState<GroupBy>("none");
