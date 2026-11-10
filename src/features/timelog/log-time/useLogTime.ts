@@ -162,13 +162,21 @@ export function useLogTime({
   }
   if (isProjectContributor) disciplineOptions.push({ value: "Project", label: "Project" });
 
+  // Only PMBAs may set an original estimate. Everyone else treats a missing
+  // estimate as a 0h baseline and requests an estimate revision instead.
+  const isPmbaUser = role === "PMBA" || user?.role === "PMBA";
   const missingEstimate = useMemo(() => {
+    if (!isPmbaUser) return false;
     if (discipline === "FE") return !ticket.has_original_fe_estimate;
     if (discipline === "BE") return !ticket.has_original_be_estimate;
     return !ticket.has_original_project_estimate;
-  }, [discipline, ticket.has_original_fe_estimate, ticket.has_original_be_estimate, ticket.has_original_project_estimate]);
+  }, [discipline, ticket.has_original_fe_estimate, ticket.has_original_be_estimate, ticket.has_original_project_estimate, isPmbaUser]);
 
   const saveOriginalEstimate = async (raw: string): Promise<boolean> => {
+    if (!isPmbaUser) {
+      toast.error("Only PMBAs can set original estimates");
+      return false;
+    }
     const v = parseFloat(raw);
     if (Number.isNaN(v) || v < 0) {
       toast.error("Enter an estimate (0 or more)");

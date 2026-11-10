@@ -48,6 +48,9 @@ Deno.serve(async (req) => {
     ticket_type: "Feedback",
     external_source: SOURCE,
     external_ref: ref,
+    // Feedback starts at a 0h baseline; later time is an estimate revision.
+    original_fe_estimate: 0, current_fe_estimate: 0,
+    original_be_estimate: 0, current_be_estimate: 0,
   }).select("id, formatted_id, project_id").single();
   if (error) return fail(error.message, 500);
 
