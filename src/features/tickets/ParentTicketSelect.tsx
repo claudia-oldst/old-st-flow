@@ -27,6 +27,9 @@ interface Props {
   excludeId?: string;
   size?: "sm" | "md";
   placeholder?: string;
+  types?: string[];
+  excludeIds?: string[];
+  clearable?: boolean;
 }
 
 export function ParentTicketSelect({
@@ -36,7 +39,12 @@ export function ParentTicketSelect({
   excludeId,
   size = "md",
   placeholder = "Link a parent ticket…",
+  types = ["Standard", "CR"],
+  excludeIds,
+  clearable = true,
 }: Props) {
+  const typesKey = types.join(",");
+  const excludeKey = (excludeIds ?? []).join(",");
   const [open, setOpen] = useState(false);
   const [options, setOptions] = useState<ParentTicketOption[]>([]);
   const [selected, setSelected] = useState<ParentTicketOption | null>(null);
@@ -47,20 +55,22 @@ export function ParentTicketSelect({
       .from("tickets")
       .select("id, formatted_id, title, ticket_type, epic_id")
       .eq("project_id", projectId)
-      .in("ticket_type", ["Standard", "CR"])
+      .in("ticket_type", types as any)
       .order("ticket_number", { ascending: true })
-      .limit(500)
+      .limit(1000)
       .then(({ data }) => {
         if (cancelled) return;
+        const skip = new Set(excludeKey ? excludeKey.split(",") : []);
         const opts = (data ?? [])
-          .filter((t: any) => t.id !== excludeId)
+          .filter((t: any) => t.id !== excludeId && !skip.has(t.id))
           .map((t: any) => ({ id: t.id, formatted_id: t.formatted_id, title: t.title, epic_id: t.epic_id ?? null }));
         setOptions(opts);
       });
     return () => {
       cancelled = true;
     };
-  }, [projectId, excludeId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, excludeId, typesKey, excludeKey]);
 
   useEffect(() => {
     if (!value) {
@@ -140,7 +150,7 @@ export function ParentTicketSelect({
           </Command>
         </PopoverContent>
       </Popover>
-      {selected && (
+      {selected && clearable && (
         <Button
           type="button"
           variant="ghost"

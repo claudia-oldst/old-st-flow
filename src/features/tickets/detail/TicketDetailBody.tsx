@@ -68,7 +68,7 @@ export function TicketDetailBody({
 }: Props) {
   // Feedback tickets are in triage: no dev status, assignees or time tracking until converted.
   const isFeedback = ticket.ticket_type === "Feedback";
-  const showParent = ticket.ticket_type !== "Proj" && !isFeedback;
+  const showParent = ticket.ticket_type !== "Proj";
 
   return (
     <>
