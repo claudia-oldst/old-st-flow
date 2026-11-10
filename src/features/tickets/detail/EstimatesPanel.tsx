@@ -117,7 +117,7 @@ export function EstimatesPanel({
   estimateChanges: any[];
 }) {
   const by = (slot: string) => ticket.assignees.filter((a) => a.slot === slot);
-  const actionLabel = isFeedback ? "Set estimate" : "Request more time";
+  const actionLabel = isFeedback && isPMBARole ? "Set estimate" : "Request more time";
   const assign = isPMBARole && !isFeedback ? onAssign : undefined;
 
   return (
