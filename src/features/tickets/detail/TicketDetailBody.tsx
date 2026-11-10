@@ -160,25 +160,23 @@ export function TicketDetailBody({
 
       </div>
 
-      {!isFeedback && (
-        <>
-          <RelatedTickets
-            ticket={ticket}
-            projectId={projectId}
-            statuses={statuses}
-            isPMBARole={isPMBARole}
-            canHaveParent={showParent}
-            onChange={onChange}
-          />
+      <RelatedTickets
+        ticket={ticket}
+        projectId={projectId}
+        statuses={statuses}
+        isPMBARole={isPMBARole}
+        canHaveParent={showParent}
+        onChange={onChange}
+      />
 
-          <TimeLogsPanel
-            ticket={ticket}
-            canLog={canLog}
-            onOpenLog={onOpenLog}
-            reloadKey={logsReloadKey}
-            onLogCount={onLogCount}
-          />
-        </>
+      {!isFeedback && (
+        <TimeLogsPanel
+          ticket={ticket}
+          canLog={canLog}
+          onOpenLog={onOpenLog}
+          reloadKey={logsReloadKey}
+          onLogCount={onLogCount}
+        />
       )}
 
       <div className="pt-4 hairline-t flex items-center justify-between">
