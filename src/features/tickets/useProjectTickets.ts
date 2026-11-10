@@ -34,7 +34,7 @@ export interface TicketRow {
   acceptance_criteria: string | null;
   position: number;
   created_at: string;
-  updated_at: string | null;
+  updated_at?: string | null;
   cr_approval: "pending" | "approved" | "rejected" | null;
   cr_decided_by: string | null;
   cr_decided_at: string | null;
