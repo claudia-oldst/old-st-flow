@@ -22,14 +22,19 @@ export function useTicketEditor({
   const [beEst, setBeEst] = useState("");
   const [projEst, setProjEst] = useState("");
 
+  // Reset edit mode only when switching tickets — background refreshes
+  // (realtime, progressive loading) hand us new objects for the same ticket.
   useEffect(() => {
-    if (!ticket) return;
+    setEditing(false);
+  }, [ticket?.id]);
+
+  useEffect(() => {
+    if (!ticket || editing) return;
     setTitle(ticket.title);
     setFeEst(String(ticket.current_fe_estimate));
     setBeEst(String(ticket.current_be_estimate));
     setProjEst(String(ticket.current_project_estimate));
-    setEditing(false);
-  }, [ticket]);
+  }, [ticket, editing]);
 
   const handleSaveEdit = async () => {
     if (!ticket) return;
