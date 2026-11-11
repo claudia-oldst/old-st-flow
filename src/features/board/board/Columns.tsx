@@ -18,6 +18,7 @@ export function Column({
   forceBars,
   showQuickStart,
   currentUserId,
+  loadingMore = false,
 }: {
   status: { id: string; name: string; color: string; category: string };
   tickets: TicketRow[];
@@ -29,8 +30,9 @@ export function Column({
   forceBars: boolean;
   showQuickStart?: boolean;
   currentUserId?: string;
+  loadingMore?: boolean;
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id: status.id });
+  const { setNodeRef, isOver } = useDroppable({ id: status.id, disabled: loadingMore });
   return (
     <div
       ref={setNodeRef}
@@ -44,7 +46,7 @@ export function Column({
           <div className="h-2 w-2 rounded-full" style={{ background: status.color }} />
           <div className="text-sm font-medium">{status.name}</div>
         </div>
-        <div className="text-xs text-dimmer font-mono">{tickets.length}</div>
+        <div className="text-xs text-dimmer font-mono">{tickets.length}{loadingMore ? "+" : ""}</div>
       </div>
       <div className="flex flex-col gap-2 flex-1 min-h-[20px]">
         {tickets.map((t) => (
@@ -55,6 +57,7 @@ export function Column({
             prefs={prefs}
             forceBars={forceBars}
             showQuickStart={showQuickStart}
+            disabled={loadingMore}
             currentUserId={currentUserId}
           />
         ))}
@@ -74,6 +77,7 @@ export function DisciplineColumn({
   forceBars,
   showQuickStart,
   currentUserId,
+  loadingMore = false,
 }: {
   column: DisciplineStatus;
   cards: DisciplineCard[];
@@ -82,8 +86,9 @@ export function DisciplineColumn({
   forceBars: boolean;
   showQuickStart?: boolean;
   currentUserId?: string;
+  loadingMore?: boolean;
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id: column });
+  const { setNodeRef, isOver } = useDroppable({ id: column, disabled: loadingMore });
   const color = DISCIPLINE_STATUS_COLOR[column];
   const label = DISCIPLINE_STATUS_LABEL[column];
   return (
@@ -99,7 +104,7 @@ export function DisciplineColumn({
           <div className="h-2 w-2 rounded-full" style={{ background: color }} />
           <div className="text-sm font-medium">{label}</div>
         </div>
-        <div className="text-xs text-dimmer font-mono">{cards.length}</div>
+        <div className="text-xs text-dimmer font-mono">{cards.length}{loadingMore ? "+" : ""}</div>
       </div>
       <div className="flex flex-col gap-2 flex-1 min-h-[20px]">
         {cards.map((c) => (
@@ -110,6 +115,7 @@ export function DisciplineColumn({
             prefs={prefs}
             forceBars={forceBars}
             showQuickStart={showQuickStart}
+            disabled={loadingMore}
             currentUserId={currentUserId}
           />
         ))}

@@ -21,7 +21,7 @@ import { usePoolData } from "@/features/sprints/usePoolData";
 export function useProjectTicketsPage(projectId: string) {
   const role = useProjectRole(projectId);
   const user = useCurrentUser((s) => s.user);
-  const { tickets, loading, reload, error } = useProjectTickets(projectId);
+  const { tickets, loading, loadingMore, loadedCount, totalCount, reload, error } = useProjectTickets(projectId);
 
   const [importOpen, setImportOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
@@ -135,6 +135,9 @@ export function useProjectTicketsPage(projectId: string) {
     user,
     tickets,
     loading,
+    loadingMore,
+    loadedCount,
+    totalCount,
     reload,
     error,
     v,
