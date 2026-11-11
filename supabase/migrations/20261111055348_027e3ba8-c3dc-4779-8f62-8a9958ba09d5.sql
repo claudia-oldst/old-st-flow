@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.list_project_tickets(uuid, jsonb, text, text, text, integer, integer) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.list_project_tickets(uuid, jsonb, text, text, text, integer, integer) TO authenticated, service_role;
