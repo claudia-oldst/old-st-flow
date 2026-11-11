@@ -7,6 +7,7 @@ export function BoardToolbar({
   setFilterMine,
   visibleCount,
   cardCount,
+  loadingMore = false,
 }: {
   mode: "project" | "discipline";
   setMode: (m: "project" | "discipline") => void;
@@ -14,6 +15,7 @@ export function BoardToolbar({
   setFilterMine: (v: boolean) => void;
   visibleCount: number;
   cardCount: number;
+  loadingMore?: boolean;
 }) {
   return (
     <div className="flex items-center gap-2 mb-4 flex-wrap">
@@ -54,8 +56,8 @@ export function BoardToolbar({
       </div>
       <div className="text-xs text-dim ml-2">
         {mode === "project"
-          ? `${visibleCount} ticket${visibleCount === 1 ? "" : "s"}`
-          : `${cardCount} card${cardCount === 1 ? "" : "s"}`}
+          ? `${visibleCount}${loadingMore ? "+" : ""} ticket${visibleCount === 1 ? "" : "s"}`
+          : `${cardCount}${loadingMore ? "+" : ""} card${cardCount === 1 ? "" : "s"}`}
       </div>
     </div>
   );

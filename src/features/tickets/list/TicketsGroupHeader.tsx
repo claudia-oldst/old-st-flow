@@ -8,6 +8,7 @@ import { toast } from "@/hooks/use-toast";
 interface Props {
   label: string;
   count: number;
+  loadingMore?: boolean;
   color?: string;
   isCollapsed: boolean;
   onToggle: () => void;
@@ -21,6 +22,7 @@ interface Props {
 export function TicketsGroupHeader({
   label,
   count,
+  loadingMore = false,
   color,
   isCollapsed,
   onToggle,
@@ -87,7 +89,7 @@ export function TicketsGroupHeader({
         {!editing && (
           <>
             <span className="text-sm font-medium truncate">{label}</span>
-            <span className="text-xs text-dimmer font-mono ml-1">{count}</span>
+            <span className="text-xs text-dimmer font-mono ml-1">{count}{loadingMore ? "+" : ""}</span>
           </>
         )}
       </button>

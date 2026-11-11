@@ -89,7 +89,7 @@ export function TicketDetailHeader({
             type="button"
             onClick={() => ticket.parent && emitOpenTicket(ticket.parent.id)}
             className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-white/5 hairline hover:bg-white/10 hover:text-foreground transition cursor-pointer"
-            title={`Open parent: ${ticket.parent.title}`}
+            title={`Open parent: ${ticket.parent.title ?? ticket.parent.formatted_id}`}
           >
             <GitBranch className="h-2.5 w-2.5" />
             <span className="font-mono">{ticket.parent.formatted_id}</span>

@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
-import { PAGE_SIZES } from "@/lib/pagination";
+import { useTicketListRealtime } from "./useTicketListRealtime";
+import { requestTicketPage } from "./ticketPageRequest";
 import type { DisciplineStatus, TeamMember } from "@/lib/types";
 
 export interface TicketRow {
@@ -31,7 +31,7 @@ export interface TicketRow {
   actual_frontend_hours: number;
   actual_backend_hours: number;
   actual_project_hours: number;
-  acceptance_criteria: string | null;
+  acceptance_criteria?: string | null;
   position: number;
   created_at: string;
   updated_at?: string | null;
@@ -41,27 +41,19 @@ export interface TicketRow {
   parent_ticket_id: string | null;
   bug_sub_number: number | null;
   github_issue_number: number | null;
-  parent: { id: string; formatted_id: string; title: string } | null;
+  parent: { id: string; formatted_id: string; title?: string } | null;
   assignees: Array<{ user_id: string; slot: "FE" | "BE" | "Project"; member: TeamMember; created_at: string }>;
 }
 
-interface FetchResult {
+export interface FetchResult {
   tickets: TicketRow[];
   totalCount: number;
+  complete: boolean;
 }
 
 interface RpcResult {
   total: number;
   rows: any[];
-}
-
-function withTimeout<T>(promise: PromiseLike<T>, ms: number, label: string): Promise<T> {
-  return Promise.race([
-    Promise.resolve(promise),
-    new Promise<T>((_, reject) => {
-      globalThis.setTimeout(() => reject(new Error(`${label} timed out. Please retry.`)), ms);
-    }),
-  ]);
 }
 
 export function normalizeTicket(raw: any): TicketRow {
@@ -91,7 +83,7 @@ export function normalizeTicket(raw: any): TicketRow {
     actual_frontend_hours: Number(raw.actual_frontend_hours),
     actual_backend_hours: Number(raw.actual_backend_hours),
     actual_project_hours: Number(raw.actual_project_hours ?? 0),
-    acceptance_criteria: raw.acceptance_criteria ?? null,
+    acceptance_criteria: Object.prototype.hasOwnProperty.call(raw, "acceptance_criteria") ? raw.acceptance_criteria ?? null : undefined,
     external_source: raw.external_source ?? null,
     position: raw.position,
     created_at: raw.created_at,
@@ -112,70 +104,60 @@ export function normalizeTicket(raw: any): TicketRow {
   };
 }
 
-export const FETCH_ALL_PAGE_SIZE = 600;
+export const FETCH_ALL_PAGE_SIZE = 200;
 
-export async function fetchProjectTickets(projectId: string): Promise<FetchResult> {
-  // The RPC caps each call at 600 rows, so fetch page by page until all are loaded.
-  const cap = FETCH_ALL_PAGE_SIZE;
-  const all: any[] = [];
+export async function fetchProjectTickets(projectId: string, options: {
+  signal?: AbortSignal;
+  onProgress?: (result: FetchResult) => void;
+} = {}): Promise<FetchResult> {
+  const tickets: TicketRow[] = [];
   let total = 0;
-  for (let page = 1; page <= 100; page++) {
-    const { data, error } = await withTimeout(
-      supabase.rpc("list_project_tickets", {
-        _project_id: projectId,
-        _filters: {} as any,
-        _search: null,
-        _sort_col: "position",
-        _sort_dir: "asc",
-        _page: page,
-        _page_size: cap,
-      }),
-      30_000,
-      "Ticket loading",
-    );
-    if (error) {
-      throw new Error(`Could not load tickets: ${error.message}`);
-    }
+  for (let page = 1; ; page++) {
+    const data = await requestTicketPage({
+      _project_id: projectId, _filters: {}, _search: null,
+      _sort_col: "position", _sort_dir: "asc", _page: page,
+      _page_size: FETCH_ALL_PAGE_SIZE,
+    }, options.signal);
     const result = (data ?? { rows: [], total: 0 }) as unknown as RpcResult;
     const rows = result.rows ?? [];
-    all.push(...rows);
-    total = result.total ?? all.length;
-    if (rows.length < cap || all.length >= total) break;
+    tickets.push(...rows.map(normalizeTicket));
+    total = result.total ?? tickets.length;
+    options.onProgress?.({ tickets: [...tickets], totalCount: total, complete: false });
+    if (rows.length < FETCH_ALL_PAGE_SIZE || tickets.length >= total) break;
   }
-  const tickets = all.map(normalizeTicket);
-  return { tickets, totalCount: total || tickets.length };
+  return { tickets, totalCount: total, complete: true };
 }
 
 export function useProjectTickets(projectId: string | undefined) {
   const qc = useQueryClient();
   const queryKey = ["projectTickets", projectId] as const;
-
   const query = useQuery({
     queryKey,
-    queryFn: () => fetchProjectTickets(projectId!),
+    queryFn: ({ signal }) => {
+      if (!projectId) throw new Error("Project is required");
+      return fetchProjectTickets(projectId, {
+        signal,
+        onProgress: (result) => { if (!signal.aborted) qc.setQueryData(queryKey, result); },
+      });
+    },
     enabled: !!projectId,
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false,
   });
-
-  useRealtimeInvalidate(
-    projectId
-      ? [
-          { table: "tickets", filter: `project_id=eq.${projectId}` },
-          { table: "ticket_assignees" },
-          { table: "project_epics", filter: `project_id=eq.${projectId}` },
-        ]
-      : null,
-    queryKey,
-    !!projectId,
-  );
-
+  useTicketListRealtime(projectId, queryKey);
   const tickets = query.data?.tickets ?? [];
   const totalCount = query.data?.totalCount ?? 0;
+  const loadingMore = !!projectId && query.isFetching;
   return {
     tickets,
     loading: query.isPending && !!projectId,
+    loadingMore,
+    loadedCount: tickets.length,
     error: query.error instanceof Error ? query.error.message : query.error ? String(query.error) : null,
-    reload: () => qc.invalidateQueries({ queryKey }),
+    reload: () => qc.invalidateQueries({ queryKey }, { cancelRefetch: false }),
     totalCount,
-    truncated: totalCount > tickets.length,
+    truncated: query.data?.complete === true && totalCount > tickets.length,
   };
 }

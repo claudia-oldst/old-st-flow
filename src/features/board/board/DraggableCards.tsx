@@ -11,6 +11,7 @@ export function DraggableCard({
   forceBars,
   showQuickStart,
   currentUserId,
+  disabled = false,
 }: {
   ticket: TicketRow;
   onClick: () => void;
@@ -18,8 +19,9 @@ export function DraggableCard({
   forceBars: boolean;
   showQuickStart?: boolean;
   currentUserId?: string;
+  disabled?: boolean;
 }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: ticket.id });
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: ticket.id, disabled });
   return (
     <div ref={setNodeRef} {...attributes} {...listeners}>
       <TicketCard
@@ -42,6 +44,7 @@ export function DraggableDisciplineCard({
   forceBars,
   showQuickStart,
   currentUserId,
+  disabled = false,
 }: {
   card: DisciplineCard;
   onClick: () => void;
@@ -49,9 +52,11 @@ export function DraggableDisciplineCard({
   forceBars: boolean;
   showQuickStart?: boolean;
   currentUserId?: string;
+  disabled?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `${card.ticket.id}::${card.slot}`,
+    disabled,
   });
   return (
     <div ref={setNodeRef} {...attributes} {...listeners} className="relative">

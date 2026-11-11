@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TopScrollSync } from "./TopScrollSync";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { TicketLoadingProgress } from "@/features/tickets/TicketLoadingProgress";
 import { AlertCircle, RefreshCw } from "lucide-react";
 
 export function ProjectBoard({
@@ -27,6 +28,7 @@ export function ProjectBoard({
   tickets: ticketsProp,
   reload: reloadProp,
   feedback = false,
+  loadingMore: loadingMoreProp,
 }: {
   projectId: string;
   search?: string;
@@ -35,9 +37,11 @@ export function ProjectBoard({
   tickets?: TicketRow[];
   reload?: () => void;
   feedback?: boolean;
+  loadingMore?: boolean;
 }) {
   const { statuses, loading: statusesLoading, error: statusesError, reload: reloadStatuses } = useStatuses();
   const local = useProjectTickets(ticketsProp ? undefined : projectId);
+  const loadingMore = loadingMoreProp ?? local.loadingMore;
   const allTickets = ticketsProp ?? local.tickets;
   const reload = reloadProp ?? local.reload;
   const loadError = (!ticketsProp && local.error) || statusesError;
@@ -113,19 +117,21 @@ export function ProjectBoard({
       : null;
 
   const toolbar = (
-    feedback ? <div className="text-xs text-dim mb-4">{visible.length} feedback</div> : <BoardToolbar
+    feedback ? <div className="text-xs text-dim mb-4">{visible.length}{loadingMore ? "+" : ""} feedback</div> : <BoardToolbar
       mode={mode}
       setMode={(m) => { setTouched(true); setMode(m); }}
       filterMine={filterMine}
       setFilterMine={(v) => { setTouched(true); setFilterMine(v); }}
       visibleCount={visible.length}
       cardCount={disciplineCards.length}
+      loadingMore={loadingMore}
     />
   );
 
   return (
     <TooltipProvider>
       <div>
+        {!ticketsProp && loadingMore && <TicketLoadingProgress loadedCount={local.loadedCount} totalCount={local.totalCount} />}
         {truncated && (
           <div className="mb-3 rounded-xl px-3 py-2 text-xs text-dim bg-accent/10 hairline">
             Showing first {allTickets.length} of {totalCount} tickets — switch to List view to page through the rest.
@@ -169,7 +175,7 @@ export function ProjectBoard({
             </div>
           </>
         ) : (
-        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        <DndContext sensors={sensors} onDragStart={loadingMore ? undefined : handleDragStart} onDragEnd={loadingMore ? undefined : handleDragEnd}>
           {mode === "project" ? (
             <TopScrollSync toolbar={toolbar}>
               {statuses.map((status) => (
@@ -184,6 +190,7 @@ export function ProjectBoard({
                   prefs={prefs}
                   forceBars={filterMine}
                   showQuickStart={filterMine}
+                  loadingMore={loadingMore}
                   currentUserId={user?.id}
                 />
               ))}
@@ -199,6 +206,7 @@ export function ProjectBoard({
                   prefs={prefs}
                   forceBars={filterMine}
                   showQuickStart={filterMine}
+                  loadingMore={loadingMore}
                   currentUserId={user?.id}
                 />
               ))}

@@ -33,7 +33,9 @@ export function TicketsList({
   projectId,
   columns,
   rowAction,
+  loadingMore = false,
 }: {
+  loadingMore?: boolean;
   tickets: TicketRow[];
   groupBy: GroupBy;
   onOpen: (t: TicketRow) => void;
@@ -136,6 +138,7 @@ export function TicketsList({
                 <TicketsGroupHeader
                   label={g.label}
                   count={g.tickets.length}
+                  loadingMore={loadingMore}
                   color={g.color}
                   isCollapsed={isCollapsed}
                   onToggle={() =>

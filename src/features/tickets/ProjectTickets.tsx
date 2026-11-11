@@ -10,6 +10,7 @@ import { ListPagination } from "@/components/ListPagination";
 import { PAGE_SIZES } from "@/lib/pagination";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { TicketLoadingProgress } from "./TicketLoadingProgress";
 import { SprintPoolFilter } from "@/features/sprints/SprintPoolFilter";
 
 export function ProjectTickets({ projectId }: { projectId: string }) {
@@ -93,6 +94,8 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
         }
       />
 
+      {p.loadingMore && (grouped || v.view === "board") && <TicketLoadingProgress loadedCount={p.loadedCount} totalCount={p.totalCount} />}
+
       {error ? (
         <Alert variant="destructive" className="bg-destructive/10">
           <AlertCircle className="h-4 w-4" />
@@ -124,6 +127,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
             v.setTouched(true);
             v.setFilterMine(val);
           }}
+          loadingMore={p.loadingMore}
           tickets={v.filteredTickets}
           reload={reload}
         />
@@ -170,7 +174,8 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
             extraCols={["fe_pool", "be_pool"]}
             poolData={poolData}
             columnPrefs={columnPrefs}
-            canEditEpics={v.pmba}
+            loadingMore={p.loadingMore}
+            canEditEpics={v.pmba && !p.loadingMore}
             projectId={projectId}
           />
           {!grouped && (
