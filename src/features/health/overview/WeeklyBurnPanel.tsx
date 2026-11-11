@@ -42,17 +42,26 @@ export function WeeklyBurnPanel({ projectId, tickets }: Props) {
     queryFn: async () => {
       // Fetch range matches rendered range exactly (8 prior weeks + current).
       const since = startOfISOWeek(addWeeks(new Date(), -8)).toISOString();
+      // Scope by project at the DB level: passing every ticket id in .in()
+      // overflows the request URL on large projects (HTTP 414).
       const { data } = await supabase
         .from("time_logs")
-        .select("logged_at, hours, user_id, member:team_members(name, avatar_color)")
-        .in("ticket_id", ticketIds)
-        .gte("logged_at", since);
-      return (data ?? []) as {
+        .select(
+          "ticket_id, logged_at, hours, user_id, ticket:tickets!inner(project_id), member:team_members(name, avatar_color)",
+        )
+        .eq("ticket.project_id", projectId)
+        .gte("logged_at", since)
+        .limit(10000);
+      // Keep the Health page's version filter: only count logs for tickets
+      // currently in view.
+      const ticketIdSet = new Set(ticketIds);
+      return ((data ?? []) as {
+        ticket_id: string;
         logged_at: string;
         hours: number;
         user_id: string;
         member: { name: string; avatar_color: string } | null;
-      }[];
+      }[]).filter((log) => ticketIdSet.has(log.ticket_id));
     },
   });
 
