@@ -6,7 +6,7 @@ vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: (...a: any[]
 import { fetchProjectTickets } from "./useProjectTickets";
 
 describe("fetchProjectTickets", () => {
-  it("loads all 1185 tickets across three 600-row calls", async () => {
+  it("loads all 1185 tickets in 600-row pages", async () => {
     const total = 1185;
     rpc.mockImplementation(async (_n: string, args: any) => {
       const start = (args._page - 1) * args._page_size;
@@ -16,6 +16,7 @@ describe("fetchProjectTickets", () => {
     });
     const res = await fetchProjectTickets("p");
     expect(res.tickets).toHaveLength(1185);
-    expect(rpc).toHaveBeenCalledTimes(3);
+    expect(rpc).toHaveBeenCalledTimes(2);
+    expect(rpc.mock.calls.map((c) => c[1]._page_size)).toEqual([600, 600]);
   });
 });
