@@ -9,6 +9,7 @@ import { newDraft, type Draft, type Slot } from "@/features/tickets/add-dialog/t
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import type { ProjectMember, TeamMember } from "@/lib/types";
 import { buildConvertPatch } from "./convertFeedback";
+import { useParentTicket } from "@/features/tickets/detail/useParentTicket";
 
 const str = (n: number | null | undefined) => (n == null ? "" : String(n));
 
@@ -39,6 +40,14 @@ export function ConvertFeedbackDialog({ open, onOpenChange, ticket, onConverted 
   const [draft, setDraft] = useState<Draft>(() => draftFrom(ticket, backlog));
   const [members, setMembers] = useState<(ProjectMember & { member: TeamMember })[]>([]);
   const [busy, setBusy] = useState(false);
+  const parent = useParentTicket(ticket.parent_ticket_id, open && ticket.parent?.title === undefined);
+
+  useEffect(() => {
+    if (!parent.data) return;
+    setDraft((current) => current.parentTicketId === parent.data.id
+      ? { ...current, parentTitle: parent.data.title }
+      : current);
+  }, [parent.data]);
 
   useEffect(() => {
     if (!open) return;
