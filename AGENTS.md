@@ -4,3 +4,6 @@
 - Feedback tickets (`ticket_type = 'Feedback'`) use negative `ticket_number` and `FB-n` labels; `before_ticket_insert` assigns the real number on conversion — why: they must not consume the project sequence.
 - Any new report/RPC reading tickets must exclude `ticket_type = 'Feedback'` — why: unconverted feedback must not affect lists, health, portal or billing.
 - Feedback triage reuses the shared overall status, filter, grouping and bulk controls while hiding discipline status, assignment and timers — why: manage feedback without treating it as live development.
+
+- Ticket list rows omit acceptance criteria and parent titles; hydrate them with dedicated detail queries and block criteria editing until loaded — why: small downloads must never overwrite unloaded content.
+- Full ticket collections load progressively in 200-row pages with per-page retry/cancellation; defer realtime refresh until downloading finishes — why: slow connections must retain progress instead of restarting.

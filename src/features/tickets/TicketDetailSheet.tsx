@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
@@ -10,6 +10,8 @@ import { LogTimeModal } from "@/features/timelog/LogTimeModal";
 import { RequestMoreTimeDialog } from "@/features/tickets/RequestMoreTimeDialog";
 import { useTicketEstimateChanges } from "@/features/estimates/useEstimateChanges";
 import { TicketComments } from "@/features/comments/TicketComments";
+import { useAcceptanceCriteria } from "./detail/useAcceptanceCriteria";
+import { useParentTicket } from "./detail/useParentTicket";
 import { AcceptanceCriteria } from "./detail/AcceptanceCriteria";
 import { TicketDetailHeader } from "./detail/TicketDetailHeader";
 import { TicketDetailBody } from "./detail/TicketDetailBody";
@@ -27,8 +29,15 @@ interface Props {
 }
 
 export function TicketDetailSheet({ open, onOpenChange, ticket: ticketProp, projectId, onChange }: Props) {
-  const { ticket, setLiveTicket } = useLiveTicket(ticketProp, open);
+  const { ticket: liveTicket, setLiveTicket } = useLiveTicket(ticketProp, open);
 
+  const [activeTab, setActiveTab] = useState("status");
+  useEffect(() => {
+    setActiveTab(liveTicket?.ticket_type === "Feedback" ? "discussion" : "status");
+  }, [liveTicket?.id, open]);
+  const ac = useAcceptanceCriteria(liveTicket?.id, open && activeTab === "acceptance" && liveTicket?.acceptance_criteria === undefined);
+  const parent = useParentTicket(liveTicket?.parent_ticket_id, open && liveTicket?.parent?.title === undefined);
+  const ticket = liveTicket ? { ...liveTicket, parent: parent.data ?? liveTicket.parent } : null;
 
   const role = useProjectRole(projectId);
   const user = useCurrentUser((s) => s.user);
@@ -67,13 +76,6 @@ export function TicketDetailSheet({ open, onOpenChange, ticket: ticketProp, proj
   const canEditProj = isProj && (canManage || isMine);
   const isPMBARole = canManage;
 
-  const defaultTab =
-    ticket.ticket_type === "Feedback"
-      ? "discussion"
-      : ticket.acceptance_criteria && ticket.acceptance_criteria.trim()
-        ? "acceptance"
-        : "status";
-
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
@@ -98,7 +100,7 @@ export function TicketDetailSheet({ open, onOpenChange, ticket: ticketProp, proj
           <TicketDetailMeta ticket={ticket} logCount={logCount} />
 
 
-          <Tabs defaultValue={defaultTab} className="mt-4 flex-1 flex flex-col min-h-0">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4 flex-1 flex flex-col min-h-0">
             <TabsList className="grid w-full grid-cols-3 shrink-0">
               <TabsTrigger value="status">Details</TabsTrigger>
               <TabsTrigger value="acceptance">Acceptance</TabsTrigger>
@@ -142,7 +144,10 @@ export function TicketDetailSheet({ open, onOpenChange, ticket: ticketProp, proj
                 ticketTitle={ticket.title}
                 epicName={ticket.epic_name ?? null}
                 role={role}
-                value={ticket.acceptance_criteria}
+                value={ticket.acceptance_criteria === undefined ? ac.data : ticket.acceptance_criteria}
+                loading={ticket.acceptance_criteria === undefined && ac.data === undefined && !ac.isError}
+                error={ticket.acceptance_criteria === undefined && ac.isError ? ac.error.message : null}
+                onRetry={() => void ac.refetch()}
                 canEdit={isPMBARole}
                 onSaved={onChange}
               />

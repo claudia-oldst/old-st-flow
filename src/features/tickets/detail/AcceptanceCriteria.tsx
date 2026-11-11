@@ -5,6 +5,8 @@ import { Sparkles, Edit3, Copy } from "lucide-react";
 import type { ProjectRole } from "@/lib/types";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
 import { MarkdownView } from "./MarkdownView";
 
 export function AcceptanceCriteria({
@@ -15,18 +17,26 @@ export function AcceptanceCriteria({
   value,
   canEdit,
   onSaved,
+  loading = false,
+  error,
+  onRetry,
 }: {
   ticketId: string;
   ticketTitle: string;
   epicName: string | null;
   role: ProjectRole | null;
-  value: string | null;
+  value: string | null | undefined;
   canEdit: boolean;
   onSaved: () => void;
+  loading?: boolean;
+  error?: string | null;
+  onRetry?: () => void;
 }) {
+  const qc = useQueryClient();
+  const ready = !loading && !error && value !== undefined;
   const [editing, setEditing] = useState(false);
   const [preview, setPreview] = useState(false);
-  const [localValue, setLocalValue] = useState<string | null>(value);
+  const [localValue, setLocalValue] = useState<string | null | undefined>(value);
   const [draft, setDraft] = useState(value ?? "");
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -39,6 +49,7 @@ export function AcceptanceCriteria({
   }, [value, ticketId]);
 
   const generate = async () => {
+    if (!ready || !canEdit) return;
     setGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke("generate-acceptance-criteria", {
@@ -61,12 +72,14 @@ export function AcceptanceCriteria({
   };
 
   const startGenerate = async () => {
+    if (!ready || !canEdit) return;
     if (draft.trim() && !window.confirm("Replace current acceptance criteria with an AI-generated draft?")) return;
     setEditing(true);
     await generate();
   };
 
   const save = async () => {
+    if (!ready || !canEdit) return;
     setSaving(true);
     const next = draft.trim() ? draft : null;
     // optimistic: show immediately
@@ -83,6 +96,8 @@ export function AcceptanceCriteria({
       setLocalValue(value);
       return toast.error(error.message);
     }
+    qc.setQueryData(["ticketAC", ticketId], next);
+    void qc.invalidateQueries({ queryKey: ["ticketAC", ticketId] });
     toast.success("Acceptance criteria saved");
     onSaved();
   };
@@ -124,6 +139,19 @@ Ticket: ${ticketTitle}${epicLine}
     </Button>
   );
 
+  if (!ready) {
+    return error ? (
+      <div role="alert" className="space-y-3 text-sm text-destructive">
+        <p>Acceptance criteria could not load: {error}</p>
+        <Button variant="outline" size="sm" onClick={onRetry}>Retry</Button>
+      </div>
+    ) : (
+      <div role="status" aria-label="Loading acceptance criteria" className="space-y-3">
+        <Skeleton className="h-5 w-40" /><Skeleton className="h-24 w-full" /><Skeleton className="h-16 w-full" />
+      </div>
+    );
+  }
+
   if (!editing) {
     return (
       <div className="space-y-3">
@@ -153,7 +181,7 @@ Ticket: ${ticketTitle}${epicLine}
 
         {hasContent ? (
           <div className="rounded-lg bg-white/[0.02] hairline p-4">
-            <MarkdownView source={localValue!} />
+            <MarkdownView source={localValue ?? ""} />
           </div>
         ) : (
           <div className="text-sm text-dim p-4 rounded-lg bg-white/[0.02] hairline">

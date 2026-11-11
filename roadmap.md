@@ -9,3 +9,10 @@
 - [x] Accept and re-host optional Thalamus WebM recordings in the first discussion comment
 - [x] Test and deploy recording support (9 tests passed)
 - [x] Add shared overall status to Feedback details, list, filtering, grouping and bulk actions; 17 tests passed, preview compiles. Authenticated end-to-end checks unavailable with external unmanaged sign-in.
+
+# Slow-connection ticket loading
+- [ ] Slim list payload without changing access/filter/sort rules
+- [ ] Progressive 200-ticket batches, cancellation/retries, deferred live refresh
+- [ ] Lazy acceptance criteria with safe editing, parent title hydration
+- [ ] Progress/counts and disable board drag during loading
+- [ ] Tests and verification (authenticated 3G check requires external sign-in)

@@ -13,7 +13,9 @@ export function useLiveTicket(ticketProp: TicketRow | null, open: boolean) {
 
   // Sync from prop (new ticket opened, or parent reloaded list)
   useEffect(() => {
-    setLiveTicket(ticketProp);
+    setLiveTicket((prev) => prev && ticketProp && prev.id === ticketProp.id
+      ? { ...ticketProp, acceptance_criteria: ticketProp.acceptance_criteria === undefined ? prev.acceptance_criteria : ticketProp.acceptance_criteria }
+      : ticketProp);
   }, [ticketProp]);
 
   // Realtime updates for this specific ticket so the detail view reflects
@@ -22,7 +24,7 @@ export function useLiveTicket(ticketProp: TicketRow | null, open: boolean) {
     if (!ticketProp?.id) return;
     const id = ticketProp.id;
     const channel = supabase
-      .channel(`ticket-detail-${id}`)
+      .channel(`ticket-detail-${id}-${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "tickets", filter: `id=eq.${id}` },

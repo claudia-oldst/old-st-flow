@@ -1,7 +1,7 @@
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
-import type { DisciplineStatus, TeamMember } from "@/lib/types";
+import { useTicketListRealtime } from "./useTicketListRealtime";
+import { requestTicketPage } from "./ticketPageRequest";
+import { normalizeTicket } from "./useProjectTickets";
 import type { TicketRow } from "./useProjectTickets";
 import type { TicketFilters } from "./TicketsFilter";
 
@@ -40,54 +40,6 @@ interface RpcResult {
   rows: any[];
 }
 
-function normalize(raw: any): TicketRow {
-  return {
-    id: raw.id,
-    project_id: raw.project_id,
-    ticket_number: raw.ticket_number,
-    formatted_id: raw.formatted_id,
-    title: raw.title,
-    ticket_type: raw.ticket_type,
-    status_id: raw.status_id,
-    fe_status: (raw.fe_status ?? "todo") as DisciplineStatus,
-    be_status: (raw.be_status ?? "todo") as DisciplineStatus,
-    project_status_override: !!raw.project_status_override,
-    epic_id: raw.epic_id ?? null,
-    epic_name: raw.epic?.epic_name ?? null,
-    version: raw.version ?? null,
-    original_fe_estimate: Number(raw.original_fe_estimate ?? 0),
-    original_be_estimate: Number(raw.original_be_estimate ?? 0),
-    current_fe_estimate: Number(raw.current_fe_estimate ?? 0),
-    current_be_estimate: Number(raw.current_be_estimate ?? 0),
-    original_project_estimate: Number(raw.original_project_estimate ?? 0),
-    current_project_estimate: Number(raw.current_project_estimate ?? 0),
-    has_original_fe_estimate: raw.original_fe_estimate !== null && raw.original_fe_estimate !== undefined,
-    has_original_be_estimate: raw.original_be_estimate !== null && raw.original_be_estimate !== undefined,
-    has_original_project_estimate: raw.original_project_estimate !== null && raw.original_project_estimate !== undefined,
-    actual_frontend_hours: Number(raw.actual_frontend_hours),
-    actual_backend_hours: Number(raw.actual_backend_hours),
-    actual_project_hours: Number(raw.actual_project_hours ?? 0),
-    acceptance_criteria: raw.acceptance_criteria ?? null,
-    external_source: raw.external_source ?? null,
-    position: raw.position,
-    created_at: raw.created_at,
-    updated_at: raw.updated_at ?? null,
-    cr_approval: (raw.ticket_type === "CR" ? (raw.cr_approval ?? "pending") : null) as TicketRow["cr_approval"],
-    cr_decided_by: raw.cr_decided_by ?? null,
-    cr_decided_at: raw.cr_decided_at ?? null,
-    parent_ticket_id: raw.parent_ticket_id ?? null,
-    bug_sub_number: raw.bug_sub_number ?? null,
-    github_issue_number: raw.github_issue_number ?? null,
-    parent: raw.parent ?? null,
-    assignees: ((raw.assignees ?? []) as any[]).map((a) => ({
-      user_id: a.user_id,
-      slot: a.slot,
-      created_at: a.created_at,
-      member: a.member as TeamMember,
-    })),
-  };
-}
-
 /**
  * Server-paged ticket list. Filters/sort/search execute in Postgres via the
  * `list_project_tickets` RPC, so pagination reflects the *full* filtered set.
@@ -108,36 +60,24 @@ export function useProjectTicketsPaged(
     queryKey,
     enabled: !!projectId,
     placeholderData: keepPreviousData,
-    queryFn: async (): Promise<{ rows: TicketRow[]; total: number }> => {
+    queryFn: async ({ signal }): Promise<{ rows: TicketRow[]; total: number }> => {
       const payload = { ...filters, filterMineUserId: filterMineUserId ?? null, feedback };
-      const { data, error } = await supabase.rpc("list_project_tickets", {
-        _project_id: projectId!,
+      if (!projectId) throw new Error("Project is required");
+      const data = await requestTicketPage({
+        _project_id: projectId,
         _filters: payload as any,
         _search: search?.trim() || null,
         _sort_col: sort.col,
         _sort_dir: sort.dir,
         _page: page,
         _page_size: pageSize,
-      });
-      if (error) {
-        throw new Error(`Could not load ticket list: ${error.message}`);
-      }
+      }, signal);
       const r = (data ?? { rows: [], total: 0 }) as unknown as RpcResult;
-      return { rows: (r.rows ?? []).map(normalize), total: r.total ?? 0 };
+      return { rows: (r.rows ?? []).map(normalizeTicket), total: r.total ?? 0 };
     },
   });
 
-  useRealtimeInvalidate(
-    projectId
-      ? [
-          { table: "tickets", filter: `project_id=eq.${projectId}` },
-          { table: "ticket_assignees" },
-          { table: "project_epics", filter: `project_id=eq.${projectId}` },
-        ]
-      : null,
-    ["projectTicketsPaged", projectId],
-    !!projectId,
-  );
+  useTicketListRealtime(projectId, ["projectTicketsPaged", projectId]);
 
   return {
     rows: query.data?.rows ?? [],
