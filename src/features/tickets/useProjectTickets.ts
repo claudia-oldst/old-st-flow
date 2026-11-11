@@ -112,10 +112,10 @@ export function normalizeTicket(raw: any): TicketRow {
   };
 }
 
-export const FETCH_ALL_PAGE_SIZE = 1000;
+export const FETCH_ALL_PAGE_SIZE = 600;
 
 export async function fetchProjectTickets(projectId: string): Promise<FetchResult> {
-  // The RPC caps each call at 1000 rows, so fetch page by page until all are loaded.
+  // The RPC caps each call at 600 rows, so fetch page by page until all are loaded.
   const cap = FETCH_ALL_PAGE_SIZE;
   const all: any[] = [];
   let total = 0;
@@ -130,7 +130,7 @@ export async function fetchProjectTickets(projectId: string): Promise<FetchResul
         _page: page,
         _page_size: cap,
       }),
-      12_000,
+      30_000,
       "Ticket loading",
     );
     if (error) {
