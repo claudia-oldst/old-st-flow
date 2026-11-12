@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, ChevronsUpDown, X } from "lucide-react";
+import { ChevronsUpDown, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,12 +12,17 @@ import {
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { useStatuses } from "@/features/statuses/useStatuses";
+import { ParentOptionRow, type ParentRowInfo } from "./ParentOptionRow";
+import { ParentTicketPreview } from "./ParentTicketPreview";
 
 export interface ParentTicketOption {
   id: string;
   formatted_id: string;
   title: string;
   epic_id: number | null;
+  ticket_type?: string;
+  status_id?: string | null;
 }
 
 interface Props {
@@ -48,12 +53,34 @@ export function ParentTicketSelect({
   const [open, setOpen] = useState(false);
   const [options, setOptions] = useState<ParentTicketOption[]>([]);
   const [selected, setSelected] = useState<ParentTicketOption | null>(null);
+  const [hovered, setHovered] = useState<string>("");
+  const [epics, setEpics] = useState<Map<number, string>>(new Map());
+  const { statuses } = useStatuses();
+
+  useEffect(() => {
+    supabase.from("project_epics").select("id, epic_name").eq("project_id", projectId).then(({ data }) => {
+      setEpics(new Map((data ?? []).map((e: any) => [e.id, e.epic_name ?? "Untitled epic"])));
+    });
+  }, [projectId]);
+
+  const infoOf = (o: ParentTicketOption): ParentRowInfo => {
+    const st = statuses.find((x) => x.id === o.status_id);
+    return {
+      formatted_id: o.formatted_id,
+      title: o.title,
+      ticket_type: o.ticket_type ?? "",
+      epicName: o.epic_id != null ? epics.get(o.epic_id) ?? null : null,
+      statusName: st?.name ?? null,
+      statusColor: st?.color ?? null,
+    };
+  };
+  const hoveredOpt = options.find((o) => o.id === hovered) ?? null;
 
   useEffect(() => {
     let cancelled = false;
     supabase
       .from("tickets")
-      .select("id, formatted_id, title, ticket_type, epic_id")
+      .select("id, formatted_id, title, ticket_type, epic_id, status_id")
       .eq("project_id", projectId)
       .in("ticket_type", types as any)
       .order("ticket_number", { ascending: true })
@@ -63,7 +90,7 @@ export function ParentTicketSelect({
         const skip = new Set(excludeKey ? excludeKey.split(",") : []);
         const opts = (data ?? [])
           .filter((t: any) => t.id !== excludeId && !skip.has(t.id))
-          .map((t: any) => ({ id: t.id, formatted_id: t.formatted_id, title: t.title, epic_id: t.epic_id ?? null }));
+          .map((t: any) => ({ id: t.id, formatted_id: t.formatted_id, title: t.title, epic_id: t.epic_id ?? null, ticket_type: t.ticket_type, status_id: t.status_id }));
         setOptions(opts);
       });
     return () => {
@@ -115,39 +142,45 @@ export function ParentTicketSelect({
             <ChevronsUpDown className="h-3.5 w-3.5 opacity-60 shrink-0 ml-1" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+        <PopoverContent className="p-0 w-[min(720px,calc(100vw-2rem))]" align="start">
+          <div className="flex flex-col sm:flex-row">
           <Command
+            className="sm:w-[420px] shrink-0 sm:border-r border-border rounded-none"
+            value={hovered}
+            onValueChange={setHovered}
             filter={(value, search) =>
               value.toLowerCase().includes(search.trim().toLowerCase()) ? 1 : 0
             }
           >
-            <CommandInput placeholder="Search ticket…" />
-            <CommandList>
+            <CommandInput placeholder="Search ticket, epic…" />
+            <CommandList className="max-h-[480px]">
               <CommandEmpty>No tickets found.</CommandEmpty>
               <CommandGroup>
                 {options.map((opt) => (
                   <CommandItem
                     key={opt.id}
-                    value={`${opt.formatted_id} ${opt.title}`}
+                    value={opt.id}
+                    keywords={[opt.formatted_id, opt.title, infoOf(opt).epicName ?? "No Epic"]}
                     onSelect={() => {
                       onChange(opt.id, opt);
                       setSelected(opt);
                       setOpen(false);
                     }}
                   >
-                    <Check
-                      className={cn(
-                        "h-3.5 w-3.5 mr-2",
-                        value === opt.id ? "opacity-100" : "opacity-0",
-                      )}
-                    />
-                    <span className="font-mono text-dimmer text-xs mr-2">{opt.formatted_id}</span>
-                    <span className="truncate">{opt.title}</span>
+                    <ParentOptionRow info={infoOf(opt)} selected={value === opt.id} />
                   </CommandItem>
                 ))}
               </CommandGroup>
             </CommandList>
           </Command>
+          <div className="flex-1 min-w-0 max-h-[530px] overflow-y-auto border-t sm:border-t-0 border-border">
+            {hoveredOpt ? (
+              <ParentTicketPreview id={hoveredOpt.id} info={infoOf(hoveredOpt)} />
+            ) : (
+              <div className="p-3 text-xs text-dimmer">Hover a ticket to preview it.</div>
+            )}
+          </div>
+          </div>
         </PopoverContent>
       </Popover>
       {selected && clearable && (
