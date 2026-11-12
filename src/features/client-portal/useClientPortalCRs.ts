@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
+import { EMPTY_FILTERS, filterArgs, filterKey, type PortalFilters } from "./filters/portalFilters";
 
 export interface ClientCRTicket {
   id: string;
@@ -44,8 +45,8 @@ export interface ClientPortalCRPayload {
   cr_tickets: ClientCRTicket[];
 }
 
-export function useClientPortalCRsByHash(hash: string | undefined) {
-  const queryKey = ["clientPortalCRs", hash] as const;
+export function useClientPortalCRsByHash(hash: string | undefined, filters: PortalFilters = EMPTY_FILTERS) {
+  const queryKey = ["clientPortalCRs", hash, filterKey(filters)] as const;
 
   const query = useQuery({
     queryKey,
@@ -53,6 +54,7 @@ export function useClientPortalCRsByHash(hash: string | undefined) {
     queryFn: async (): Promise<ClientPortalCRPayload | null> => {
       const { data } = await supabase.rpc("get_client_portal_change_requests", {
         _hash: hash!,
+        ...filterArgs(filters),
       });
       return (data as unknown as ClientPortalCRPayload) ?? null;
     },

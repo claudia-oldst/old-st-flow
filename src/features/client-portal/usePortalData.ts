@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
 import type { PortalPayload } from "./types";
+import { EMPTY_FILTERS, filterArgs, filterKey, type PortalFilters } from "./filters/portalFilters";
 
 /**
  * Compute the live portal payload for a project at a given cutoff date.
@@ -13,10 +14,11 @@ export function usePortalPreview(
   _hash: string | null,
   asOf: Date,
   versions?: string[],
+  filters: PortalFilters = EMPTY_FILTERS,
 ) {
   const asOfIso = asOf.toISOString();
   const versionKey = (versions ?? []).slice().sort().join("|");
-  const queryKey = ["portalPreview", projectId, asOfIso, versionKey] as const;
+  const queryKey = ["portalPreview", projectId, asOfIso, versionKey, filterKey(filters)] as const;
 
   const query = useQuery({
     queryKey,
@@ -27,6 +29,7 @@ export function usePortalPreview(
         _cutoff: asOfIso,
         // `[]` means "all versions" in the RPC, so an empty selection is safe.
         _versions: versions ?? [],
+        ...filterArgs(filters),
       });
       if (error) throw error;
       return data as unknown as PortalPayload;
@@ -58,14 +61,14 @@ export function usePortalPreview(
 }
 
 /** Read-only fetch for the public /h/:hash page. */
-export function usePublicPortal(hash: string | undefined) {
-  const queryKey = ["publicPortal", hash] as const;
+export function usePublicPortal(hash: string | undefined, filters: PortalFilters = EMPTY_FILTERS) {
+  const queryKey = ["publicPortal", hash, filterKey(filters)] as const;
 
   const query = useQuery({
     queryKey,
     enabled: !!hash,
     queryFn: async (): Promise<PortalPayload> => {
-      const { data, error } = await supabase.rpc("get_client_portal", { _hash: hash! });
+      const { data, error } = await supabase.rpc("get_client_portal", { _hash: hash!, ...filterArgs(filters) });
       if (error) throw error;
       if (!data) throw new Error("Portal not found or not enabled.");
       return data as unknown as PortalPayload;
