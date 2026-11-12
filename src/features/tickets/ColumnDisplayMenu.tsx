@@ -1,3 +1,4 @@
+import type { ColKey } from "./list/columns";
 import { Columns3, Check, RotateCcw } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
@@ -12,13 +13,17 @@ export function ColumnDisplayMenu({
   prefs,
   onChange,
   onReset,
+  available,
 }: {
+  /** Limit the menu to these columns (e.g. Feedback). */
+  available?: ColKey[];
   prefs: ColumnDisplayPrefs;
   onChange: (next: ColumnDisplayPrefs) => void;
   onReset: () => void;
 }) {
+  const cols = available ? TOGGLEABLE_COLS.filter((c) => available.includes(c.key)) : TOGGLEABLE_COLS;
   const allOn = isAllColsOn(prefs);
-  const hiddenCount = TOGGLEABLE_COLS.filter((c) => prefs[c.key] === false).length;
+  const hiddenCount = cols.filter((c) => prefs[c.key] === false).length;
 
   return (
     <Popover>
@@ -52,7 +57,7 @@ export function ColumnDisplayMenu({
             Columns
           </div>
           <div className="space-y-0.5">
-            {TOGGLEABLE_COLS.map((col) => {
+            {cols.map((col) => {
               const selected = prefs[col.key] !== false;
               return (
                 <button

@@ -1,3 +1,4 @@
+import type { ColKey } from "@/features/tickets/list/columns";
 import { ChevronDown, ClipboardPaste, Clock, LayoutGrid, List, Plus, Search, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,6 +49,7 @@ export function ProjectTicketsToolbar({
   setCardPrefs,
   resetCardPrefs,
   columnPrefs,
+  columnOptions,
   setColumnPrefs,
   resetColumnPrefs,
   search,
@@ -84,6 +86,7 @@ export function ProjectTicketsToolbar({
   setCardPrefs?: (p: CardDisplayPrefs) => void;
   resetCardPrefs?: () => void;
   columnPrefs?: ColumnDisplayPrefs;
+  columnOptions?: ColKey[];
   setColumnPrefs?: (p: ColumnDisplayPrefs) => void;
   resetColumnPrefs?: () => void;
   search: string;
@@ -174,6 +177,7 @@ export function ProjectTicketsToolbar({
       {view === "list" && columnPrefs && setColumnPrefs && resetColumnPrefs && (
         <ColumnDisplayMenu
           prefs={columnPrefs}
+          available={columnOptions}
           onChange={setColumnPrefs}
           onReset={resetColumnPrefs}
         />
