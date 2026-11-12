@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type {
   GanttCommitmentInput,
@@ -30,6 +30,7 @@ export function usePublicPortalGantt(hash: string | undefined, filters: PortalFi
   const query = useQuery({
     queryKey: ["publicPortalGantt", hash, filterKey(filters)] as const,
     enabled: !!hash,
+    placeholderData: keepPreviousData,
     queryFn: async (): Promise<PortalGanttPayload | null> => {
       const { data, error } = await supabase.rpc("get_client_portal_gantt", {
         _hash: hash!,

@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { BillingPayload } from "./buildBilling";
 import { EMPTY_FILTERS, filterArgs, filterKey, type PortalFilters } from "../filters/portalFilters";
@@ -17,6 +17,7 @@ export function usePortalBilling(src: BillingSource) {
       : ["portalBilling", src.projectId, src.asOf.toISOString(), (src.versions ?? []).slice().sort().join("|"), filterKey(filters)];
   return useQuery({
     queryKey: key,
+    placeholderData: keepPreviousData,
     queryFn: async (): Promise<BillingPayload | null> => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const rpc = supabase.rpc.bind(supabase) as any;

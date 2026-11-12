@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
 import { EMPTY_FILTERS, filterArgs, filterKey, type PortalFilters } from "./filters/portalFilters";
@@ -51,6 +51,7 @@ export function useClientPortalCRsByHash(hash: string | undefined, filters: Port
   const query = useQuery({
     queryKey,
     enabled: !!hash,
+    placeholderData: keepPreviousData,
     queryFn: async (): Promise<ClientPortalCRPayload | null> => {
       const { data } = await supabase.rpc("get_client_portal_change_requests", {
         _hash: hash!,

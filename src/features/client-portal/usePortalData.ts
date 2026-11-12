@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
 import type { PortalPayload } from "./types";
@@ -23,6 +23,7 @@ export function usePortalPreview(
   const query = useQuery({
     queryKey,
     enabled: !!projectId,
+    placeholderData: keepPreviousData,
     queryFn: async (): Promise<PortalPayload> => {
       const { data, error } = await supabase.rpc("get_project_portal_preview", {
         _project_id: projectId,
@@ -67,6 +68,7 @@ export function usePublicPortal(hash: string | undefined, filters: PortalFilters
   const query = useQuery({
     queryKey,
     enabled: !!hash,
+    placeholderData: keepPreviousData,
     queryFn: async (): Promise<PortalPayload> => {
       const { data, error } = await supabase.rpc("get_client_portal", { _hash: hash!, ...filterArgs(filters) });
       if (error) throw error;
