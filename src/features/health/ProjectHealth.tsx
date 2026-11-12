@@ -13,7 +13,7 @@ import {
   discountTotalsByDiscipline,
   sumTotals,
 } from "@/features/discounts/applyDiscounts";
-import { MultiSelectFilter } from "@/features/estimates/MultiSelectFilter";
+import { MultiSelectFilter } from "@/features/_shared/filters/MultiSelectFilter";
 import { isAllVersions, versionKeyOf, versionOptions } from "./versionFilter";
 import { CreateDiscountsDialog } from "@/features/discounts/CreateDiscountsDialog";
 import { DiscountsList } from "@/features/discounts/DiscountsList";

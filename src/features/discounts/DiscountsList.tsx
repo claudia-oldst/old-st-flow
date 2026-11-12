@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Trash2, Pencil, Check, X, ArrowUp, ArrowDown } from "lucide-react";
-import { MultiSelectFilter } from "@/features/estimates/MultiSelectFilter";
+import { MultiSelectFilter } from "@/features/_shared/filters/MultiSelectFilter";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

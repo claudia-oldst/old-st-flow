@@ -9,6 +9,8 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    // Playwright screenshot capture script, run separately — not a unit test.
+    exclude: ["node_modules/**", "src/mock/screenshots/**"],
     coverage: {
       provider: "v8",
       reporter: ["text", "html", "json-summary"],
