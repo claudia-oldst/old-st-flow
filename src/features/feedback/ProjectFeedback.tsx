@@ -25,7 +25,8 @@ import { useTicketsCsvImport } from "@/features/tickets/project-tickets/useTicke
 
 const PAGE_SIZE = 100;
 const SORT = { col: "created_at", dir: "desc" } as const;
-const COLUMNS: ColKey[] = ["id", "title", "status", "epic", "fe", "be"];
+const COLUMNS: ColKey[] = ["id", "title", "status", "epic", "version", "fe", "be"];
+const COLUMN_OPTIONS: ColKey[] = [...COLUMNS, "created_at", "updated_at"];
 const GROUPS: GroupBy[] = ["none", "status", "epic", "version"];
 const FILTERS: FilterSection[] = ["status", "epic", "version"];
 
@@ -94,7 +95,7 @@ export function ProjectFeedback({ projectId }: { projectId: string }) {
         onImport={() => setImportOpen(true)} onCopyTickets={() => setCopyOpen(true)}
         showMineToggle={false} showGroupTimer={false}
         groupOptions={GROUPS} filterSections={FILTERS}
-        columnPrefs={colDisplay.prefs} setColumnPrefs={colDisplay.setPrefs} resetColumnPrefs={colDisplay.reset}
+        columnPrefs={colDisplay.prefs} setColumnPrefs={colDisplay.setPrefs} resetColumnPrefs={colDisplay.reset} columnOptions={COLUMN_OPTIONS}
       />
       {loading ? (
         <Skeleton className="h-40 w-full" />
