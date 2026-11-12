@@ -22,7 +22,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ChevronDown, Settings, FolderKanban, ListChecks, Square, LogOut, Clock } from "lucide-react";
+import { MyProfileDialog } from "@/features/profile/MyProfileDialog";
+import { ChevronDown, UserRound, Settings, FolderKanban, ListChecks, Square, LogOut, Clock } from "lucide-react";
 import { cn, formatDuration, PAGE_SHELL } from "@/lib/utils";
 
 // Leaf component: isolates per-second re-renders to just the ticking text.
@@ -128,6 +129,7 @@ function TimerChip() {
 
 function UserMenu() {
   const { user, setUser } = useCurrentUser();
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -138,9 +140,10 @@ function UserMenu() {
   if (!user) return null;
 
   return (
+    <>
     <DropdownMenu>
       <DropdownMenuTrigger className="inline-flex items-center gap-2 rounded-full px-2.5 py-1.5 hairline hover:bg-white/5 transition">
-        <MemberAvatar name={user.name} color={user.avatar_color} size="xs" />
+        <MemberAvatar name={user.name} memberId={user.id} color={user.avatar_color} size="xs" />
         <span className="text-sm">{user.name}</span>
         <ChevronDown className="h-3.5 w-3.5 opacity-60" />
       </DropdownMenuTrigger>
@@ -150,12 +153,19 @@ function UserMenu() {
           <div className="text-dimmer font-normal truncate">{user.email}</div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => setProfileOpen(true)} className="gap-2">
+          <UserRound className="h-3.5 w-3.5" />
+          My profile
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem onClick={signOut} className="gap-2">
           <LogOut className="h-3.5 w-3.5" />
           Sign out
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+    <MyProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
+    </>
   );
 }
 

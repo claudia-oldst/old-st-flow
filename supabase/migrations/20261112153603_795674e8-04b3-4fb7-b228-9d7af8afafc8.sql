@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.guard_team_member_self_update() FROM PUBLIC, anon, authenticated;

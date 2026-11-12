@@ -1,11 +1,13 @@
 import { initials } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { useAvatarUrl } from "@/features/profile/avatarStore";
 
 interface AvatarProps {
   name: string;
   color?: string;
-  size?: "xs" | "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg" | "xl";
   className?: string;
+  memberId?: string;
 }
 
 const sizeMap = {
@@ -13,9 +15,17 @@ const sizeMap = {
   sm: "h-6 w-6 text-[10px]",
   md: "h-8 w-8 text-xs",
   lg: "h-10 w-10 text-sm",
+  xl: "h-20 w-20 text-xl",
 };
 
-export function MemberAvatar({ name, color = "#6366f1", size = "sm", className }: AvatarProps) {
+export function MemberAvatar({ name, color = "#6366f1", size = "sm", className, memberId }: AvatarProps) {
+  const url = useAvatarUrl(name, memberId);
+  if (url) {
+    return (
+      <img src={url} alt={name} title={name} loading="lazy" decoding="async"
+        className={cn("inline-block rounded-full object-cover ring-1 ring-white/10 shrink-0", sizeMap[size], className)} />
+    );
+  }
   return (
     <div
       className={cn(
@@ -46,7 +56,7 @@ export function MemberAvatarStack({
   return (
     <div className="flex -space-x-2">
       {visible.map((m) => (
-        <MemberAvatar key={m.id} name={m.name} color={m.avatar_color} size={size} />
+        <MemberAvatar key={m.id} memberId={m.id} name={m.name} color={m.avatar_color} size={size} />
       ))}
       {extra > 0 && (
         <div
