@@ -1,17 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { format } from "date-fns";
-import { ChevronDown } from "lucide-react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { cn } from "@/lib/utils";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
-import { Stat } from "@/features/_shared/estimate-ui/Stat";
-import { EpicMiniTrendChart } from "@/features/_shared/estimate-ui/EpicMiniTrendChart";
+import { EpicReviewCard } from "@/features/_shared/estimate-ui/EpicReviewCard";
 import { crEstimate, computeCRTotals } from "./epic-cr/useEpicCR";
 import { useCRDeciderNames } from "./epic-cr/useCRDeciderNames";
 import { EpicCRRow } from "./EpicCRRow";
-import { ListPagination } from "@/components/ListPagination";
-
-const PAGE_SIZE = 6;
 
 interface Props {
   epicKey: string;
@@ -40,9 +33,6 @@ export function EpicCRCard({
   ratePerHour,
 }: Props) {
 
-  const [open, setOpen] = useState(!!defaultOpen);
-  const [page, setPage] = useState(1);
-  useEffect(() => { setPage(1); }, [filteredCRs.length]);
 
   const deciderIds = useMemo(
     () => allCRs
@@ -87,101 +77,50 @@ export function EpicCRCard({
   }, [allCRs, totals.original, range.from, range.to]);
 
   return (
-    <div className="glass rounded-2xl overflow-hidden">
-      <Collapsible open={open} onOpenChange={setOpen}>
-        <CollapsibleTrigger className="w-full text-left">
-          <div className="p-4 flex flex-col gap-3 hover:bg-white/[0.02] transition">
-            <div className="flex items-start gap-3 flex-wrap">
-              <div className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-white/5 hairline text-dim">
-                {projectAcronym}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium truncate">{epicName}</div>
-                <div className="text-[11px] text-dimmer">
-                  {allCRs.length} CR{allCRs.length === 1 ? "" : "s"} · {filteredCRs.length} matching
-                </div>
-              </div>
-              <ChevronDown
-                className={cn("h-4 w-4 text-dim transition-transform shrink-0", open && "rotate-180")}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-              <Stat label="Original" value={totals.original} />
-              <Stat label="Current (approved)" value={totals.current} accent="good" />
-              <Stat label="If all approved" value={totals.projected} accent="warn" />
-              <Stat label="Actual" value={totals.actual} accent="gold" />
-            </div>
-            {discountHours > 0 && (
-              <div className="text-[11px] text-health-bad font-mono">
-                −{discountHours.toFixed(discountHours % 1 === 0 ? 0 : 1)}h discounted
-              </div>
-            )}
-
-            {chartData.length > 1 && <EpicMiniTrendChart data={chartData} />}
-          </div>
-        </CollapsibleTrigger>
-
-        <CollapsibleContent className="data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up overflow-hidden">
-          <div className="hairline-t">
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="text-[10px] uppercase tracking-wider text-dimmer">
-                    <th className="text-left font-medium px-3 py-2">Ticket ID</th>
-                    <th className="text-left font-medium px-2 py-2">Ticket</th>
-                    <th className="text-right font-medium px-2 py-2">FE</th>
-                    <th className="text-right font-medium px-2 py-2">BE</th>
-                    {ratePerHour !== undefined && (
-                      <th className="text-right font-medium px-2 py-2">Cost est.</th>
-                    )}
-                    <th className="text-left font-medium px-2 py-2">Created</th>
-                    <th className="text-left font-medium px-2 py-2">Status</th>
-                    <th className="text-left font-medium px-2 py-2">Approved</th>
-                    <th className="text-right font-medium px-3 py-2">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredCRs.length === 0 && (
-                    <tr>
-                      <td colSpan={ratePerHour !== undefined ? 9 : 8} className="px-3 py-6 text-center text-dimmer">
-                        No CRs match the current filters.
-                      </td>
-                    </tr>
-                  )}
-                  {filteredCRs.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((t) => (
-                    <EpicCRRow
-                      key={t.id}
-                      ticket={t}
-                      canReview={canReview}
-                      hideReject={hideReject}
-                      memberNames={memberNames}
-                      ratePerHour={ratePerHour}
-                      onApprove={onApprove}
-                      onReject={onReject}
-                      onOpenTicket={onOpenTicket}
-                    />
-                  ))}
-                </tbody>
-
-              </table>
-              {filteredCRs.length > PAGE_SIZE && (
-                <div className="px-3 py-2 hairline-t flex items-center justify-between gap-3 flex-wrap">
-                  <div className="text-[11px] text-dimmer">
-                    Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredCRs.length)} of {filteredCRs.length}
-                  </div>
-                  <ListPagination
-                    page={page}
-                    total={filteredCRs.length}
-                    pageSize={PAGE_SIZE}
-                    onChange={setPage}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
-    </div>
+    <EpicReviewCard
+      projectAcronym={projectAcronym}
+      epicName={epicName}
+      subtitle={<>{allCRs.length} CR{allCRs.length === 1 ? "" : "s"} · {filteredCRs.length} matching</>}
+      totals={totals}
+      discountHours={discountHours}
+      chartData={chartData}
+      defaultOpen={defaultOpen}
+      itemCount={filteredCRs.length}
+      columns={
+        <>
+          <th className="text-left font-medium px-3 py-2">Ticket ID</th>
+          <th className="text-left font-medium px-2 py-2">Ticket</th>
+          <th className="text-right font-medium px-2 py-2">FE</th>
+          <th className="text-right font-medium px-2 py-2">BE</th>
+          {ratePerHour !== undefined && <th className="text-right font-medium px-2 py-2">Cost est.</th>}
+          <th className="text-left font-medium px-2 py-2">Created</th>
+          <th className="text-left font-medium px-2 py-2">Status</th>
+          <th className="text-left font-medium px-2 py-2">Approved</th>
+          <th className="text-right font-medium px-3 py-2">Actions</th>
+        </>
+      }
+      emptyRow={
+        <tr>
+          <td colSpan={ratePerHour !== undefined ? 9 : 8} className="px-3 py-6 text-center text-dimmer">
+            No CRs match the current filters.
+          </td>
+        </tr>
+      }
+      renderRows={(start, end) =>
+        filteredCRs.slice(start, end).map((t) => (
+          <EpicCRRow
+            key={t.id}
+            ticket={t}
+            canReview={canReview}
+            hideReject={hideReject}
+            memberNames={memberNames}
+            ratePerHour={ratePerHour}
+            onApprove={onApprove}
+            onReject={onReject}
+            onOpenTicket={onOpenTicket}
+          />
+        ))
+      }
+    />
   );
 }

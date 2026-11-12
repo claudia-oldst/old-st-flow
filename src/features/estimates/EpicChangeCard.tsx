@@ -1,16 +1,9 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo } from "react";
 import { format } from "date-fns";
-import { ChevronDown } from "lucide-react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { cn } from "@/lib/utils";
 import type { ChangeRow } from "./useAllEstimateChanges";
-import { Stat } from "@/features/_shared/estimate-ui/Stat";
-import { EpicMiniTrendChart } from "@/features/_shared/estimate-ui/EpicMiniTrendChart";
+import { EpicReviewCard } from "@/features/_shared/estimate-ui/EpicReviewCard";
 import { computeEpicTotals, resolveChartRange } from "./epic-change/useEpicChange";
 import { EpicChangeRow } from "./EpicChangeRow";
-import { ListPagination } from "@/components/ListPagination";
-
-const PAGE_SIZE = 6;
 
 interface EpicTicket {
   id: string;
@@ -50,9 +43,6 @@ export function EpicChangeCard({
   epicName, projectAcronym, tickets, changes, approvedChanges,
   onApprove, onReject, onOpenTicket, defaultOpen, range, discountHours = 0,
 }: Props) {
-  const [open, setOpen] = useState(!!defaultOpen);
-  const [pageState, setPageState] = useState(1);
-  useEffect(() => { setPageState(1); }, [changes.length]);
   const totals = useMemo(
     () => computeEpicTotals(tickets, changes, discountHours),
     [tickets, changes, discountHours],
@@ -88,90 +78,41 @@ export function EpicChangeCard({
   }, [tickets, approvedChanges, changes, range]);
 
   return (
-    <div className="glass rounded-2xl overflow-hidden">
-      <Collapsible open={open} onOpenChange={setOpen}>
-        <CollapsibleTrigger className="w-full text-left">
-          <div className="p-4 flex flex-col gap-3 hover:bg-white/[0.02] transition">
-            <div className="flex items-start gap-3 flex-wrap">
-              <div className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-white/5 hairline text-dim">
-                {projectAcronym}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium truncate">{epicName}</div>
-                <div className="text-[11px] text-dimmer">
-                  {tickets.length} ticket{tickets.length === 1 ? "" : "s"} · {changes.length} change
-                  {changes.length === 1 ? "" : "s"} matching
-                </div>
-              </div>
-              <ChevronDown
-                className={cn("h-4 w-4 text-dim transition-transform shrink-0", open && "rotate-180")}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-              <Stat label="Original" value={totals.original} />
-              <Stat label="Current (approved)" value={totals.currentApproved} accent="good" />
-              <Stat label="If all approved" value={totals.projected} accent="warn" />
-              <Stat label="Actual" value={totals.actual} accent="gold" />
-            </div>
-            {discountHours > 0 && (
-              <div className="text-[11px] text-health-bad font-mono">
-                −{discountHours.toFixed(discountHours % 1 === 0 ? 0 : 1)}h discounted
-              </div>
-            )}
-
-            {chartData.length > 1 && <EpicMiniTrendChart data={chartData} />}
-          </div>
-        </CollapsibleTrigger>
-
-        <CollapsibleContent className="data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up overflow-hidden">
-          <div className="hairline-t">
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="text-[10px] uppercase tracking-wider text-dimmer">
-                    <th className="text-left font-medium px-3 py-2">Ticket</th>
-                    <th className="text-left font-medium px-2 py-2">Disc.</th>
-                    <th className="text-right font-medium px-2 py-2">Prev</th>
-                    <th className="text-right font-medium px-2 py-2">New</th>
-                    <th className="text-right font-medium px-2 py-2">Δ</th>
-                    <th className="text-left font-medium px-2 py-2">Reason</th>
-                    <th className="text-left font-medium px-2 py-2">Requester</th>
-                    <th className="text-left font-medium px-2 py-2">When</th>
-                    <th className="text-left font-medium px-2 py-2">Status</th>
-                    <th className="text-left font-medium px-2 py-2">Approved</th>
-                    <th className="text-right font-medium px-3 py-2">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {changes.slice((pageState - 1) * PAGE_SIZE, pageState * PAGE_SIZE).map((c) => (
-                    <EpicChangeRow
-                      key={c.id}
-                      change={c}
-                      onApprove={onApprove}
-                      onReject={onReject}
-                      onOpenTicket={onOpenTicket}
-                    />
-                  ))}
-                </tbody>
-              </table>
-              {changes.length > PAGE_SIZE && (
-                <div className="px-3 py-2 hairline-t flex items-center justify-between gap-3 flex-wrap">
-                  <div className="text-[11px] text-dimmer">
-                    Showing {(pageState - 1) * PAGE_SIZE + 1}–{Math.min(pageState * PAGE_SIZE, changes.length)} of {changes.length}
-                  </div>
-                  <ListPagination
-                    page={pageState}
-                    total={changes.length}
-                    pageSize={PAGE_SIZE}
-                    onChange={setPageState}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
-    </div>
+    <EpicReviewCard
+      projectAcronym={projectAcronym}
+      epicName={epicName}
+      subtitle={<>{tickets.length} ticket{tickets.length === 1 ? "" : "s"} · {changes.length} change{changes.length === 1 ? "" : "s"} matching</>}
+      totals={{ ...totals, current: totals.currentApproved }}
+      discountHours={discountHours}
+      chartData={chartData}
+      defaultOpen={defaultOpen}
+      itemCount={changes.length}
+      columns={
+        <>
+          <th className="text-left font-medium px-3 py-2">Ticket</th>
+          <th className="text-left font-medium px-2 py-2">Disc.</th>
+          <th className="text-right font-medium px-2 py-2">Prev</th>
+          <th className="text-right font-medium px-2 py-2">New</th>
+          <th className="text-right font-medium px-2 py-2">Δ</th>
+          <th className="text-left font-medium px-2 py-2">Reason</th>
+          <th className="text-left font-medium px-2 py-2">Requester</th>
+          <th className="text-left font-medium px-2 py-2">When</th>
+          <th className="text-left font-medium px-2 py-2">Status</th>
+          <th className="text-left font-medium px-2 py-2">Approved</th>
+          <th className="text-right font-medium px-3 py-2">Actions</th>
+        </>
+      }
+      renderRows={(start, end) =>
+        changes.slice(start, end).map((c) => (
+          <EpicChangeRow
+            key={c.id}
+            change={c}
+            onApprove={onApprove}
+            onReject={onReject}
+            onOpenTicket={onOpenTicket}
+          />
+        ))
+      }
+    />
   );
 }
