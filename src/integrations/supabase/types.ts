@@ -1091,23 +1091,66 @@ export type Database = {
         Args: { _cat: Database["public"]["Enums"]["status_category"] }
         Returns: string
       }
-      get_client_portal: { Args: { _hash: string }; Returns: Json }
-      get_client_portal_billing: { Args: { _hash: string }; Returns: Json }
-      get_client_portal_change_requests: {
-        Args: { _hash: string }
+      get_client_portal: {
+        Args: {
+          _f_epics?: number[]
+          _f_types?: string[]
+          _f_versions?: string[]
+          _hash: string
+        }
         Returns: Json
       }
-      get_client_portal_gantt: { Args: { _hash: string }; Returns: Json }
+      get_client_portal_billing: {
+        Args: {
+          _f_epics?: number[]
+          _f_types?: string[]
+          _f_versions?: string[]
+          _hash: string
+        }
+        Returns: Json
+      }
+      get_client_portal_change_requests: {
+        Args: {
+          _f_epics?: number[]
+          _f_types?: string[]
+          _f_versions?: string[]
+          _hash: string
+        }
+        Returns: Json
+      }
+      get_client_portal_gantt: {
+        Args: {
+          _f_epics?: number[]
+          _f_types?: string[]
+          _f_versions?: string[]
+          _hash: string
+        }
+        Returns: Json
+      }
       get_project_archive_payload: {
         Args: { _project_id: string }
         Returns: Json
       }
       get_project_portal_billing: {
-        Args: { _cutoff: string; _project_id: string; _versions?: string[] }
+        Args: {
+          _cutoff: string
+          _f_epics?: number[]
+          _f_types?: string[]
+          _f_versions?: string[]
+          _project_id: string
+          _versions?: string[]
+        }
         Returns: Json
       }
       get_project_portal_preview: {
-        Args: { _cutoff: string; _project_id: string; _versions?: string[] }
+        Args: {
+          _cutoff: string
+          _f_epics?: number[]
+          _f_types?: string[]
+          _f_versions?: string[]
+          _project_id: string
+          _versions?: string[]
+        }
         Returns: Json
       }
       has_role: {
@@ -1132,8 +1175,30 @@ export type Database = {
       }
       notify_closing_window_due: { Args: never; Returns: undefined }
       portal_billing_payload: {
-        Args: { _cutoff: string; _project_id: string; _versions: string[] }
+        Args: {
+          _cutoff: string
+          _f_epics?: number[]
+          _f_types?: string[]
+          _f_versions?: string[]
+          _project_id: string
+          _versions: string[]
+        }
         Returns: Json
+      }
+      portal_discount_match: {
+        Args: { _epic: number; _epics: number[]; _types: string[] }
+        Returns: boolean
+      }
+      portal_filter_match: {
+        Args: {
+          _epic: number
+          _epics: number[]
+          _type: string
+          _types: string[]
+          _version: string
+          _versions: string[]
+        }
+        Returns: boolean
       }
       purge_project_children: { Args: { _project_id: string }; Returns: Json }
       rehydrate_project: {
