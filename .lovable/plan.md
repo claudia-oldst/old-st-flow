@@ -12,6 +12,34 @@ The parent picker shows up in three places: when adding tickets (this is also th
    - How many child tickets it already has
 4. Search also matches the epic name, not just the ID and title.
 
+## Wireframe
+
+```text
+ Parent ticket  [ ACR-042  Checkout payment flow           v ] [x]
+ +--------------------------------------------------+-------------------------------+
+ | Search ticket, epic...                            | ACR-118   [Standard]          |
+ +--------------------------------------------------+ Saved cards on checkout       |
+ | v ACR-042  Checkout payment flow                  | Epic: Payments                |
+ |            [CR] Payments          (In Progress)   | Status: (In Progress)   v1.2  |
+ |   ACR-097  Order confirmation email with          |-------------------------------|
+ |            branded template       (To Do)         | Estimates   Current   Logged  |
+ |            [Standard] Notifications               |   FE          8h        5.5h  |
+ | > ACR-118  Saved cards on checkout       <hover   |   BE          6h        2h    |
+ |            [Standard] Payments    (Dev Done)      |   Project     2h        0h    |
+ |   ACR-131  Admin refunds dashboard                |-------------------------------|
+ |            [CR] Admin             (Backlog)       | Acceptance criteria           |
+ |   ...                                             | - User can save a card on     |
+ |                                                   |   first payment               |
+ |                                                   | - Saved cards listed with     |
+ |                                                   |   last 4 digits ...           |
+ |                                                   |-------------------------------|
+ |                                                   | 3 child tickets               |
+ +--------------------------------------------------+-------------------------------+
+          list ~420px                                       preview ~300px
+```
+
+On narrow screens, the preview stacks below the list.
+
 ## Technical details
 - Only `ParentTicketSelect.tsx` changes. It sits under the 250-line limit by moving the row and preview into small `ParentOptionRow.tsx` and `ParentTicketPreview.tsx` files next to it.
 - The list query adds ticket_type, status_id, epic_id and version. Epic names come from project_epics and statuses from the existing useStatuses.
