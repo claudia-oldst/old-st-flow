@@ -2,17 +2,13 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { EpicSelect } from "@/features/epics/EpicSelect";
-import { ParentTicketSelect } from "@/features/tickets/ParentTicketSelect";
+import { DraftRow } from "@/features/tickets/add-dialog/DraftRow";
+import type { Draft } from "@/features/tickets/add-dialog/types";
+import { useStatuses } from "@/features/statuses/useStatuses";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
-import type { TicketType } from "@/lib/types";
-import { buildConvertArgs, type ConvertForm } from "./convertFeedback";
-
-const initial = (t: TicketRow): ConvertForm => ({
-  type: "Standard", epicId: t.epic_id, parentTicketId: t.parent_ticket_id,
-});
+import type { ProjectMember, TeamMember } from "@/lib/types";
+import { buildConvert, draftFromTicket } from "./convertFeedback";
 
 export function ConvertFeedbackDialog({ open, onOpenChange, ticket, onConverted }: {
   open: boolean;
@@ -20,66 +16,65 @@ export function ConvertFeedbackDialog({ open, onOpenChange, ticket, onConverted 
   ticket: TicketRow;
   onConverted: () => void;
 }) {
-  const [form, setForm] = useState<ConvertForm>(() => initial(ticket));
-  const [fromParent, setFromParent] = useState(false);
+  const { statuses } = useStatuses();
+  const [draft, setDraft] = useState<Draft>(() => draftFromTicket(ticket));
+  const [members, setMembers] = useState<(ProjectMember & { member: TeamMember })[]>([]);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => { if (open) { setForm(initial(ticket)); setFromParent(false); } }, [open, ticket]);
+  useEffect(() => { if (open) setDraft(draftFromTicket(ticket)); }, [open, ticket.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!open) return;
+    supabase.from("project_members").select("*, member:team_members(*)").eq("project_id", ticket.project_id)
+      .then(({ data }) => setMembers((data as any) ?? []));
+  }, [open, ticket.project_id]);
 
   const submit = async () => {
-    const r = buildConvertArgs(form, ticket.epic_id);
+    const r = buildConvert(draft, ticket);
     if ("error" in r) return toast.error(r.error);
     setBusy(true);
-    const { data, error } = await supabase.rpc("convert_feedback_ticket" as any, { _ticket_id: ticket.id, ...r.args });
-    setBusy(false);
-    if (error) return toast.error(error.message);
-    toast.success(`Converted to ${form.type} · ${data}`);
-    onOpenChange(false);
-    onConverted();
+    try {
+      const { data, error } = await supabase.rpc("convert_feedback_ticket" as any, { _ticket_id: ticket.id, ...r.args });
+      if (error) throw error;
+      if (Object.keys(r.patch).length) {
+        const { error: e } = await supabase.from("tickets").update(r.patch as any).eq("id", ticket.id);
+        if (e) throw e;
+      }
+      for (const a of r.removeAssignees) {
+        const { error: e } = await supabase.from("ticket_assignees").delete()
+          .eq("ticket_id", ticket.id).eq("user_id", a.user_id).eq("slot", a.slot);
+        if (e) throw e;
+      }
+      if (r.addAssignees.length) {
+        const { error: e } = await supabase.from("ticket_assignees")
+          .insert(r.addAssignees.map((a) => ({ ...a, ticket_id: ticket.id })) as any);
+        if (e) throw e;
+      }
+      toast.success(`Converted to ${draft.type} · ${data}`);
+      onOpenChange(false);
+      onConverted();
+    } catch (e: any) {
+      toast.error(e.message ?? "Could not convert");
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass-strong max-w-xl">
+      <DialogContent className="glass-strong max-w-4xl">
         <DialogHeader>
           <DialogTitle>Convert to ticket</DialogTitle>
           <div className="text-xs text-dim mt-1">
-            Everything on this ticket is kept — status, estimates, assignees, time logs and discussion. Only the type changes, and it gets the project's next ticket number.
+            Time logs, discussion and original estimates are kept. Anything you don't change stays as it is.
           </div>
         </DialogHeader>
-        <div className="space-y-3">
-          <div className="text-sm font-medium truncate">{ticket.title}</div>
-          <div className="grid grid-cols-3 gap-2 items-start">
-            <Select value={form.type} onValueChange={(v) => setForm((f) => ({ ...f, type: v as TicketType }))}>
-              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Standard">Standard</SelectItem>
-                <SelectItem value="Bug">Bug</SelectItem>
-                <SelectItem value="CR">CR</SelectItem>
-                <SelectItem value="Proj">Proj</SelectItem>
-              </SelectContent>
-            </Select>
-            {form.type !== "Proj" && (
-              <ParentTicketSelect
-                projectId={ticket.project_id}
-                value={form.parentTicketId}
-                size="sm"
-                placeholder={form.type === "Bug" ? "Parent ticket (required)…" : "Parent ticket (optional)…"}
-                onChange={(id, parent) => {
-                  const adopt = parent?.epic_id != null;
-                  setFromParent(adopt);
-                  setForm((f) => ({ ...f, parentTicketId: id, epicId: adopt ? parent!.epic_id : f.epicId }));
-                }}
-              />
-            )}
-            <div>
-              <EpicSelect projectId={ticket.project_id} value={form.epicId} size="sm"
-                onChange={(id) => { setFromParent(false); setForm((f) => ({ ...f, epicId: id })); }} />
-              {fromParent && <div className="text-[10px] text-dimmer mt-1">From parent</div>}
-              {form.epicId === null && <div className="text-[10px] text-primary mt-1">Epic required</div>}
-            </div>
-          </div>
-        </div>
+        <DraftRow
+          draft={draft} idx={0} statuses={statuses} members={members} projectId={ticket.project_id}
+          canDelete={false} isLast={false}
+          onChange={(p) => setDraft((d) => ({ ...d, ...p }))}
+          onRemove={() => {}} onEnterAtLast={() => {}}
+        />
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={busy}>Cancel</Button>
           <Button onClick={submit} disabled={busy}>Convert ticket</Button>
