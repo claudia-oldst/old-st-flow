@@ -1,0 +1,3 @@
+REVOKE EXECUTE ON FUNCTION public.get_project_portal_preview(uuid, timestamptz, text[], text[], bigint[], text[]) FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.get_project_portal_billing(uuid, timestamptz, text[], text[], bigint[], text[]) FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.portal_billing_payload(uuid, timestamptz, text[], text[], bigint[], text[]) FROM PUBLIC, anon, authenticated;
