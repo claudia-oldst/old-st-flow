@@ -19,6 +19,8 @@ export const useAvatarStore = create<AvatarState>()((set, get) => ({
     if (inflight) return inflight;
     if (get().loaded && !force) return;
     inflight = (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return; // not signed in yet: retry once auth resolves
       const { data } = await supabase
         .from("team_members")
         .select("id, name, avatar_url")
@@ -41,6 +43,14 @@ export const useAvatarStore = create<AvatarState>()((set, get) => ({
     return inflight;
   },
 }));
+
+// Re-fetch photos whenever someone signs in (first load can run before the session is restored).
+supabase.auth.onAuthStateChange((event) => {
+  if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+    setTimeout(() => void useAvatarStore.getState().load(true), 0);
+  }
+  if (event === "SIGNED_OUT") useAvatarStore.setState({ byId: {}, byName: {}, loaded: false });
+});
 
 export function useAvatarUrl(name: string, memberId?: string): string | undefined {
   const url = useAvatarStore((s) => (memberId && s.byId[memberId]) || s.byName[name]);
