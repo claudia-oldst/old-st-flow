@@ -1071,6 +1071,7 @@ export type Database = {
       }
       convert_feedback_ticket: {
         Args: {
+          _epic_id?: number
           _new_type: Database["public"]["Enums"]["ticket_type"]
           _parent_id?: string
           _ticket_id: string
