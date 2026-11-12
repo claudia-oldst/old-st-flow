@@ -1,19 +1,25 @@
 import { describe, it, expect } from "vitest";
-import { buildConvertPatch } from "./convertFeedback";
-import { newDraft } from "@/features/tickets/add-dialog/types";
+import { buildConvertArgs } from "./convertFeedback";
 
-const base = () => ({ ...newDraft("s1", "Standard"), title: "Fix login", epicId: 1 });
+const base = { type: "Standard" as const, epicId: 1, parentTicketId: null };
 
-describe("buildConvertPatch", () => {
+describe("buildConvertArgs", () => {
   it("rejects a Bug without a parent", () => {
-    expect(buildConvertPatch({ ...base(), type: "Bug" })).toEqual({ error: "A bug needs a parent ticket" });
-  });
-  it("moves FE/BE hours into project hours for Proj", () => {
-    const r = buildConvertPatch({ ...base(), type: "Proj", fe: "2", be: "3" }) as any;
-    expect(r.patch.current_project_estimate).toBe(5);
-    expect(r.patch.current_fe_estimate).toBeNull();
+    expect(buildConvertArgs({ ...base, type: "Bug" }, 1)).toEqual({ error: "A bug needs a parent ticket" });
   });
   it("requires an epic", () => {
-    expect(buildConvertPatch({ ...base(), epicId: null })).toEqual({ error: "Choose an epic" });
+    expect(buildConvertArgs({ ...base, epicId: null }, null)).toEqual({ error: "Choose an epic" });
+  });
+  it("keeps the parent for a Standard ticket", () => {
+    const r = buildConvertArgs({ ...base, parentTicketId: "p1" }, 1) as any;
+    expect(r.args._parent_id).toBe("p1");
+  });
+  it("adopts the parent's epic when it differs", () => {
+    const r = buildConvertArgs({ ...base, parentTicketId: "p1", epicId: 7 }, 1) as any;
+    expect(r.args._epic_id).toBe(7);
+  });
+  it("never sends estimates or status", () => {
+    const r = buildConvertArgs(base, 1) as any;
+    expect(Object.keys(r.args).sort()).toEqual(["_epic_id", "_new_type", "_parent_id"]);
   });
 });
