@@ -61,7 +61,7 @@ export default function Projects() {
     const trimmedName = name.trim();
     const trimmedAcr = acronym.trim().toUpperCase();
     if (!trimmedName) return toast.error("Project name required");
-    if (!/^[A-Z]{3,5}$/.test(trimmedAcr)) return toast.error("Acronym must be 3–5 letters");
+    if (!/^[A-Z0-9]{3,5}$/.test(trimmedAcr)) return toast.error("Acronym must be 3–5 letters or numbers");
 
     setCreating(true);
     const { error } = await supabase.from("projects").insert({ name: trimmedName, acronym: trimmedAcr });
@@ -116,7 +116,7 @@ export default function Projects() {
                 <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Acme Redesign" />
               </div>
               <div className="space-y-2">
-                <Label>Acronym <span className="text-dimmer">(3–5 letters, used in ticket IDs)</span></Label>
+                <Label>Acronym <span className="text-dimmer">(3–5 letters or numbers, used in ticket IDs)</span></Label>
                 <Input
                   value={acronym}
                   onChange={(e) => setAcronym(e.target.value.toUpperCase().slice(0, 5))}
