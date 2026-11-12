@@ -67,7 +67,7 @@ export function TicketsList({
         (c, i, a) => c !== groupBy && a.indexOf(c) === i,
       ) as ColKey[];
       return columnPrefs
-        ? base.filter((c) => !["created_at", "updated_at"].includes(c) || columnPrefs[c] !== false)
+        ? base.filter((c) => c === "title" || columnPrefs[c] !== false)
         : base.filter((c) => !["created_at", "updated_at"].includes(c));
     }
     const out: ColKey[] = ["id", "title"];
