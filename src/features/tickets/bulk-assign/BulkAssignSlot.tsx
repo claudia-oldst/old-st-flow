@@ -22,8 +22,7 @@ export function BulkAssignSlot({ label, members, selected, partial, onToggle, qu
         <div className="text-sm text-dim p-3 rounded-lg bg-white/5 hairline">
           No eligible project members.
         </div>
-      ) : (
-        {shown.length === 0 ? (
+      ) : shown.length === 0 ? (
         <div className="text-sm text-dim">No matches</div>
       ) : (
         <div className="flex flex-wrap gap-2">
@@ -64,7 +63,7 @@ export function BulkAssignSlot({ label, members, selected, partial, onToggle, qu
             );
           })}
         </div>
-      ))}
+      )}
     </div>
   );
 }

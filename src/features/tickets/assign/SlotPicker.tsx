@@ -31,8 +31,7 @@ export function SlotPicker({
         <div className="text-sm text-dim p-3 rounded-lg bg-white/5 hairline">
           No project members available. Add one in the Team tab.
         </div>
-      ) : (
-        {shown.length === 0 ? (
+      ) : shown.length === 0 ? (
         <div className="text-sm text-dim">No matches</div>
       ) : (
         <div className="flex flex-wrap gap-2">
@@ -57,7 +56,7 @@ export function SlotPicker({
             );
           })}
         </div>
-      ))}
+      )}
     </div>
   );
 }
