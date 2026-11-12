@@ -1,5 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { renderHook, act, waitFor } from "@testing-library/react";
+import { renderHook as rtlRenderHook, act, waitFor } from "@testing-library/react";
+import { createElement, type ReactNode } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+function renderHook<T>(cb: () => T) {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const wrapper = ({ children }: { children: ReactNode }) => createElement(QueryClientProvider, { client: qc }, children);
+  return rtlRenderHook(cb, { wrapper });
+}
 
 vi.mock("@/integrations/supabase/client", () => import("@/test/mocks/supabase"));
 vi.mock("sonner", () => ({

@@ -8,7 +8,7 @@ import {
   useAllEstimateChanges,
   type ChangeRow,
 } from "@/features/estimates/useAllEstimateChanges";
-import { MultiSelectFilter } from "@/features/estimates/MultiSelectFilter";
+import { MultiSelectFilter } from "@/features/_shared/filters/MultiSelectFilter";
 import { EpicChangeCard } from "@/features/estimates/EpicChangeCard";
 import { DateRangeControl, defaultRange, type DateRange } from "@/features/_shared/DateRangeControl";
 import { useProjectTickets } from "@/features/tickets/useProjectTickets";

@@ -6,7 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { Project } from "@/lib/types";
-import { MultiSelectFilter } from "@/features/estimates/MultiSelectFilter";
+import { MultiSelectFilter } from "@/features/_shared/filters/MultiSelectFilter";
 import { useProjectVersions } from "./useProjectVersions";
 import { portalLink, type PortalTab } from "../portalTabs";
 import { reportingEndOfDay } from "@/lib/reportingTz";
