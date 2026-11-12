@@ -148,8 +148,8 @@ export function ParentTicketSelect({
             className="sm:w-[420px] shrink-0 sm:border-r border-border rounded-none"
             value={hovered}
             onValueChange={setHovered}
-            filter={(value, search) =>
-              value.toLowerCase().includes(search.trim().toLowerCase()) ? 1 : 0
+            filter={(value, search, keywords) =>
+              [value, ...(keywords ?? [])].join(" ").toLowerCase().includes(search.trim().toLowerCase()) ? 1 : 0
             }
           >
             <CommandInput placeholder="Search ticket, epic…" />
