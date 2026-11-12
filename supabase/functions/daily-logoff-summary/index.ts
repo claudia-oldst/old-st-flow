@@ -4,8 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 interface TicketInput {
@@ -32,7 +31,9 @@ async function verifyAuth(req: Request, admin: ReturnType<typeof createClient>) 
 }
 
 function sanitize(s: string, max = 300): string {
-  return String(s ?? "").replace(/[\u0000-\u001f\u007f]/g, " ").slice(0, max);
+  return String(s ?? "")
+    .replace(/[\u0000-\u001f\u007f]/g, " ")
+    .slice(0, max);
 }
 
 Deno.serve(async (req) => {
@@ -42,17 +43,12 @@ Deno.serve(async (req) => {
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) return j({ error: "LOVABLE_API_KEY not configured" }, 500);
 
-    const admin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
+    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const auth = await verifyAuth(req, admin);
     if ("error" in auth) return j({ error: auth.error }, auth.status);
 
     const body = (await req.json()) as Body;
-    const projects = (body?.projects ?? []).filter(
-      (p) => p && p.tickets && p.tickets.length > 0,
-    );
+    const projects = (body?.projects ?? []).filter((p) => p && p.tickets && p.tickets.length > 0);
 
     if (projects.length === 0) {
       return j({ summary: "Logging off:\n- No work logged today.\nGood night!" });
@@ -81,7 +77,7 @@ Write an end-of-day standup note in EXACTLY this format:
 
 Logging off:
 - {Project name}: {summary}
-- {Project name}: {summary}
+- {Project name}: {summary}\n
 Good night!
 
 STRICT rules:
@@ -111,7 +107,8 @@ STRICT rules:
 
     if (!response.ok) {
       if (response.status === 429) return j({ error: "Rate limit reached, please try again shortly." }, 429);
-      if (response.status === 402) return j({ error: "AI credits exhausted. Top up in Settings → Workspace → Usage." }, 402);
+      if (response.status === 402)
+        return j({ error: "AI credits exhausted. Top up in Settings → Workspace → Usage." }, 402);
       console.error("daily-logoff-summary AI error", response.status, await response.text());
       return j({ error: "AI gateway error" }, 500);
     }
