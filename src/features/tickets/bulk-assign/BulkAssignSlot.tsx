@@ -1,6 +1,7 @@
 import { Check } from "lucide-react";
 import { MemberAvatar } from "@/components/MemberAvatar";
 import { cn } from "@/lib/utils";
+import { filterMembers } from "../assign/memberSearch";
 import type { ProjectMember, TeamMember } from "@/lib/types";
 
 interface Props {
@@ -9,9 +10,11 @@ interface Props {
   selected: Set<string>;
   partial?: Set<string>;
   onToggle: (id: string) => void;
+  query?: string;
 }
 
-export function BulkAssignSlot({ label, members, selected, partial, onToggle }: Props) {
+export function BulkAssignSlot({ label, members, selected, partial, onToggle, query = "" }: Props) {
+  const shown = filterMembers(members, query, selected);
   return (
     <div>
       <div className="text-xs uppercase tracking-wider text-dimmer mb-2">{label}</div>
@@ -20,8 +23,11 @@ export function BulkAssignSlot({ label, members, selected, partial, onToggle }: 
           No eligible project members.
         </div>
       ) : (
+        {shown.length === 0 ? (
+        <div className="text-sm text-dim">No matches</div>
+      ) : (
         <div className="flex flex-wrap gap-2">
-          {members.map((m) => {
+          {shown.map((m) => {
             const active = selected.has(m.user_id);
             const isPartial = active && !!partial?.has(m.user_id);
             return (
@@ -58,7 +64,7 @@ export function BulkAssignSlot({ label, members, selected, partial, onToggle }: 
             );
           })}
         </div>
-      )}
+      ))}
     </div>
   );
 }

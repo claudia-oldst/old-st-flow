@@ -12,6 +12,7 @@ import type { ProjectMember, TeamMember } from "@/lib/types";
 import { Users } from "lucide-react";
 import { toast } from "sonner";
 import { SlotPicker } from "./assign/SlotPicker";
+import { MemberSearchInput } from "./assign/MemberSearchInput";
 import { SprintPicker } from "./assign/SprintPicker";
 import { useSprintChoice } from "./assign/useSprintChoice";
 import { syncSprintCommitments } from "./assign/syncSprintCommitments";
@@ -37,12 +38,14 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
   const [beUserIds, setBeUserIds] = useState<Set<string>>(new Set());
   const [projectUserIds, setProjectUserIds] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
+  const [query, setQuery] = useState("");
   const [repoPromptOpen, setRepoPromptOpen] = useState(false);
   const [projectRepoUrl, setProjectRepoUrl] = useState<string | null>(null);
   const { sprints, choice, setChoice, sprintId, chosen } = useSprintChoice(projectId, open, isProj);
 
   useEffect(() => {
     if (!open) return;
+    setQuery("");
     setFeUserIds(new Set(current.filter((c) => c.slot === "FE").map((c) => c.user_id)));
     setBeUserIds(new Set(current.filter((c) => c.slot === "BE").map((c) => c.user_id)));
     setProjectUserIds(new Set(current.filter((c) => c.slot === "Project").map((c) => c.user_id)));
@@ -176,8 +179,10 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
         )}
 
         <div className="space-y-6 pt-2 max-h-[60vh] overflow-y-auto">
+          {chosen && <MemberSearchInput value={query} onChange={setQuery} />}
           {!chosen ? null : isProj ? (
             <SlotPicker
+                query={query}
               label="Team members"
               description="Anyone assigned can log time to this ticket's shared project estimate."
               members={projectEligible}
@@ -188,6 +193,7 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
           ) : (
             <>
               <SlotPicker
+                query={query}
                 label="Frontend"
                 description="Drives FE estimates, status & timer."
                 members={feEligible}
@@ -195,6 +201,7 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
                 onToggle={(id) => toggle(feUserIds, setFeUserIds, id)}
               />
               <SlotPicker
+                query={query}
                 label="Backend"
                 description="Drives BE estimates, status & timer."
                 members={beEligible}
@@ -202,6 +209,7 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
                 onToggle={(id) => toggle(beUserIds, setBeUserIds, id)}
               />
               <SlotPicker
+                query={query}
                 label="Project contributors"
                 description="QA, PMBA, Design — anyone else on the ticket. Time logged here goes to the ticket's shared Project bucket."
                 members={contributorEligible}

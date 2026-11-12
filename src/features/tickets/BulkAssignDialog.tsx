@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Users } from "lucide-react";
 import { BulkAssignSlot } from "./bulk-assign/BulkAssignSlot";
+import { MemberSearchInput } from "./assign/MemberSearchInput";
 import { SprintPicker } from "./assign/SprintPicker";
 import { useBulkAssign } from "./bulk-assign/useBulkAssign";
 
@@ -57,6 +59,8 @@ export function BulkAssignDialog({
     onClose: () => onOpenChange(false),
   });
 
+  const [query, setQuery] = useState("");
+  useEffect(() => { if (open) setQuery(""); }, [open]);
   const noChanges = diff.added === 0 && diff.removed === 0;
 
   return (
@@ -90,9 +94,11 @@ export function BulkAssignDialog({
         )}
 
         <div className="space-y-6 pt-2 max-h-[50vh] overflow-y-auto">
+          {listsVisible && <MemberSearchInput value={query} onChange={setQuery} />}
           {listsVisible && hasStandard && (
             <>
               <BulkAssignSlot
+                query={query}
                 label="Frontend"
                 members={feEligible}
                 selected={feUserIds}
@@ -100,6 +106,7 @@ export function BulkAssignDialog({
                 onToggle={(id) => toggle(feUserIds, setFeUserIds, id)}
               />
               <BulkAssignSlot
+                query={query}
                 label="Backend"
                 members={beEligible}
                 selected={beUserIds}
@@ -107,6 +114,7 @@ export function BulkAssignDialog({
                 onToggle={(id) => toggle(beUserIds, setBeUserIds, id)}
               />
               <BulkAssignSlot
+                query={query}
                 label="Project contributors"
                 members={contributorEligible}
                 selected={otherUserIds}
@@ -117,6 +125,7 @@ export function BulkAssignDialog({
           )}
           {listsVisible && hasProj && (
             <BulkAssignSlot
+                query={query}
               label={`Project team${hasStandard ? " (Proj tickets only)" : ""}`}
               members={otherEligible}
               selected={projectUserIds}

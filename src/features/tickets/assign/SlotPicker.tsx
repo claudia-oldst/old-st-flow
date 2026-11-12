@@ -2,6 +2,7 @@ import { Check } from "lucide-react";
 import { MemberAvatar } from "@/components/MemberAvatar";
 import type { ProjectMember, TeamMember } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { filterMembers } from "./memberSearch";
 
 /** Chip list for picking members for one assignee slot. */
 export function SlotPicker({
@@ -11,6 +12,7 @@ export function SlotPicker({
   selected,
   onToggle,
   showRole,
+  query = "",
 }: {
   label: string;
   description?: string;
@@ -18,7 +20,9 @@ export function SlotPicker({
   selected: Set<string>;
   onToggle: (id: string) => void;
   showRole?: boolean;
+  query?: string;
 }) {
+  const shown = filterMembers(members, query, selected);
   return (
     <div>
       <div className="text-xs uppercase tracking-wider text-dimmer mb-1">{label}</div>
@@ -28,8 +32,11 @@ export function SlotPicker({
           No project members available. Add one in the Team tab.
         </div>
       ) : (
+        {shown.length === 0 ? (
+        <div className="text-sm text-dim">No matches</div>
+      ) : (
         <div className="flex flex-wrap gap-2">
-          {members.map((m) => {
+          {shown.map((m) => {
             const active = selected.has(m.user_id);
             return (
               <button
@@ -50,7 +57,7 @@ export function SlotPicker({
             );
           })}
         </div>
-      )}
+      ))}
     </div>
   );
 }
