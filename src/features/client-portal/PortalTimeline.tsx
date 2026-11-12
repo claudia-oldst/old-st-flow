@@ -7,6 +7,7 @@ import {
   type GanttSegment,
 } from "@/features/sprints/gantt/buildGanttRows";
 import { usePublicPortalGantt } from "./usePortalGantt";
+import type { PortalFilters } from "./filters/portalFilters";
 
 type DisciplineFilter = "FE" | "BE" | "ALL";
 
@@ -61,8 +62,8 @@ function mergeRows(feRows: GanttEpicRow[], beRows: GanttEpicRow[]): GanttEpicRow
 }
 
 /** Read-only sprint timeline for the public /h/:hash portal. */
-export function PortalTimeline({ hash }: { hash: string | undefined }) {
-  const { data, loading } = usePublicPortalGantt(hash);
+export function PortalTimeline({ hash, filters }: { hash: string | undefined; filters?: PortalFilters }) {
+  const { data, loading } = usePublicPortalGantt(hash, filters);
   const [discipline, setDiscipline] = useState<DisciplineFilter>("ALL");
   const ganttRef = useRef<HTMLDivElement>(null);
 

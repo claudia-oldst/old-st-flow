@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type {
   GanttCommitmentInput,
@@ -6,6 +6,7 @@ import type {
   GanttSprintInput,
   GanttTicketInput,
 } from "@/features/sprints/gantt/buildGanttRows";
+import { EMPTY_FILTERS, filterArgs, filterKey, type PortalFilters } from "./filters/portalFilters";
 
 export interface PortalGanttSprint extends GanttSprintInput {
   sprint_number: number;
@@ -25,13 +26,15 @@ export interface PortalGanttPayload {
  * security-definer RPC because anonymous visitors have no RLS access to
  * sprints / tickets / epics.
  */
-export function usePublicPortalGantt(hash: string | undefined) {
+export function usePublicPortalGantt(hash: string | undefined, filters: PortalFilters = EMPTY_FILTERS) {
   const query = useQuery({
-    queryKey: ["publicPortalGantt", hash] as const,
+    queryKey: ["publicPortalGantt", hash, filterKey(filters)] as const,
     enabled: !!hash,
+    placeholderData: keepPreviousData,
     queryFn: async (): Promise<PortalGanttPayload | null> => {
       const { data, error } = await supabase.rpc("get_client_portal_gantt", {
         _hash: hash!,
+        ...filterArgs(filters),
       });
       if (error) throw error;
       return (data as unknown as PortalGanttPayload) ?? null;

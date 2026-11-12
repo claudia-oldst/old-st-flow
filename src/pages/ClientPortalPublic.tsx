@@ -1,5 +1,7 @@
 import { useParams, useSearchParams } from "react-router-dom";
 import { parsePortalTab } from "@/features/client-portal/portalTabs";
+import { PortalFilterBar } from "@/features/client-portal/filters/PortalFilterBar";
+import { parsePortalFilters, writePortalFilters, type PortalFilters } from "@/features/client-portal/filters/portalFilters";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,9 +15,18 @@ import oldStLogo from "@/assets/oldst-logo.png";
 
 export default function ClientPortalPublic() {
   const { hash } = useParams<{ hash: string }>();
-  const [params] = useSearchParams();
-  const { data, loading, error } = usePublicPortal(hash);
-  const { data: crData, refresh: refreshCR } = useClientPortalCRsByHash(hash);
+  const [params, setParams] = useSearchParams();
+  // The server also enforces the published version scope.
+  const filters = parsePortalFilters(params);
+  const { data, loading, error } = usePublicPortal(hash, filters);
+  const { data: crData, refresh: refreshCR } = useClientPortalCRsByHash(hash, filters);
+  const scope = data?.project.versions ?? [];
+  const setFilters = (f: PortalFilters) => setParams(writePortalFilters(params, f), { replace: true });
+  const setTab = (tab: string) => {
+    const next = new URLSearchParams(params);
+    if (tab === "timeline") next.delete("tab"); else next.set("tab", tab);
+    setParams(next, { replace: true });
+  };
 
   async function handleApprove(ticketId: string) {
     if (!hash) return;
@@ -44,7 +55,7 @@ export default function ClientPortalPublic() {
         </div>
       </header>
       <main className="mx-auto w-full max-w-[1280px] 2xl:max-w-[1440px] px-4 sm:px-6 2xl:px-8 py-10">
-        {loading && (
+        {loading && !data && (
           <div className="text-sm text-dim text-center py-20">Loading…</div>
         )}
         {!loading && (error || !data) && (
@@ -53,21 +64,27 @@ export default function ClientPortalPublic() {
           </div>
         )}
         {data && (
-          <Tabs defaultValue={parsePortalTab(params.get("tab"))} className="w-full">
+          <Tabs value={parsePortalTab(params.get("tab"))} onValueChange={setTab} className="w-full">
             <TabsList className="grid w-full grid-cols-4 mb-6">
               <TabsTrigger value="timeline">Timeline</TabsTrigger>
               <TabsTrigger value="summary">Summary</TabsTrigger>
               <TabsTrigger value="billing">Billing</TabsTrigger>
               <TabsTrigger value="change-requests">Change Requests</TabsTrigger>
             </TabsList>
+            <PortalFilterBar
+              value={filters}
+              onChange={setFilters}
+              epics={crData?.epics ?? []}
+              versions={scope.map((v) => ({ value: v, label: v === "_none" ? "No version" : v }))}
+            />
             <TabsContent value="timeline">
-              <PortalTimeline hash={hash} />
+              <PortalTimeline hash={hash} filters={filters} />
             </TabsContent>
             <TabsContent value="summary">
               <PortalView payload={data} showRate />
             </TabsContent>
             <TabsContent value="billing">
-              {hash && <PortalBilling hash={hash} />}
+              {hash && <PortalBilling hash={hash} filters={filters} />}
             </TabsContent>
             <TabsContent value="change-requests">
               {crData ? (

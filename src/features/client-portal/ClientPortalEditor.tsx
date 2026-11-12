@@ -15,6 +15,10 @@ import { SprintGanttOrEmpty } from "@/features/sprints/SprintGanttOrEmpty";
 import { PortalBilling } from "./billing/PortalBilling";
 import { parsePortalTab, type PortalTab } from "./portalTabs";
 import { OpenReportButton } from "./report/OpenReportButton";
+import { PortalFilterBar } from "./filters/PortalFilterBar";
+import { clampVersions, EMPTY_FILTERS, type PortalFilters } from "./filters/portalFilters";
+import { useProjectEpics } from "@/features/epics/useProjectEpics";
+import { useProjectVersions } from "./editor/useProjectVersions";
 
 
 
@@ -25,7 +29,10 @@ export function ClientPortalEditor() {
   const canEdit = isPMBA(role);
   const [previewOpen, setPreviewOpen] = useState(true);
   const [tab, setTab] = useState<PortalTab>("timeline");
-  const editor = useClientPortalEditor(id ?? "");
+  const [filters, setFilters] = useState<PortalFilters>(EMPTY_FILTERS);
+  const editor = useClientPortalEditor(id ?? "", filters);
+  const { epics: epicList } = useProjectEpics(id);
+  const { options: versionOpts } = useProjectVersions(id);
 
   if (!id) return null;
   if (!canEdit) {
@@ -154,6 +161,12 @@ export function ClientPortalEditor() {
                   <TabsTrigger value="billing">Billing</TabsTrigger>
                   <TabsTrigger value="change-requests">Change Requests</TabsTrigger>
                 </TabsList>
+                <PortalFilterBar
+                  value={{ ...filters, versions: clampVersions(filters.versions, versions) }}
+                  onChange={setFilters}
+                  epics={epicList}
+                  versions={versions.length ? versionOpts.filter((o) => versions.includes(o.value)) : versionOpts}
+                />
                 <TabsContent value="timeline">
                   <SprintGanttOrEmpty projectId={id} versions={versions} />
                 </TabsContent>
@@ -161,7 +174,7 @@ export function ClientPortalEditor() {
                   <PortalView payload={payload} showRate />
                 </TabsContent>
                 <TabsContent value="billing">
-                  <PortalBilling projectId={id} asOf={asOf} versions={versions} />
+                  <PortalBilling projectId={id} asOf={asOf} versions={versions} filters={filters} />
                 </TabsContent>
                 <TabsContent value="change-requests">
                   <PreviewChangeRequests projectId={id} />
