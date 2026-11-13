@@ -34,8 +34,8 @@ export interface EmailFacts {
 
 const r1 = (n: number) => Math.round(n * 10) / 10;
 
-/** Up to 4 epics with the most hours, ignoring any under 5% of the month. */
-export function pickTopEpics(epics: EpicFigure[], total: number, max = 4): EpicFigure[] {
+/** Up to 8 epics with the most hours, ignoring any under 5% of the month. */
+export function pickTopEpics(epics: EpicFigure[], total: number, max = 8): EpicFigure[] {
   if (total <= 0) return [];
   return epics
     .filter((e) => e.hours > 0 && e.hours / total >= 0.05)
