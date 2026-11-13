@@ -40,18 +40,26 @@ export function WeeklyBurnPanel({ projectId, tickets }: Props) {
     queryKey,
     enabled: ticketIds.length > 0,
     queryFn: async () => {
-      // Fetch range matches rendered range exactly (8 prior weeks + current).
-      const since = startOfISOWeek(addWeeks(new Date(), -8)).toISOString();
-      // Scope by project at the DB level: passing every ticket id in .in()
-      // overflows the request URL on large projects (HTTP 414).
-      const { data } = await supabase
-        .from("time_logs")
-        .select(
-          "ticket_id, logged_at, hours, user_id, ticket:tickets!inner(project_id), member:team_members(name, avatar_color)",
-        )
-        .eq("ticket.project_id", projectId)
-        .gte("logged_at", since)
-        .limit(10000);
+      // Fetch range matches rendered range exactly (5 prior weeks + current).
+      const since = startOfISOWeek(addWeeks(new Date(), -5)).toISOString();
+      // Scope by project at the DB level; page in 1000-row chunks because the
+      // API caps every request at 1000 rows.
+      const PAGE = 1000;
+      const data: unknown[] = [];
+      for (let from = 0; ; from += PAGE) {
+        const { data: page, error } = await supabase
+          .from("time_logs")
+          .select(
+            "id, ticket_id, logged_at, hours, user_id, ticket:tickets!inner(project_id), member:team_members(name, avatar_color)",
+          )
+          .eq("ticket.project_id", projectId)
+          .gte("logged_at", since)
+          .order("id")
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        data.push(...(page ?? []));
+        if (!page || page.length < PAGE) break;
+      }
       // Keep the Health page's version filter: only count logs for tickets
       // currently in view.
       const ticketIdSet = new Set(ticketIds);
@@ -69,9 +77,9 @@ export function WeeklyBurnPanel({ projectId, tickets }: Props) {
 
   const { weeks, maxHours, currentWeekHours, trend } = useMemo(() => {
     const thisWeek = startOfISOWeek(new Date());
-    // 9 bars: 8 prior complete weeks + current partial week.
+    // 6 bars: 5 prior complete weeks + current partial week.
     const buckets: BurnWeek[] = [];
-    for (let i = -8; i <= 0; i++) {
+    for (let i = -5; i <= 0; i++) {
       buckets.push({ start: addWeeks(thisWeek, i), hours: 0, members: [] });
     }
     for (const log of logs) {
