@@ -1,7 +1,7 @@
 # AI-drafted monthly client email
 
 ## What you'll get
-On the client page (PMBA view), a **"Draft client email"** button. Pick a month (defaults to last full month), click Generate, and a ready-to-copy email appears in an editable box with a **Copy** button. Regenerate if you want another version. Nothing is sent automatically.
+On the client page (PMBA view), a **"Draft client email"** button. The month is taken from the client preview's snapshot date (the month the preview is focused on). Click Generate, and a ready-to-copy email appears in an editable box with a **Copy** button. Regenerate if you want another version. Nothing is sent automatically.
 
 ## Email shape
 ```text
@@ -27,6 +27,7 @@ Regards,
 
 ## Rules
 - All numbers (hours per epic, bug/CR hours, amount owed) are calculated by Pulse, not the AI — the AI only writes the descriptive sentences.
+- Month = the snapshot date's month, matching what the client preview shows.
 - Amount owed = (hours logged that month − discounts/unbilled that month) × project rate, same as the Billing tab.
 - Descriptions use ticket names and time-log reasons from that month only. UK English, client-friendly, no invented details.
 - Feedback tickets excluded, as everywhere else.
