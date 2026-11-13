@@ -42,7 +42,6 @@ Deno.serve(async (req) => {
     const base = { facts, projectName: m.projectName, sender: me?.name ?? "" };
     if (facts.totalHours === 0) return j({ ...base, text: { epics: [], bugs: "", changeRequests: "", discounts: "" } });
 
-    const topIds = new Set(facts.topEpics.map((e) => e.id));
     const lines = (pred: (l: typeof m.logs[number]) => boolean) =>
       m.logs.filter(pred).slice(0, 150).map((l) => `- ${clean(l.ticket_title, 120)}${l.note ? `: ${clean(l.note)}` : ""}`).join("\n") || "(none)";
     const epicBlocks = facts.topEpics.map((e) => `## ${clean(e.name, 120)}\n${lines((l) => l.epic_id === e.id)}`).join("\n\n");
@@ -100,7 +99,6 @@ Write for a client email, in UK English, calm and plain, no ticket IDs, no hour 
       return j({ error: status === 402 ? "AI credits have run out." : status === 429 ? "AI is busy, please try again shortly." : "The AI could not draft this email." }, status);
     }
     const text = Text.parse(JSON.parse(raw));
-    void topIds;
     return j({ ...base, text });
   } catch (e) {
     console.error("client-month-email", e);

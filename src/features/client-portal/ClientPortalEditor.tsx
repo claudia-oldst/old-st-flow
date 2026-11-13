@@ -15,6 +15,8 @@ import { SprintGanttOrEmpty } from "@/features/sprints/SprintGanttOrEmpty";
 import { PortalBilling } from "./billing/PortalBilling";
 import { parsePortalTab, type PortalTab } from "./portalTabs";
 import { OpenReportButton } from "./report/OpenReportButton";
+import { ClientEmailButton } from "./email/ClientEmailButton";
+import { portalLink } from "./portalTabs";
 import { PortalFilterBar } from "./filters/PortalFilterBar";
 import { clampVersions, EMPTY_FILTERS, type PortalFilters } from "./filters/portalFilters";
 import { useProjectEpics } from "@/features/epics/useProjectEpics";
@@ -135,6 +137,12 @@ export function ClientPortalEditor() {
           <div className="flex items-center justify-between mb-2 px-1">
             <div className="text-[10px] uppercase tracking-wider text-dimmer">Client preview</div>
             <div className="flex items-center gap-1">
+              <ClientEmailButton
+                projectId={id}
+                asOf={asOf}
+                portalUrl={hash ? portalLink(window.location.origin, hash, "summary") : null}
+                disabled={!payload}
+              />
               <OpenReportButton
                 projectId={id}
                 asOf={asOf}
