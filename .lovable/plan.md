@@ -17,7 +17,7 @@ the team logged {X}h, made up of the following:
 Bugs: 1-2 sentences on the types of bugs worked on, {h}h logged on bug tickets.
 Change requests: 1-2 sentences on the CRs worked on, {h}h logged.
 
-In summary, {X}h was logged in {Month}, bringing the amount due to {R amount}.
+In summary, {X}h was logged in {Month}, bringing the amount due to £{amount}.
 
 If you have any questions or encounter any issues, please don't hesitate to reach out. Thank you very much!
 
@@ -28,7 +28,7 @@ Regards,
 ## Rules
 - All numbers (hours per epic, bug/CR hours, amount owed) are calculated by Pulse, not the AI — the AI only writes the descriptive sentences.
 - Month = the snapshot date's month, matching what the client preview shows.
-- Amount owed = (hours logged that month − discounts/unbilled that month) × project rate, same as the Billing tab.
+- Amount owed = (hours logged that month − discounts/unbilled that month) × project rate, shown in GBP (£), same as the Billing tab.
 - Descriptions use ticket names and time-log reasons from that month only. UK English, client-friendly, no invented details.
 - Feedback tickets excluded, as everywhere else.
 
