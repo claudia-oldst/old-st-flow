@@ -30,7 +30,8 @@ Deno.serve(async (req) => {
     const token = req.headers.get("Authorization")?.replace("Bearer ", "") ?? "";
     const { data: u } = await admin.auth.getUser(token);
     if (!u?.user) return j({ error: "Not signed in" }, 401);
-    const { data: pmba } = await admin.rpc("is_pmba", { _user_id: u.user.id });
+    const { data: me } = await admin.from("team_members").select("id, name").eq("auth_user_id", u.user.id).maybeSingle();
+    const { data: pmba } = me ? await admin.rpc("is_pmba", { _user_id: me.id }) : { data: false };
     if (!pmba) return j({ error: "Only PM/BAs can draft client emails" }, 403);
 
     const parsed = Body.safeParse(await req.json());
@@ -38,7 +39,6 @@ Deno.serve(async (req) => {
     const { start, end } = monthWindow(parsed.data.asOf);
     const m = await loadMonth(admin, parsed.data.projectId, start, end);
     const facts = computeFacts(m.logs, m.discounts, m.epicNames, m.rate);
-    const { data: me } = await admin.from("team_members").select("name").eq("auth_user_id", u.user.id).maybeSingle();
     const base = { facts, projectName: m.projectName, sender: me?.name ?? "" };
     if (facts.totalHours === 0) return j({ ...base, text: { epics: [], bugs: "", changeRequests: "", discounts: "" } });
 
