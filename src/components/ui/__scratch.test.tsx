@@ -1,14 +1,40 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { hasDescriptionElement } from "@/lib/radixDescription";
 
-describe("scratch", () => {
-  it("inspects the link", () => {
-    const el = <DialogDescription>hello</DialogDescription>;
-    console.log("direct scan:", hasDescriptionElement([el], [DialogDescription]));
-    console.log("primitive scan:", hasDescriptionElement([el], [DialogDescription]));
+function spyConsole() {
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  return warn;
+}
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+describe("sequence", () => {
+  it("one: no description", () => {
+    spyConsole();
+    render(
+      <Dialog open>
+        <DialogContent>
+          <DialogTitle>Assign ticket</DialogTitle>
+        </DialogContent>
+      </Dialog>,
+    );
+    console.log("T1 dialogs:", document.querySelectorAll('[role="dialog"]').length);
+  });
+
+  it("two: with description", () => {
+    spyConsole();
+    console.log("entering two, dialogs already in dom:", document.querySelectorAll('[role="dialog"]').length);
+    const children = [
+      <DialogTitle key="t">Assign ticket</DialogTitle>,
+      <DialogDescription key="d">Choose who owns this ticket.</DialogDescription>,
+    ];
+    console.log("scan says:", hasDescriptionElement(children, [DialogDescription]));
     render(
       <Dialog open>
         <DialogContent>
@@ -17,9 +43,10 @@ describe("scratch", () => {
         </DialogContent>
       </Dialog>,
     );
-    const dialog = screen.getByRole("dialog");
-    console.log("attrs:", dialog.getAttribute("aria-describedby"), dialog.getAttribute("aria-labelledby"));
-    console.log("html:", dialog.outerHTML.slice(0, 400));
+    const dialogs = document.querySelectorAll('[role="dialog"]');
+    console.log("T2 dialogs:", dialogs.length);
+    dialogs.forEach((d, i) => console.log(`  #${i}`, d.getAttribute("aria-describedby"), d.textContent));
+    console.log("getByRole says:", screen.getByRole("dialog").getAttribute("aria-describedby"));
     expect(true).toBe(true);
   });
 });
