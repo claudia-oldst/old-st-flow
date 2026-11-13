@@ -8,7 +8,9 @@ On the client page (PMBA view), a **"Draft client email"** button, placed just t
 Hi {Client},
 
 Please see the report for {Project} for {Month Year}. For the month of {Month},
-the team logged {X}h, made up of the following:
+the team logged {X}h. The main areas of work were:
+(when other epics aren't listed: "...{X}h across several areas, with the main
+focus on the following:")
 
 - **{Epic A}** ({h}h) – 1-2 broad sentences on what was done.
 - **{Epic B}** ({h}h) – ...
