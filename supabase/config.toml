@@ -19,3 +19,6 @@ verify_jwt = false
 
 [functions.thalamus-feedback]
 verify_jwt = false
+
+[functions.client-month-email]
+verify_jwt = false
