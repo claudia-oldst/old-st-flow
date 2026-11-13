@@ -11,3 +11,4 @@
 - Cross-feature UI (e.g. `MultiSelectFilter`) lives under `src/features/_shared/` — why: avoid features importing from each other.
 - Client portal Type/Epic/Version filters are optional `_f_*` args on every portal RPC (via `portal_filter_match`) and live in the URL — why: numbers are aggregated server-side and shared links must reproduce the view.
 - The shared Dialog/Sheet wrappers drop Radix's auto `aria-describedby` link only when no Description is rendered (`src/lib/radixDescription.ts`) — why: silence the dev-only console warning without breaking screen-reader links.
+- Client email figures live in `supabase/functions/_shared/clientEmail.ts` (pure, also tested from the frontend); the AI only writes the descriptive sentences — why: amounts and hours must never be invented.
