@@ -12,8 +12,10 @@
 - The Save button locks as soon as it's clicked, until there's an answer.
 - If the save times out, the app checks whether the log was actually saved before showing an error.
 
-### 2. Speed up edit, delete and log (needs your approval: database permission change)
-- Rewrite the time log permission rules to check "is this person on the project" once per request instead of once per ticket. The access stays exactly the same: PMBAs see everything, members see their projects, and people can only edit or delete their own logs (PMBAs can edit or delete any).
+### 2. Lighter permission checks (needs your approval: database permission change)
+- Viewing time logs: one check per request, "is this person allocated to the project", instead of checking every ticket.
+- Logging time: allowed if the person is assigned to that ticket (PMBAs can always log). The project check is dropped, since being assigned already implies being allocated.
+- Editing or deleting: people can change their own logs and PMBAs can change any, checked once per request.
 - No tables, columns or data change.
 
 ### 3. Verify
@@ -22,4 +24,6 @@
 
 ## Technical details
 - Client-generated `id` (crypto.randomUUID) in useLogTime, submitInlineLogs and useStopGroup. On a 23505 duplicate-key error, treat the save as a success.
-- New policies: SELECT `(select current_is_pmba()) OR ticket_id IN (select t.id from tickets t join project_members pm on pm.project_id=t.project_id where pm.user_id=(select current_team_member_id()))`. UPDATE/DELETE wrap the helper calls in `(select ...)` so they're evaluated once. INSERT stays as is.
+- SELECT: `(select current_is_pmba()) OR ticket_id IN (select t.id from tickets t join project_members pm on pm.project_id=t.project_id where pm.user_id=(select current_team_member_id()))`. The membership set is computed once, not per ticket.
+- INSERT: `(select current_is_pmba()) OR (user_id=(select current_team_member_id()) AND EXISTS(select 1 from ticket_assignees a where a.ticket_id=time_logs.ticket_id and a.user_id=time_logs.user_id))`.
+- UPDATE/DELETE: `(select current_is_pmba()) OR user_id=(select current_team_member_id())`.
