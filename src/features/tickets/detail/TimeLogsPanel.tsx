@@ -146,7 +146,9 @@ export function TimeLogsPanel({
           open={!!editLog}
           onOpenChange={(v) => !v && setEditLog(null)}
           log={editLog}
-          ticket={ticket}
+          ticketId={ticket.id}
+          projectId={ticket.project_id}
+          ticketLabel={ticket.formatted_id}
           onSaved={reload}
         />
       )}
