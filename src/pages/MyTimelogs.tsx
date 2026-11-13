@@ -25,8 +25,6 @@ import {
   type LogGroupBy,
   type MyLogRow,
 } from "@/features/timelog/my-timelogs/useMyTimeLogs";
-import { fetchTicketDetail } from "@/features/tickets/fetchTicketDetail";
-import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { useCurrentUser } from "@/store/currentUser";
 import { usePersistentState } from "@/hooks/usePersistentState";
 import { cn, formatHours, PAGE_SHELL } from "@/lib/utils";
@@ -55,7 +53,7 @@ export default function MyTimelogs() {
   const [page, setPage] = useState(1);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [adding, setAdding] = useState(false);
-  const [editing, setEditing] = useState<{ log: TicketLogEntry; ticket: TicketRow } | null>(null);
+  const [editing, setEditing] = useState<{ log: TicketLogEntry; row: MyLogRow } | null>(null);
 
   const { logs, loading, reload } = useMyTimeLogs(range);
   const { data: projects = [] } = useMyProjects();
@@ -77,13 +75,8 @@ export default function MyTimelogs() {
   const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const groups = useGroupedLogs(paged, groupBy);
 
-  const openEdit = async (row: MyLogRow) => {
+  const openEdit = (row: MyLogRow) => {
     if (!user) return;
-    const detail = await fetchTicketDetail(row.ticket_id);
-    if (!detail) {
-      toast.error("Ticket not found");
-      return;
-    }
     setEditing({
       log: {
         id: row.id,
@@ -96,7 +89,7 @@ export default function MyTimelogs() {
         user_id: row.user_id,
         user: { name: user.name, avatar_color: user.avatar_color },
       },
-      ticket: detail,
+      row,
     });
   };
 
@@ -211,7 +204,9 @@ export default function MyTimelogs() {
           open={!!editing}
           onOpenChange={(v) => !v && setEditing(null)}
           log={editing.log}
-          ticket={editing.ticket}
+          ticketId={editing.row.ticket_id}
+          projectId={editing.row.ticket?.project_id}
+          ticketLabel={editing.row.ticket?.formatted_id}
           onSaved={reload}
         />
       )}
