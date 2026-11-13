@@ -36,8 +36,8 @@ export async function loadMonth(admin: any, projectId: string, start: string, en
     .from("epic_discounts")
     .select("epic_id, hours, reason")
     .eq("project_id", projectId)
-    .gte("created_at", start)
-    .lte("created_at", end);
+    .gte("applied_at", start)
+    .lte("applied_at", end);
   if (dErr) throw dErr;
   const { data: epics } = await admin.from("project_epics").select("id, epic_name").eq("project_id", projectId);
   const { data: proj } = await admin.from("projects").select("name, rate_per_hour").eq("id", projectId).single();
