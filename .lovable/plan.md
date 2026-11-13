@@ -17,6 +17,9 @@ the team logged {X}h, made up of the following:
 Bugs: 1-2 sentences on the types of bugs worked on, {h}h logged on bug tickets.
 Change requests: 1-2 sentences on the CRs worked on, {h}h logged.
 
+Discounts (only if any were applied that month): 1-2 sentences naming the epics,
+hours discounted and why (from the discount reasons).
+
 In summary, {X}h was logged in {Month}, bringing the amount due to £{amount}.
 
 If you have any questions or encounter any issues, please don't hesitate to reach out. Thank you very much!
@@ -30,6 +33,7 @@ Regards,
 - Month = the snapshot date's month, matching what the client preview shows.
 - Amount owed = (hours logged that month − discounts/unbilled that month) × project rate, shown in GBP (£), same as the Billing tab.
 - Descriptions use ticket names and time-log reasons from that month only. UK English, client-friendly, no invented details.
+- Discount sentences use the epic discounts' saved reasons; the section is left out when the month has no discounts.
 - Feedback tickets excluded, as everywhere else.
 
 ## Technical details
