@@ -1,7 +1,7 @@
 # AI-drafted monthly client email
 
 ## What you'll get
-On the client page (PMBA view), a **"Draft client email"** button. The month is taken from the client preview's snapshot date (the month the preview is focused on). Click Generate, and a ready-to-copy email appears in an editable box with a **Copy** button. Regenerate if you want another version. Nothing is sent automatically.
+On the client page (PMBA view), a **"Draft client email"** button, placed just to the left of the **Report** button. The month is taken from the client preview's snapshot date (the month the preview is focused on). Click Generate, and a ready-to-copy email appears in an editable box with a **Copy** button. Regenerate if you want another version. Nothing is sent automatically.
 
 ## Email shape
 ```text
@@ -20,6 +20,8 @@ Change requests: 1-2 sentences on the CRs worked on, {h}h logged.
 Discounts (only if any were applied that month): 1-2 sentences naming the epics,
 hours discounted and why (from the discount reasons).
 
+(Only if the client link is published:) You can view more detail on [this link]({client portal URL}).
+
 In summary, {X}h was logged in {Month}, bringing the amount due to £{amount}.
 
 If you have any questions or encounter any issues, please don't hesitate to reach out. Thank you very much!
@@ -34,6 +36,7 @@ Regards,
 - Amount owed = (hours logged that month − discounts/unbilled that month) × project rate, shown in GBP (£), same as the Billing tab.
 - Descriptions use ticket names and time-log reasons from that month only. UK English, client-friendly, no invented details.
 - Discount sentences use the epic discounts' saved reasons; the section is left out when the month has no discounts.
+- The "this link" sentence appears only when the client view is published, with "this link" hyperlinked to it. Copy puts the email on the clipboard as formatted text, so bold epics and the link paste straight into Gmail/Outlook.
 - Feedback tickets excluded, as everywhere else.
 
 ## Technical details
