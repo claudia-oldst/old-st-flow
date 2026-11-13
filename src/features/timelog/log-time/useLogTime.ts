@@ -1,3 +1,4 @@
+import { insertTimeLogsOnce } from "@/features/timelog/save/insertTimeLogs";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/store/currentUser";
@@ -122,7 +123,7 @@ export function useLogTime({
       return toast.error("Adjust the estimate first — this would exceed available hours.");
     }
     setBusy(true);
-    const { error } = await supabase.from("time_logs").insert({
+    const { error } = await insertTimeLogsOnce([{
       ticket_id: ticket.id,
       user_id: user.id,
       discipline,
@@ -131,7 +132,7 @@ export function useLogTime({
       source: "manual",
       logged_at: loggedDate.toISOString(),
       logged_tz_offset: loggerOffset(),
-    });
+    }]);
     setBusy(false);
     if (error) return toast.error(error.message);
     toast.success(opts?.prefix ? `${opts.prefix} · ${h}h logged` : `Logged ${h}h`);

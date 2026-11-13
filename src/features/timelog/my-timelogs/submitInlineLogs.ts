@@ -1,3 +1,4 @@
+import { insertTimeLogsOnce } from "@/features/timelog/save/insertTimeLogs";
 import { supabase } from "@/integrations/supabase/client";
 import type { LogDiscipline } from "@/lib/types";
 import { combineDateAndTime, maybePromoteToActive, type AllocationRow } from "./inlineLogHelpers";
@@ -43,7 +44,7 @@ export async function submitInlineLogs({
     return { ok: false, message: "Nothing to log — every ticket was set to 0" };
   }
 
-  const { error } = await supabase.from("time_logs").insert(logs);
+  const { error } = await insertTimeLogsOnce(logs);
   if (error) return { ok: false, message: error.message };
 
   for (const r of rows) {
