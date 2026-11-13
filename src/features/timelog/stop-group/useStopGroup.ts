@@ -1,3 +1,4 @@
+import { insertTimeLogsOnce } from "@/features/timelog/save/insertTimeLogs";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTimerStore, type TimerTicket } from "@/store/timer";
@@ -141,7 +142,7 @@ export function useStopGroup({
         `Skipped ${skipped.length} ticket${skipped.length === 1 ? "" : "s"} with 0 time: ${skipped.join(", ")}`
       );
     }
-    const { error: logErr } = await supabase.from("time_logs").insert(logs);
+    const { error: logErr } = await insertTimeLogsOnce(logs);
     if (logErr) {
       setBusy(false);
       return toast.error("Failed to save time: " + logErr.message);
