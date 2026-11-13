@@ -9,9 +9,9 @@ describe("client email figures", () => {
     const top = pickTopEpics([{ id: 1, name: "A", hours: 96 }, { id: 2, name: "B", hours: 4 }], 100);
     expect(top.map((e) => e.name)).toEqual(["A"]);
   });
-  it("lists at most 4 epics, biggest first", () => {
-    const epics = [10, 30, 20, 25, 15].map((h, i) => ({ id: i, name: `E${i}`, hours: h }));
-    expect(pickTopEpics(epics, 100).map((e) => e.hours)).toEqual([30, 25, 20, 15]);
+  it("lists at most 8 epics, biggest first", () => {
+    const epics = [16, 14, 13, 12, 11, 10, 9, 8, 7].map((h, i) => ({ id: i, name: `E${i}`, hours: h }));
+    expect(pickTopEpics(epics, 100).map((e) => e.hours)).toEqual([16, 14, 13, 12, 11, 10, 9, 8]);
   });
   it("amount owed is (hours − discounts) × rate, and bug/CR hours are split out", () => {
     const f = computeFacts(
