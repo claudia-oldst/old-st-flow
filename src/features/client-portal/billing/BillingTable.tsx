@@ -55,12 +55,17 @@ export function BillingTable({ rows, total, months, rate }: {
   const groupOf = (k: string): "est" | "month" | "total" =>
     isMonth(k) ? "month" : ["actual", "discount", "grand"].includes(k) ? "total" : "est";
   // First column of each block gets a divider so the three groups read separately.
+  const breakdownKeys = new Set(cols.filter((c) => c.breakdown).map((c) => c.key));
+  const GROUP_LABEL = { est: "Estimates", month: "Monthly logs", total: "Billing summary" } as const;
+  const groups: { g: "est" | "month" | "total"; span: number }[] = [];
+  cols.forEach((c) => { const g = groupOf(c.key); const last = groups[groups.length - 1]; if (last?.g === g) last.span++; else groups.push({ g, span: 1 }); });
   const firstOfGroup = new Set<string>();
   cols.forEach((c, i) => { if (i === 0 || groupOf(cols[i - 1].key) !== groupOf(c.key)) firstOfGroup.add(c.key); });
   const colCls = (k: string) =>
     cn(
-      firstOfGroup.has(k) && "border-l border-border",
+      firstOfGroup.has(k) ? "border-l border-border" : isMonth(k) && "border-l border-border/20",
       groupOf(k) === "total" && "bg-surface-2/50",
+      breakdownKeys.has(k) && "bg-background/40",
       k === "grand" && "font-semibold text-foreground",
     );
 
@@ -132,10 +137,15 @@ export function BillingTable({ rows, total, months, rate }: {
     <div className="glass rounded-2xl overflow-auto max-h-[75vh] border border-border">
       <table className="w-full text-sm border-collapse">
         <thead className="sticky top-0 z-20">
+          <tr className="bg-surface-2 border-b border-border/60 text-[10px] uppercase tracking-[0.14em] text-dim">
+            <th rowSpan={2} className={cn(sticky, "z-30 bg-surface-2 font-semibold align-bottom text-[11px] tracking-wider text-foreground/80")}>Epic <span className="normal-case text-dimmer">(hours)</span></th>
+            {groups.map((g, i) => (
+              <th key={g.g + i} colSpan={g.span} className="px-3 py-1.5 text-center font-semibold border-l border-border bg-surface-2">{GROUP_LABEL[g.g]}</th>
+            ))}
+          </tr>
           <tr className="bg-surface-2 border-b-2 border-border text-[11px] uppercase tracking-wider text-foreground/80">
-            <th className={cn(sticky, "z-30 bg-surface-2 font-semibold")}>Epic <span className="normal-case text-dimmer">(hours)</span></th>
             {cols.map((c) => (
-              <th key={c.key} className={cn("px-3 py-2.5 text-right align-bottom font-semibold leading-tight max-w-[110px] bg-surface-2", colCls(c.key), c.key === "grand" && "text-foreground")}>
+              <th key={c.key} className={cn("px-3 py-2.5 text-right align-bottom font-semibold leading-tight max-w-[110px] bg-surface-2", colCls(c.key), c.key === "grand" && "text-foreground", c.breakdown && "bg-surface-1 text-dim font-medium")}>
                 {c.key === "original" || c.key === "revised" ? (() => {
                   const isO = c.key === "original";
                   const open = isO ? expanded : revExpanded;
@@ -144,7 +154,7 @@ export function BillingTable({ rows, total, months, rate }: {
                   <button
                     type="button"
                     onClick={() => (isO ? setExpanded : setRevExpanded)((v) => !v)}
-                    className="inline-flex items-end gap-1 text-right uppercase hover:text-primary"
+                    className="inline-flex items-end gap-1 rounded-md px-1 -mx-1 text-right uppercase hover:text-primary hover:bg-primary/10 focus:outline-none focus-visible:ring-1 focus-visible:ring-primary"
                     aria-expanded={open}
                     aria-label={open ? `Hide ${word} breakdown` : `Show ${word} breakdown`}
                   >
