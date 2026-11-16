@@ -144,7 +144,6 @@ export function BillingTable({ rows, total, months, rate }: {
             ))}
           </tr>
           <tr className="bg-surface-2 border-b-2 border-border text-[11px] uppercase tracking-wider text-foreground/80">
-            <th hidden className={cn(sticky, "z-30 bg-surface-2 font-semibold")}>Epic <span className="normal-case text-dimmer">(hours)</span></th>
             {cols.map((c) => (
               <th key={c.key} className={cn("px-3 py-2.5 text-right align-bottom font-semibold leading-tight max-w-[110px] bg-surface-2", colCls(c.key), c.key === "grand" && "text-foreground", c.breakdown && "bg-surface-1 text-dim font-medium")}>
                 {c.key === "original" || c.key === "revised" ? (() => {
