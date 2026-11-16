@@ -133,8 +133,7 @@ export function BillingTable({ rows, total, months, rate }: {
                     {c.label}
                   </button>
                   );
-                })()
-                ) : (
+                })() : (
                   c.label
                 )}
               </th>
