@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, isCancelledError } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTicketListRealtime } from "./useTicketListRealtime";
 import { requestTicketPage } from "./ticketPageRequest";
@@ -128,23 +128,33 @@ export async function fetchProjectTickets(projectId: string, options: {
   return { tickets, totalCount: total, complete: true };
 }
 
+const latestRun = new Map<string, number>();
+
+export function isCancelled(err: unknown): boolean {
+  return isCancelledError(err) || (err instanceof Error && (err.name === "AbortError" || err.name === "CancelledError"));
+}
+
 export function useProjectTickets(projectId: string | undefined) {
   const qc = useQueryClient();
   const queryKey = ["projectTickets", projectId] as const;
   const query = useQuery({
     queryKey,
-    queryFn: ({ signal }) => {
+    // No abort signal: leaving the tab must not cancel the download, otherwise
+    // returning shows a stale "CancelledError". A newer run supersedes older ones.
+    queryFn: () => {
       if (!projectId) throw new Error("Project is required");
+      const run = (latestRun.get(projectId) ?? 0) + 1;
+      latestRun.set(projectId, run);
       return fetchProjectTickets(projectId, {
-        signal,
-        onProgress: (result) => { if (!signal.aborted) qc.setQueryData(queryKey, result); },
+        onProgress: (result) => { if (latestRun.get(projectId) === run) qc.setQueryData(queryKey, result); },
       });
     },
     enabled: !!projectId,
-    retry: false,
+    gcTime: 30 * 60_000,
+    retry: (count, err) => count < 1 && !isCancelled(err),
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
-    refetchOnMount: false,
+    refetchOnMount: (q) => q.state.status === "error" || q.state.data?.complete !== true,
   });
   useTicketListRealtime(projectId, queryKey);
   const tickets = query.data?.tickets ?? [];
@@ -155,7 +165,8 @@ export function useProjectTickets(projectId: string | undefined) {
     loading: query.isPending && !!projectId,
     loadingMore,
     loadedCount: tickets.length,
-    error: query.error instanceof Error ? query.error.message : query.error ? String(query.error) : null,
+    error: !query.error || isCancelled(query.error) ? null
+      : query.error instanceof Error ? query.error.message : String(query.error),
     reload: () => qc.invalidateQueries({ queryKey }, { cancelRefetch: false }),
     totalCount,
     truncated: query.data?.complete === true && totalCount > tickets.length,
