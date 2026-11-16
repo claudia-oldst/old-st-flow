@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.slack_notify_estimate_rejected_trg() FROM PUBLIC, anon, authenticated;

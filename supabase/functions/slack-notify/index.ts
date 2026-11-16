@@ -1,4 +1,4 @@
-// Slack DM nudges for ticket assignments and pending estimate revisions.
+// Slack DM nudges for ticket assignments pending and rejected estimate revisions.
 // Invoked by database triggers via pg_net (see public.enqueue_slack_notify).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -247,6 +247,52 @@ async function handleEstimateRevision(admin: Admin, p: Payload, base: string | n
   return j({ ok: true, event: "estimate_revision_requested", notified: results });
 }
 
+async function handleEstimateRejected(admin: Admin, p: Payload, base: string | null) {
+  if (!p.change_id) return j({ error: "missing change_id" }, 400);
+  const { data: change } = await admin
+    .from("ticket_estimate_changes")
+    .select("id, ticket_id, user_id, discipline, previous_hours, new_hours, reason, status, decided_by")
+    .eq("id", p.change_id)
+    .maybeSingle();
+  const c = change as Record<string, any> | null;
+  if (!c) return j({ error: "change not found" }, 404);
+  if (c.status !== "rejected") return j({ ok: true, skipped: "not rejected" });
+  if (c.decided_by && c.decided_by === c.user_id) return j({ ok: true, skipped: "self" });
+
+  const { data: ticket } = await admin
+    .from("tickets")
+    .select("id, formatted_id, title, project_id, projects(name)")
+    .eq("id", c.ticket_id)
+    .maybeSingle();
+  if (!ticket) return j({ error: "ticket not found" }, 404);
+  const t = ticket as Record<string, any>;
+  const { data: requester } = await admin
+    .from("team_members").select("id, name, email, slack_user_id").eq("id", c.user_id).maybeSingle();
+  if (!requester) return j({ ok: true, skipped: "no requester" });
+  const { data: decider } = c.decided_by
+    ? await admin.from("team_members").select("name").eq("id", c.decided_by).maybeSingle()
+    : { data: null };
+  const by = (decider as any)?.name ?? "a PM/BA";
+  const raw = String(c.reason ?? "");
+  const idx = raw.lastIndexOf("Rejected by ");
+  const stamp = idx >= 0 ? raw.slice(idx) : "";
+  const colon = stamp.indexOf(":");
+  const why = colon >= 0 ? stamp.slice(colon + 1).trim() : "";
+
+  const u = urls(base, t.project_id as string, t.id as string);
+  const mrkdwn =
+    `:x: *Your estimate revision was rejected*\n` +
+    `${link(u.ticket, `${t.formatted_id} — ${t.title}`)} · ` +
+    `${link(u.project, t.projects?.name ?? "project")}\n` +
+    `${esc(String(c.discipline))}: ${Number(c.previous_hours)}h → ${Number(c.new_hours)}h\n` +
+    `Rejected by ${esc(by)}` + (why ? `: ${esc(why.slice(0, 500))}` : "");
+  const text = `Your estimate revision on ${t.formatted_id} was rejected by ${by}` + (why ? `: ${why}` : "");
+  const blocks: unknown[] = [{ type: "section", text: { type: "mrkdwn", text: mrkdwn } }];
+  if (u.ticket) blocks.push({ type: "actions", elements: [linkButton("Open ticket", u.ticket)] });
+  const result = await dm(admin, t.project_id as string, requester as any, text, blocks);
+  return j({ ok: true, event: "estimate_revision_rejected", result });
+}
+
 /** Strip mention/markdown syntax down to a readable excerpt. */
 function excerpt(body: string, max = 300) {
   const plain = body
@@ -437,6 +483,9 @@ Deno.serve(async (req) => {
     if (payload.event === "ticket_assigned") return await handleAssignment(admin, payload, base);
     if (payload.event === "estimate_revision_requested") {
       return await handleEstimateRevision(admin, payload, base);
+    }
+    if (payload.event === "estimate_revision_rejected") {
+      return await handleEstimateRejected(admin, payload, base);
     }
     if (payload.event === "comment_mention") {
       return await handleCommentMention(admin, payload, base);
