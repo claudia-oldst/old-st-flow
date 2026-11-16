@@ -1,12 +1,7 @@
 import { useState } from "react";
 import { MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useCurrentUser } from "@/store/currentUser";
 import { LogoffSummaryDialog } from "./LogoffSummaryDialog";
 
@@ -29,7 +24,7 @@ export function LogoffSummaryButton() {
               aria-label="Generate logoff message"
             >
               <MessageSquare className="h-3.5 w-3.5 shrink-0" />
-              Generate Logoff Message
+              Logoff
             </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom">Generate logoff message</TooltipContent>
