@@ -47,4 +47,18 @@ describe("ticket loading hooks", () => {
     await act(async () => { finish?.(); await fetching; });
     expect(invalidate).toHaveBeenCalledTimes(1);
   });
+  it("keeps downloading after leaving the tab and shows no error on return", async () => {
+    let finish: ((data: unknown) => void) | undefined;
+    mocks.rpc.mockImplementation((_name: string, args: { _page: number }) => ({ abortSignal: () => args._page === 1
+      ? Promise.resolve({ data: { rows: Array.from({ length: 200 }, (_, i) => ({ id: `t${i}` })), total: 201 }, error: null })
+      : new Promise((resolve) => { finish = resolve; }) }));
+    const client = new QueryClient();
+    const first = renderHook(() => useProjectTickets("p2"), { wrapper: wrapper(client) });
+    await waitFor(() => expect(first.result.current.loadedCount).toBe(200));
+    first.unmount();
+    await act(async () => { finish?.({ data: { rows: [{ id: "last" }], total: 201 }, error: null }); });
+    const again = renderHook(() => useProjectTickets("p2"), { wrapper: wrapper(client) });
+    await waitFor(() => expect(again.result.current.loadedCount).toBe(201));
+    expect(again.result.current.error).toBeNull();
+  });
 });
