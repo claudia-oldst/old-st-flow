@@ -8,6 +8,9 @@ export interface BillingEpic {
   original_cr: number | null;
   original_bug: number | null;
   revised: number | null;
+  revised_std?: number | null;
+  revised_cr?: number | null;
+  revised_bug?: number | null;
 }
 
 export interface BillingPayload {
@@ -26,6 +29,9 @@ export interface BillingRow {
   bug: number;
   original: number;
   revised: number;
+  rStd: number;
+  rCr: number;
+  rBug: number;
   months: Record<string, number>;
   actual: number;
   /** Discount hours per month. */
@@ -83,6 +89,9 @@ export function buildRows(p: BillingPayload): BillingRow[] {
       std, cr, bug,
       original: std + cr + bug,
       revised: Number(e.revised ?? 0),
+      rStd: Number(e.revised_std ?? 0),
+      rCr: Number(e.revised_cr ?? 0),
+      rBug: Number(e.revised_bug ?? 0),
       months,
       actual,
       discountMonths,
@@ -94,10 +103,10 @@ export function buildRows(p: BillingPayload): BillingRow[] {
 
 /** Column-wise totals across rows (same shape as a row). */
 export function totalRow(rows: BillingRow[]): BillingRow {
-  const t: BillingRow = { id: null, name: "Total", std: 0, cr: 0, bug: 0, original: 0, revised: 0, months: {}, actual: 0, discountMonths: {}, discount: 0, grand: 0 };
+  const t: BillingRow = { id: null, name: "Total", std: 0, cr: 0, bug: 0, original: 0, revised: 0, rStd: 0, rCr: 0, rBug: 0, months: {}, actual: 0, discountMonths: {}, discount: 0, grand: 0 };
   for (const r of rows) {
     t.std += r.std; t.cr += r.cr; t.bug += r.bug;
-    t.original += r.original; t.revised += r.revised; t.actual += r.actual;
+    t.original += r.original; t.revised += r.revised; t.rStd += r.rStd; t.rCr += r.rCr; t.rBug += r.rBug; t.actual += r.actual;
     t.discount += r.discount; t.grand += r.grand;
     for (const [m, h] of Object.entries(r.months)) t.months[m] = (t.months[m] ?? 0) + h;
     for (const [m, h] of Object.entries(r.discountMonths)) t.discountMonths[m] = (t.discountMonths[m] ?? 0) + h;

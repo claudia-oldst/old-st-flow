@@ -16,6 +16,7 @@ export function BillingTable({ rows, total, months, rate }: {
   rate: number;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [revExpanded, setRevExpanded] = useState(false);
   const cols: Col[] = [
     ...(expanded
       ? [
@@ -25,6 +26,13 @@ export function BillingTable({ rows, total, months, rate }: {
         ]
       : []),
     { key: "original", label: "Total Original", get: (r) => r.original },
+    ...(revExpanded
+      ? [
+          { key: "rstd", label: "Revised (Std/Proj)", get: (r: BillingRow) => r.rStd, breakdown: true },
+          { key: "rcr", label: "Change Requests", get: (r: BillingRow) => r.rCr, breakdown: true },
+          { key: "rbug", label: "Bugs", get: (r: BillingRow) => r.rBug, breakdown: true },
+        ]
+      : []),
     { key: "revised", label: "Latest Revised Estimate", get: (r) => r.revised },
     ...months.map((m) => ({ key: m, label: monthLabel(m), get: (r: BillingRow) => r.months[m] ?? 0 })),
     { key: "actual", label: "Actual Total", get: (r) => r.actual },
@@ -109,17 +117,23 @@ export function BillingTable({ rows, total, months, rate }: {
             <th className={cn(sticky, "z-30 bg-surface-2 font-semibold")}>Epic <span className="normal-case text-dimmer">(hours)</span></th>
             {cols.map((c) => (
               <th key={c.key} className={cn("px-3 py-2.5 text-right align-bottom font-semibold leading-tight max-w-[110px] bg-surface-2", colCls(c.key), c.key === "grand" && "text-foreground")}>
-                {c.key === "original" ? (
+                {c.key === "original" || c.key === "revised" ? (() => {
+                  const isO = c.key === "original";
+                  const open = isO ? expanded : revExpanded;
+                  const word = isO ? "original" : "revised";
+                  return (
                   <button
                     type="button"
-                    onClick={() => setExpanded((v) => !v)}
+                    onClick={() => (isO ? setExpanded : setRevExpanded)((v) => !v)}
                     className="inline-flex items-end gap-1 text-right uppercase hover:text-primary"
-                    aria-expanded={expanded}
-                    aria-label={expanded ? "Hide original breakdown" : "Show original breakdown"}
+                    aria-expanded={open}
+                    aria-label={open ? `Hide ${word} breakdown` : `Show ${word} breakdown`}
                   >
-                    {expanded ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+                    {open ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
                     {c.label}
                   </button>
+                  );
+                })()
                 ) : (
                   c.label
                 )}
