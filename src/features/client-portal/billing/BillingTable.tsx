@@ -1,4 +1,4 @@
-import { Fragment, useState } from "react";
+import { Fragment, useState, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -70,7 +70,7 @@ export function BillingTable({ rows, total, months, rate }: {
     Math.abs(v) < 0.005 ? <span className="text-dimmer">–</span> : fmt(v);
   const gbp = (n: number) => formatGBP(n * rate);
   /** Wraps a cell's content in a Std/Proj · CR · Bugs breakdown tooltip. */
-  const withSplit = (content: React.ReactNode, s: Split | undefined, fmt: (n: number) => string) => {
+  const withSplit = (content: ReactNode, s: Split | undefined, fmt: (n: number) => string) => {
     if (!s) return content;
     return (
       <Tooltip>
