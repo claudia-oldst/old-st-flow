@@ -13,10 +13,15 @@ export interface BillingEpic {
   revised_bug?: number | null;
 }
 
+/** Hours split by ticket type. */
+export interface Split { std: number; cr: number; bug: number }
+const zero = (): Split => ({ std: 0, cr: 0, bug: 0 });
+const addSplit = (a: Split, b: Split) => { a.std += b.std; a.cr += b.cr; a.bug += b.bug; };
+
 export interface BillingPayload {
   project: { id: string; name: string; rate_per_hour: number; start_date: string | null; cutoff: string };
   epics: BillingEpic[];
-  logs: { epic_id: number | null; month: string; hours: number }[];
+  logs: { epic_id: number | null; month: string; hours: number; std?: number | null; cr?: number | null; bug?: number | null }[];
   /** Discount/unbilled hours per epic per month (month the discount was applied). */
   discounts?: { epic_id: number | null; month: string; hours: number }[];
 }
@@ -33,7 +38,10 @@ export interface BillingRow {
   rCr: number;
   rBug: number;
   months: Record<string, number>;
+  /** Logged hours per month split by ticket type. */
+  splitMonths: Record<string, Split>;
   actual: number;
+  actualSplit: Split;
   /** Discount hours per month. */
   discountMonths: Record<string, number>;
   /** Whole-project discount hours. */
@@ -73,6 +81,13 @@ const group = (list: { epic_id: number | null; month: string; hours: number }[])
 
 export function buildRows(p: BillingPayload): BillingRow[] {
   const byEpic = group(p.logs);
+  const splitByEpic = new Map<number | null, Record<string, Split>>();
+  for (const l of p.logs) {
+    const m = splitByEpic.get(l.epic_id) ?? {};
+    const cur = (m[l.month] ??= zero());
+    addSplit(cur, { std: Number(l.std ?? 0), cr: Number(l.cr ?? 0), bug: Number(l.bug ?? 0) });
+    splitByEpic.set(l.epic_id, m);
+  }
   const discByEpic = group(p.discounts ?? []);
   const sum = (m: Record<string, number>) => Object.values(m).reduce((s, h) => s + h, 0);
   return p.epics.map((e) => {
@@ -82,6 +97,9 @@ export function buildRows(p: BillingPayload): BillingRow[] {
     const months = byEpic.get(e.id) ?? {};
     const discountMonths = discByEpic.get(e.id) ?? {};
     const actual = sum(months);
+    const splitMonths = splitByEpic.get(e.id) ?? {};
+    const actualSplit = zero();
+    Object.values(splitMonths).forEach((x) => addSplit(actualSplit, x));
     const discount = sum(discountMonths);
     return {
       id: e.id,
@@ -93,7 +111,9 @@ export function buildRows(p: BillingPayload): BillingRow[] {
       rCr: Number(e.revised_cr ?? 0),
       rBug: Number(e.revised_bug ?? 0),
       months,
+      splitMonths,
       actual,
+      actualSplit,
       discountMonths,
       discount,
       grand: actual - discount,
@@ -103,12 +123,14 @@ export function buildRows(p: BillingPayload): BillingRow[] {
 
 /** Column-wise totals across rows (same shape as a row). */
 export function totalRow(rows: BillingRow[]): BillingRow {
-  const t: BillingRow = { id: null, name: "Total", std: 0, cr: 0, bug: 0, original: 0, revised: 0, rStd: 0, rCr: 0, rBug: 0, months: {}, actual: 0, discountMonths: {}, discount: 0, grand: 0 };
+  const t: BillingRow = { id: null, name: "Total", std: 0, cr: 0, bug: 0, original: 0, revised: 0, rStd: 0, rCr: 0, rBug: 0, months: {}, splitMonths: {}, actual: 0, actualSplit: zero(), discountMonths: {}, discount: 0, grand: 0 };
   for (const r of rows) {
     t.std += r.std; t.cr += r.cr; t.bug += r.bug;
     t.original += r.original; t.revised += r.revised; t.rStd += r.rStd; t.rCr += r.rCr; t.rBug += r.rBug; t.actual += r.actual;
     t.discount += r.discount; t.grand += r.grand;
     for (const [m, h] of Object.entries(r.months)) t.months[m] = (t.months[m] ?? 0) + h;
+    for (const [m, x] of Object.entries(r.splitMonths)) addSplit((t.splitMonths[m] ??= zero()), x);
+    addSplit(t.actualSplit, r.actualSplit);
     for (const [m, h] of Object.entries(r.discountMonths)) t.discountMonths[m] = (t.discountMonths[m] ?? 0) + h;
   }
   return t;
