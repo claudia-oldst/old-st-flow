@@ -24,6 +24,9 @@ import {
 } from "@/components/ui/tooltip";
 import { MyProfileDialog } from "@/features/profile/MyProfileDialog";
 import { ChevronDown, UserRound, Settings, FolderKanban, ListChecks, Square, LogOut, Clock } from "lucide-react";
+import { useQuickProjects } from "@/features/projects/switcher/useQuickProjects";
+import { StarredProjectChips } from "@/features/projects/switcher/StarredProjectChips";
+import { ProjectsNavMenu } from "@/features/projects/switcher/ProjectsNavMenu";
 import { cn, formatDuration, PAGE_SHELL } from "@/lib/utils";
 
 // Leaf component: isolates per-second re-renders to just the ticking text.
@@ -172,6 +175,7 @@ function UserMenu() {
 export function TopBar() {
   const location = useLocation();
   const isPMBA = useCurrentUser((s) => s.user?.role === "PMBA");
+  const quickProjects = useQuickProjects();
 
   const navItems = [
     { to: "/", label: "Projects", icon: FolderKanban },
@@ -203,6 +207,9 @@ export function TopBar() {
               item.to === "/"
                 ? location.pathname === "/" || location.pathname.startsWith("/projects")
                 : location.pathname.startsWith(item.to);
+            if (item.to === "/") {
+              return <ProjectsNavMenu key="projects" projects={quickProjects} active={isActive} />;
+            }
             return (
               <Link
                 key={item.to}
@@ -222,6 +229,7 @@ export function TopBar() {
         </nav>
 
         <div className="ml-auto flex items-center gap-3">
+          <StarredProjectChips projects={quickProjects} />
           <TimerChip />
           <LogoffSummaryButton />
           <UserMenu />

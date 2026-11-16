@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/store/currentUser";
 import { toast } from "sonner";
+import { FAVORITES_CHANGED } from "./switcher/useQuickProjects";
 
 /** Star / unstar a project for the current user. */
 export function useToggleFavorite(onChanged?: () => void) {
@@ -22,6 +23,7 @@ export function useToggleFavorite(onChanged?: () => void) {
         toast.error(error.message);
         return;
       }
+      window.dispatchEvent(new Event(FAVORITES_CHANGED));
       onChanged?.();
     },
     [user, onChanged],
