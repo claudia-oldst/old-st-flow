@@ -9,6 +9,7 @@ import { displayTitle } from "@/lib/utils";
 import { StatusBadge } from "@/features/_shared/estimate-ui/StatusBadge";
 import { GithubIssueBadge } from "@/features/github/GithubIssueBadge";
 import { emitOpenTicket } from "@/features/tickets/openTicketEvent";
+import { CopyTicketLinkButton } from "./CopyTicketLinkButton";
 
 
 export function TicketDetailHeader({
@@ -119,6 +120,8 @@ export function TicketDetailHeader({
         ) : (
           <div className="group flex items-center gap-2">
             <span>{displayTitle(ticket.title, ticket.ticket_type)}</span>
+            <CopyTicketLinkButton projectId={ticket.project_id} ticketId={ticket.id}
+              formattedId={ticket.formatted_id} title={displayTitle(ticket.title, ticket.ticket_type)} />
             {canEdit && (
               <Button
                 size="sm"
