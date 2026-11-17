@@ -173,7 +173,7 @@ export function RelatedTickets({
                         types={childTypes}
                         size="sm"
                         clearable={false}
-                        placeholder="+ Child"
+                        placeholder="Add child tickets..."
                         onChange={(id) => id && setChild(id, ticket.id)}
                       />
                     </div>
