@@ -14,7 +14,13 @@ import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import type { Status } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-interface Rel { id: string; formatted_id: string; title: string; status_id: string | null; parent_ticket_id: string | null }
+interface Rel {
+  id: string;
+  formatted_id: string;
+  title: string;
+  status_id: string | null;
+  parent_ticket_id: string | null;
+}
 
 /** Parent and child tickets in one collapsible card. */
 export function RelatedTickets({
@@ -50,13 +56,20 @@ export function RelatedTickets({
       .or(filter)
       .order("ticket_number")
       .then(({ data }) => alive && setRows((data ?? []) as Rel[]));
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [ticket.id, ticket.parent_ticket_id, reload]);
 
   const parent = rows.find((r) => r.id === ticket.parent_ticket_id);
   const children = rows.filter((r) => r.parent_ticket_id === ticket.id);
   const count = (parent ? 1 : 0) + children.length;
-  if (count === 0 && !canCreateChild && !(isPMBARole && (canHaveParent || childTypesFor(ticket.ticket_type).length > 0))) return null;
+  if (
+    count === 0 &&
+    !canCreateChild &&
+    !(isPMBARole && (canHaveParent || childTypesFor(ticket.ticket_type).length > 0))
+  )
+    return null;
 
   const pill = (statusId: string | null) => {
     const s = statuses.find((x) => x.id === statusId);
@@ -146,22 +159,33 @@ export function RelatedTickets({
               ))}
               {(canAddChild || canCreateChild) && (
                 <div className="pt-1 flex items-center gap-2">
-                  {canAddChild && <div className="flex-1 min-w-0">
-                  <ParentTicketSelect
-                    key={`add-${children.length}`}
-                    projectId={projectId}
-                    value={null}
-                    excludeId={ticket.id}
-                    excludeIds={[...children.map((c) => c.id), ...(ticket.parent_ticket_id ? [ticket.parent_ticket_id] : [])]}
-                    types={childTypes}
-                    size="sm"
-                    clearable={false}
-                    placeholder="Add child ticket…"
-                    onChange={(id) => id && setChild(id, ticket.id)}
-                  />
-                  </div>}
+                  {canAddChild && (
+                    <div className="flex-1 min-w-0">
+                      <ParentTicketSelect
+                        key={`add-${children.length}`}
+                        projectId={projectId}
+                        value={null}
+                        excludeId={ticket.id}
+                        excludeIds={[
+                          ...children.map((c) => c.id),
+                          ...(ticket.parent_ticket_id ? [ticket.parent_ticket_id] : []),
+                        ]}
+                        types={childTypes}
+                        size="sm"
+                        clearable={false}
+                        placeholder="+ Child"
+                        onChange={(id) => id && setChild(id, ticket.id)}
+                      />
+                    </div>
+                  )}
                   {canCreateChild && (
-                    <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => setCreating(true)}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0"
+                      onClick={() => setCreating(true)}
+                    >
                       <Plus className="h-3.5 w-3.5 mr-1" /> New child ticket
                     </Button>
                   )}
@@ -178,7 +202,10 @@ export function RelatedTickets({
           projectId={projectId}
           defaultType="Bug"
           defaultParent={{ id: ticket.id, title: ticket.title, epicId: ticket.epic_id ?? null }}
-          onCreated={() => { setReload((n) => n + 1); onChange(); }}
+          onCreated={() => {
+            setReload((n) => n + 1);
+            onChange();
+          }}
         />
       )}
     </Collapsible>
