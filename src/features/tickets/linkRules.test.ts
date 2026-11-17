@@ -22,3 +22,13 @@ describe("ticket link rules", () => {
     expect(canLink("Feedback", "Proj")).toBe(false);
   });
 });
+
+import { canCreateBugChild } from "./linkRules";
+describe("canCreateBugChild", () => {
+  it("allows Standard and CR parents only", () => {
+    expect(canCreateBugChild("Standard")).toBe(true);
+    expect(canCreateBugChild("CR")).toBe(true);
+    expect(canCreateBugChild("Bug")).toBe(false);
+    expect(canCreateBugChild("Proj")).toBe(false);
+  });
+});

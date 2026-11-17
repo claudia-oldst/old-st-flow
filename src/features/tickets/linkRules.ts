@@ -20,3 +20,8 @@ export function childTypesFor(parentType: string): LinkType[] {
   if (parentType === "Standard" || parentType === "CR") return ["Feedback"];
   return [];
 }
+
+/** Whether a new Bug child can be created under a ticket of `parentType`. */
+export function canCreateBugChild(parentType: string): boolean {
+  return canLink("Bug", parentType);
+}

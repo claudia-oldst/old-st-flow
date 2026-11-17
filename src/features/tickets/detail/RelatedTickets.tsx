@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
-import { ChevronRight, X } from "lucide-react";
+import { ChevronRight, Plus, X } from "lucide-react";
+import { AddTicketsDialog } from "@/features/tickets/AddTicketsDialog";
+import { useCurrentUser } from "@/store/currentUser";
 import { Button } from "@/components/ui/button";
-import { childTypesFor, parentTypesFor } from "@/features/tickets/linkRules";
+import { canCreateBugChild, childTypesFor, parentTypesFor } from "@/features/tickets/linkRules";
 import { toast } from "sonner";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,6 +34,9 @@ export function RelatedTickets({
 }) {
   const [rows, setRows] = useState<Rel[]>([]);
   const [reload, setReload] = useState(0);
+  const [creating, setCreating] = useState(false);
+  const isQA = useCurrentUser((s) => s.user?.role === "QA");
+  const canCreateChild = (isPMBARole || isQA) && canCreateBugChild(ticket.ticket_type);
   const [open, setOpen] = usePersistentState("ticket-related-open", true, { storage: "local" });
 
   useEffect(() => {
@@ -51,7 +56,7 @@ export function RelatedTickets({
   const parent = rows.find((r) => r.id === ticket.parent_ticket_id);
   const children = rows.filter((r) => r.parent_ticket_id === ticket.id);
   const count = (parent ? 1 : 0) + children.length;
-  if (count === 0 && !(isPMBARole && (canHaveParent || childTypesFor(ticket.ticket_type).length > 0))) return null;
+  if (count === 0 && !canCreateChild && !(isPMBARole && (canHaveParent || childTypesFor(ticket.ticket_type).length > 0))) return null;
 
   const pill = (statusId: string | null) => {
     const s = statuses.find((x) => x.id === statusId);
@@ -118,7 +123,7 @@ export function RelatedTickets({
             </div>
           </div>
         )}
-        {(children.length > 0 || canAddChild) && (
+        {(children.length > 0 || canAddChild || canCreateChild) && (
           <div className="flex gap-3">
             <div className="w-16 pt-2 text-xs font-medium text-dim">Children</div>
             <div className="flex-1 min-w-0 space-y-0.5">
@@ -139,8 +144,9 @@ export function RelatedTickets({
                   )}
                 </div>
               ))}
-              {canAddChild && (
-                <div className="pt-1">
+              {(canAddChild || canCreateChild) && (
+                <div className="pt-1 flex items-center gap-2">
+                  {canAddChild && <div className="flex-1 min-w-0">
                   <ParentTicketSelect
                     key={`add-${children.length}`}
                     projectId={projectId}
@@ -153,12 +159,28 @@ export function RelatedTickets({
                     placeholder="Add child ticket…"
                     onChange={(id) => id && setChild(id, ticket.id)}
                   />
+                  </div>}
+                  {canCreateChild && (
+                    <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => setCreating(true)}>
+                      <Plus className="h-3.5 w-3.5 mr-1" /> New child ticket
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
           </div>
         )}
       </CollapsibleContent>
+      {canCreateChild && (
+        <AddTicketsDialog
+          open={creating}
+          onOpenChange={setCreating}
+          projectId={projectId}
+          defaultType="Bug"
+          defaultParent={{ id: ticket.id, title: ticket.title, epicId: ticket.epic_id ?? null }}
+          onCreated={() => { setReload((n) => n + 1); onChange(); }}
+        />
+      )}
     </Collapsible>
   );
 }

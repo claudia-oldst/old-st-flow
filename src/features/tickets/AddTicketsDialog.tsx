@@ -22,9 +22,11 @@ interface Props {
   initialTitles?: string[];
   /** Lock every draft to defaultType (used for Feedback). */
   lockType?: boolean;
+  /** Pre-link every draft to this parent (child ticket creation). */
+  defaultParent?: { id: string; title: string; epicId: number | null };
 }
 
-export function AddTicketsDialog({ open, onOpenChange, projectId, onCreated, defaultType = "Standard", initialTitles, lockType = false }: Props) {
+export function AddTicketsDialog({ open, onOpenChange, projectId, onCreated, defaultType = "Standard", initialTitles, lockType = false, defaultParent }: Props) {
   const { statuses } = useStatuses();
   const defaultStatusId = useMemo(
     () => statuses.find((s) => s.category === "backlog")?.id ?? statuses[0]?.id ?? null,
@@ -35,6 +37,7 @@ export function AddTicketsDialog({ open, onOpenChange, projectId, onCreated, def
     open,
     projectId,
     defaultType,
+    defaultParent,
     defaultStatusId,
     initialTitles,
     onCreated,

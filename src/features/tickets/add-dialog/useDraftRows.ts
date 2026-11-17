@@ -14,7 +14,9 @@ export function useDraftRows({
   initialTitles,
   onCreated,
   onClose,
+  defaultParent,
 }: {
+  defaultParent?: { id: string; title: string; epicId: number | null };
   open: boolean;
   projectId: string;
   defaultType: TicketType;
@@ -23,6 +25,12 @@ export function useDraftRows({
   onCreated: () => void | Promise<void>;
   onClose: () => void;
 }) {
+  const seed = (statusId: string | null): Draft => {
+    const d = newDraft(statusId, defaultType);
+    return defaultParent
+      ? { ...d, parentTicketId: defaultParent.id, parentTitle: defaultParent.title, epicId: defaultParent.epicId }
+      : d;
+  };
   const [drafts, setDrafts] = useState<Draft[]>([newDraft(null, defaultType)]);
   const [members, setMembers] = useState<(ProjectMember & { member: TeamMember })[]>([]);
   const [busy, setBusy] = useState(false);
@@ -32,13 +40,14 @@ export function useDraftRows({
     if (open) {
       if (initialTitles && initialTitles.length > 0) {
         setDrafts(
-          initialTitles.map((title) => ({ ...newDraft(defaultStatusId, defaultType), title })),
+          initialTitles.map((title) => ({ ...seed(defaultStatusId), title })),
         );
       } else {
-        setDrafts([newDraft(defaultStatusId, defaultType)]);
+        setDrafts([seed(defaultStatusId)]);
       }
     }
-  }, [open, defaultStatusId, defaultType, initialTitles]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, defaultStatusId, defaultType, initialTitles, defaultParent?.id]);
 
   useEffect(() => {
     if (!defaultStatusId) return;
@@ -62,7 +71,7 @@ export function useDraftRows({
   const remove = (key: string) =>
     setDrafts((prev) => (prev.length === 1 ? prev : prev.filter((d) => d.key !== key)));
 
-  const addAnother = () => setDrafts((prev) => [...prev, newDraft(defaultStatusId, defaultType)]);
+  const addAnother = () => setDrafts((prev) => [...prev, seed(defaultStatusId)]);
 
   const validDrafts = useMemo(
     () => drafts.filter((d) => d.title.trim().length > 0 && d.epicId !== null),
