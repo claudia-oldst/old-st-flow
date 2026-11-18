@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { monthRange, defaultMonths, buildRows, totalRow, grandMonth, type BillingPayload } from "./buildBilling";
+import { monthRange, defaultMonths, buildRows, totalRow, grandMonth, hasDiscounts, type BillingPayload } from "./buildBilling";
 
 const payload: BillingPayload = {
   project: { id: "p", name: "Amber", rate_per_hour: 48, start_date: "2026-04-10", cutoff: "2026-09-30T22:59:59Z" },
@@ -80,5 +80,16 @@ describe("billing discounts", () => {
     expect(t.discountMonths["2026-09"]).toBe(1.5);
     expect(grandMonth(t, "2026-09")).toBe(4.5);
     expect(t.grand).toBe(6.5);
+  });
+  it("reports discounts present only when hours exist", () => {
+    expect(hasDiscounts(totalRow(buildRows(p)))).toBe(true);
+    expect(hasDiscounts(totalRow(buildRows(payload)))).toBe(false);
+  });
+  it("treats a rounding-noise discount as absent", () => {
+    const t = totalRow(buildRows(payload));
+    t.discount = 0.004;
+    expect(hasDiscounts(t)).toBe(false);
+    t.discount = 0.02;
+    expect(hasDiscounts(t)).toBe(true);
   });
 });

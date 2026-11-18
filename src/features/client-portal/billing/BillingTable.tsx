@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { formatGBP } from "../types";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { fmtHours, grandMonth, type BillingRow, type Split } from "./buildBilling";
+import { fmtHours, grandMonth, hasDiscounts, type BillingRow, type Split } from "./buildBilling";
 
 type Col = { key: string; label: string; get: (r: BillingRow) => number; breakdown?: boolean; split?: (r: BillingRow) => Split };
 
@@ -48,7 +48,8 @@ export function BillingTable({ rows, total, months, rate }: {
   const grandCell = (k: string): number | null =>
     isMonth(k) ? grandMonth(total, k) : k === "grand" ? total.grand : null;
   const extraRows: { label: string; get: (k: string) => number | null }[] = [
-    { label: "Discount/Unbilled", get: discountCell },
+    // Discount/Unbilled only earns a row when the project actually has discounts.
+    ...(hasDiscounts(total) ? [{ label: "Discount/Unbilled", get: discountCell }] : []),
     { label: "Grand Total", get: grandCell },
   ];
 

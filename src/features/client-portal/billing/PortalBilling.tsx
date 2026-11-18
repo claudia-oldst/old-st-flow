@@ -4,7 +4,7 @@ import { MultiSelectFilter } from "@/features/_shared/filters/MultiSelectFilter"
 import { formatGBP } from "../types";
 import { BillingTable } from "./BillingTable";
 import { usePortalBilling, type BillingSource } from "./usePortalBilling";
-import { buildRows, defaultMonths, monthRange, totalRow } from "./buildBilling";
+import { buildRows, defaultMonths, hasDiscounts, monthRange, totalRow } from "./buildBilling";
 
 const label = (m: string) => format(new Date(`${m}-01T12:00:00`), "MMMM yyyy");
 
@@ -49,7 +49,7 @@ export function PortalBilling(props: BillingSource) {
       </div>
       <BillingTable rows={rows} total={total} months={months} rate={rate} />
       <div className="text-[11px] text-dimmer">
-        {rate > 0 && `Rate ${formatGBP(rate)}/h · `}Actual Total, Discount/Unbilled and Grand Total cover the whole project
+        {rate > 0 && `Rate ${formatGBP(rate)}/h · `}Actual Total{hasDiscounts(total) ? ", Discount/Unbilled" : ""} and Grand Total cover the whole project
         {data.project.start_date && ` since ${format(new Date(data.project.start_date), "d MMM yyyy")}`}.
       </div>
     </div>

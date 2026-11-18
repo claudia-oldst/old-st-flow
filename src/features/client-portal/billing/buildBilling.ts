@@ -140,3 +140,7 @@ export const fmtHours = (h: number) => String(Math.round(h * 10) / 10);
 
 /** Monthly billed hours after discounts: month total minus that month's discount. */
 export const grandMonth = (total: BillingRow, m: string) => (total.months[m] ?? 0) - (total.discountMonths[m] ?? 0);
+
+/** True when the project has any discount/unbilled hours at all (whole project, all months). */
+export const hasDiscounts = (total: BillingRow) =>
+  Math.abs(total.discount) > 0.005 || Object.values(total.discountMonths).some((h) => Math.abs(h) > 0.005);
