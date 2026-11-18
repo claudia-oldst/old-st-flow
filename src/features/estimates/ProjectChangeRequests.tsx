@@ -21,6 +21,20 @@ import { useChangeDecisions } from "./project-change-requests/useChangeDecisions
 import { useEpicDiscounts } from "@/features/discounts/useEpicDiscounts";
 import { discountTotalsByEpic, sumTotals } from "@/features/discounts/applyDiscounts";
 import { RejectEstimateRevisionDialog } from "@/features/estimates/RejectEstimateRevisionDialog";
+import { ReviewListToolbar } from "@/features/_shared/review-list/ReviewListToolbar";
+import { useHiddenColumns, hiddenPositions } from "@/features/_shared/review-list/useHiddenColumns";
+import {
+  DEFAULT_REVIEW_GROUP, DEFAULT_REVIEW_STATUS, groupReviewItems, matchesSearch, sortReviewItems,
+  type ReviewGroupBy, type ReviewSort,
+} from "@/features/_shared/review-list/reviewList";
+import { CHANGE_COLUMNS } from "@/features/estimates/EpicChangeCard";
+
+const SORT_OPTIONS: Array<{ value: ReviewSort; label: string }> = [
+  { value: "newest", label: "Newest first" },
+  { value: "oldest", label: "Oldest first" },
+  { value: "ticket", label: "Ticket ID" },
+  { value: "hours", label: "Largest change" },
+];
 
 const STATUS_OPTIONS = [
   { value: "pending", label: "Pending" },
@@ -36,10 +50,15 @@ export function ProjectChangeRequests({ projectId }: { projectId: string }) {
   const { discounts } = useEpicDiscounts(projectId);
   const discountByEpic = useMemo(() => discountTotalsByEpic(discounts), [discounts]);
 
-  const [statusFilter, setStatusFilter] = useState<string[]>(["pending"]);
+  const [statusFilter, setStatusFilter] = useState<string[]>(DEFAULT_REVIEW_STATUS);
   const [requesterFilter, setRequesterFilter] = useState<string[] | null>(null);
   const [range, setRange] = useState<DateRange>(() => defaultRange());
   const [rangeInitialized, setRangeInitialized] = useState(false);
+  const [groupBy, setGroupBy] = useState<ReviewGroupBy>(DEFAULT_REVIEW_GROUP);
+  const [sort, setSort] = useState<ReviewSort>("newest");
+  const [search, setSearch] = useState("");
+  const [hiddenCols, setHiddenCols] = useHiddenColumns("pulse:estimate-revisions:hidden-cols");
+  const hiddenPos = hiddenPositions(CHANGE_COLUMNS, hiddenCols);
   const [openTicketId, setOpenTicketId] = useState<string | null>(null);
   const { tickets: projectTickets, reload: reloadTickets } = useProjectTickets(projectId);
   const openTicket = useMemo(
@@ -93,30 +112,40 @@ export function ProjectChangeRequests({ projectId }: { projectId: string }) {
   const matching = useMemo(() => {
     const fromMs = range.from.getTime();
     const toMs = range.to.getTime();
-    return projectChanges.filter((c) => {
+    const filtered = projectChanges.filter((c) => {
       if (!c.ticket) return false;
       if (!statusFilter.includes(c.status)) return false;
       if (!effectiveRequester.includes(c.user_id)) return false;
       const t = new Date(c.created_at).getTime();
       if (t < fromMs || t > toMs) return false;
-      return true;
+      return matchesSearch(search, c.ticket.formatted_id, c.ticket.title);
     });
-  }, [projectChanges, statusFilter, effectiveRequester, range.from, range.to]);
+    return sortReviewItems(filtered, sort, (c) => ({
+      created: new Date(c.created_at).getTime(), ticket: c.ticket?.formatted_id ?? "", hours: Number(c.delta) || 0,
+    }));
+  }, [projectChanges, statusFilter, effectiveRequester, range.from, range.to, search, sort]);
 
-  const groups = useMemo(
-    () => buildChangeRequestGroups({ matching, projectChanges, projects, epics }),
-    [matching, projects, epics, projectChanges],
+  const epicGroups = useMemo(() => {
+    const rank = new Map(epics.map((e, i) => [`e:${e.id}`, i]));
+    return buildChangeRequestGroups({ matching, projectChanges, projects, epics })
+      .sort((a, b) => (rank.get(a.key) ?? 1e9) - (rank.get(b.key) ?? 1e9));
+  }, [matching, projects, epics, projectChanges]);
+  const otherGroups = useMemo(
+    () => groupBy === "epic" ? [] : groupReviewItems(matching, groupBy, (c) => ({
+      epicKey: "", epicName: "", epicRank: 0, status: c.status,
+      requesterId: c.user_id, requesterName: c.requester?.name ?? "Unknown",
+    })),
+    [matching, groupBy],
   );
+  const groups = groupBy === "epic" ? epicGroups : otherGroups;
 
   const [page, setPage] = useState(1);
   const pageSize = PAGE_SIZES.epicChangesPage;
   useEffect(() => {
     setPage(1);
-  }, [statusFilter, effectiveRequester.join(","), range.from.getTime(), range.to.getTime()]);
-  const pagedGroups = useMemo(
-    () => groups.slice((page - 1) * pageSize, page * pageSize),
-    [groups, page, pageSize],
-  );
+  }, [statusFilter, effectiveRequester.join(","), range.from.getTime(), range.to.getTime(), groupBy, search]);
+  const pagedEpics = epicGroups.slice((page - 1) * pageSize, page * pageSize);
+  const pagedOthers = otherGroups.slice((page - 1) * pageSize, page * pageSize);
 
   const {
     rejectTarget,
@@ -144,30 +173,23 @@ export function ProjectChangeRequests({ projectId }: { projectId: string }) {
 
   return (
     <div className="space-y-6">
-      <div className="glass rounded-2xl p-3 flex items-center gap-2 flex-wrap sticky top-14 z-30">
-        <MultiSelectFilter
-          label="Status"
-          options={STATUS_OPTIONS}
-          selected={statusFilter}
-          onChange={setStatusFilter}
-        />
-        <MultiSelectFilter
-          label="Requester"
-          options={requesterOptions}
-          selected={effectiveRequester}
-          onChange={setRequesterFilter}
-          searchable
-        />
-        <div className="h-5 w-px bg-white/10 mx-1" />
+      <ReviewListToolbar
+        groupBy={groupBy} onGroupBy={setGroupBy}
+        groupOptions={["none", "epic", "approval", "requester"]}
+        sort={sort} onSort={setSort} sortOptions={SORT_OPTIONS}
+        search={search} onSearch={setSearch}
+        columns={CHANGE_COLUMNS} hidden={hiddenCols} onHidden={setHiddenCols}
+        right={
+          <div className="text-[11px] text-dimmer">
+            {loading ? "Loading…" : `${matching.length} change${matching.length === 1 ? "" : "s"} · ${groups.length} group${groups.length === 1 ? "" : "s"}`}
+          </div>
+        }
+      >
+        <MultiSelectFilter label="Status" options={STATUS_OPTIONS} selected={statusFilter} onChange={setStatusFilter} />
+        <MultiSelectFilter label="Requester" options={requesterOptions} selected={effectiveRequester}
+          onChange={setRequesterFilter} searchable />
         <DateRangeControl value={range} onChange={setRange} />
-        <div className="ml-auto text-[11px] text-dimmer">
-          {loading
-            ? "Loading…"
-            : `${matching.length} change${matching.length === 1 ? "" : "s"} · ${groups.length} epic${
-                groups.length === 1 ? "" : "s"
-              }`}
-        </div>
-      </div>
+      </ReviewListToolbar>
 
       {!loading && groups.length === 0 ? (
         <div className="glass rounded-2xl p-12 text-center text-sm text-dim">
@@ -176,35 +198,34 @@ export function ProjectChangeRequests({ projectId }: { projectId: string }) {
       ) : (
         <>
           <div className="space-y-3">
-            {pagedGroups.map((g) => {
+            {groupBy === "epic" && pagedEpics.map((g) => {
               const epicIdNum = g.key.startsWith("e:") ? Number(g.key.slice(2)) : null;
               const dh = epicIdNum != null
                 ? sumTotals(discountByEpic.get(epicIdNum) ?? { FE: 0, BE: 0, Project: 0 })
                 : 0;
               return (
                 <EpicChangeCard
-                  key={g.key}
-                  epicKey={g.key}
-                  epicName={g.epicName}
-                  projectAcronym={g.projectAcronym}
-                  projectId={g.projectId}
-                  tickets={g.tickets}
-                  changes={g.changes}
-                  approvedChanges={g.approvedChanges}
-                  onApprove={handleApprove}
-                  onReject={handleReject}
-                  onOpenTicket={setOpenTicketId}
-                  defaultOpen={statusFilter.includes("pending") && g.changes.length <= 5}
-                  range={range}
-                  discountHours={dh}
+                  key={g.key} epicKey={g.key} epicName={g.epicName}
+                  projectAcronym={g.projectAcronym} projectId={g.projectId}
+                  tickets={g.tickets} changes={g.changes} approvedChanges={g.approvedChanges}
+                  onApprove={handleApprove} onReject={handleReject} onOpenTicket={setOpenTicketId}
+                  defaultOpen analytics="toggle" hiddenCols={hiddenPos} discountHours={dh}
                 />
               );
             })}
+            {groupBy !== "epic" && pagedOthers.map((g) => (
+              <EpicChangeCard
+                key={g.key} epicKey={g.key} epicName={g.title}
+                tickets={[]} changes={g.items} approvedChanges={[]}
+                onApprove={handleApprove} onReject={handleReject} onOpenTicket={setOpenTicketId}
+                defaultOpen analytics="none" hiddenCols={hiddenPos}
+              />
+            ))}
           </div>
           {groups.length > pageSize && (
             <div className="mt-4 flex items-center justify-between gap-3 flex-wrap">
               <div className="text-[11px] text-dimmer">
-                Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, groups.length)} of {groups.length} epics
+                Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, groups.length)} of {groups.length} groups
               </div>
               <ListPagination page={page} total={groups.length} pageSize={pageSize} onChange={setPage} />
             </div>

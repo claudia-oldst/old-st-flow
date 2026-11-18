@@ -11,7 +11,22 @@ import { AddTicketsDialog } from "@/features/tickets/AddTicketsDialog";
 import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
 import { MultiSelectFilter } from "@/features/_shared/filters/MultiSelectFilter";
 import { DateRangeControl, defaultRange, type DateRange } from "@/features/_shared/DateRangeControl";
-import { EpicCRCard } from "./EpicCRCard";
+import { EpicCRCard, crColumns } from "./EpicCRCard";
+import { crEstimate } from "./epic-cr/useEpicCR";
+import { ReviewListToolbar } from "@/features/_shared/review-list/ReviewListToolbar";
+import { useHiddenColumns, hiddenPositions } from "@/features/_shared/review-list/useHiddenColumns";
+import {
+  DEFAULT_REVIEW_GROUP, DEFAULT_REVIEW_STATUS, groupReviewItems, matchesSearch, sortReviewItems,
+  type ReviewGroupBy, type ReviewSort,
+} from "@/features/_shared/review-list/reviewList";
+
+const CR_COLUMNS = crColumns(false);
+const SORT_OPTIONS: Array<{ value: ReviewSort; label: string }> = [
+  { value: "newest", label: "Newest first" },
+  { value: "oldest", label: "Oldest first" },
+  { value: "ticket", label: "Ticket ID" },
+  { value: "hours", label: "Largest estimate" },
+];
 import { useEpicDiscounts } from "@/features/discounts/useEpicDiscounts";
 import { discountTotalsByEpic, sumTotals } from "@/features/discounts/applyDiscounts";
 
@@ -31,9 +46,14 @@ export function ProjectChangeRequestTickets({ projectId }: { projectId: string }
   const { discounts } = useEpicDiscounts(projectId);
   const discountByEpic = useMemo(() => discountTotalsByEpic(discounts), [discounts]);
 
-  const [statusFilter, setStatusFilter] = useState<string[]>(["pending", "approved"]);
+  const [statusFilter, setStatusFilter] = useState<string[]>(DEFAULT_REVIEW_STATUS);
   const [range, setRange] = useState<DateRange>(() => defaultRange());
   const [rangeInitialized, setRangeInitialized] = useState(false);
+  const [groupBy, setGroupBy] = useState<ReviewGroupBy>(DEFAULT_REVIEW_GROUP);
+  const [sort, setSort] = useState<ReviewSort>("newest");
+  const [search, setSearch] = useState("");
+  const [hiddenCols, setHiddenCols] = useHiddenColumns("pulse:change-requests:hidden-cols");
+  const hiddenPos = hiddenPositions(CR_COLUMNS, hiddenCols);
   const [addOpen, setAddOpen] = useState(false);
   const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
   const [acronym, setAcronym] = useState<string>("?");
@@ -74,13 +94,24 @@ export function ProjectChangeRequestTickets({ projectId }: { projectId: string }
   const filteredCRs = useMemo(() => {
     const fromMs = range.from.getTime();
     const toMs = range.to.getTime();
-    return crTickets.filter((t) => {
+    const list = crTickets.filter((t) => {
       if (!statusFilter.includes(t.cr_approval)) return false;
       const ts = new Date(t.created_at).getTime();
       if (ts < fromMs || ts > toMs) return false;
-      return true;
+      return matchesSearch(search, t.formatted_id, t.title);
     });
-  }, [crTickets, statusFilter, range.from, range.to]);
+    return sortReviewItems(list, sort, (t) => ({
+      created: new Date(t.created_at).getTime(), ticket: t.formatted_id, hours: crEstimate(t),
+    }));
+  }, [crTickets, statusFilter, range.from, range.to, search, sort]);
+
+  const otherGroups = useMemo(
+    () => groupBy === "epic" ? [] : groupReviewItems(filteredCRs, groupBy, (t) => ({
+      epicKey: "", epicName: "", epicRank: 0, status: t.cr_approval ?? "pending",
+      requesterId: null, requesterName: "",
+    })),
+    [filteredCRs, groupBy],
+  );
 
   const groups = useMemo(() => {
     const epicMap = new Map(epics.map((e) => [e.id, e]));
@@ -159,27 +190,27 @@ export function ProjectChangeRequestTickets({ projectId }: { projectId: string }
 
   return (
     <div className="space-y-6">
-      <div className="glass rounded-2xl p-3 flex items-center gap-2 flex-wrap sticky top-14 z-30">
-        <MultiSelectFilter
-          label="Status"
-          options={STATUS_OPTIONS}
-          selected={statusFilter}
-          onChange={setStatusFilter}
-        />
-        <div className="h-5 w-px bg-white/10 mx-1" />
+      <ReviewListToolbar
+        groupBy={groupBy} onGroupBy={setGroupBy} groupOptions={["none", "epic", "approval"]}
+        sort={sort} onSort={setSort} sortOptions={SORT_OPTIONS}
+        search={search} onSearch={setSearch}
+        columns={CR_COLUMNS} hidden={hiddenCols} onHidden={setHiddenCols}
+        right={
+          <>
+            <div className="text-[11px] text-dimmer">
+              {filteredCRs.length} CR{filteredCRs.length === 1 ? "" : "s"}
+            </div>
+            {canReview && (
+              <Button size="sm" onClick={() => setAddOpen(true)} className="gap-1.5">
+                <Plus className="h-4 w-4" /> Add Ticket
+              </Button>
+            )}
+          </>
+        }
+      >
+        <MultiSelectFilter label="Status" options={STATUS_OPTIONS} selected={statusFilter} onChange={setStatusFilter} />
         <DateRangeControl value={range} onChange={setRange} />
-        <div className="ml-auto flex items-center gap-3">
-          <div className="text-[11px] text-dimmer">
-            {filteredCRs.length} CR{filteredCRs.length === 1 ? "" : "s"} · {groups.length} epic
-            {groups.length === 1 ? "" : "s"}
-          </div>
-          {canReview && (
-            <Button size="sm" onClick={() => setAddOpen(true)} className="gap-1.5">
-              <Plus className="h-4 w-4" /> Add Ticket
-            </Button>
-          )}
-        </div>
-      </div>
+      </ReviewListToolbar>
 
       {groups.length === 0 ? (
         <div className="glass rounded-2xl p-12 text-center text-sm text-dim">
@@ -187,7 +218,15 @@ export function ProjectChangeRequestTickets({ projectId }: { projectId: string }
         </div>
       ) : (
         <div className="space-y-3">
-          {groups.map((g) => {
+          {groupBy !== "epic" && otherGroups.map((g) => (
+            <EpicCRCard
+              key={g.key} epicKey={g.key} epicName={g.title}
+              baselineTickets={[]} filteredCRs={g.items} allCRs={g.items}
+              canReview={canReview} onApprove={handleApprove} onReject={handleReject}
+              onOpenTicket={(t) => setOpenTicket(t)} defaultOpen analytics="none" hiddenCols={hiddenPos}
+            />
+          ))}
+          {groupBy === "epic" && groups.filter((g) => g.filtered.length > 0).map((g) => {
             const dh = g.epicId != null
               ? sumTotals(discountByEpic.get(g.epicId) ?? { FE: 0, BE: 0, Project: 0 })
               : 0;
@@ -204,8 +243,9 @@ export function ProjectChangeRequestTickets({ projectId }: { projectId: string }
                 onApprove={handleApprove}
                 onReject={handleReject}
                 onOpenTicket={(t) => setOpenTicket(t)}
-                defaultOpen={g.filtered.length > 0 && g.filtered.length <= 8}
-                range={range}
+                defaultOpen
+                analytics="toggle"
+                hiddenCols={hiddenPos}
                 discountHours={dh}
               />
             );

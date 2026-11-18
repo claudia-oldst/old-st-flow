@@ -1,5 +1,5 @@
-import { useEffect, useState, type ComponentProps, type ReactNode } from "react";
-import { ChevronDown } from "lucide-react";
+import { useEffect, useId, useState, type ComponentProps, type ReactNode } from "react";
+import { BarChart3, ChevronDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { ListPagination } from "@/components/ListPagination";
@@ -16,7 +16,11 @@ export interface EpicReviewTotals {
 }
 
 interface Props {
-  projectAcronym: string;
+  projectAcronym?: string;
+  /** "inline" (default) always shows stats; "toggle" hides them behind a button; "none" omits them. */
+  analytics?: "inline" | "toggle" | "none";
+  /** 1-based column positions to hide. */
+  hiddenCols?: number[];
   epicName: string;
   subtitle: ReactNode;
   totals: EpicReviewTotals;
@@ -35,9 +39,30 @@ interface Props {
 /** Shared collapsible epic card used by Change Requests and Estimate Revisions. */
 export function EpicReviewCard({
   projectAcronym, epicName, subtitle, totals, discountHours = 0, chartData,
-  defaultOpen, columns, itemCount, emptyRow, renderRows,
+  defaultOpen, columns, itemCount, emptyRow, renderRows, analytics = "inline", hiddenCols = [],
 }: Props) {
   const [open, setOpen] = useState(!!defaultOpen);
+  const [showStats, setShowStats] = useState(false);
+  const tableId = `rv-${useId().replace(/:/g, "")}`;
+  const hideCss = hiddenCols
+    .map((n) => `#${tableId} th:nth-child(${n}),#${tableId} td:nth-child(${n}){display:none}`)
+    .join("");
+  const stats = (
+    <>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+        <Stat label="Original" value={totals.original} />
+        <Stat label="Current (approved)" value={totals.current} accent="good" />
+        <Stat label="If all approved" value={totals.projected} accent="warn" />
+        <Stat label="Actual" value={totals.actual} accent="gold" />
+      </div>
+      {discountHours > 0 && (
+        <div className="text-[11px] text-health-bad font-mono">
+          −{discountHours.toFixed(discountHours % 1 === 0 ? 0 : 1)}h discounted
+        </div>
+      )}
+      {chartData.length > 1 && <EpicMiniTrendChart data={chartData} />}
+    </>
+  );
   const [page, setPage] = useState(1);
   useEffect(() => { setPage(1); }, [itemCount]);
   const start = (page - 1) * PAGE_SIZE;
@@ -49,9 +74,11 @@ export function EpicReviewCard({
         <CollapsibleTrigger className="w-full text-left">
           <div className="p-4 flex flex-col gap-3 hover:bg-white/[0.02] transition">
             <div className="flex items-start gap-3 flex-wrap">
-              <div className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-white/5 hairline text-dim">
-                {projectAcronym}
-              </div>
+              {projectAcronym && (
+                <div className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-white/5 hairline text-dim">
+                  {projectAcronym}
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium truncate">{epicName}</div>
                 <div className="text-[11px] text-dimmer">{subtitle}</div>
@@ -61,25 +88,25 @@ export function EpicReviewCard({
               />
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-              <Stat label="Original" value={totals.original} />
-              <Stat label="Current (approved)" value={totals.current} accent="good" />
-              <Stat label="If all approved" value={totals.projected} accent="warn" />
-              <Stat label="Actual" value={totals.actual} accent="gold" />
-            </div>
-            {discountHours > 0 && (
-              <div className="text-[11px] text-health-bad font-mono">
-                −{discountHours.toFixed(discountHours % 1 === 0 ? 0 : 1)}h discounted
-              </div>
-            )}
-
-            {chartData.length > 1 && <EpicMiniTrendChart data={chartData} />}
+            {analytics === "inline" && stats}
           </div>
         </CollapsibleTrigger>
+        {analytics === "toggle" && (
+          <div className="px-4 pb-3 -mt-1 space-y-3">
+            <button type="button" onClick={() => setShowStats((v) => !v)}
+              className="inline-flex items-center gap-1.5 text-[11px] text-dim hover:text-foreground transition">
+              <BarChart3 className="h-3.5 w-3.5" />
+              {showStats ? "Hide analytics" : "Show analytics"}
+              <ChevronDown className={cn("h-3 w-3 transition-transform", showStats && "rotate-180")} />
+            </button>
+            {showStats && stats}
+          </div>
+        )}
 
         <CollapsibleContent className="data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up overflow-hidden">
           <div className="hairline-t">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" id={tableId}>
+              {hideCss && <style>{hideCss}</style>}
               <table className="w-full text-xs">
                 <thead>
                   <tr className="text-[10px] uppercase tracking-wider text-dimmer">{columns}</tr>

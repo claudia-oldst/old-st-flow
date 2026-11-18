@@ -5,11 +5,27 @@ import { EpicReviewCard } from "@/features/_shared/estimate-ui/EpicReviewCard";
 import { crEstimate, computeCRTotals } from "./epic-cr/useEpicCR";
 import { useCRDeciderNames } from "./epic-cr/useCRDeciderNames";
 import { EpicCRRow } from "./EpicCRRow";
+import { historyRange } from "@/features/_shared/review-list/reviewList";
+import { columnHeaders, type ReviewColumn } from "@/features/_shared/review-list/useHiddenColumns";
+
+export const crColumns = (withCost: boolean): ReviewColumn[] => [
+  { key: "id", label: "Ticket ID", locked: true },
+  { key: "title", label: "Ticket" },
+  { key: "fe", label: "FE", align: "right" },
+  { key: "be", label: "BE", align: "right" },
+  ...(withCost ? [{ key: "cost", label: "Cost est.", align: "right" as const }] : []),
+  { key: "created", label: "Created" },
+  { key: "status", label: "Status" },
+  { key: "approved", label: "Approved" },
+  { key: "actions", label: "Actions", align: "right", locked: true },
+];
 
 interface Props {
   epicKey: string;
   epicName: string;
-  projectAcronym: string;
+  projectAcronym?: string;
+  analytics?: "inline" | "toggle" | "none";
+  hiddenCols?: number[];
   baselineTickets: TicketRow[];
   filteredCRs: TicketRow[];
   allCRs: TicketRow[];
@@ -18,7 +34,7 @@ interface Props {
   onReject: (t: TicketRow) => void;
   onOpenTicket?: (t: TicketRow) => void;
   defaultOpen?: boolean;
-  range: { from: Date; to: Date };
+  range?: { from: Date; to: Date };
   hideReject?: boolean;
   /** Total discount hours for this epic across all disciplines. */
   discountHours?: number;
@@ -30,7 +46,7 @@ export function EpicCRCard({
   epicName, projectAcronym, baselineTickets, filteredCRs, allCRs,
   canReview, onApprove, onReject, onOpenTicket, defaultOpen, range, hideReject,
   discountHours = 0,
-  ratePerHour,
+  ratePerHour, analytics, hiddenCols,
 }: Props) {
 
 
@@ -48,8 +64,9 @@ export function EpicCRCard({
   );
 
   const chartData = useMemo(() => {
-    const start = range.from.getTime();
-    let end = range.to.getTime();
+    const hist = historyRange(allCRs.map((c) => new Date(c.created_at).getTime()));
+    const start = range ? range.from.getTime() : hist.start;
+    let end = range ? range.to.getTime() : hist.end;
     if (end <= start) end = start + 86_400_000;
     const buckets = 24;
     const step = Math.max(1, Math.floor((end - start) / buckets));
@@ -74,7 +91,7 @@ export function EpicCRCard({
       });
     }
     return out;
-  }, [allCRs, totals.original, range.from, range.to]);
+  }, [allCRs, totals.original, range?.from, range?.to]);
 
   return (
     <EpicReviewCard
@@ -85,20 +102,10 @@ export function EpicCRCard({
       discountHours={discountHours}
       chartData={chartData}
       defaultOpen={defaultOpen}
+      analytics={analytics}
+      hiddenCols={hiddenCols}
       itemCount={filteredCRs.length}
-      columns={
-        <>
-          <th className="text-left font-medium px-3 py-2">Ticket ID</th>
-          <th className="text-left font-medium px-2 py-2">Ticket</th>
-          <th className="text-right font-medium px-2 py-2">FE</th>
-          <th className="text-right font-medium px-2 py-2">BE</th>
-          {ratePerHour !== undefined && <th className="text-right font-medium px-2 py-2">Cost est.</th>}
-          <th className="text-left font-medium px-2 py-2">Created</th>
-          <th className="text-left font-medium px-2 py-2">Status</th>
-          <th className="text-left font-medium px-2 py-2">Approved</th>
-          <th className="text-right font-medium px-3 py-2">Actions</th>
-        </>
-      }
+      columns={columnHeaders(crColumns(ratePerHour !== undefined))}
       emptyRow={
         <tr>
           <td colSpan={ratePerHour !== undefined ? 9 : 8} className="px-3 py-6 text-center text-dimmer">

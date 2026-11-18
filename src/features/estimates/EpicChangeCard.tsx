@@ -4,6 +4,22 @@ import type { ChangeRow } from "./useAllEstimateChanges";
 import { EpicReviewCard } from "@/features/_shared/estimate-ui/EpicReviewCard";
 import { computeEpicTotals, resolveChartRange } from "./epic-change/useEpicChange";
 import { EpicChangeRow } from "./EpicChangeRow";
+import { historyRange } from "@/features/_shared/review-list/reviewList";
+import { columnHeaders, type ReviewColumn } from "@/features/_shared/review-list/useHiddenColumns";
+
+export const CHANGE_COLUMNS: ReviewColumn[] = [
+  { key: "ticket", label: "Ticket", locked: true },
+  { key: "disc", label: "Disc." },
+  { key: "prev", label: "Prev", align: "right" },
+  { key: "new", label: "New", align: "right" },
+  { key: "delta", label: "Δ", align: "right" },
+  { key: "reason", label: "Reason" },
+  { key: "requester", label: "Requester" },
+  { key: "when", label: "When" },
+  { key: "status", label: "Status" },
+  { key: "approved", label: "Approved" },
+  { key: "actions", label: "Actions", align: "right", locked: true },
+];
 
 interface EpicTicket {
   id: string;
@@ -25,8 +41,10 @@ interface EpicTicket {
 interface Props {
   epicKey: string;
   epicName: string;
-  projectAcronym: string;
-  projectId: string;
+  projectAcronym?: string;
+  projectId?: string;
+  analytics?: "inline" | "toggle" | "none";
+  hiddenCols?: number[];
   tickets: EpicTicket[];
   changes: ChangeRow[];
   approvedChanges: ChangeRow[];
@@ -41,7 +59,7 @@ interface Props {
 
 export function EpicChangeCard({
   epicName, projectAcronym, tickets, changes, approvedChanges,
-  onApprove, onReject, onOpenTicket, defaultOpen, range, discountHours = 0,
+  onApprove, onReject, onOpenTicket, defaultOpen, range, discountHours = 0, analytics, hiddenCols,
 }: Props) {
   const totals = useMemo(
     () => computeEpicTotals(tickets, changes, discountHours),
@@ -49,7 +67,10 @@ export function EpicChangeCard({
   );
 
   const chartData = useMemo(() => {
-    const { start, end } = resolveChartRange(range, [...approvedChanges, ...changes]);
+    const events = [...approvedChanges, ...changes];
+    const { start, end } = range
+      ? resolveChartRange(range, events)
+      : historyRange(events.map((c) => new Date(c.created_at).getTime()));
     const buckets = 24;
     const step = Math.max(1, Math.floor((end - start) / buckets));
     const out: Array<{ label: string; original: number; current: number; projected: number }> = [];
@@ -86,22 +107,10 @@ export function EpicChangeCard({
       discountHours={discountHours}
       chartData={chartData}
       defaultOpen={defaultOpen}
+      analytics={analytics}
+      hiddenCols={hiddenCols}
       itemCount={changes.length}
-      columns={
-        <>
-          <th className="text-left font-medium px-3 py-2">Ticket</th>
-          <th className="text-left font-medium px-2 py-2">Disc.</th>
-          <th className="text-right font-medium px-2 py-2">Prev</th>
-          <th className="text-right font-medium px-2 py-2">New</th>
-          <th className="text-right font-medium px-2 py-2">Δ</th>
-          <th className="text-left font-medium px-2 py-2">Reason</th>
-          <th className="text-left font-medium px-2 py-2">Requester</th>
-          <th className="text-left font-medium px-2 py-2">When</th>
-          <th className="text-left font-medium px-2 py-2">Status</th>
-          <th className="text-left font-medium px-2 py-2">Approved</th>
-          <th className="text-right font-medium px-3 py-2">Actions</th>
-        </>
-      }
+      columns={columnHeaders(CHANGE_COLUMNS)}
       renderRows={(start, end) =>
         changes.slice(start, end).map((c) => (
           <EpicChangeRow
