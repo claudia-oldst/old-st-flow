@@ -18,6 +18,8 @@ export function BillingTable({ rows, total, months, rate }: {
 }) {
   const [expanded, setExpanded] = useState(false);
   const [revExpanded, setRevExpanded] = useState(false);
+  // Discounts earn neither a column nor a total row until the project actually has some.
+  const showDiscount = hasDiscounts(total);
   const cols: Col[] = [
     ...(expanded
       ? [
@@ -37,7 +39,7 @@ export function BillingTable({ rows, total, months, rate }: {
     { key: "revised", label: "Latest Revised Estimate", get: (r) => r.revised, split: (r) => ({ std: r.rStd, cr: r.rCr, bug: r.rBug }) },
     ...months.map((m) => ({ key: m, label: monthLabel(m), get: (r: BillingRow) => r.months[m] ?? 0, split: (r: BillingRow) => r.splitMonths[m] ?? { std: 0, cr: 0, bug: 0 } })),
     { key: "actual", label: "Actual Total", get: (r) => r.actual, split: (r) => r.actualSplit },
-    { key: "discount", label: "Discount/Unbilled", get: (r) => r.discount },
+    ...(showDiscount ? [{ key: "discount", label: "Discount/Unbilled", get: (r: BillingRow) => r.discount }] : []),
     { key: "grand", label: "Grand Total", get: (r) => r.grand },
   ];
 
@@ -48,8 +50,7 @@ export function BillingTable({ rows, total, months, rate }: {
   const grandCell = (k: string): number | null =>
     isMonth(k) ? grandMonth(total, k) : k === "grand" ? total.grand : null;
   const extraRows: { label: string; get: (k: string) => number | null }[] = [
-    // Discount/Unbilled only earns a row when the project actually has discounts.
-    ...(hasDiscounts(total) ? [{ label: "Discount/Unbilled", get: discountCell }] : []),
+    ...(showDiscount ? [{ label: "Discount/Unbilled", get: discountCell }] : []),
     { label: "Grand Total", get: grandCell },
   ];
 

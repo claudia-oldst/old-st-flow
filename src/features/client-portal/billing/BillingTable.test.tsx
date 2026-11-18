@@ -18,14 +18,14 @@ const renderTable = (p: BillingPayload) => {
 const rowLabel = (name: string) => new RegExp(`${name} \\((hours|GBP)\\)`);
 
 describe("billing table discount row", () => {
-  it("has no Discount/Unbilled row when the project has no discounts", () => {
+  it("has no Discount/Unbilled column or row when the project has no discounts", () => {
     renderTable(base);
-    expect(screen.queryAllByText(rowLabel("Discount/Unbilled"))).toHaveLength(0);
+    expect(screen.queryAllByText(/Discount\/Unbilled/)).toHaveLength(0);
     expect(screen.getAllByText(rowLabel("Grand Total")).length).toBeGreaterThan(0);
   });
 
-  it("adds the Discount/Unbilled row once a discount exists", () => {
+  it("adds the Discount/Unbilled column and rows once a discount exists", () => {
     renderTable({ ...base, discounts: [{ epic_id: 1, month: "2026-09", hours: 1.5 }] });
-    expect(screen.getAllByText(rowLabel("Discount/Unbilled")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Discount\/Unbilled/).length).toBeGreaterThan(0);
   });
 });
