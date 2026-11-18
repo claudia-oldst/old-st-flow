@@ -86,8 +86,9 @@ export function ProjectChangeRequestTickets({ projectId }: { projectId: string }
     () => tickets.filter((t) => t.ticket_type === "CR"),
     [tickets]
   );
+  // Original scope = Std/Proj tickets only; Bugs and CRs are never part of the original estimate.
   const baselineTickets = useMemo(
-    () => tickets.filter((t) => t.ticket_type !== "CR"),
+    () => tickets.filter((t) => t.ticket_type === "Std" || t.ticket_type === "Proj"),
     [tickets]
   );
 
