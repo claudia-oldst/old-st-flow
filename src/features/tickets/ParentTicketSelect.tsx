@@ -35,6 +35,8 @@ interface Props {
   types?: string[];
   excludeIds?: string[];
   clearable?: boolean;
+  /** When set, only tickets in this epic are offered. */
+  epicId?: number | null;
 }
 
 export function ParentTicketSelect({
@@ -47,6 +49,7 @@ export function ParentTicketSelect({
   types = ["Standard", "CR"],
   excludeIds,
   clearable = true,
+  epicId = null,
 }: Props) {
   const typesKey = types.join(",");
   const excludeKey = (excludeIds ?? []).join(",");
@@ -156,7 +159,7 @@ export function ParentTicketSelect({
             <CommandList className="max-h-[480px]">
               <CommandEmpty>No tickets found.</CommandEmpty>
               <CommandGroup>
-                {options.map((opt) => (
+                {options.filter((o) => epicId == null || o.epic_id === epicId).map((opt) => (
                   <CommandItem
                     key={opt.id}
                     value={opt.id}

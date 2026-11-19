@@ -107,11 +107,31 @@ export function DraftRow({
           </Select>
         </div>}
 
+        {(
+          <div className="md:col-span-3">
+            <EpicSelect
+              projectId={projectId}
+              value={draft.epicId}
+              onChange={(id) => onChange(
+                id !== draft.epicId && draft.parentTicketId && id !== null
+                  ? { epicId: id, parentTicketId: null, parentTitle: null }
+                  : { epicId: id },
+              )}
+              size="sm"
+              className={cn(draft.title.trim() && draft.epicId === null && "ring-1 ring-primary/60")}
+            />
+            {draft.title.trim() && draft.epicId === null && (
+              <div className="text-[10px] text-primary mt-1">Epic required</div>
+            )}
+          </div>
+        )}
+
         {!lockType && draft.type !== "Proj" ? (
           <div className="md:col-span-3">
             <ParentTicketSelect
               projectId={projectId}
               value={draft.parentTicketId}
+              epicId={draft.epicId}
               size="sm"
               placeholder="Parent ticket (optional)…"
               onChange={(id, parent) => {
@@ -131,26 +151,8 @@ export function DraftRow({
                 });
               }}
             />
-            {draft.parentTicketId && (
-              <div className="text-[10px] text-dimmer mt-1">Epic inherited from parent</div>
-            )}
           </div>
         ) : null}
-
-        {!(draft.type !== "Proj" && draft.parentTicketId) && (
-          <div className="md:col-span-3">
-            <EpicSelect
-              projectId={projectId}
-              value={draft.epicId}
-              onChange={(id) => onChange({ epicId: id })}
-              size="sm"
-              className={cn(draft.title.trim() && draft.epicId === null && "ring-1 ring-primary/60")}
-            />
-            {draft.title.trim() && draft.epicId === null && (
-              <div className="text-[10px] text-primary mt-1">Epic required</div>
-            )}
-          </div>
-        )}
 
         {!lockType && <div className="md:col-span-3">
           <Select
