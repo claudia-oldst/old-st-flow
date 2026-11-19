@@ -1,3 +1,4 @@
+import { activeRows, isActiveMember } from "@/lib/activeMembers";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,7 +27,7 @@ export function ProjectTeamTab({
 }: Props) {
   const [pickedUser, setPickedUser] = useState<string>("");
   const [pickedRole, setPickedRole] = useState<ProjectRole>("Frontend");
-  const available = allMembers.filter((m) => !members.some((pm) => pm.user_id === m.id));
+  const available = allMembers.filter((m) => isActiveMember(m) && !members.some((pm) => pm.user_id === m.id));
 
   const handleAdd = () => {
     if (!pickedUser) return toast.error("Pick a user");

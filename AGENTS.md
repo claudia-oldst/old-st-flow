@@ -13,3 +13,4 @@
 - The shared Dialog/Sheet wrappers drop Radix's auto `aria-describedby` link only when no Description is rendered (`src/lib/radixDescription.ts`) — why: silence the dev-only console warning without breaking screen-reader links.
 - Client email figures live in `supabase/functions/_shared/clientEmail.ts` (pure, also tested from the frontend); the AI only writes the descriptive sentences — why: amounts and hours must never be invented.
 - Change Requests and Estimate Revisions tabs share `src/features/_shared/review-list/` (toolbar, grouping, sort, column hiding, graph span from just before first request to today) on top of `EpicReviewCard` — why: one list behaviour for both review tabs.
+- Pickers (mentions, assigning, project team, sprints, CSV import) filter inactive team members via `src/lib/activeMembers.ts`; history displays keep showing them — why: archived people stay in records but can't be newly chosen.

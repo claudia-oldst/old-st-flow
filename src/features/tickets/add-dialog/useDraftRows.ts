@@ -1,3 +1,4 @@
+import { activeRows, isActiveMember } from "@/lib/activeMembers";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -62,7 +63,7 @@ export function useDraftRows({
       .from("project_members")
       .select("*, member:team_members(*)")
       .eq("project_id", projectId)
-      .then(({ data }) => setMembers((data as any) ?? []));
+      .then(({ data }) => setMembers(activeRows(data as any)));
   }, [open, projectId]);
 
   const update = (key: string, patch: Partial<Draft>) =>

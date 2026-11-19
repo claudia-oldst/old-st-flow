@@ -1,3 +1,4 @@
+import { activeRows, isActiveMember } from "@/lib/activeMembers";
 import { useEffect, useState } from "react";
 import {
   Dialog,
@@ -53,7 +54,7 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
       .from("project_members")
       .select("*, member:team_members(*)")
       .eq("project_id", projectId)
-      .then(({ data }) => setMembers(((data ?? []) as unknown) as (ProjectMember & { member: TeamMember })[]));
+      .then(({ data }) => setMembers((activeRows(data as never) as unknown) as (ProjectMember & { member: TeamMember })[]));
     supabase
       .from("projects")
       .select("github_repo_url")

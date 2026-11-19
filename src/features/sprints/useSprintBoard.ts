@@ -1,3 +1,4 @@
+import { activeRows, isActiveMember } from "@/lib/activeMembers";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,7 +48,7 @@ export function useProjectMembers(projectId: string | undefined) {
         user_id: string;
         role: ProjectRole;
         member: TeamMember;
-      }>).filter((r) => !!r.member);
+      }>).filter((r) => isActiveMember(r.member));
     },
   });
   useRealtimeInvalidate(

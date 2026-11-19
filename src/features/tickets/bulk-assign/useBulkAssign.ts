@@ -1,3 +1,4 @@
+import { activeRows, isActiveMember } from "@/lib/activeMembers";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { ProjectMember, TeamMember } from "@/lib/types";
@@ -63,7 +64,7 @@ export function useBulkAssign({
       .select("*, member:team_members(*)")
       .eq("project_id", projectId)
       .then(({ data }) =>
-        setMembers((data ?? []) as unknown as (ProjectMember & { member: TeamMember })[]),
+        setMembers(activeRows(data as never) as unknown as (ProjectMember & { member: TeamMember })[]),
       );
 
     if (!ticketIds.length) {

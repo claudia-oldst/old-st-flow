@@ -16,6 +16,8 @@ import { toast } from "sonner";
 import { PRESET_COLORS } from "./adminConstants";
 import { TeamTimeExportDialog } from "./team-export/TeamTimeExportDialog";
 import { Download } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 
 export function TeamAdmin() {
   const [members, setMembers] = useState<TeamMember[]>([]);
@@ -49,6 +51,15 @@ export function TeamAdmin() {
     toast.success("Role updated");
     load();
   };
+
+  const handleActive = async (id: string, active: boolean) => {
+    const { error } = await supabase.from("team_members").update({ is_active: active }).eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success(active ? "Member reactivated" : "Member archived");
+    load();
+  };
+  const sorted = [...members].sort((a, b) => Number(b.is_active) - Number(a.is_active) || a.name.localeCompare(b.name));
+  const firstInactive = sorted.findIndex((m) => !m.is_active);
 
   const handleRemove = async (id: string) => {
     if (!confirm("Remove this member from the workspace?")) return;
@@ -113,8 +124,10 @@ export function TeamAdmin() {
 
       <div className="glass rounded-2xl overflow-hidden">
         <div className="divide-y divide-white/5">
-          {members.map((m) => (
-            <div key={m.id} className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] transition">
+          {sorted.map((m, i) => (
+            <div key={m.id}>
+            {i === firstInactive && <div className="px-4 py-2 text-xs uppercase tracking-wide text-dimmer bg-white/[0.02]">Inactive</div>}
+            <div className={cn("flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] transition", !m.is_active && "opacity-60")}>
               <MemberAvatar name={m.name} color={m.avatar_color} size="md" />
               <div className="flex-1 min-w-0">
                 <div className="font-medium truncate">{m.name}</div>
@@ -126,9 +139,14 @@ export function TeamAdmin() {
                   {ROLES.map((r) => (<SelectItem key={r} value={r}>{r}</SelectItem>))}
                 </SelectContent>
               </Select>
+              <label className="flex items-center gap-2 text-xs text-dim">
+                <Switch checked={m.is_active} onCheckedChange={(v) => handleActive(m.id, v)} aria-label={`${m.name} active`} />
+                Active
+              </label>
               <Button variant="ghost" size="icon" className="text-dimmer hover:text-destructive" onClick={() => handleRemove(m.id)}>
                 <Trash2 className="h-4 w-4" />
               </Button>
+            </div>
             </div>
           ))}
         </div>

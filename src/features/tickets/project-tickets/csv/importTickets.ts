@@ -1,3 +1,4 @@
+import { activeRows, isActiveMember } from "@/lib/activeMembers";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
@@ -43,11 +44,11 @@ async function resolveAssigneeEmails(projectId: string, valid: ParsedRow[]) {
   if (allEmails.size > 0) {
     const { data: pms } = await supabase
       .from("project_members")
-      .select("user_id, member:team_members(email)")
+      .select("user_id, member:team_members(email, is_active)")
       .eq("project_id", projectId);
     (pms ?? []).forEach((pm: any) => {
       const email = pm.member?.email;
-      if (email) emailToUserId.set(email.trim().toLowerCase(), pm.user_id);
+      if (email && isActiveMember(pm.member)) emailToUserId.set(email.trim().toLowerCase(), pm.user_id);
     });
   }
   const unknown = Array.from(allEmails).filter((e) => !emailToUserId.has(e));

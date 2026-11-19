@@ -1,3 +1,4 @@
+import { activeRows, isActiveMember } from "@/lib/activeMembers";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -16,11 +17,11 @@ export function useMentionCandidates(projectId: string | undefined) {
     queryFn: async (): Promise<MentionCandidate[]> => {
       const { data } = await supabase
         .from("project_members")
-        .select("user_id, team_members(id, name, avatar_color)")
+        .select("user_id, team_members(id, name, avatar_color, is_active)")
         .eq("project_id", projectId!);
       return ((data as unknown as { team_members: MentionCandidate | null }[]) ?? [])
         .map((r) => r.team_members)
-        .filter((m): m is MentionCandidate => !!m)
+        .filter((m): m is MentionCandidate => isActiveMember(m as { is_active?: boolean }))
         .sort((a, b) => a.name.localeCompare(b.name));
     },
   });

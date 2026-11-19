@@ -1,3 +1,4 @@
+import { activeRows, isActiveMember } from "@/lib/activeMembers";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeReload } from "@/hooks/useRealtimeReload";
@@ -54,7 +55,7 @@ export function ProjectTeam({ projectId }: { projectId: string }) {
     load,
   );
 
-  const available = allMembers.filter((m) => !members.some((pm) => pm.user_id === m.id));
+  const available = allMembers.filter((m) => isActiveMember(m) && !members.some((pm) => pm.user_id === m.id));
 
   const handleAdd = async () => {
     if (!pickedUser) return toast.error("Pick a user");

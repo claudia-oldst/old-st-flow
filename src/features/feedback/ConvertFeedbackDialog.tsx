@@ -1,3 +1,4 @@
+import { activeRows, isActiveMember } from "@/lib/activeMembers";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -30,7 +31,7 @@ export function ConvertFeedbackDialog({ open, onOpenChange, tickets, onConverted
   useEffect(() => {
     if (!open || !projectId) return;
     supabase.from("project_members").select("*, member:team_members(*)").eq("project_id", projectId)
-      .then(({ data }) => setMembers((data as any) ?? []));
+      .then(({ data }) => setMembers(activeRows(data as any)));
   }, [open, projectId]);
 
   const submit = async () => {

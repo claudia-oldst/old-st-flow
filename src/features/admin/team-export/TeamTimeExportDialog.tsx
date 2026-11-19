@@ -34,9 +34,10 @@ export function TeamTimeExportDialog({ open, onOpenChange, members }: Props) {
     const s = q.trim().toLowerCase();
     return s ? members.filter((m) => m.name.toLowerCase().includes(s) || m.email.toLowerCase().includes(s)) : members;
   }, [members, q]);
-  const allVisible = visible.length > 0 && visible.every((m) => selected.has(m.id));
-  const toggle = (id: string) => setSelected((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
-  const toggleAll = () => setSelected((p) => { const n = new Set(p); visible.forEach((m) => (allVisible ? n.delete(m.id) : n.add(m.id))); return n; });
+    const toggle = (id: string) => setSelected((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const activeVisible = visible.filter((m) => m.is_active !== false);
+  const allActive = activeVisible.length > 0 && activeVisible.every((m) => selected.has(m.id));
+  const toggleAll = () => setSelected((p) => { const n = new Set(p); activeVisible.forEach((m) => (allActive ? n.delete(m.id) : n.add(m.id))); return n; });
 
   const run = async () => {
     if (!from || !to || from > to) return toast.error("Pick a valid start and end date");
@@ -66,7 +67,7 @@ export function TeamTimeExportDialog({ open, onOpenChange, members }: Props) {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-xs text-dim">Team members <span className="text-dimmer">({selected.size} selected)</span></Label>
-              <button type="button" onClick={toggleAll} className="text-xs text-primary hover:underline">{allVisible ? "Deselect all" : "Select all"}</button>
+              <button type="button" onClick={toggleAll} className="text-xs text-primary hover:underline">{allActive ? "Deselect all" : "Select all active"}</button>
             </div>
             <div className="relative">
               <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-dimmer" />
@@ -77,6 +78,7 @@ export function TeamTimeExportDialog({ open, onOpenChange, members }: Props) {
                 <label key={m.id} className="flex items-center gap-3 px-3 py-2 text-sm cursor-pointer hover:bg-white/5">
                   <Checkbox checked={selected.has(m.id)} onCheckedChange={() => toggle(m.id)} />
                   <span className="flex-1 truncate">{m.name}</span>
+                  {m.is_active === false && <span className="rounded-full px-2 py-0.5 text-[10px] ring-1 ring-border text-dimmer">Inactive</span>}
                   <span className="text-xs text-dimmer truncate">{m.email}</span>
                 </label>
               ))}

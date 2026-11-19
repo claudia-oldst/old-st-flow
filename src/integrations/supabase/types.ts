@@ -633,6 +633,7 @@ export type Database = {
           email: string
           github_username: string | null
           id: string
+          is_active: boolean
           name: string
           role: Database["public"]["Enums"]["project_role"]
           slack_user_id: string | null
@@ -646,6 +647,7 @@ export type Database = {
           email: string
           github_username?: string | null
           id?: string
+          is_active?: boolean
           name: string
           role?: Database["public"]["Enums"]["project_role"]
           slack_user_id?: string | null
@@ -659,6 +661,7 @@ export type Database = {
           email?: string
           github_username?: string | null
           id?: string
+          is_active?: boolean
           name?: string
           role?: Database["public"]["Enums"]["project_role"]
           slack_user_id?: string | null
