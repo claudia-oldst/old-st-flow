@@ -8,76 +8,78 @@ import type { Draft } from "@/features/tickets/add-dialog/types";
 import { useStatuses } from "@/features/statuses/useStatuses";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import type { ProjectMember, TeamMember } from "@/lib/types";
-import { buildConvert, draftFromTicket } from "./convertFeedback";
+import { convertOne, draftFromTicket, planAll } from "./convertFeedback";
 
-export function ConvertFeedbackDialog({ open, onOpenChange, ticket, onConverted }: {
+/** Converts one or many Feedback tickets using the shared create-ticket row per ticket. */
+export function ConvertFeedbackDialog({ open, onOpenChange, tickets, onConverted }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
-  ticket: TicketRow;
+  tickets: TicketRow[];
   onConverted: () => void;
 }) {
   const { statuses } = useStatuses();
-  const [draft, setDraft] = useState<Draft>(() => draftFromTicket(ticket));
+  const [drafts, setDrafts] = useState<Draft[]>(() => tickets.map(draftFromTicket));
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [members, setMembers] = useState<(ProjectMember & { member: TeamMember })[]>([]);
   const [busy, setBusy] = useState(false);
+  const projectId = tickets[0]?.project_id;
+  const idsKey = tickets.map((t) => t.id).join(",");
 
-  useEffect(() => { if (open) setDraft(draftFromTicket(ticket)); }, [open, ticket.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (open) { setDrafts(tickets.map(draftFromTicket)); setErrors({}); } }, [open, idsKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (!open) return;
-    supabase.from("project_members").select("*, member:team_members(*)").eq("project_id", ticket.project_id)
+    if (!open || !projectId) return;
+    supabase.from("project_members").select("*, member:team_members(*)").eq("project_id", projectId)
       .then(({ data }) => setMembers((data as any) ?? []));
-  }, [open, ticket.project_id]);
+  }, [open, projectId]);
 
   const submit = async () => {
-    const r = buildConvert(draft, ticket);
-    if ("error" in r) return toast.error(r.error);
+    const plans = planAll(drafts, tickets);
+    const errs: Record<string, string> = {};
+    plans.forEach((p) => { if (p.error) errs[p.ticket.id] = p.error; });
+    setErrors(errs);
+    if (Object.keys(errs).length) return toast.error(`${Object.keys(errs).length} row(s) need fixing before converting`);
     setBusy(true);
-    try {
-      const { data, error } = await supabase.rpc("convert_feedback_ticket" as any, { _ticket_id: ticket.id, ...r.args });
-      if (error) throw error;
-      if (Object.keys(r.patch).length) {
-        const { error: e } = await supabase.from("tickets").update(r.patch as any).eq("id", ticket.id);
-        if (e) throw e;
-      }
-      for (const a of r.removeAssignees) {
-        const { error: e } = await supabase.from("ticket_assignees").delete()
-          .eq("ticket_id", ticket.id).eq("user_id", a.user_id).eq("slot", a.slot);
-        if (e) throw e;
-      }
-      if (r.addAssignees.length) {
-        const { error: e } = await supabase.from("ticket_assignees")
-          .insert(r.addAssignees.map((a) => ({ ...a, ticket_id: ticket.id })) as any);
-        if (e) throw e;
-      }
-      toast.success(`Converted to ${draft.type} · ${data}`);
-      onOpenChange(false);
-      onConverted();
-    } catch (e: any) {
-      toast.error(e.message ?? "Could not convert");
-    } finally {
-      setBusy(false);
+    const done = new Set<string>();
+    for (const p of plans) {
+      try { await convertOne(p.ticket, p.plan!); done.add(p.ticket.id); }
+      catch (e: any) { errs[p.ticket.id] = e.message ?? "Could not convert"; }
     }
+    setBusy(false);
+    setErrors(errs);
+    if (done.size) { toast.success(`Converted ${done.size} ticket${done.size > 1 ? "s" : ""}`); onConverted(); }
+    const left = drafts.filter((d) => !done.has(d.key));
+    if (!left.length) onOpenChange(false);
+    else { setDrafts(left); toast.error(`${left.length} ticket(s) could not be converted`); }
   };
 
+  const n = drafts.length;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="glass-strong max-w-4xl">
         <DialogHeader>
-          <DialogTitle>Convert to ticket</DialogTitle>
+          <DialogTitle>{n > 1 ? `Convert ${n} tickets` : "Convert to ticket"}</DialogTitle>
           <div className="text-xs text-dim mt-1">
             Time logs, discussion and original estimates are kept. Anything you don't change stays as it is.
           </div>
         </DialogHeader>
-        <DraftRow
-          draft={draft} idx={0} statuses={statuses} members={members} projectId={ticket.project_id}
-          canDelete={false} isLast={false}
-          onChange={(p) => setDraft((d) => ({ ...d, ...p }))}
-          onRemove={() => {}} onEnterAtLast={() => {}}
-        />
+        <div className="max-h-[60vh] overflow-y-auto space-y-2 pr-1">
+          {drafts.map((d, i) => (
+            <div key={d.key}>
+              <DraftRow
+                draft={d} idx={i} statuses={statuses} members={members} projectId={projectId}
+                canDelete={n > 1} isLast={false}
+                onChange={(p) => setDrafts((ds) => ds.map((x) => (x.key === d.key ? { ...x, ...p } : x)))}
+                onRemove={() => setDrafts((ds) => ds.filter((x) => x.key !== d.key))}
+                onEnterAtLast={() => {}}
+              />
+              {errors[d.key] && <div className="text-xs text-destructive mt-1 px-1">{errors[d.key]}</div>}
+            </div>
+          ))}
+        </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={busy}>Cancel</Button>
-          <Button onClick={submit} disabled={busy}>Convert ticket</Button>
+          <Button onClick={submit} disabled={busy || !n}>{n > 1 ? `Convert ${n} tickets` : "Convert ticket"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

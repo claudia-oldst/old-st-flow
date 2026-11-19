@@ -165,7 +165,7 @@ export function TicketDetailSheet({ open, onOpenChange, ticket: ticketProp, proj
         <ConvertFeedbackDialog
           open={convertOpen}
           onOpenChange={setConvertOpen}
-          ticket={ticket}
+          tickets={[ticket]}
           onConverted={() => { onChange(); onOpenChange(false); }}
         />
       )}

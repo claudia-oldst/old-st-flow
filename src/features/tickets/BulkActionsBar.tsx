@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Play, Trash2, Tag, Code2, Users } from "lucide-react";
+import { X, Play, Trash2, Tag, Code2, Users, ArrowRightLeft } from "lucide-react";
 import { useStatuses } from "@/features/statuses/useStatuses";
 import { useProjectEpics } from "@/features/epics/useProjectEpics";
 import {
@@ -29,7 +29,10 @@ export function BulkActionsBar({
   canEditStatus = false,
   feedback = false,
   onStartTimer,
+  onConvert,
 }: {
+  /** Feedback only: open the convert window for the selection. */
+  onConvert?: () => void;
   onStartTimer?: () => void;
   projectId: string;
   selectedIds: string[];
@@ -66,6 +69,16 @@ export function BulkActionsBar({
             </span>
             <span className="text-xs text-dim">selected</span>
           </div>
+
+          {feedback && onConvert && (
+            <button
+              disabled={busy}
+              onClick={onConvert}
+              className="px-3 py-1.5 rounded-lg text-xs hover:bg-white/5 transition inline-flex items-center gap-1.5 text-dim hover:text-foreground"
+            >
+              <ArrowRightLeft className="h-3.5 w-3.5" /> Convert
+            </button>
+          )}
 
           {onStartTimer && !feedback && (
             <button

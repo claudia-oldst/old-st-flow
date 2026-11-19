@@ -46,7 +46,7 @@ export function ProjectFeedback({ projectId }: { projectId: string }) {
   const [initialTitles, setInitialTitles] = useState<string[] | undefined>();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [lastId, setLastId] = useState<string | null>(null);
-  const [convert, setConvert] = useState<TicketRow | null>(null);
+  const [convert, setConvert] = useState<TicketRow[] | null>(null);
   const [params, setParams] = useSearchParams();
   const [openId, setOpenId] = useState<string | null>(params.get("ticket"));
   const { rows, total, loading, reload } = useProjectTicketsPaged(projectId, {
@@ -123,18 +123,19 @@ export function ProjectFeedback({ projectId }: { projectId: string }) {
             onToggleSelectAll={canManage ? toggleSelectAll : undefined}
             canEditEpics={canManage}
             rowAction={canManage ? (t) => (
-              <Button size="sm" className="h-7" onClick={() => setConvert(t)}>Convert</Button>
+              <Button size="sm" className="h-7" onClick={() => setConvert([t])}>Convert</Button>
             ) : undefined}
           />
           <ListPagination page={page} total={total} pageSize={PAGE_SIZE} onChange={setPage} />
         </>
       )}
       {canManage && view === "list" && (
-        <BulkActionsBar projectId={projectId} selectedIds={Array.from(selectedIds)} onClear={clearSelection} canEdit feedback />
+        <BulkActionsBar projectId={projectId} selectedIds={Array.from(selectedIds)} onClear={clearSelection} canEdit feedback
+          onConvert={() => setConvert(rows.filter((r) => selectedIds.has(r.id)))} />
       )}
       <TicketDetailSheet open={!!open} onOpenChange={(o) => !o && setOpenId(null)} ticket={open} projectId={projectId} onChange={reload} />
       {convert && (
-        <ConvertFeedbackDialog open onOpenChange={(o) => !o && setConvert(null)} ticket={convert} onConverted={() => { setConvert(null); reload(); }} />
+        <ConvertFeedbackDialog open onOpenChange={(o) => !o && setConvert(null)} tickets={convert} onConverted={() => { setSelectedIds(new Set()); reload(); }} />
       )}
       <AddTicketsDialog
         open={addOpen}

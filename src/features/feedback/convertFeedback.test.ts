@@ -31,3 +31,14 @@ describe("buildConvert", () => {
     expect(r.args).toEqual({ _new_type: "Standard", _parent_id: "p1", _epic_id: 7 });
   });
 });
+
+import { planAll } from "./convertFeedback";
+describe("planAll (bulk convert)", () => {
+  it("flags invalid rows without blocking valid ones", () => {
+    const t2 = { ...t, id: "t2" };
+    const r = planAll([draftFromTicket(t), { ...draftFromTicket(t2), epicId: null }], [t, t2]);
+    expect(r[0].error).toBeNull();
+    expect(r[0].plan).not.toBeNull();
+    expect(r[1].error).toBe("Choose an epic");
+  });
+});

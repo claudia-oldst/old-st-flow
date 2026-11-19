@@ -74,3 +74,35 @@ export function buildConvert(d: Draft, t: TicketRow): { error: string } | Conver
     removeAssignees: have.filter((a) => !wantK.has(k(a))),
   };
 }
+
+/** Saves one planned conversion; returns the new formatted id. */
+export async function convertOne(t: TicketRow, r: ConvertPlan): Promise<string> {
+  const { supabase } = await import("@/integrations/supabase/client");
+  const { data, error } = await supabase.rpc("convert_feedback_ticket" as any, { _ticket_id: t.id, ...r.args });
+  if (error) throw error;
+  if (Object.keys(r.patch).length) {
+    const { error: e } = await supabase.from("tickets").update(r.patch as any).eq("id", t.id);
+    if (e) throw e;
+  }
+  for (const a of r.removeAssignees) {
+    const { error: e } = await supabase.from("ticket_assignees").delete()
+      .eq("ticket_id", t.id).eq("user_id", a.user_id).eq("slot", a.slot);
+    if (e) throw e;
+  }
+  if (r.addAssignees.length) {
+    const { error: e } = await supabase.from("ticket_assignees")
+      .insert(r.addAssignees.map((a) => ({ ...a, ticket_id: t.id })) as any);
+    if (e) throw e;
+  }
+  return String(data);
+}
+
+/** Validates every row; invalid rows get an error without blocking the valid ones. */
+export function planAll(drafts: Draft[], tickets: TicketRow[]) {
+  const byId = new Map(tickets.map((t) => [t.id, t]));
+  return drafts.map((d) => {
+    const t = byId.get(d.key)!;
+    const r = buildConvert(d, t);
+    return { ticket: t, draft: d, plan: "error" in r ? null : r, error: "error" in r ? r.error : null };
+  });
+}
