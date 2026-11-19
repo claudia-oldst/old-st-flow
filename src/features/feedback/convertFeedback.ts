@@ -10,7 +10,7 @@ export function draftFromTicket(t: TicketRow): Draft {
   return {
     key: t.id,
     title: t.title,
-    type: "Standard",
+    type: "Bug",
     epicId: t.epic_id,
     statusId: t.status_id,
     fe: String(t.current_fe_estimate ?? 0),

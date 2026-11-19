@@ -61,6 +61,7 @@ export function ConvertFeedbackDialog({ open, onOpenChange, tickets, onConverted
           <DialogTitle>{n > 1 ? `Convert ${n} tickets` : "Convert to ticket"}</DialogTitle>
           <div className="text-xs text-dim mt-1">
             Time logs, discussion and original estimates are kept. Anything you don't change stays as it is.
+            Feedback converts to a Bug by default, so pick its parent ticket.
           </div>
         </DialogHeader>
         <div className="max-h-[60vh] overflow-y-auto space-y-2 pr-1">
