@@ -118,7 +118,7 @@ export function EstimatesPanel({
 }) {
   const by = (slot: string) => ticket.assignees.filter((a) => a.slot === slot);
   const actionLabel = isFeedback && isPMBARole ? "Set estimate" : "Request more time";
-  const assign = isPMBARole && !isFeedback ? onAssign : undefined;
+  const assign = isPMBARole ? onAssign : undefined;
 
   return (
     <section className="rounded-xl hairline bg-surface-2/40 p-4 space-y-3">
@@ -171,7 +171,7 @@ export function EstimatesPanel({
           original={ticket.original_project_estimate}
           onAssign={assign}
           actionLabel={actionLabel}
-          showAssignees={!isFeedback}
+          showAssignees
         />
       ) : (
         <div className="space-y-3">
@@ -184,7 +184,7 @@ export function EstimatesPanel({
             onAssign={assign}
             actionLabel={actionLabel}
             onAction={canEditFE ? () => onAdjustEstimate("FE") : undefined}
-            showAssignees={!isFeedback}
+            showAssignees
           />
           <TimeRow
             label="BE"
@@ -195,7 +195,7 @@ export function EstimatesPanel({
             onAssign={assign}
             actionLabel={actionLabel}
             onAction={canEditBE ? () => onAdjustEstimate("BE") : undefined}
-            showAssignees={!isFeedback}
+            showAssignees
           />
           {(by("Project").length > 0 || ticket.actual_project_hours > 0) && (
             <TimeRow

@@ -66,7 +66,7 @@ export function TicketDetailBody({
   onLocalPatch,
   onLogCount,
 }: Props) {
-  // Feedback tickets are in triage: no dev status, assignees or time tracking until converted.
+  // Feedback tickets are in triage: assignees allowed for discussion, but no dev status or time tracking until converted.
   const isFeedback = ticket.ticket_type === "Feedback";
   const showParent = ticket.ticket_type !== "Proj";
 

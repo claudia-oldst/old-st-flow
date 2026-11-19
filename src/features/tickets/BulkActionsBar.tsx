@@ -36,7 +36,7 @@ export function BulkActionsBar({
   onClear: () => void;
   canEdit: boolean;
   canEditStatus?: boolean;
-  /** Feedback tickets allow overall status, but no assignment or development actions. */
+  /** Feedback tickets allow overall status and assignment (for discussion), but no development actions. */
   feedback?: boolean;
 }) {
   const { statuses } = useStatuses();
@@ -79,7 +79,7 @@ export function BulkActionsBar({
             </button>
           )}
 
-          {canEdit && !feedback && (
+          {canEdit && (
             <button
               disabled={busy}
               onClick={() => setAssignOpen(true)}

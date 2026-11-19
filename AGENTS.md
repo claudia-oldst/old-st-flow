@@ -3,7 +3,7 @@
 - The Thalamus intake uses `supabase/functions/_shared/intake.ts` for screenshot/recording re-hosting and the first bot comment; recordings use the existing private ticket attachment shape and player — why: no duplicate storage or media UI.
 - Feedback tickets (`ticket_type = 'Feedback'`) use negative `ticket_number` and `FB-n` labels; `before_ticket_insert` assigns the real number on conversion — why: they must not consume the project sequence.
 - Any new report/RPC reading tickets must exclude `ticket_type = 'Feedback'` — why: unconverted feedback must not affect lists, health, portal or billing.
-- Feedback triage reuses the shared overall status, filter, grouping and bulk controls while hiding discipline status, assignment and timers — why: manage feedback without treating it as live development.
+- Feedback triage reuses the shared overall status, filter, grouping and bulk controls while allowing assignment for discussion, while hiding discipline status, time logs and timers — why: discuss feedback with people without treating it as live development.
 
 - Ticket list rows omit acceptance criteria and parent titles; hydrate them with dedicated detail queries and block criteria editing until loaded — why: small downloads must never overwrite unloaded content.
 - Full ticket collections load progressively in 200-row pages, keep downloading after unmount (no abort signal) and never surface cancellation as an error; defer realtime refresh until downloading finishes — why: slow connections and tab switches must retain progress instead of erroring or restarting.
