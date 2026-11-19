@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { useStatuses } from "@/features/statuses/useStatuses";
 import { ParentOptionRow, type ParentRowInfo } from "./ParentOptionRow";
 import { ParentTicketPreview } from "./ParentTicketPreview";
@@ -56,7 +57,6 @@ export function ParentTicketSelect({
   const [open, setOpen] = useState(false);
   const [options, setOptions] = useState<ParentTicketOption[]>([]);
   const [selected, setSelected] = useState<ParentTicketOption | null>(null);
-  const [hovered, setHovered] = useState<string>("");
   const [epics, setEpics] = useState<Map<number, string>>(new Map());
   const { statuses } = useStatuses();
 
@@ -77,7 +77,6 @@ export function ParentTicketSelect({
       statusColor: st?.color ?? null,
     };
   };
-  const hoveredOpt = options.find((o) => o.id === hovered) ?? null;
 
   useEffect(() => {
     let cancelled = false;
@@ -145,45 +144,39 @@ export function ParentTicketSelect({
             <ChevronsUpDown className="h-3.5 w-3.5 opacity-60 shrink-0 ml-1" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="p-0 w-[min(720px,calc(100vw-2rem))]" align="start">
-          <div className="flex flex-col sm:flex-row">
+        <PopoverContent className="p-0 w-[min(440px,calc(100vw-2rem))]" align="start" side="bottom" collisionPadding={12}>
           <Command
-            className="sm:w-[420px] shrink-0 sm:border-r border-border rounded-none"
-            value={hovered}
-            onValueChange={setHovered}
             filter={(value, search, keywords) =>
               [value, ...(keywords ?? [])].join(" ").toLowerCase().includes(search.trim().toLowerCase()) ? 1 : 0
             }
           >
-            <CommandInput placeholder="Search ticket, epic…" />
-            <CommandList className="max-h-[480px]">
+            <CommandInput placeholder="Search ticket number, title, epic…" />
+            <CommandList className="max-h-[320px]">
               <CommandEmpty>No tickets found.</CommandEmpty>
               <CommandGroup>
                 {options.filter((o) => epicId == null || o.epic_id === epicId).map((opt) => (
-                  <CommandItem
-                    key={opt.id}
-                    value={opt.id}
-                    keywords={[opt.formatted_id, opt.title, infoOf(opt).epicName ?? "No Epic"]}
-                    onSelect={() => {
-                      onChange(opt.id, opt);
-                      setSelected(opt);
-                      setOpen(false);
-                    }}
-                  >
-                    <ParentOptionRow info={infoOf(opt)} selected={value === opt.id} />
-                  </CommandItem>
+                  <HoverCard key={opt.id} openDelay={300} closeDelay={50}>
+                    <HoverCardTrigger asChild>
+                      <CommandItem
+                        value={opt.id}
+                        keywords={[opt.formatted_id, opt.title, infoOf(opt).epicName ?? "No Epic"]}
+                        onSelect={() => {
+                          onChange(opt.id, opt);
+                          setSelected(opt);
+                          setOpen(false);
+                        }}
+                      >
+                        <ParentOptionRow info={infoOf(opt)} selected={value === opt.id} />
+                      </CommandItem>
+                    </HoverCardTrigger>
+                    <HoverCardContent side="right" align="start" sideOffset={8} className="w-80 p-0 max-h-[400px] overflow-y-auto">
+                      <ParentTicketPreview id={opt.id} info={infoOf(opt)} />
+                    </HoverCardContent>
+                  </HoverCard>
                 ))}
               </CommandGroup>
             </CommandList>
           </Command>
-          <div className="flex-1 min-w-0 max-h-[530px] overflow-y-auto border-t sm:border-t-0 border-border">
-            {hoveredOpt ? (
-              <ParentTicketPreview id={hoveredOpt.id} info={infoOf(hoveredOpt)} />
-            ) : (
-              <div className="p-3 text-xs text-dimmer">Hover a ticket to preview it.</div>
-            )}
-          </div>
-          </div>
         </PopoverContent>
       </Popover>
       {selected && clearable && (
