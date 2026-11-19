@@ -14,10 +14,13 @@ import { MemberAvatar } from "@/components/MemberAvatar";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { PRESET_COLORS } from "./adminConstants";
+import { TeamTimeExportDialog } from "./team-export/TeamTimeExportDialog";
+import { Download } from "lucide-react";
 
 export function TeamAdmin() {
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [open, setOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [color, setColor] = useState(PRESET_COLORS[1]);
@@ -58,6 +61,9 @@ export function TeamAdmin() {
     <div>
       <div className="flex items-center justify-between mb-4">
         <div className="text-dim text-sm">All team members across the agency.</div>
+        <div className="flex items-center gap-2">
+        <Button size="sm" variant="outline" className="gap-2" onClick={() => setExportOpen(true)}><Download className="h-4 w-4" />Export time</Button>
+        <TeamTimeExportDialog open={exportOpen} onOpenChange={setExportOpen} members={members} />
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button size="sm" className="gap-2"><Plus className="h-4 w-4" />Add member</Button>
@@ -102,6 +108,7 @@ export function TeamAdmin() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <div className="glass rounded-2xl overflow-hidden">
