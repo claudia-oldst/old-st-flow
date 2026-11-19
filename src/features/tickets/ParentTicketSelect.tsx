@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { ChevronsUpDown, X } from "lucide-react";
+import { ChevronsUpDown, Loader2, Sparkles, X } from "lucide-react";
+import { useAiTicketSearch } from "@/features/_shared/ai-search/useAiTicketSearch";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -59,6 +60,16 @@ export function ParentTicketSelect({
   const [selected, setSelected] = useState<ParentTicketOption | null>(null);
   const [epics, setEpics] = useState<Map<number, string>>(new Map());
   const { statuses } = useStatuses();
+  const [query, setQuery] = useState("");
+  const ai = useAiTicketSearch();
+  const inEpic = options.filter((o) => epicId == null || o.epic_id === epicId);
+  const shown = ai.result ? inEpic.filter((o) => ai.result!.ids.has(o.id)) : inEpic;
+  const runAi = () =>
+    ai.run(query, inEpic.map((o) => ({
+      id: o.id, formatted_id: o.formatted_id, title: o.title,
+      epic_name: o.epic_id != null ? epics.get(o.epic_id) ?? null : null, ticket_type: o.ticket_type ?? null,
+    })) as any);
+  useEffect(() => { ai.clear(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [epicId]);
 
   useEffect(() => {
     supabase.from("project_epics").select("id, epic_name").eq("project_id", projectId).then(({ data }) => {
@@ -125,7 +136,7 @@ export function ParentTicketSelect({
 
   return (
     <div className="flex items-center gap-1">
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) { ai.clear(); ai.setArmed(false); } }}>
         <PopoverTrigger asChild>
           <Button
             type="button"
@@ -146,15 +157,46 @@ export function ParentTicketSelect({
         </PopoverTrigger>
         <PopoverContent className="p-0 w-[min(440px,calc(100vw-2rem))]" align="start" side="bottom" collisionPadding={12}>
           <Command
+            shouldFilter={!ai.result}
             filter={(value, search, keywords) =>
               [value, ...(keywords ?? [])].join(" ").toLowerCase().includes(search.trim().toLowerCase()) ? 1 : 0
             }
           >
-            <CommandInput placeholder="Search ticket number, title, epic…" />
+            <div className="relative">
+              <CommandInput
+                value={query}
+                onValueChange={(v) => { ai.clear(); setQuery(v); }}
+                onKeyDown={(e) => { if (e.key === "Enter" && ai.armed) { e.preventDefault(); e.stopPropagation(); runAi(); } }}
+                placeholder={ai.armed ? "Describe it, then press Enter…" : "Search ticket number, title, epic…"}
+                className="pr-8"
+              />
+              <button
+                type="button"
+                disabled={ai.loading}
+                onClick={() => (ai.armed && query.trim() ? runAi() : ai.setArmed(!ai.armed))}
+                aria-label={ai.armed ? "Run AI search" : "Turn on AI search"}
+                aria-pressed={ai.armed}
+                title="AI search (one search at a time)"
+                className={cn("absolute right-3 top-1/2 -translate-y-1/2 transition", ai.armed ? "text-accent" : "text-dimmer hover:text-accent")}
+              >
+                {ai.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+              </button>
+            </div>
+            {ai.result && (
+              <div className="px-3 py-1.5 border-b border-border">
+                <span className="inline-flex items-center gap-1.5 h-6 px-2 rounded-md text-[11px] bg-accent/15 text-accent">
+                  <Sparkles className="h-3 w-3" />
+                  AI: {shown.length} ticket{shown.length === 1 ? "" : "s"}
+                  <button type="button" aria-label="Clear AI results" onClick={() => ai.clear()} className="hover:text-foreground">
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              </div>
+            )}
             <CommandList className="max-h-[320px]">
               <CommandEmpty>No tickets found.</CommandEmpty>
               <CommandGroup>
-                {options.filter((o) => epicId == null || o.epic_id === epicId).map((opt) => (
+                {shown.map((opt) => (
                   <HoverCard key={opt.id} openDelay={300} closeDelay={50}>
                     <HoverCardTrigger asChild>
                       <CommandItem
