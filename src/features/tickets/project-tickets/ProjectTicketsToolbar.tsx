@@ -1,5 +1,5 @@
 import type { ColKey } from "@/features/tickets/list/columns";
-import { ChevronDown, ClipboardPaste, Clock, LayoutGrid, List, Plus, Search, Upload, X } from "lucide-react";
+import { ChevronDown, ClipboardPaste, Clock, LayoutGrid, List, Plus, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -7,7 +7,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
+import { TicketSearchInput } from "@/features/_shared/ai-search/TicketSearchInput";
+import type { AiTicketSearch } from "@/features/_shared/ai-search/useAiTicketSearch";
 import {
   Select,
   SelectContent,
@@ -70,6 +71,8 @@ export function ProjectTicketsToolbar({
   filterSections,
   groupOptions,
   addLabel = "Add ticket",
+  ai,
+  getAiCandidates,
 }: {
   projectId: string;
   tickets: TicketRow[];
@@ -107,6 +110,8 @@ export function ProjectTicketsToolbar({
   filterSections?: FilterSection[];
   groupOptions?: GroupBy[];
   addLabel?: string;
+  ai?: AiTicketSearch;
+  getAiCandidates?: () => TicketRow[] | Promise<TicketRow[]>;
 }) {
   return (
     <div className="sticky top-14 z-30 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 mb-4 flex items-center gap-3 flex-wrap bg-background/85 backdrop-blur-md hairline-b">
@@ -183,26 +188,7 @@ export function ProjectTicketsToolbar({
         />
       )}
       <div className="ml-auto flex items-center gap-2">
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-dimmer pointer-events-none" />
-          <Input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search ID or title…"
-            className="h-8 w-[220px] pl-8 pr-7 text-xs"
-          />
-          {search && (
-            <button
-              type="button"
-              onClick={() => setSearch("")}
-              aria-label="Clear search"
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-dimmer hover:text-foreground"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </div>
+        <TicketSearchInput search={search} setSearch={setSearch} ai={ai} getCandidates={getAiCandidates} />
         {showGroupTimer && user && role && !activeTimer && onStartGroupTimer && (
           <Button
             size="sm"

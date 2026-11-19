@@ -63,6 +63,8 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
         resetColumnPrefs={resetColumnPrefs}
         search={v.search}
         setSearch={v.setSearch}
+        ai={v.ai}
+        getAiCandidates={() => v.aiCandidates}
         role={role}
         user={user}
         activeTimer={p.activeTimer}
@@ -122,6 +124,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
         <ProjectBoard
           projectId={projectId}
           search={v.search}
+          onlyIds={v.ai.result?.ids ?? null}
           filterMine={v.filterMine}
           onFilterMineChange={(val) => {
             v.setTouched(true);

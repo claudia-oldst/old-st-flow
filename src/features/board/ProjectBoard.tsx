@@ -29,6 +29,7 @@ export function ProjectBoard({
   reload: reloadProp,
   feedback = false,
   loadingMore: loadingMoreProp,
+  onlyIds = null,
 }: {
   projectId: string;
   search?: string;
@@ -38,6 +39,8 @@ export function ProjectBoard({
   reload?: () => void;
   feedback?: boolean;
   loadingMore?: boolean;
+  /** AI search result: show only these tickets (overrides text search). */
+  onlyIds?: Set<string> | null;
 }) {
   const { statuses, loading: statusesLoading, error: statusesError, reload: reloadStatuses } = useStatuses();
   const local = useProjectTickets(ticketsProp ? undefined : projectId);
@@ -50,6 +53,7 @@ export function ProjectBoard({
   const initialLoading =
     !ticketsProp && (local.loading || statusesLoading) && allTickets.length === 0;
   const tickets = useMemo(() => {
+    if (onlyIds) return allTickets.filter((t) => onlyIds.has(t.id));
     const q = search.trim().toLowerCase();
     if (!q) return allTickets;
     return allTickets.filter(
@@ -57,7 +61,7 @@ export function ProjectBoard({
         t.title.toLowerCase().includes(q) ||
         (t.formatted_id ?? "").toLowerCase().includes(q)
     );
-  }, [allTickets, search]);
+  }, [allTickets, search, onlyIds]);
   const role = useProjectRole(projectId);
   const user = useCurrentUser((s) => s.user);
   const pmba = canManageTickets(role);

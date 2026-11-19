@@ -5,6 +5,9 @@ import { TicketsList, type GroupBy } from "@/features/tickets/TicketsList";
 import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
 import { AddTicketsDialog } from "@/features/tickets/AddTicketsDialog";
 import { useColumnDisplayPrefs } from "@/features/tickets/useColumnDisplayPrefs";
+import { useAiTicketSearch } from "@/features/_shared/ai-search/useAiTicketSearch";
+import { requestTicketPage } from "@/features/tickets/ticketPageRequest";
+import { normalizeTicket } from "@/features/tickets/useProjectTickets";
 import { ProjectTicketsToolbar } from "@/features/tickets/project-tickets/ProjectTicketsToolbar";
 import { EMPTY_FILTERS, type TicketFilters, type FilterSection } from "@/features/tickets/TicketsFilter";
 import { useProjectTicketsPaged } from "@/features/tickets/useProjectTicketsPaged";
@@ -49,12 +52,26 @@ export function ProjectFeedback({ projectId }: { projectId: string }) {
   const [convert, setConvert] = useState<TicketRow[] | null>(null);
   const [params, setParams] = useSearchParams();
   const [openId, setOpenId] = useState<string | null>(params.get("ticket"));
-  const { rows, total, loading, reload } = useProjectTicketsPaged(projectId, {
+  const { rows: pagedRows, total: pagedTotal, loading, reload } = useProjectTicketsPaged(projectId, {
     filters, search, sort: SORT,
     page: view === "board" ? 1 : page,
     pageSize: view === "board" ? 1000 : PAGE_SIZE,
     feedback: true,
   });
+  const ai = useAiTicketSearch();
+  const [aiPool, setAiPool] = useState<TicketRow[]>([]);
+  useEffect(() => { ai.clear(); }, [filters]); // eslint-disable-line react-hooks/exhaustive-deps
+  const getAiCandidates = async () => {
+    const data = await requestTicketPage({
+      _project_id: projectId, _filters: { ...filters, filterMineUserId: null, feedback: true } as any,
+      _search: null, _sort_col: SORT.col, _sort_dir: SORT.dir, _page: 1, _page_size: 1000,
+    });
+    const list = (((data as any)?.rows ?? []) as any[]).map(normalizeTicket);
+    setAiPool(list);
+    return list;
+  };
+  const rows = ai.result ? aiPool.filter((r) => ai.result!.ids.has(r.id)) : pagedRows;
+  const total = ai.result ? rows.length : pagedTotal;
   const csv = useTicketsCsvImport(projectId, rows, () => reload(), "Feedback");
   const open = useMemo<TicketRow | null>(() => rows.find((r) => r.id === openId) ?? null, [rows, openId]);
 
@@ -91,6 +108,7 @@ export function ProjectFeedback({ projectId }: { projectId: string }) {
         projectId={projectId} tickets={rows} filters={filters} setFilters={setFilters}
         view={view} setView={setView} filterMine={false} groupBy={groupBy} setGroupBy={setGroupBy}
         search={search} setSearch={setSearch} role={role} user={user}
+        ai={ai} getAiCandidates={getAiCandidates}
         onAdd={() => setAddOpen(true)} addLabel="Add feedback"
         onImport={() => setImportOpen(true)} onCopyTickets={() => setCopyOpen(true)}
         showMineToggle={false} showGroupTimer={false}
@@ -103,7 +121,7 @@ export function ProjectFeedback({ projectId }: { projectId: string }) {
         <ProjectBoard
           feedback
           projectId={projectId}
-          search={search}
+          search={ai.result ? "" : search}
           filterMine={false}
           tickets={rows}
           reload={reload}

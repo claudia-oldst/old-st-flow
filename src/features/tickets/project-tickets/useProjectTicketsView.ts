@@ -1,3 +1,4 @@
+import { useAiTicketSearch } from "@/features/_shared/ai-search/useAiTicketSearch";
 import { useEffect, useMemo, useState } from "react";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import {
@@ -42,13 +43,18 @@ export function useProjectTicketsView({
 
   const filteredTickets = useMemo(() => applyFilters(tickets, filters), [tickets, filters]);
 
+  const ai = useAiTicketSearch();
+  const aiCandidates = useMemo(
+    () => (filterMine && user ? filteredTickets.filter((t) => t.assignees.some((a) => a.user_id === user.id)) : filteredTickets),
+    [filteredTickets, filterMine, user],
+  );
+
   const visibleTickets = useMemo(() => {
-    let out = filteredTickets;
-    if (filterMine && user) {
-      out = out.filter((t) => t.assignees.some((a) => a.user_id === user.id));
-    }
+    let out = aiCandidates;
     const q = search.trim().toLowerCase();
-    if (q) {
+    if (ai.result) {
+      out = out.filter((t) => ai.result!.ids.has(t.id));
+    } else if (q) {
       out = out.filter(
         (t) =>
           t.title.toLowerCase().includes(q) ||
@@ -56,7 +62,7 @@ export function useProjectTicketsView({
       );
     }
     return out;
-  }, [filteredTickets, filterMine, user, search]);
+  }, [aiCandidates, search, ai.result]);
 
   useEffect(() => {
     setSelectedIds((prev) => {
@@ -119,6 +125,7 @@ export function useProjectTicketsView({
     touched, setTouched,
     filters, setFilters,
     search, setSearch,
+    ai, aiCandidates,
     selectedIds, toggleSelect, toggleSelectAll, clearSelection,
     filteredTickets, visibleTickets,
     pmba,

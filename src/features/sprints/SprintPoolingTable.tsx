@@ -146,6 +146,8 @@ export function SprintPoolingTable({ projectId, sprints, isPMBA }: Props) {
         setGroupBy={v.setGroupBy}
         search={v.search}
         setSearch={v.setSearch}
+        ai={v.ai}
+        getAiCandidates={() => v.aiCandidates}
         role={role}
         user={user}
         showViewToggle={false}
