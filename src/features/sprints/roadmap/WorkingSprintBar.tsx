@@ -3,6 +3,7 @@ import { format, parseISO } from "date-fns";
 import { ChevronRight } from "lucide-react";
 import { MemberAvatarStack } from "@/components/MemberAvatar";
 import { cn } from "@/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MultiSelectFilter } from "@/features/_shared/filters/MultiSelectFilter";
 import type { SprintMember } from "../types";
 import { ThinCapBar } from "../sprint-block/ThinCapBar";
@@ -22,7 +23,7 @@ interface Props {
   onDevClick: (userId: string) => void;
 }
 
-/** Working-sprint pills plus the collapsible capacity panel for that sprint. */
+/** Working-sprint dropdown plus the collapsible capacity panel for that sprint. */
 export function WorkingSprintBar({ sprints, working, onPick, today, members, totals, caps, activeDevIds, onDevClick }: Props) {
   const [open, setOpen] = useState(true);
   const inSprint = members.filter((m) => caps?.byUser.has(m.user_id));
@@ -33,21 +34,18 @@ export function WorkingSprintBar({ sprints, working, onPick, today, members, tot
     <div className="space-y-2">
       <div className="flex items-center gap-1.5 flex-wrap">
         <span className="text-[11px] text-dimmer mr-1">Working in:</span>
-        {sprints.map((s) => (
-          <button
-            key={s.id}
-            type="button"
-            onClick={() => onPick(s.id)}
-            className={cn(
-              "h-7 px-2.5 rounded-full text-xs hairline transition",
-              s.id === working?.id ? "bg-accent/15 text-accent border-accent/40" : "text-dim hover:text-foreground",
-            )}
-          >
-            S{s.sprint_number}
-            {isClosed(s, today) && <span className="ml-1 text-[10px] text-dimmer">closed</span>}
-            {isActive(s) && <span className="ml-1 text-[10px] text-health-good">active</span>}
-          </button>
-        ))}
+        <Select value={working?.id} onValueChange={onPick}>
+          <SelectTrigger className="h-8 w-[180px] text-xs"><SelectValue placeholder="Pick a sprint" /></SelectTrigger>
+          <SelectContent>
+            {[...sprints].reverse().map((s) => (
+              <SelectItem key={s.id} value={s.id} className="text-xs">
+                Sprint {s.sprint_number}
+                {isClosed(s, today) && <span className="ml-1.5 text-[10px] text-dimmer">closed</span>}
+                {isActive(s) && <span className="ml-1.5 text-[10px] text-health-good">active</span>}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       {working && (
         <div className="sticky top-0 z-20 hairline rounded-md bg-surface-1/95 backdrop-blur px-3 py-2 space-y-2">
