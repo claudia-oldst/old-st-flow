@@ -76,7 +76,7 @@ Sprint blocks list stays as it is (dates, team avatars, capacity bars, edit/dele
 ### Sprint cells (per ticket, per sprint, per discipline)
 - Exactly three states: None (blank), Planned, Committed. No person is chosen in the cell.
 - Display variant: Committed shows as "Unplanned" (coral) when the row's unplanned flag is set.
-- Click an empty cell → Planned. Press and drag down a column → sets the same cells to Planned.
+- Click an empty cell → Planned.
 - Click a Planned/Committed cell → small menu: None / Planned / Committed (current one marked).
 - "–" (not clickable) when the ticket has no hours for that discipline.
 - Rules:
@@ -142,4 +142,4 @@ Sprint blocks list stays as it is (dates, team avatars, capacity bars, edit/dele
 - **Carryover:** replaced by the "Unfinished from S{n-1}" filter plus bulk "Set to Committed". No Slack is sent, which matches the current rule.
 - The earlier move and carryover memory rules are replaced by these cell rules and will be updated after you approve.
 - **No notifications during the change:** the migration only touches sprint commitment records, never ticket assignments, estimates or comments, so the Slack triggers aren't hit. As an extra guard it runs with notifications switched off for its duration, and no Slack function is redeployed mid-change. After the change, nothing is sent retroactively.
-- **Recommended adjustments:** keep the stored person on old commitments (stop using it rather than clearing it) so closed sprints keep their history. Build click-and-drag down a column last; checkboxes plus the bulk bar cover it in the meantime.
+- **Recommended adjustments:** keep the stored person on old commitments (stop using it rather than clearing it) so closed sprints keep their history. Click-and-drag down a column is dropped; use checkboxes plus the bulk bar instead.
