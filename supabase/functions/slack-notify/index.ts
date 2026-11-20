@@ -27,6 +27,8 @@ interface Payload {
   change_id?: string;
   comment_id?: string;
   project_id?: string;
+  sprint_id?: string;
+  count?: number;
 }
 
 
@@ -174,6 +176,37 @@ async function handleAssignment(admin: Admin, p: Payload, base: string | null) {
   return j({ ok: true, event: "ticket_assigned", result });
 }
 
+
+async function handleSprintBulkAssigned(admin: Admin, p: Payload, base: string | null) {
+  if (!p.sprint_id || !p.user_id) return j({ error: "missing sprint_id/user_id" }, 400);
+  const { data: sprint } = await admin
+    .from("sprints")
+    .select("id, sprint_number, name, project_id, projects(name)")
+    .eq("id", p.sprint_id)
+    .maybeSingle();
+  if (!sprint) return j({ error: "sprint not found" }, 404);
+  const { data: member } = await admin
+    .from("team_members")
+    .select("id, name, email, slack_user_id")
+    .eq("id", p.user_id)
+    .maybeSingle();
+  if (!member) return j({ error: "member not found" }, 404);
+  const s = sprint as Record<string, any>;
+  const n = Number(p.count ?? 0);
+  const projectName = s.projects?.name ?? "a project";
+  const b = base ? base.replace(/\/+$/, "") : null;
+  const sprintUrl = b ? `${b}/projects/${s.project_id}/sprints` : null;
+  const label = `Sprint ${s.sprint_number}`;
+  const slot = SLOT_LABEL[p.slot ?? ""] ?? "";
+  const mrkdwn =
+    `:calendar: You've been assigned *${n} ticket${n === 1 ? "" : "s"}* to work on in ` +
+    `${link(sprintUrl, label)} on *${esc(projectName)}*${slot ? ` · Role: ${esc(slot)}` : ""}`;
+  const fallback = `You've been assigned ${n} tickets in ${label} (${projectName})`;
+  const blocks: unknown[] = [{ type: "section", text: { type: "mrkdwn", text: mrkdwn } }];
+  if (sprintUrl) blocks.push({ type: "actions", elements: [linkButton("Open sprint", sprintUrl)] });
+  const result = await dm(admin, s.project_id as string, member as any, fallback, blocks);
+  return j({ ok: true, event: "sprint_bulk_assigned", result });
+}
 
 async function handleEstimateRevision(admin: Admin, p: Payload, base: string | null) {
   if (!p.change_id) return j({ error: "missing change_id" }, 400);
@@ -481,6 +514,9 @@ Deno.serve(async (req) => {
 
     const payload = (await req.json()) as Payload;
     if (payload.event === "ticket_assigned") return await handleAssignment(admin, payload, base);
+    if (payload.event === "sprint_bulk_assigned") {
+      return await handleSprintBulkAssigned(admin, payload, base);
+    }
     if (payload.event === "estimate_revision_requested") {
       return await handleEstimateRevision(admin, payload, base);
     }

@@ -1219,6 +1219,15 @@ export type Database = {
         Args: { _project_id: string }
         Returns: string
       }
+      sprint_bulk_assign: {
+        Args: {
+          _slot: Database["public"]["Enums"]["assignee_slot"]
+          _sprint_id: string
+          _ticket_ids: string[]
+          _user_id: string
+        }
+        Returns: number
+      }
     }
     Enums: {
       app_role: "PMBA" | "member"

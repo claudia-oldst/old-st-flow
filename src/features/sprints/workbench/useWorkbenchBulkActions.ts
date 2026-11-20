@@ -50,9 +50,13 @@ export function useWorkbenchBulkActions({
     if (!isPMBA || !targetSprintId) return;
     const slot: AssigneeSlot = discipline;
     try {
-      for (const id of selectedArr) {
-        await addTicketToLane(targetSprintId, id, userId, slot);
-      }
+      const { error } = await supabase.rpc("sprint_bulk_assign", {
+        _sprint_id: targetSprintId,
+        _user_id: userId,
+        _slot: slot,
+        _ticket_ids: selectedArr,
+      });
+      if (error) throw error;
       toast.success(`Assigned ${selectedArr.length} ticket${selectedArr.length === 1 ? "" : "s"}`);
       clear();
     } catch (err: unknown) {
@@ -69,16 +73,28 @@ export function useWorkbenchBulkActions({
         ? { planned_sprint_fe_id: toSprintId }
         : { planned_sprint_be_id: toSprintId };
     try {
-      // If selection is from dev columns, also remove their current sprint_tickets row for this discipline.
+      // Moving from dev lanes keeps the dev assignment — only the sprint shifts.
       if (source === "dev" && targetSprintId) {
         for (const id of selectedArr) {
           const links = sprintTickets.filter(
             (st) => st.ticket_id === id && st.discipline === discipline,
           );
           for (const link of links) {
-            if (link.assigned_user_id) {
-              await removeTicketFromSprint(link.id, id, link.assigned_user_id, discipline);
-            }
+            const { data: dup } = await supabase
+              .from("sprint_tickets")
+              .select("id")
+              .eq("sprint_id", toSprintId)
+              .eq("ticket_id", id)
+              .eq("assigned_user_id", link.assigned_user_id ?? "")
+              .eq("discipline", discipline)
+              .maybeSingle();
+            const res = dup
+              ? await supabase.from("sprint_tickets").delete().eq("id", link.id)
+              : await supabase
+                  .from("sprint_tickets")
+                  .update({ sprint_id: toSprintId })
+                  .eq("id", link.id);
+            if (res.error) throw res.error;
           }
         }
       }
