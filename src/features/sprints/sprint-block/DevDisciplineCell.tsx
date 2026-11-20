@@ -1,35 +1,8 @@
 import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
-import type { AssigneeSlot } from "@/lib/types";
-import { CapacityIndicator } from "../CapacityIndicator";
 
-export function DevDisciplineCell({
-  discipline,
-  pooled,
-  cap,
-  isPMBA,
-  onCommit,
-}: {
-  discipline: AssigneeSlot;
-  pooled: number;
-  cap: number;
-  isPMBA: boolean;
-  onCommit: (hours: number) => void;
-}) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-[10px] px-1.5 py-0.5 rounded border border-white/10 text-dim">
-        {discipline}
-      </span>
-      <div className="w-32">
-        <CapacityIndicator used={pooled} cap={cap} />
-      </div>
-      {isPMBA && <CapInput value={cap} onCommit={onCommit} />}
-    </div>
-  );
-}
-
-function CapInput({
+/** Inline capacity hours input for a developer + discipline. */
+export function CapInput({
   value,
   onCommit,
 }: {

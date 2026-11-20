@@ -468,6 +468,7 @@ export type Database = {
           id: string
           sprint_id: string
           ticket_id: string
+          unplanned: boolean
           updated_at: string
         }
         Insert: {
@@ -477,6 +478,7 @@ export type Database = {
           id?: string
           sprint_id: string
           ticket_id: string
+          unplanned?: boolean
           updated_at?: string
         }
         Update: {
@@ -486,6 +488,7 @@ export type Database = {
           id?: string
           sprint_id?: string
           ticket_id?: string
+          unplanned?: boolean
           updated_at?: string
         }
         Relationships: [

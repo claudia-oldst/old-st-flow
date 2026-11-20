@@ -127,10 +127,17 @@ export function buildGanttRows(
   for (const t of tickets) {
     let res: { sprintId: string; committed: boolean } | null = null;
     const commits = commitmentsByTicket.get(t.id) ?? [];
+    // Latest commitment for this discipline wins (by sprint start date).
+    let latestStart = -Infinity;
     for (const st of commits) {
       if (st.discipline !== discipline) continue;
-      res = { sprintId: st.sprint_id, committed: true };
-      break;
+      const sp = sprintById.get(st.sprint_id);
+      if (!sp) continue;
+      const start = parseISO(sp.start_date).getTime();
+      if (start > latestStart) {
+        latestStart = start;
+        res = { sprintId: st.sprint_id, committed: true };
+      }
     }
     if (!res) {
       const plannedId =

@@ -29,13 +29,3 @@ export function remainingHours(t: TicketRow): { FE: number; BE: number } {
     BE: Math.max(0, (t.current_be_estimate || 0) - (t.actual_backend_hours || 0)),
   };
 }
-
-/** Stable DnD ids. */
-export const dndId = {
-  backlogCard: (ticketId: string) => `backlog:${ticketId}`,
-  poolCard: (sprintTicketId: string) => `pool:${sprintTicketId}`,
-  laneCard: (sprintTicketId: string, userId: string) => `lane:${sprintTicketId}:${userId}`,
-  backlogZone: "zone:backlog",
-  poolZone: "zone:pool",
-  laneZone: (userId: string) => `zone:lane:${userId}`,
-};

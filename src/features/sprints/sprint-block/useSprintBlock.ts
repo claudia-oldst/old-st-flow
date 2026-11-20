@@ -5,11 +5,10 @@ import { supabase } from "@/integrations/supabase/client";
 import type { AssigneeSlot } from "@/lib/types";
 import type { Sprint, SprintMember } from "../types";
 import { memberDisciplines } from "../types";
-import { useSprintCapacities, usePlannedSprintAssignments } from "../useSprintBoard";
-import { useProjectTickets } from "@/features/tickets/useProjectTickets";
+import { useSprintCapacities } from "../useSprintBoard";
 
 /**
- * Capacity + pooled-hours data and mutations for a single sprint block row.
+ * Capacity data and mutations for a single sprint block row.
  */
 export function useSprintBlock({
   sprint,
@@ -22,8 +21,6 @@ export function useSprintBlock({
 }) {
   const qc = useQueryClient();
   const { data: capacities = [] } = useSprintCapacities(sprint.id);
-  const { data: assignments = [] } = usePlannedSprintAssignments(projectId);
-  const { tickets } = useProjectTickets(projectId);
 
   const capFor = (uid: string, d: AssigneeSlot) =>
     Number(capacities.find((c) => c.user_id === uid && c.discipline === d)?.hours ?? 0);
@@ -43,54 +40,6 @@ export function useSprintBlock({
     [devMembers, addedUserIds],
   );
 
-  // Sprint-level pooled hours (across all devs).
-  const { pooledFE, pooledBE } = useMemo(() => {
-    let fe = 0;
-    let be = 0;
-    const ticketMap = new Map(tickets.map((t) => [t.id, t]));
-    assignments.forEach((a) => {
-      const t = ticketMap.get(a.ticket_id);
-      if (!t) return;
-      if (a.planned_sprint_fe_id === sprint.id) fe += t.current_fe_estimate || 0;
-      if (a.planned_sprint_be_id === sprint.id) be += t.current_be_estimate || 0;
-    });
-    return { pooledFE: fe, pooledBE: be };
-  }, [assignments, tickets, sprint.id]);
-
-  // Per-dev pooled hours: sum estimates for tickets planned into this sprint
-  // where the dev holds the matching discipline assignee slot.
-  const pooledPerDev = useMemo(() => {
-    const map = new Map<string, { FE: number; BE: number }>();
-    const ticketMap = new Map(tickets.map((t) => [t.id, t]));
-    const add = (uid: string, d: "FE" | "BE", est: number) => {
-      const cur = map.get(uid) ?? { FE: 0, BE: 0 };
-      cur[d] += est;
-      map.set(uid, cur);
-    };
-    assignments.forEach((a) => {
-      const t = ticketMap.get(a.ticket_id);
-      if (!t) return;
-      if (a.planned_sprint_fe_id === sprint.id) {
-        t.assignees
-          .filter((x) => x.slot === "FE")
-          .forEach((x) => add(x.user_id, "FE", t.current_fe_estimate || 0));
-      }
-      if (a.planned_sprint_be_id === sprint.id) {
-        t.assignees
-          .filter((x) => x.slot === "BE")
-          .forEach((x) => add(x.user_id, "BE", t.current_be_estimate || 0));
-      }
-    });
-    return map;
-  }, [assignments, tickets, sprint.id]);
-
-  const capFE = capacities
-    .filter((c) => c.discipline === "FE")
-    .reduce((s, c) => s + Number(c.hours), 0);
-  const capBE = capacities
-    .filter((c) => c.discipline === "BE")
-    .reduce((s, c) => s + Number(c.hours), 0);
-
   const stackMembers = useMemo(
     () =>
       addedMembers.map((m) => ({
@@ -101,8 +50,10 @@ export function useSprintBlock({
     [addedMembers],
   );
 
-  const invalidate = () =>
+  const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["sprint_capacities", sprint.id] });
+    qc.invalidateQueries({ queryKey: ["project_sprint_capacities", projectId] });
+  };
 
   const updateCap = async (userId: string, discipline: AssigneeSlot, hours: number) => {
     const existing = capacities.find(
@@ -139,22 +90,26 @@ export function useSprintBlock({
     invalidate();
   };
 
-  const removeSprint = async () => {
-    if (!confirm(`Delete Sprint ${sprint.sprint_number}?`)) return;
+  const removeSprint = async (committedCount: number) => {
+    if (committedCount > 0) {
+      toast.error(`Sprint ${sprint.sprint_number} has ${committedCount} committed ticket${committedCount === 1 ? "" : "s"}. Set them to None on the Roadmap first.`);
+      return;
+    }
+    if (!confirm(`Delete Sprint ${sprint.sprint_number}? Planned tickets go back to not planned.`)) return;
+    for (const c of ["planned_sprint_fe_id", "planned_sprint_be_id"] as const) {
+      const { error: pe } = await supabase.from("tickets").update({ [c]: null } as never).eq(c, sprint.id);
+      if (pe) return toast.error(pe.message);
+    }
     const { error } = await supabase.from("sprints").delete().eq("id", sprint.id);
     if (error) toast.error(error.message);
     qc.invalidateQueries({ queryKey: ["sprints", sprint.project_id] });
+    qc.invalidateQueries({ queryKey: ["planned_sprint_assignments", projectId] });
   };
 
   return {
     capFor,
     addedMembers,
     availableMembers,
-    pooledFE,
-    pooledBE,
-    pooledPerDev,
-    capFE,
-    capBE,
     stackMembers,
     updateCap,
     addMember,

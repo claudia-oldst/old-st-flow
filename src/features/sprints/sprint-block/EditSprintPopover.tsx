@@ -15,9 +15,16 @@ import type { Sprint } from "../types";
 
 interface Props {
   sprint: Sprint;
+  /** Other sprints in the project, for the overlap check. */
+  others: Sprint[];
 }
 
-export function EditSprintPopover({ sprint }: Props) {
+/** First other sprint whose dates overlap [start, end] (inclusive). */
+export function overlappingSprint(start: string, end: string, others: Pick<Sprint, "start_date" | "end_date" | "sprint_number">[]) {
+  return others.find((o) => start <= o.end_date && end >= o.start_date);
+}
+
+export function EditSprintPopover({ sprint, others }: Props) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [number, setNumber] = useState(String(sprint.sprint_number));
@@ -43,6 +50,11 @@ export function EditSprintPopover({ sprint }: Props) {
     }
     if (end < start) {
       toast.error("End date must be on or after start date");
+      return;
+    }
+    const clash = overlappingSprint(start, end, others);
+    if (clash) {
+      toast.error(`Dates overlap Sprint ${clash.sprint_number} (${clash.start_date} → ${clash.end_date})`);
       return;
     }
     setSaving(true);

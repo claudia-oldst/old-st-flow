@@ -14,9 +14,6 @@ import { Users } from "lucide-react";
 import { toast } from "sonner";
 import { SlotPicker } from "./assign/SlotPicker";
 import { MemberSearchInput } from "./assign/MemberSearchInput";
-import { SprintPicker } from "./assign/SprintPicker";
-import { useSprintChoice } from "./assign/useSprintChoice";
-import { syncSprintCommitments } from "./assign/syncSprintCommitments";
 import { GithubRepoPrompt } from "@/features/github/GithubRepoPrompt";
 
 type Slot = "FE" | "BE" | "Project";
@@ -30,9 +27,11 @@ interface Props {
   ticketType?: "Standard" | "Bug" | "CR" | "Proj" | "Feedback";
   current: Array<{ user_id: string; slot: Slot }>;
   onSaved: () => void;
+  /** Working-sprint load per person and slot, shown on chips (Roadmap). */
+  loadFor?: (userId: string, slot: "FE" | "BE", selected: boolean) => { label: string; over: boolean } | null;
 }
 
-export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketType = "Standard", current, onSaved }: Props) {
+export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketType = "Standard", current, onSaved, loadFor }: Props) {
   const isProj = ticketType === "Proj";
   const [members, setMembers] = useState<(ProjectMember & { member: TeamMember })[]>([]);
   const [feUserIds, setFeUserIds] = useState<Set<string>>(new Set());
@@ -42,7 +41,8 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
   const [query, setQuery] = useState("");
   const [repoPromptOpen, setRepoPromptOpen] = useState(false);
   const [projectRepoUrl, setProjectRepoUrl] = useState<string | null>(null);
-  const { sprints, choice, setChoice, sprintId, chosen } = useSprintChoice(projectId, open, isProj);
+  // Assigning never touches sprints; sprint commitments live on the Roadmap tab.
+  const chosen = true;
 
   useEffect(() => {
     if (!open) return;
@@ -121,13 +121,6 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
       }
     }
 
-    if (!isProj) {
-      await syncSprintCommitments(
-        sprintId,
-        toAdd.map((r) => ({ ticket_id: ticketId, user_id: r.user_id, slot: r.slot })),
-        toRemove.map((r) => ({ ticket_id: ticketId, user_id: r.user_id, slot: r.slot })),
-      );
-    }
 
     if (!isProj) {
       // If a slot lost its last assignee in this save, reset that slot's status to "todo"
@@ -168,16 +161,6 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
           </DialogTitle>
         </DialogHeader>
 
-        {!isProj && (
-          <div className="pt-1">
-            <SprintPicker
-              projectId={projectId}
-              sprints={sprints}
-              choice={choice}
-              onChange={setChoice}
-            />
-          </div>
-        )}
 
         <div className="space-y-6 pt-2 max-h-[60vh] overflow-y-auto">
           {chosen && <MemberSearchInput value={query} onChange={setQuery} />}
@@ -196,6 +179,7 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
               <SlotPicker
                 query={query}
                 label="Frontend"
+                loadFor={loadFor && ((u, sel) => loadFor(u, "FE", sel))}
                 description="Drives FE estimates, status & timer."
                 members={feEligible}
                 selected={feUserIds}
@@ -204,6 +188,7 @@ export function AssignDialog({ open, onOpenChange, ticketId, projectId, ticketTy
               <SlotPicker
                 query={query}
                 label="Backend"
+                loadFor={loadFor && ((u, sel) => loadFor(u, "BE", sel))}
                 description="Drives BE estimates, status & timer."
                 members={beEligible}
                 selected={beUserIds}

@@ -8,17 +8,19 @@ import { Button } from "@/components/ui/button";
 import type { Sprint } from "./types";
 import { memberDisciplines } from "./types";
 import { useProjectMembers } from "./useSprintBoard";
-import { SprintPoolingTable } from "./SprintPoolingTable";
+import { useRoadmapData } from "./roadmap/useRoadmapData";
 import { SprintBlockRow } from "./SprintBlockRow";
 
 interface Props {
   projectId: string;
   sprints: Sprint[];
   isPMBA: boolean;
+  onOpenSprint: (sprintId: string) => void;
 }
 
-export function ForecastingCalendar({ projectId, sprints, isPMBA }: Props) {
+export function ForecastingCalendar({ projectId, sprints, isPMBA, onOpenSprint }: Props) {
   const qc = useQueryClient();
+  const { totalsBySprint } = useRoadmapData(projectId, sprints);
   const { data: members = [] } = useProjectMembers(projectId);
   const devMembers = useMemo(
     () => members.filter((m) => memberDisciplines(m.role).length > 0),
@@ -88,6 +90,9 @@ export function ForecastingCalendar({ projectId, sprints, isPMBA }: Props) {
           <SprintBlockRow
             key={s.id}
             sprint={s}
+            others={sprints.filter((o) => o.id !== s.id)}
+            totals={totalsBySprint.get(s.id)}
+            onOpen={onOpenSprint}
             devMembers={devMembers}
             projectId={projectId}
             isPMBA={isPMBA}
@@ -102,11 +107,6 @@ export function ForecastingCalendar({ projectId, sprints, isPMBA }: Props) {
         )}
       </div>
 
-      <SprintPoolingTable
-        projectId={projectId}
-        sprints={sprints}
-        isPMBA={isPMBA}
-      />
     </div>
   );
 }

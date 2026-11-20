@@ -23,9 +23,9 @@ One markdown file per screen the user sees, focused on **features, UI elements, 
 - [add-tickets-dialog.md](./add-tickets-dialog.md) — Bulk-create tickets
 - [change-requests.md](./change-requests.md) — Client-facing change request review
 - [estimate-revisions.md](./estimate-revisions.md) — Internal estimate-change review (PMBA)
-- [sprints-roadmap.md](./sprints-roadmap.md) — Sprint Gantt roadmap
-- [sprints-planning.md](./sprints-planning.md) — Planning pool + per-dev allocation
-- [sprints-workbench.md](./sprints-workbench.md) — Active-sprint execution view
+- [sprints-sprints.md](./sprints-sprints.md) — Sprint blocks and capacity
+- [sprints-roadmap.md](./sprints-roadmap.md) — Ticket × sprint planning table
+- [sprints-gantt.md](./sprints-gantt.md) — Epic × sprint Gantt
 - [project-health.md](./project-health.md) — Overview, profitability, burn
 - [estimate-evolution.md](./estimate-evolution.md) — Time-travel estimate history
 - [client-portal-editor.md](./client-portal-editor.md) — PMBA portal authoring + preview

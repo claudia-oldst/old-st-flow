@@ -14,8 +14,6 @@ import {
   type SlotJob,
   type SlotMaps,
 } from "./bulkAssignOps";
-import { useSprintChoice } from "../assign/useSprintChoice";
-import { syncSprintCommitments } from "../assign/syncSprintCommitments";
 
 export function useBulkAssign({
   open,
@@ -41,9 +39,7 @@ export function useBulkAssign({
   // Sprint commitments only apply to non-Proj tickets.
   const hasProjTickets = projTicketIds.size > 0;
   const hasStandardTickets = standardTicketIds.size > 0;
-  const sprint = useSprintChoice(projectId, open, !hasStandardTickets);
-  // Only a pure standard selection has to pick a sprint before showing people.
-  const listsVisible = sprint.chosen || hasProjTickets;
+  const listsVisible = true;
 
 
 
@@ -154,17 +150,6 @@ export function useBulkAssign({
 
     await resetUnassignedDisciplineStatuses(ticketIds, standardTicketIds);
 
-    await syncSprintCommitments(
-      sprint.sprintId,
-      inserts.map((r) => ({ ticket_id: r.ticket_id, user_id: r.user_id, slot: r.slot })),
-      deletes.flatMap((d) =>
-        d.ticket_ids.map((tid) => ({
-          ticket_id: tid,
-          user_id: d.user_id,
-          slot: slotColumnFor(d.slot),
-        })),
-      ),
-    );
 
     setBusy(false);
     toast.success(
@@ -195,6 +180,5 @@ export function useBulkAssign({
     partial,
     diff,
     handleSave,
-    sprint,
   };
 }

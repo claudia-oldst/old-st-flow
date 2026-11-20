@@ -13,6 +13,7 @@ export function SlotPicker({
   onToggle,
   showRole,
   query = "",
+  loadFor,
 }: {
   label: string;
   description?: string;
@@ -21,6 +22,8 @@ export function SlotPicker({
   onToggle: (id: string) => void;
   showRole?: boolean;
   query?: string;
+  /** Optional sprint load shown on each chip, e.g. "33 → 45 / 60h". */
+  loadFor?: (userId: string, selected: boolean) => { label: string; over: boolean } | null;
 }) {
   const shown = filterMembers(members, query, selected);
   return (
@@ -51,6 +54,10 @@ export function SlotPicker({
                 <MemberAvatar name={m.member.name} color={m.member.avatar_color} size="xs" />
                 {m.member.name}
                 {showRole && <span className="text-[10px] opacity-60">{m.role}</span>}
+                {(() => {
+                  const l = loadFor?.(m.user_id, active);
+                  return l ? <span className={cn("text-[10px] font-mono opacity-70", l.over && "text-primary opacity-100")}>{l.label}</span> : null;
+                })()}
                 {active && <Check className="h-3 w-3" />}
               </button>
             );

@@ -1,11 +1,9 @@
-import { activeRows, isActiveMember } from "@/lib/activeMembers";
-import { useMemo } from "react";
+import { isActiveMember } from "@/lib/activeMembers";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
-import { useProjectTickets, type TicketRow } from "@/features/tickets/useProjectTickets";
-import type { Sprint, SprintCapacity, SprintTicket, SprintMember, SprintDiscipline } from "./types";
-import { memberDisciplines } from "./types";
+import type { Sprint, SprintCapacity, SprintTicket, SprintMember } from "./types";
+import { fetchAllPages } from "./fetchAllPages";
 import type { TeamMember, ProjectRole } from "@/lib/types";
 
 /** All sprints for a project, ordered by sprint_number. */
@@ -116,14 +114,15 @@ export function useProjectSprintTickets(projectId: string | undefined) {
   const query = useQuery({
     queryKey,
     enabled: !!projectId,
-    queryFn: async (): Promise<SprintTicket[]> => {
-      const { data, error } = await supabase
-        .from("sprint_tickets")
-        .select("*, sprint:sprints!inner(project_id)")
-        .eq("sprint.project_id", projectId!);
-      if (error) throw error;
-      return ((data ?? []) as unknown) as SprintTicket[];
-    },
+    queryFn: async (): Promise<SprintTicket[]> =>
+      fetchAllPages<SprintTicket>((from, to) =>
+        supabase
+          .from("sprint_tickets")
+          .select("*, sprint:sprints!inner(project_id)")
+          .eq("sprint.project_id", projectId!)
+          .order("id")
+          .range(from, to) as never,
+      ),
   });
   useRealtimeInvalidate(
     projectId ? [{ table: "sprint_tickets" }] : null,
@@ -146,12 +145,16 @@ export function usePlannedSprintAssignments(projectId: string | undefined) {
     queryKey,
     enabled: !!projectId,
     queryFn: async (): Promise<PlannedSprintAssignment[]> => {
-      const { data, error } = await supabase
-        .from("tickets")
-        .select("id, planned_sprint_fe_id, planned_sprint_be_id")
-        .eq("project_id", projectId!);
-      if (error) throw error;
-      return (data ?? []).map((r) => ({
+      const rows = await fetchAllPages<{ id: string; planned_sprint_fe_id: string | null; planned_sprint_be_id: string | null }>(
+        (from, to) =>
+          supabase
+            .from("tickets")
+            .select("id, planned_sprint_fe_id, planned_sprint_be_id")
+            .eq("project_id", projectId!)
+            .order("id")
+            .range(from, to) as never,
+      );
+      return rows.map((r) => ({
         ticket_id: r.id,
         planned_sprint_fe_id: r.planned_sprint_fe_id,
         planned_sprint_be_id: r.planned_sprint_be_id,
@@ -166,81 +169,22 @@ export function usePlannedSprintAssignments(projectId: string | undefined) {
   return query;
 }
 
-/**
- * Tickets that the given user has prior-sprint commitments on but no
- * sprint_tickets row for the target sprint, AND whose FE/BE discipline
- * status (matching the user's role) is not "done". Derived purely from
- * existing query caches — no new Supabase calls.
- */
-export function useCarryoverTickets(
-  projectId: string | undefined,
-  sprintId: string | undefined,
-  userId: string | undefined,
-  allSprints: Sprint[],
-  userRole: ProjectRole | undefined,
-): { data: TicketRow[] } {
-  const { tickets } = useProjectTickets(projectId);
-  const { data: allSprintTickets = [] } = useProjectSprintTickets(projectId);
-
-  const data = useMemo<TicketRow[]>(() => {
-    if (!sprintId || !userId || !userRole) return [];
-    const target = allSprints.find((s) => s.id === sprintId);
-    if (!target) return [];
-    const roleDiscs: SprintDiscipline[] = memberDisciplines(userRole);
-    if (roleDiscs.length === 0) return [];
-
-    const priorSprintIds = new Set(
-      allSprints
-        .filter((s) => s.start_date < target.start_date)
-        .map((s) => s.id),
-    );
-    if (priorSprintIds.size === 0) return [];
-
-    const inCurrentSprint = new Set(
-      allSprintTickets
-        .filter((st) => st.sprint_id === sprintId && st.assigned_user_id === userId)
-        .map((st) => st.ticket_id),
-    );
-
-    // Build map of prior commitments: ticket_id -> set of disciplines the user
-    // was committed for. Fall back to the user's role disciplines when a legacy
-    // sprint_tickets row has a NULL discipline.
-    const priorByTicket = new Map<string, Set<SprintDiscipline>>();
-    allSprintTickets.forEach((st) => {
-      if (st.assigned_user_id !== userId) return;
-      if (!priorSprintIds.has(st.sprint_id)) return;
-      const disc = (st.discipline === "FE" || st.discipline === "BE")
-        ? (st.discipline as SprintDiscipline)
-        : null;
-      const set = priorByTicket.get(st.ticket_id) ?? new Set<SprintDiscipline>();
-      if (disc) {
-        set.add(disc);
-      } else {
-        roleDiscs.forEach((d) => set.add(d));
-      }
-      priorByTicket.set(st.ticket_id, set);
-    });
-
-    const byId = new Map<string, TicketRow>();
-    tickets.forEach((t) => byId.set(t.id, t));
-
-    // Carry over any ticket where at least one of the user's prior-committed
-    // disciplines is not yet "done". Zero-estimate tickets are intentionally
-    // included — only Dev Done / Done (discipline status "done") excludes them.
-    const out: TicketRow[] = [];
-    priorByTicket.forEach((discs, id) => {
-      if (inCurrentSprint.has(id)) return;
-      const t = byId.get(id);
-      if (!t) return;
-      const nonDone = Array.from(discs).some((d) => {
-        const s = d === "FE" ? t.fe_status : t.be_status;
-        return s !== "done";
-      });
-      if (nonDone) out.push(t);
-    });
-    return out;
-  }, [sprintId, userId, userRole, allSprints, allSprintTickets, tickets]);
-
-  return { data };
+/** All sprint capacities for a project (every sprint). */
+export function useProjectCapacities(projectId: string | undefined) {
+  const queryKey = ["project_sprint_capacities", projectId] as const;
+  const query = useQuery({
+    queryKey,
+    enabled: !!projectId,
+    queryFn: async (): Promise<SprintCapacity[]> =>
+      fetchAllPages<SprintCapacity>((from, to) =>
+        supabase
+          .from("sprint_capacities")
+          .select("*, sprint:sprints!inner(project_id)")
+          .eq("sprint.project_id", projectId!)
+          .order("id")
+          .range(from, to) as never,
+      ),
+  });
+  useRealtimeInvalidate(projectId ? [{ table: "sprint_capacities" }] : null, queryKey, !!projectId);
+  return query;
 }
-

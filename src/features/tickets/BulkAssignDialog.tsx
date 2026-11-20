@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Users } from "lucide-react";
 import { BulkAssignSlot } from "./bulk-assign/BulkAssignSlot";
 import { MemberSearchInput } from "./assign/MemberSearchInput";
-import { SprintPicker } from "./assign/SprintPicker";
 import { useBulkAssign } from "./bulk-assign/useBulkAssign";
 
 interface Props {
@@ -49,7 +48,6 @@ export function BulkAssignDialog({
     partial,
     diff,
     handleSave,
-    sprint,
     listsVisible,
   } = useBulkAssign({
     open,
@@ -82,16 +80,6 @@ export function BulkAssignDialog({
           </div>
         )}
 
-        {hasStandard && (
-          <div className="pt-1">
-            <SprintPicker
-              projectId={projectId}
-              sprints={sprint.sprints}
-              choice={sprint.choice}
-              onChange={sprint.setChoice}
-            />
-          </div>
-        )}
 
         <div className="space-y-6 pt-2 max-h-[50vh] overflow-y-auto">
           {listsVisible && <MemberSearchInput value={query} onChange={setQuery} />}
