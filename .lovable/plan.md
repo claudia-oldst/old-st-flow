@@ -18,14 +18,13 @@ The sprint blocks list (dates, dev, capacity bar, edit/delete, Append next sprin
 +----------------------------------------------------------------------------------+
 | [Search...] [AI] [Type v] [Epic v] [Status v] [Group: Epic v] [Not in sprint]    |
 +----------------------------------------------------------------------------------+
-| Ticket                     | FE est | FE this sprint   | BE est | BE this sprint   |
-|----------------------------+--------+------------------+--------+------------------|
-| v Epic: Payments (12)      |  48h   |                  |  30h   |                  |
-|   HER-101 Change payment   |   8h   | Committed - Reg  |   6h   | Committed - Dan  |
-|   HER-110 Refund flow      |  20h   | Planned          |  12h   | Not in sprint !  |
-|   HER-114 Receipts email   |   4h   | Not in sprint    |   2h   | Planned          |
-| > Epic: Onboarding (30)    | 120h   |                  |  80h   |                  |
+| :: v Authentication & Onboarding  14                                             |
+| [] ID      Title                 Status   FE      FE status FE sprint  BE      BE status BE sprint  Assignees |
+| [] PUL-003 Skip GitHub linking.. IN QA    2h/2h   Done      Committed  0h/3h   To do     Planned !  Dennis    |
+| [] PUL-005 Assign initial roles  IN QA    0h/4h   In prog.  Committed  0h/6h   In prog.  Committed  Dennis    |
+| [] PUL-400 [BUG] Session persi.. BACKLOG  0h/1h   To do     Planned    0h/0h   -         -          -         |
 +----------------------------------------------------------------------------------+
+ Same table, grouping, sorting, checkboxes and bulk actions as the Tickets page.
  ! = one side is in this sprint but the other isn't, so dependencies stand out.
  Click the sprint cell: Not in sprint -> Planned -> Committed (pick dev) -> Not in sprint
  Every change updates the capacity bars above instantly, no reload.
@@ -33,7 +32,7 @@ The sprint blocks list (dates, dev, capacity bar, edit/delete, Append next sprin
 
 - Selecting a sprint tab loads that sprint's capacity into the top block.
 - Planned is a rough sprint-level forecast (no person); committed is per dev and counts against their capacity.
-- FE and BE are shown side by side, in the capacity block and on every ticket row, so dependent work can be planned together. A subtle marker flags tickets where only one discipline is in the sprint.
+- The list is the normal Tickets table (same look, groups and bulk select) with extra FE status / FE sprint and BE status / BE sprint columns. FE and BE are shown side by side, in the capacity block and on every ticket row, so dependent work can be planned together. A subtle marker flags tickets where only one discipline is in the sprint.
 - Existing dev lanes, drag and drop and carryover remain available in the Planning tab below the list. Moving keeps the dev, carryover adds without removing and sends no Slack, and bulk assigning sends one summary.
 - PMBAs only can change; others see read-only. Feedback tickets excluded, inactive members not selectable.
 
