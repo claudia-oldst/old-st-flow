@@ -11,6 +11,7 @@ import { useProjectRole } from "@/features/team/useProjectRole";
 import { COLS, ColKey } from "./columns";
 import { GithubIssueBadge } from "@/features/github/GithubIssueBadge";
 import type { PoolData } from "./poolData";
+import type { ExtraColumn } from "./extraColumns";
 
 export function TicketsListRow({
   t,
@@ -25,6 +26,7 @@ export function TicketsListRow({
   groupKey,
   poolData,
   action,
+  extra,
 }: {
   t: TicketRow;
   visibleCols: ColKey[];
@@ -38,6 +40,7 @@ export function TicketsListRow({
   groupKey: string;
   poolData?: PoolData;
   action?: React.ReactNode;
+  extra?: ExtraColumn[];
 }) {
 
   // activeTimer no longer gates the play button — it now opens the Log Time modal.
@@ -246,6 +249,11 @@ export function TicketsListRow({
             </td>
           );
         })}
+        {extra?.map((c) => (
+          <td key={c.key} className={cn("px-1 py-2 align-middle", c.cellClassName)} onClick={(e) => e.stopPropagation()}>
+            {c.cell(t)}
+          </td>
+        ))}
         {action !== undefined && (
           <td className="px-4 py-2 align-middle text-right" onClick={(e) => e.stopPropagation()}>
             {action}

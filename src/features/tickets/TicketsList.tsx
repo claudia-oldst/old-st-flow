@@ -13,6 +13,9 @@ import { TicketsGroupHeader } from "./list/TicketsGroupHeader";
 import { TicketsListRow } from "./list/TicketsListRow";
 import type { PoolData } from "./list/poolData";
 import { useEpicGroupDrag } from "./list/useEpicGroupDrag";
+import type { ExtraColumn } from "./list/extraColumns";
+
+export type { ExtraColumn } from "./list/extraColumns";
 
 export type { GroupBy } from "./list/columns";
 export type { PoolData } from "./list/poolData";
@@ -34,6 +37,7 @@ export function TicketsList({
   columns,
   rowAction,
   loadingMore = false,
+  extraColumns,
 }: {
   loadingMore?: boolean;
   tickets: TicketRow[];
@@ -53,6 +57,8 @@ export function TicketsList({
   columns?: ColKey[];
   /** Optional trailing cell per row (e.g. a Convert button). */
   rowAction?: (t: TicketRow) => ReactNode;
+  /** Extra non-sortable columns appended after the ticket columns (e.g. sprint cells). */
+  extraColumns?: ExtraColumn[];
 }) {
 
   const selectionEnabled = !!selectedIds && !!onToggleSelect;
@@ -157,13 +163,14 @@ export function TicketsList({
                 <div className="overflow-x-auto">
                   <table
                     className="text-sm table-fixed"
-                    style={{ width: Math.max(totalWidth, 0), minWidth: "100%" }}
+                    style={{ width: Math.max(totalWidth + (extraColumns ?? []).reduce((n, c) => n + c.width, 0), 0), minWidth: "100%" }}
                   >
                     <colgroup>
                       {selectionEnabled && <col style={{ width: 36 }} />}
                       {visibleCols.map((k) => (
                         <col key={k} style={{ width: widthFor(k) }} />
                       ))}
+                      {extraColumns?.map((c) => <col key={c.key} style={{ width: c.width }} />)}
                       {rowAction && <col style={{ width: 120 }} />}
                     </colgroup>
                     <TicketsListHeader
@@ -176,6 +183,7 @@ export function TicketsList({
                       toggleSort={toggleSort}
                       onResizeStart={onResizeStart}
                       trailing={!!rowAction}
+                      extra={extraColumns}
                     />
                     <tbody>
                       {g.tickets.map((t) => (
@@ -193,6 +201,7 @@ export function TicketsList({
                           groupKey={g.key}
                           poolData={poolData}
                           action={rowAction?.(t)}
+                          extra={extraColumns}
                         />
 
                       ))}

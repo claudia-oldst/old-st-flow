@@ -23,13 +23,10 @@ export interface RoadmapFilters {
   assignees: string[];
   /** "unfinished" | "not_planned" | `planned:<id>` | `committed:<id>` | `unplanned:<id>` */
   sprint: string[];
-  showDevDone: boolean;
-  showProj: boolean;
 }
 
 export const emptyFilters: RoadmapFilters = {
   epics: [], types: [], statuses: [], feStatuses: [], beStatuses: [], assignees: [], sprint: [],
-  showDevDone: false, showProj: false,
 };
 
 export interface FilterCtx {
@@ -84,9 +81,6 @@ export function applyFilters<T extends FilterTicket>(rows: T[], f: RoadmapFilter
   const any = (sel: string[], v: string) => sel.length === 0 || sel.includes(v);
   return rows.filter((t) => {
     if (t.ticket_type === "Feedback") return false;
-    if (t.ticket_type === "Proj" && !f.showProj && !f.types.includes("Proj")) return false;
-    const devDone = !!t.status_id && ctx.devDoneStatusIds.has(t.status_id);
-    if (devDone && !f.showDevDone && !(t.status_id && f.statuses.includes(t.status_id))) return false;
     if (!any(f.epics, t.epic_id == null ? "none" : String(t.epic_id))) return false;
     if (!any(f.types, t.ticket_type)) return false;
     if (!any(f.statuses, t.status_id ?? "")) return false;

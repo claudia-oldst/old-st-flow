@@ -1,5 +1,3 @@
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MultiSelectFilter, type MultiOption } from "@/features/_shared/filters/MultiSelectFilter";
 import { TicketSearchInput } from "@/features/_shared/ai-search/TicketSearchInput";
@@ -26,7 +24,6 @@ interface Props {
   setGroupBy: (g: GroupBy) => void;
   cols: string[];
   setCols: (ids: string[] | null) => void;
-  onCollapseAll: (collapse: boolean) => void;
 }
 
 const DISC_OPTS: MultiOption[] = [
@@ -67,14 +64,6 @@ export function RoadmapToolbar(p: Props) {
           </SelectContent>
         </Select>
         <SprintColumnsPicker sprints={p.sprints} workingId={p.working?.id} cols={p.cols} setCols={p.setCols} />
-        <label className="flex items-center gap-1.5 text-dim"><Switch checked={f.showDevDone} onCheckedChange={(v) => set({ showDevDone: v })} /> Show Dev done</label>
-        <label className="flex items-center gap-1.5 text-dim"><Switch checked={f.showProj} onCheckedChange={(v) => set({ showProj: v })} /> Show Proj</label>
-        {p.groupBy !== "none" && (
-          <span className="flex items-center gap-1 ml-auto">
-            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => p.onCollapseAll(true)}>Collapse all</Button>
-            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => p.onCollapseAll(false)}>Expand all</Button>
-          </span>
-        )}
       </div>
     </div>
   );

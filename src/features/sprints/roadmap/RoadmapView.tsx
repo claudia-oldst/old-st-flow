@@ -11,7 +11,9 @@ import { useClosedSprintConfirm } from "./useClosedSprintConfirm";
 import { isClosed, planCell, type CellState, type SprintLite } from "./cellRules";
 import { WorkingSprintBar } from "./WorkingSprintBar";
 import { RoadmapToolbar } from "./RoadmapToolbar";
-import { RoadmapTable } from "./RoadmapTable";
+import { TicketsList } from "@/features/tickets/TicketsList";
+import { Button } from "@/components/ui/button";
+import { sprintColumns } from "./sprintColumns";
 import { RoadmapBulkBar, type BulkDisc } from "./RoadmapBulkBar";
 import { assignLoad } from "./assignLoad";
 
@@ -24,7 +26,6 @@ export function RoadmapView({ projectId, sprints, isPMBA }: { projectId: string;
   const { apply } = useRoadmapMutations(projectId);
   const closed = useClosedSprintConfirm();
   const [selected, setSel] = useState<Set<string>>(new Set());
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [openId, setOpenId] = useState<string | null>(null);
   const [assignFor, setAssignFor] = useState<TicketRow | null>(null);
   const [bulkAssign, setBulkAssign] = useState(false);
@@ -70,6 +71,11 @@ export function RoadmapView({ projectId, sprints, isPMBA }: { projectId: string;
   const openTicket = d.tickets.find((t) => t.id === openId) ?? null;
   const capsSimple = useMemo(() => new Map([...d.capsBySprint].map(([k, c]) => [k, { FE: c.FE, BE: c.BE }])), [d.capsBySprint]);
 
+  const columns = useMemo(() => sprintColumns({
+    sprints: v.colSprints, workingId: v.working?.id, totals: d.totalsBySprint, caps: capsSimple,
+    commitsByTicket: d.commitsByTicket, plannedByTicket: d.plannedByTicket, isSplit: v.split, editable: isPMBA, onSet,
+  }), [v.colSprints, v.working?.id, d.totalsBySprint, capsSimple, d.commitsByTicket, d.plannedByTicket, v.split, isPMBA, onSet]);
+
   if (!sprints.length) return <div className="hairline rounded-md p-6 text-center text-sm text-dim">Create a sprint on the Sprints tab first.</div>;
 
   return (
@@ -84,16 +90,22 @@ export function RoadmapView({ projectId, sprints, isPMBA }: { projectId: string;
         filters={v.filters} setFilters={v.setFilters} options={v.options} sprints={v.sorted}
         working={v.working} previous={v.previous} groupBy={v.groupBy} setGroupBy={v.setGroupBy}
         cols={v.colIds} setCols={v.setCols}
-        onCollapseAll={(c) => setCollapsed(c ? new Set(v.groups.map((g) => g.key)) : new Set())}
       />
       {d.loading && <div className="text-[11px] text-dimmer">Loading more tickets…</div>}
-      <RoadmapTable
-        groups={v.groups} sprints={v.colSprints} workingId={v.working?.id} totals={d.totalsBySprint} caps={capsSimple}
-        commitsByTicket={d.commitsByTicket} plannedByTicket={d.plannedByTicket} statusById={v.statusById} isSplit={v.split}
-        selected={selected} setSelected={setSelected} collapsed={collapsed}
-        toggleGroup={(k) => setCollapsed((p) => { const n = new Set(p); if (n.has(k)) n.delete(k); else n.add(k); return n; })}
-        editable={isPMBA} onOpen={(t) => setOpenId(t.id)} onAssign={setAssignFor} onSet={onSet}
-      />
+      {v.rows.length === 0 ? (
+        <div className="glass rounded-2xl text-sm text-dim text-center py-10">No tickets match these filters.</div>
+      ) : (
+        <TicketsList
+          tickets={v.rows} groupBy={v.groupBy} projectId={projectId} loadingMore={d.loading}
+          columns={["id", "title", "status", "dev_status", "fe", "be", "assignees"]}
+          onOpen={(t) => setOpenId(t.id)}
+          selectedIds={selected}
+          onToggleSelect={(id) => setSelected([id], !selected.has(id))}
+          onToggleSelectAll={setSelected}
+          extraColumns={columns}
+          rowAction={isPMBA ? (t) => <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setAssignFor(t)}>Assign</Button> : undefined}
+        />
+      )}
       {isPMBA && (
         <RoadmapBulkBar count={selected.size} sprintNumber={v.working?.sprint_number} onSet={onBulk} onAssign={() => setBulkAssign(true)} onClear={() => setSel(new Set())} />
       )}

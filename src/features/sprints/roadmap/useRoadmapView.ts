@@ -7,7 +7,7 @@ import type { Sprint } from "../types";
 import type { RoadmapData } from "./useRoadmapData";
 import { defaultWorkingSprint } from "./cellRules";
 import { applyFilters, emptyFilters, isSplit, type FilterCtx, type RoadmapFilters } from "./roadmapFilters";
-import { groupRows, type GroupBy } from "./roadmapGroups";
+import type { GroupBy } from "./roadmapGroups";
 
 /** Working sprint, sprint columns and grouping (in the URL), filters and the grouped rows. */
 export function useRoadmapView(projectId: string, sprints: Sprint[], d: RoadmapData) {
@@ -54,13 +54,6 @@ export function useRoadmapView(projectId: string, sprints: Sprint[], d: RoadmapD
     return m;
   }, [d.tickets]);
 
-  const groups = useMemo(() => groupRows(rows, groupBy, {
-    epicOrder: new Map(epics.map((e, i) => [e.id, i])),
-    statusName: (id) => (id ? statusById.get(id)?.name ?? "No status" : "No status"),
-    statusOrder: (id) => d.statuses.findIndex((s) => s.id === id),
-    memberName: (id) => memberName.get(id) ?? "Unknown",
-  }), [rows, groupBy, epics, statusById, d.statuses, memberName]);
-
   const options = useMemo(() => ({
     epics: [...epics.map((e) => ({ value: String(e.id), label: e.epic_name ?? "Untitled epic" })), { value: "none", label: "No epic" }],
     types: ["Standard", "Bug", "CR", "Proj"].map((v) => ({ value: v, label: v })),
@@ -71,7 +64,7 @@ export function useRoadmapView(projectId: string, sprints: Sprint[], d: RoadmapD
   const split = useCallback((t: TicketRow) => isSplit(t, ctx), [ctx]);
 
   return {
-    sorted, working, previous, colSprints, colIds, groupBy, groups, rows, filters, setFilters, search, setSearch, ai,
+    sorted, working, previous, colSprints, colIds, groupBy, rows, filters, setFilters, search, setSearch, ai,
     options, statusById, split, filtered,
     setWorking: (id: string) => setParam("ws", id),
     setGroupBy: (g: GroupBy) => setParam("group", g === "epic" ? null : g),

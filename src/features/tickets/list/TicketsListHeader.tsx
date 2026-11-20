@@ -1,6 +1,7 @@
 import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { COLS, ColKey, SORTABLE, SortState } from "./columns";
+import type { ExtraColumn } from "./extraColumns";
 
 export function TicketsListHeader({
   visibleCols,
@@ -12,6 +13,7 @@ export function TicketsListHeader({
   toggleSort,
   onResizeStart,
   trailing = false,
+  extra,
 }: {
   visibleCols: ColKey[];
   selectionEnabled: boolean;
@@ -22,6 +24,7 @@ export function TicketsListHeader({
   toggleSort: (k: ColKey) => void;
   onResizeStart: (key: ColKey) => (e: React.MouseEvent) => void;
   trailing?: boolean;
+  extra?: ExtraColumn[];
 }) {
   return (
     <thead className="text-left text-xs text-dimmer uppercase tracking-wider">
@@ -105,6 +108,9 @@ export function TicketsListHeader({
             </th>
           );
         })}
+        {extra?.map((c) => (
+          <th key={c.key} className={cn("px-1 py-2.5 font-normal text-center align-bottom", c.headerClassName)}>{c.header}</th>
+        ))}
         {trailing && <th aria-label="Actions" />}
       </tr>
     </thead>

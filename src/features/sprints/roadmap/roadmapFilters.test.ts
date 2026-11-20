@@ -25,9 +25,8 @@ describe("roadmap filters", () => {
     expect(isSplit(t({ current_be_estimate: 0 }), ctx([["s6", "FE"]]))).toBe(false);
     expect(isSplit(t(), ctx([["s6", "FE"]], { fe: null, be: "s6" }))).toBe(false);
   });
-  it("hides Dev done, Proj and Feedback tickets by default", () => {
+  it("shows Dev done and Proj tickets but always hides Feedback", () => {
     const rows = [t({ id: "a", status_id: "devdone" }), t({ id: "b", ticket_type: "Proj" }), t({ id: "c", ticket_type: "Feedback" }), t({ id: "d" })];
-    expect(applyFilters(rows, emptyFilters, ctx([])).map((r) => r.id)).toEqual(["d"]);
-    expect(applyFilters(rows, { ...emptyFilters, showDevDone: true, showProj: true }, ctx([])).map((r) => r.id)).toEqual(["a", "b", "d"]);
+    expect(applyFilters(rows, emptyFilters, ctx([])).map((r) => r.id)).toEqual(["a", "b", "d"]);
   });
 });
