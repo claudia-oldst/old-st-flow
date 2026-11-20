@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatSupabaseError } from "@/lib/formatSupabaseError";
 import type { AssigneeSlot } from "@/lib/types";
 import type { Sprint } from "../types";
-import { addTicketToLane, removeTicketFromSprint } from "../dnd";
+import { carryTicketsToSprint, removeTicketFromSprint } from "../dnd";
 
 interface SprintTicketLink {
   id: string;
@@ -121,17 +121,15 @@ export function useWorkbenchBulkActions({
       toast.error("No next sprint exists — create one in the Roadmap tab first.");
       return;
     }
-    const slot: AssigneeSlot = discipline;
     try {
+      const rows: { ticketId: string; userId: string }[] = [];
       for (const id of selectedArr) {
-        // Use the same dev who owns the current sprint_tickets row for this discipline.
         const link = sprintTickets.find(
           (st) => st.ticket_id === id && st.discipline === discipline,
         );
-        const userId = link?.assigned_user_id ?? null;
-        if (!userId) continue;
-        await addTicketToLane(next.id, id, userId, slot);
+        if (link?.assigned_user_id) rows.push({ ticketId: id, userId: link.assigned_user_id });
       }
+      await carryTicketsToSprint(next.id, rows, discipline);
       toast.success(
         `Carried over ${selectedArr.length} ticket${selectedArr.length === 1 ? "" : "s"} to Sprint ${next.sprint_number}`,
       );

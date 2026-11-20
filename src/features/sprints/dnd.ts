@@ -100,3 +100,48 @@ async function cleanupAssignee(ticketId: string, userId: string, slot: AssigneeS
     .eq("user_id", userId)
     .eq("slot", slot);
 }
+
+/**
+ * Carryover: commit tickets to a dev in a sprint without touching assignees,
+ * so no Slack message is sent (it's a sprint move, not an assignment).
+ */
+export async function carryTicketsToSprint(
+  sprintId: string,
+  rows: { ticketId: string; userId: string }[],
+  discipline: "FE" | "BE",
+) {
+  for (const r of rows) {
+    const { data: existing } = await supabase
+      .from("sprint_tickets")
+      .select("id")
+      .eq("sprint_id", sprintId)
+      .eq("ticket_id", r.ticketId)
+      .eq("assigned_user_id", r.userId)
+      .eq("discipline", discipline)
+      .maybeSingle();
+    if (existing) continue;
+    const { error } = await supabase.from("sprint_tickets").insert({
+      sprint_id: sprintId,
+      ticket_id: r.ticketId,
+      assigned_user_id: r.userId,
+      discipline,
+    });
+    if (error) throw error;
+  }
+}
+
+/** Sprint-planning bulk assign: one Slack summary per dev instead of per ticket. */
+export async function bulkAssignToLane(
+  sprintId: string,
+  ticketIds: string[],
+  userId: string,
+  slot: "FE" | "BE",
+) {
+  const { error } = await supabase.rpc("sprint_bulk_assign", {
+    _sprint_id: sprintId,
+    _user_id: userId,
+    _slot: slot,
+    _ticket_ids: ticketIds,
+  });
+  if (error) throw error;
+}

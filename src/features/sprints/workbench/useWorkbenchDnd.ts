@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { formatSupabaseError } from "@/lib/formatSupabaseError";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import type { SprintTicket } from "../types";
-import { addTicketToLane, removeTicketFromSprint } from "../dnd";
+import { addTicketToLane, bulkAssignToLane, removeTicketFromSprint } from "../dnd";
 
 /** Stable DnD ids for the planning workbench. */
 export const planDndId = {
@@ -100,8 +100,10 @@ export function useWorkbenchDnd({
         if (data.source === "dev" && data.userId && data.userId !== targetUserId) {
           await removeFromSprint(ids, "dev", data.userId);
         }
-        for (const id of ids) {
-          await addTicketToLane(sprintId, id, targetUserId, discipline);
+        if (ids.length > 1) {
+          await bulkAssignToLane(sprintId, ids, targetUserId, discipline);
+        } else {
+          for (const id of ids) await addTicketToLane(sprintId, id, targetUserId, discipline);
         }
         toast.success(`Assigned ${ids.length} ticket${ids.length === 1 ? "" : "s"}`);
       }

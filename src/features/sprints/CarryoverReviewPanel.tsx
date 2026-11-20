@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import type { AssigneeSlot } from "@/lib/types";
-import { addTicketToLane } from "./dnd";
+import { carryTicketsToSprint } from "./dnd";
 import { formatHours } from "@/lib/utils";
 import { formatSupabaseError } from "@/lib/formatSupabaseError";
 
@@ -69,9 +69,11 @@ export function CarryoverReviewPanel({
     if (!isPMBA || checked.length === 0) return;
     setBusy(true);
     try {
-      for (const t of checked) {
-        await addTicketToLane(sprintId, t.id, userId, slot);
-      }
+      await carryTicketsToSprint(
+        sprintId,
+        checked.map((t) => ({ ticketId: t.id, userId })),
+        slot as "FE" | "BE",
+      );
       toast.success(
         `Carried over ${checked.length} ticket${checked.length === 1 ? "" : "s"}`,
       );
