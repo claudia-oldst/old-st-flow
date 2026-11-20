@@ -1,18 +1,13 @@
-# One Slack summary for every bulk action in sprint planning
+# One Slack summary for bulk assignments in sprint planning
 
 ## What changes
-Every way of assigning several tickets at once in sprint planning sends each developer one Slack message ("You've been assigned X tickets to work on in Sprint N") instead of one per ticket:
+- **Dragging several selected cards into a developer's lane** now sends that developer one Slack summary ("You've been assigned X tickets to work on in Sprint N") instead of one message per ticket.
+- **Carryover sends no Slack message.** This covers both the Carryover Review confirmation and the "Carry over" bulk button. Carrying over is a sprint move, not a new assignment, and it only adds tickets to the next sprint without removing them from the previous one.
+- **Unchanged:** the "Assign to dev" bulk button (already sends one summary), dragging a single card (one message), and all assignments outside sprint planning.
 
-1. Dragging several selected cards into a developer's lane.
-2. Confirming tickets in Carryover Review.
-3. The "Carry over" bulk button. The tickets are grouped by developer, and each developer gets their own summary.
-
-These already work this way: the "Assign to dev" bulk button. These stay unchanged: dragging a single card (one ticket, one message) and every assignment outside sprint planning.
-
-There are no database changes. All three actions reuse the sprint-planning bulk assign step that was added earlier.
+There are no database changes.
 
 ## Technical details
-- `useWorkbenchDnd.ts`: replace the `addTicketToLane` loop with a single `sprint_bulk_assign` call when `ids.length > 1`.
-- `CarryoverReviewPanel.tsx`: replace the loop with one `sprint_bulk_assign` call.
-- `useWorkbenchBulkActions.ts` `carryOver`: group the selected tickets by the current lane owner, then make one `sprint_bulk_assign` call per developer into the next sprint.
-- Carryover still only adds to the new sprint and never removes the prior sprint commitment.
+- `useWorkbenchDnd.ts`: when `ids.length > 1`, replace the `addTicketToLane` loop with one `sprint_bulk_assign` call.
+- Carryover (`CarryoverReviewPanel.tsx`, and `carryOver` in `useWorkbenchBulkActions.ts`): switch to `sprint_bulk_assign`, grouped by lane owner. The RPC mutes per-ticket messages, and it only sends a summary when it creates new assignee rows. In a carryover the developer is already assigned, so no message goes out.
+- Edge case: if a developer's assignment was removed before the carryover, the RPC would still send a summary. To guarantee silence, carryover can insert the sprint rows directly and skip re-adding assignees.
