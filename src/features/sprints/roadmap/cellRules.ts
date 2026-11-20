@@ -54,7 +54,7 @@ export interface CellPlan {
  * - Planned is one sprint per discipline (planning elsewhere moves it).
  * - Committing in an open sprint drops that discipline's commitments in
  *   other open sprints and sets planned to the same sprint.
- * - Committing flags `unplanned` when the ticket wasn't planned there.
+ * - Committing always records a plain commitment (never flagged unplanned).
  * - Editing a closed sprint never touches other sprints or the planned sprint.
  */
 export function planCell(i: CellInput, target: CellState): CellPlan {
@@ -82,7 +82,7 @@ export function planCell(i: CellInput, target: CellState): CellPlan {
     sprint_id: i.sprint.id,
     ticket_id: i.ticketId,
     discipline: i.discipline,
-    unplanned: i.plannedId !== i.sprint.id,
+    unplanned: false,
   };
   return plan;
 }

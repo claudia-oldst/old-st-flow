@@ -22,9 +22,7 @@ export const SprintCell = memo(function SprintCell({ state, unplanned, noHours, 
   if (noHours) return <div className={cn(base, "text-dimmer")}>–</div>;
   const chip =
     state === "committed" ? (
-      <span className={cn("px-1.5 py-0.5 rounded", unplanned ? "bg-primary/15 text-primary" : "bg-health-good/15 text-health-good")}>
-        {unplanned ? "Unplanned" : "Committed"}
-      </span>
+      <span className="px-1.5 py-0.5 rounded bg-health-good/15 text-health-good">Committed</span>
     ) : state === "planned" ? (
       <span className="px-1.5 py-0.5 rounded bg-brand-gold/15 text-brand-gold">Planned</span>
     ) : (

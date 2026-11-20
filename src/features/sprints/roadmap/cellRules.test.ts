@@ -23,9 +23,9 @@ describe("sprint cell rules", () => {
     expect(p.planned).toBeUndefined();
   });
 
-  it("committing an unplanned ticket flags it and sets planned to that sprint", () => {
+  it("committing a ticket that was not planned still saves as Committed and sets planned to that sprint", () => {
     const p = planCell({ ...base, sprint: S6, plannedId: null, commitments: [] }, "committed");
-    expect(p.add?.unplanned).toBe(true);
+    expect(p.add?.unplanned).toBe(false);
     expect(p.planned).toBe("s6");
   });
 
