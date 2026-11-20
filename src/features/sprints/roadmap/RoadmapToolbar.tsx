@@ -40,7 +40,6 @@ export function RoadmapToolbar(p: Props) {
     ...p.sprints.flatMap((s) => [
       { value: `planned:${s.id}`, label: `Planned S${s.sprint_number}` },
       { value: `committed:${s.id}`, label: `Committed S${s.sprint_number}` },
-      { value: `unplanned:${s.id}`, label: `Unplanned S${s.sprint_number}` },
     ]),
   ];
   return (

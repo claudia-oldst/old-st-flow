@@ -14,7 +14,7 @@ function Totals({ l, cap }: { l: Load | undefined; cap: number }) {
   const used = (l?.committed ?? 0) + (l?.planned ?? 0);
   return (
     <div className="normal-case tracking-normal text-[10px] leading-tight mt-0.5">
-      <div>C {l?.committedCount ?? 0}{l?.unplannedCount ? ` (${l.unplannedCount} unpl.)` : ""} · P {l?.plannedCount ?? 0}</div>
+      <div>C {l?.committedCount ?? 0} · P {l?.plannedCount ?? 0}</div>
       <div className={cn("font-mono", cap > 0 && used > cap && "text-primary")}>{formatHours(used)}/{formatHours(cap)}</div>
     </div>
   );
@@ -56,7 +56,6 @@ export function sprintColumns(a: Args): ExtraColumn[] {
         return (
           <SprintCell
             state={state}
-            unplanned={state === "committed" && cs.some((c) => c.sprint_id === s.id && c.unplanned)}
             noHours={est(t, d) <= 0 || t.ticket_type === "Proj"}
             working={working}
             editable={a.editable}

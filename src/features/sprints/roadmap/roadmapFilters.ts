@@ -21,7 +21,7 @@ export interface RoadmapFilters {
   beStatuses: string[];
   /** user ids, or "unassigned" */
   assignees: string[];
-  /** "unfinished" | "not_planned" | `planned:<id>` | `committed:<id>` | `unplanned:<id>` */
+  /** "unfinished" | "not_planned" | `planned:<id>` | `committed:<id>` */
   sprint: string[];
 }
 
@@ -73,7 +73,6 @@ function sprintMatch(t: FilterTicket, key: string, ctx: FilterCtx): boolean {
   const [kind, id] = key.split(":");
   if (kind === "planned") return p?.fe === id || p?.be === id;
   if (kind === "committed") return cs.some((c) => c.sprint_id === id);
-  if (kind === "unplanned") return cs.some((c) => c.sprint_id === id && c.unplanned);
   return true;
 }
 

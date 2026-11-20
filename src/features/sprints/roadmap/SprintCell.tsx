@@ -8,7 +8,6 @@ const LABEL: Record<CellState, string> = { none: "None", planned: "Planned", com
 
 interface Props {
   state: CellState;
-  unplanned: boolean;
   /** Ticket has no hours for this discipline. */
   noHours: boolean;
   working: boolean;
@@ -17,7 +16,7 @@ interface Props {
 }
 
 /** One ticket × sprint × discipline cell: None / Planned / Committed. */
-export const SprintCell = memo(function SprintCell({ state, unplanned, noHours, working, editable, onSet }: Props) {
+export const SprintCell = memo(function SprintCell({ state, noHours, working, editable, onSet }: Props) {
   const base = cn("h-7 w-full flex items-center justify-center text-[10px] font-medium rounded", working && "bg-accent/[0.04]");
   if (noHours) return <div className={cn(base, "text-dimmer")}>–</div>;
   const chip =
