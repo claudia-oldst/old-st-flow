@@ -8,7 +8,6 @@ import { cellState, type CellState, type Commitment, type SprintLite } from "./c
 import type { Load, SprintTotals } from "./sprintTotals";
 
 const DISCS = ["FE", "BE"] as const;
-const est = (t: TicketRow, d: SprintDiscipline) => (d === "FE" ? t.current_fe_estimate : t.current_be_estimate) || 0;
 
 function Totals({ l, cap }: { l: Load | undefined; cap: number }) {
   const used = (l?.committed ?? 0) + (l?.planned ?? 0);
@@ -56,7 +55,7 @@ export function sprintColumns(a: Args): ExtraColumn[] {
         return (
           <SprintCell
             state={state}
-            noHours={est(t, d) <= 0 || t.ticket_type === "Proj"}
+            noHours={false}
             working={working}
             editable={a.editable}
             onSet={(to) => a.onSet(t, s, d, to)}

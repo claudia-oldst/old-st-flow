@@ -18,7 +18,6 @@ import { RoadmapBulkBar, type BulkDisc } from "./RoadmapBulkBar";
 import { assignLoad } from "./assignLoad";
 
 const WORD: Record<CellState, string> = { none: "removed from", planned: "planned into", committed: "committed to" };
-const hasHours = (t: TicketRow, d: SprintDiscipline) => t.ticket_type !== "Proj" && ((d === "FE" ? t.current_fe_estimate : t.current_be_estimate) || 0) > 0;
 
 export function RoadmapView({ projectId, sprints, isPMBA }: { projectId: string; sprints: Sprint[]; isPMBA: boolean }) {
   const d = useRoadmapData(projectId, sprints);
@@ -55,7 +54,7 @@ export function RoadmapView({ projectId, sprints, isPMBA }: { projectId: string;
     if (!s) return;
     if (isClosed(s, d.today) && !(await closed.ask(s))) return;
     const discs: SprintDiscipline[] = bd === "both" ? ["FE", "BE"] : [bd];
-    const plans = v.rows.filter((t) => selected.has(t.id)).flatMap((t) => discs.filter((x) => hasHours(t, x)).map((x) => planFor(t, s, x, to)));
+    const plans = v.rows.filter((t) => selected.has(t.id)).flatMap((t) => discs.map((x) => planFor(t, s, x, to)));
     await apply(plans, `${plans.length} cell${plans.length === 1 ? "" : "s"} ${WORD[to]} Sprint ${s.sprint_number}`);
   };
 
