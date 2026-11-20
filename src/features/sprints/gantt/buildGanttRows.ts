@@ -125,27 +125,18 @@ export function buildGanttRows(
   });
 
   for (const t of tickets) {
-    let res: { sprintId: string; committed: boolean } | null = null;
-    const commits = commitmentsByTicket.get(t.id) ?? [];
-    // Latest commitment for this discipline wins (by sprint start date).
-    let latestStart = -Infinity;
-    for (const st of commits) {
+    const entries = new Map<string, boolean>();
+    for (const st of commitmentsByTicket.get(t.id) ?? []) {
       if (st.discipline !== discipline) continue;
-      const sp = sprintById.get(st.sprint_id);
-      if (!sp) continue;
-      const start = parseISO(sp.start_date).getTime();
-      if (start > latestStart) {
-        latestStart = start;
-        res = { sprintId: st.sprint_id, committed: true };
-      }
+      if (!sprintById.has(st.sprint_id)) continue;
+      entries.set(st.sprint_id, true);
     }
-    if (!res) {
-      const plannedId =
-        discipline === "FE" ? t.planned_sprint_fe_id : t.planned_sprint_be_id;
-      if (plannedId) res = { sprintId: plannedId, committed: false };
+    const plannedId =
+      discipline === "FE" ? t.planned_sprint_fe_id : t.planned_sprint_be_id;
+    if (plannedId && sprintById.has(plannedId) && !entries.has(plannedId)) {
+      entries.set(plannedId, false);
     }
-    if (!res) continue;
-    if (!sprintById.has(res.sprintId)) continue;
+    if (!entries.size) continue;
 
     const epicKey =
       t.epic_id !== null && t.epic_id !== undefined ? `e:${t.epic_id}` : "none";
@@ -163,24 +154,26 @@ export function buildGanttRows(
       };
       epicSegments.set(epicKey, bucket);
     }
-    if (res.committed) bucket.anyCommitted = true;
+    for (const [sprintId, committed] of entries) {
+      if (committed) bucket.anyCommitted = true;
 
-    let seg = bucket.bySprint.get(res.sprintId);
-    if (!seg) {
-      seg = {
-        todo: 0,
-        in_progress: 0,
-        for_integration: 0,
-        done: 0,
-        committed: 0,
-        planned: 0,
-      };
-      bucket.bySprint.set(res.sprintId, seg);
+      let seg = bucket.bySprint.get(sprintId);
+      if (!seg) {
+        seg = {
+          todo: 0,
+          in_progress: 0,
+          for_integration: 0,
+          done: 0,
+          committed: 0,
+          planned: 0,
+        };
+        bucket.bySprint.set(sprintId, seg);
+      }
+      const status = (discipline === "FE" ? t.fe_status : t.be_status) ?? "todo";
+      seg[status] = (seg[status] ?? 0) + 1;
+      if (committed) seg.committed += 1;
+      else seg.planned += 1;
     }
-    const status = (discipline === "FE" ? t.fe_status : t.be_status) ?? "todo";
-    seg[status] = (seg[status] ?? 0) + 1;
-    if (res.committed) seg.committed += 1;
-    else seg.planned += 1;
   }
 
   const rows: GanttEpicRow[] = [];
