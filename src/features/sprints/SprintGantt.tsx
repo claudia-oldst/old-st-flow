@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import type { Sprint, SprintDiscipline } from "./types";
 import { useGanttData, type GanttEpicRow, type GanttSegment } from "./gantt/useGanttData";
 import { GanttGrid } from "./gantt/GanttGrid";
+import { defaultGanttSprintIds } from "./gantt/defaultGanttSprints";
+import { MultiSelectFilter } from "@/features/_shared/filters/MultiSelectFilter";
 
 interface Props {
   projectId: string;
@@ -74,8 +76,24 @@ function mergeGanttRows(feRows: GanttEpicRow[], beRows: GanttEpicRow[]): GanttEp
   );
 }
 
-export function SprintGantt({ projectId, sprints, hideExport, versions }: Props) {
+export function SprintGantt({ projectId, sprints: allSprints, hideExport, versions }: Props) {
   const [discipline, setDiscipline] = useState<DisciplineFilter>("ALL");
+  const defaultIds = useMemo(
+    () => defaultGanttSprintIds(allSprints, format(new Date(), "yyyy-MM-dd")),
+    [allSprints],
+  );
+  const [picked, setPicked] = useState<string[] | null>(null);
+  const selectedIds = picked ?? defaultIds;
+  const sprints = useMemo(
+    () => allSprints.filter((s) => selectedIds.includes(s.id)),
+    [allSprints, selectedIds],
+  );
+  const sprintOptions = useMemo(
+    () => [...allSprints]
+      .sort((a, b) => b.start_date.localeCompare(a.start_date))
+      .map((s) => ({ value: s.id, label: s.name || `Sprint ${s.sprint_number}` })),
+    [allSprints],
+  );
   const feRows = useGanttData(projectId, sprints, "FE", versions);
   const beRows = useGanttData(projectId, sprints, "BE", versions);
   const rows = useMemo(() => {
@@ -102,7 +120,7 @@ export function SprintGantt({ projectId, sprints, hideExport, versions }: Props)
     }
   };
 
-  if (sprints.length === 0) {
+  if (allSprints.length === 0) {
     return (
       <div className="text-sm text-dim p-6 text-center hairline rounded-md">
         Create a sprint in the Roadmap tab first.
@@ -129,6 +147,15 @@ export function SprintGantt({ projectId, sprints, hideExport, versions }: Props)
               {d}
             </button>
           ))}
+        </div>
+
+        <div className="report-gantt-controls flex items-center gap-1">
+          <MultiSelectFilter label="Sprints" options={sprintOptions} selected={selectedIds} onChange={setPicked} searchable />
+          {picked && (
+            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setPicked(null)}>
+              Reset
+            </Button>
+          )}
         </div>
 
         <div className="flex items-center gap-4 text-xs text-dim">
