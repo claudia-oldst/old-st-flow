@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { TicketDetailSheet } from "@/features/tickets/TicketDetailSheet";
-import { AssignDialog } from "@/features/tickets/AssignDialog";
 import { BulkAssignDialog } from "@/features/tickets/BulkAssignDialog";
 import type { Sprint, SprintDiscipline } from "../types";
 import { useRoadmapData } from "./useRoadmapData";
@@ -12,10 +11,8 @@ import { isClosed, planCell, type CellState, type SprintLite } from "./cellRules
 import { WorkingSprintBar } from "./WorkingSprintBar";
 import { RoadmapToolbar } from "./RoadmapToolbar";
 import { TicketsList } from "@/features/tickets/TicketsList";
-import { Button } from "@/components/ui/button";
 import { sprintColumns } from "./sprintColumns";
 import { RoadmapBulkBar, type BulkDisc } from "./RoadmapBulkBar";
-import { assignLoad } from "./assignLoad";
 
 const WORD: Record<CellState, string> = { none: "removed from", planned: "planned into", committed: "committed to" };
 
@@ -26,7 +23,6 @@ export function RoadmapView({ projectId, sprints, isPMBA }: { projectId: string;
   const closed = useClosedSprintConfirm();
   const [selected, setSel] = useState<Set<string>>(new Set());
   const [openId, setOpenId] = useState<string | null>(null);
-  const [assignFor, setAssignFor] = useState<TicketRow | null>(null);
   const [bulkAssign, setBulkAssign] = useState(false);
   const byNum = useMemo(() => new Map(v.sorted.map((s) => [s.id, s.sprint_number])), [v.sorted]);
 
@@ -102,7 +98,6 @@ export function RoadmapView({ projectId, sprints, isPMBA }: { projectId: string;
           onToggleSelect={(id) => setSelected([id], !selected.has(id))}
           onToggleSelectAll={setSelected}
           extraColumns={columns}
-          rowAction={isPMBA ? (t) => <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setAssignFor(t)}>Assign</Button> : undefined}
         />
       )}
       {isPMBA && (
@@ -110,18 +105,6 @@ export function RoadmapView({ projectId, sprints, isPMBA }: { projectId: string;
       )}
       {closed.dialog}
       <TicketDetailSheet open={!!openTicket} onOpenChange={(o) => !o && setOpenId(null)} ticket={openTicket} projectId={projectId} onChange={() => {}} />
-      {assignFor && (
-        <AssignDialog
-          open onOpenChange={(o) => !o && setAssignFor(null)} ticketId={assignFor.id} projectId={projectId}
-          ticketType={assignFor.ticket_type} current={assignFor.assignees.map((a) => ({ user_id: a.user_id, slot: a.slot }))}
-          onSaved={() => {}}
-          loadFor={v.working ? (userId, slot, sel) => assignLoad({
-            ticket: assignFor, sprint: v.working!, closed: isClosed(v.working!, d.today), totals: d.totalsBySprint.get(v.working!.id),
-            cap: d.capsBySprint.get(v.working!.id)?.byUser.get(userId)?.[slot] ?? 0, commits: d.commitsByTicket.get(assignFor.id) ?? [],
-            plannedId: d.plannedByTicket.get(assignFor.id), userId, slot, selected: sel,
-          }) : undefined}
-        />
-      )}
       <BulkAssignDialog open={bulkAssign} onOpenChange={setBulkAssign} projectId={projectId} ticketIds={[...selected]} onSaved={() => {}} />
     </div>
   );
