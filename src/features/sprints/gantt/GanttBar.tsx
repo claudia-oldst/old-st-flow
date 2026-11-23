@@ -27,7 +27,9 @@ export function GanttBar({
   const segCommitted = segment.committed > 0;
   const segPlanned = segment.planned > 0;
   const isMixed = segCommitted && segPlanned;
-  const dim = !segCommitted; // planned-only segments dim
+  const allPast = segment.past === segment.total;
+  const dim = !segCommitted || allPast;
+  const carried = Object.entries(segment.carriedTo ?? {});
   const statusLabel = isMixed
     ? `mixed — ${segment.committed} committed, ${segment.planned} planned`
     : segCommitted
@@ -49,6 +51,7 @@ export function GanttBar({
             className={cn(
               "h-6 rounded-full overflow-hidden flex flex-row w-full cursor-default",
               dim && "opacity-60",
+              allPast && "opacity-40",
             )}
           >
             {segment.done > 0 && (
@@ -69,6 +72,9 @@ export function GanttBar({
                 style={{ flex: segment.in_progress }}
               />
             )}
+            {segment.past > 0 && (
+              <div className="bg-muted h-full" style={{ flex: segment.past }} />
+            )}
             {segment.todo > 0 && (
               <div
                 className="bg-white/10 h-full"
@@ -86,6 +92,11 @@ export function GanttBar({
             todo: {segment.todo} · in progress: {segment.in_progress} ·
             for integration: {segment.for_integration} · done: {segment.done}
           </div>
+          {carried.length > 0 && (
+            <div className="text-[11px] mt-1 text-dim">
+              Carried: {carried.map(([label, n]) => (carried.length > 1 || n > 1 ? `${label} (${n})` : label)).join(", ")}
+            </div>
+          )}
         </TooltipContent>
       </Tooltip>
     </div>

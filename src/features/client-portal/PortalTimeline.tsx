@@ -1,3 +1,4 @@
+import { addGanttSegment } from "@/features/sprints/gantt/buildGanttRows";
 import { useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { GanttGrid } from "@/features/sprints/gantt/GanttGrid";
@@ -33,17 +34,11 @@ function mergeRows(feRows: GanttEpicRow[], beRows: GanttEpicRow[]): GanttEpicRow
       for (const s of r.segments) {
         const cur = segBySprint.get(s.sprintId);
         if (!cur) {
-          const copy = { ...s };
+          const copy = { ...s, carriedTo: { ...s.carriedTo } };
           existing.segments.push(copy);
           segBySprint.set(s.sprintId, copy);
         } else {
-          cur.todo += s.todo;
-          cur.in_progress += s.in_progress;
-          cur.for_integration += s.for_integration;
-          cur.done += s.done;
-          cur.total += s.total;
-          cur.committed += s.committed;
-          cur.planned += s.planned;
+          addGanttSegment(cur, s);
         }
       }
       existing.isCommitted = existing.isCommitted || r.isCommitted;

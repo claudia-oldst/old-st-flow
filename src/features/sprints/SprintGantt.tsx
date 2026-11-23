@@ -1,3 +1,4 @@
+import { addGanttSegment } from "@/features/sprints/gantt/buildGanttRows";
 import { useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { toPng } from "html-to-image";
@@ -47,17 +48,11 @@ function mergeGanttRows(feRows: GanttEpicRow[], beRows: GanttEpicRow[]): GanttEp
       for (const s of r.segments) {
         const cur = segBySprint.get(s.sprintId);
         if (!cur) {
-          const copy = { ...s };
+          const copy = { ...s, carriedTo: { ...s.carriedTo } };
           existing.segments.push(copy);
           segBySprint.set(s.sprintId, copy);
         } else {
-          cur.todo += s.todo;
-          cur.in_progress += s.in_progress;
-          cur.for_integration += s.for_integration;
-          cur.done += s.done;
-          cur.total += s.total;
-          cur.committed += s.committed;
-          cur.planned += s.planned;
+          addGanttSegment(cur, s);
         }
       }
       existing.isCommitted = existing.isCommitted || r.isCommitted;

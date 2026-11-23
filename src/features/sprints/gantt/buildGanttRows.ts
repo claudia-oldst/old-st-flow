@@ -9,6 +9,10 @@ export interface GanttSegment {
   in_progress: number;
   for_integration: number;
   done: number;
+  /** Tickets whose latest sprint is later than this one (shown grey). */
+  past: number;
+  /** Later sprint label -> number of tickets carried there. */
+  carriedTo: Record<string, number>;
   total: number;
   committed: number;
   planned: number;
@@ -31,6 +35,7 @@ export interface GanttSprintInput {
   id: string;
   start_date: string;
   end_date: string;
+  sprint_number?: number | null;
 }
 
 export interface GanttTicketInput {
@@ -98,6 +103,8 @@ export function buildGanttRows(
           in_progress: number;
           for_integration: number;
           done: number;
+          past: number;
+          carriedTo: Record<string, number>;
           committed: number;
           planned: number;
         }
@@ -154,6 +161,10 @@ export function buildGanttRows(
       };
       epicSegments.set(epicKey, bucket);
     }
+    const startOf = (id: string) => parseISO(sprintById.get(id)!.start_date).getTime();
+    const latestId = [...entries.keys()].reduce((a, b) => (startOf(b) > startOf(a) ? b : a));
+    const latest = sprintById.get(latestId)!;
+    const latestLabel = latest.sprint_number != null ? `S${latest.sprint_number}` : "later sprint";
     for (const [sprintId, committed] of entries) {
       if (committed) bucket.anyCommitted = true;
 
@@ -164,13 +175,20 @@ export function buildGanttRows(
           in_progress: 0,
           for_integration: 0,
           done: 0,
+          past: 0,
+          carriedTo: {},
           committed: 0,
           planned: 0,
         };
         bucket.bySprint.set(sprintId, seg);
       }
-      const status = (discipline === "FE" ? t.fe_status : t.be_status) ?? "todo";
-      seg[status] = (seg[status] ?? 0) + 1;
+      if (sprintId === latestId) {
+        const status = (discipline === "FE" ? t.fe_status : t.be_status) ?? "todo";
+        seg[status] = (seg[status] ?? 0) + 1;
+      } else {
+        seg.past += 1;
+        seg.carriedTo[latestLabel] = (seg.carriedTo[latestLabel] ?? 0) + 1;
+      }
       if (committed) seg.committed += 1;
       else seg.planned += 1;
     }
@@ -181,7 +199,7 @@ export function buildGanttRows(
     const segments: GanttSegment[] = [];
     bucket.bySprint.forEach((counts, sprintId) => {
       const total =
-        counts.todo + counts.in_progress + counts.for_integration + counts.done;
+        counts.todo + counts.in_progress + counts.for_integration + counts.done + counts.past;
       if (total === 0) return;
       const sp = sprintById.get(sprintId)!;
       segments.push({
@@ -192,6 +210,8 @@ export function buildGanttRows(
         in_progress: counts.in_progress,
         for_integration: counts.for_integration,
         done: counts.done,
+        past: counts.past,
+        carriedTo: counts.carriedTo,
         total,
         committed: counts.committed,
         planned: counts.planned,
@@ -215,4 +235,19 @@ export function buildGanttRows(
   rows.sort((a, b) => a.rank! - b.rank! || a.epicName.localeCompare(b.epicName));
 
   return rows;
+}
+
+/** Adds segment `s` into `cur` (used when merging FE and BE rows). */
+export function addGanttSegment(cur: GanttSegment, s: GanttSegment): void {
+  cur.todo += s.todo;
+  cur.in_progress += s.in_progress;
+  cur.for_integration += s.for_integration;
+  cur.done += s.done;
+  cur.past += s.past;
+  cur.total += s.total;
+  cur.committed += s.committed;
+  cur.planned += s.planned;
+  const carried = { ...cur.carriedTo };
+  for (const [k, n] of Object.entries(s.carriedTo)) carried[k] = (carried[k] ?? 0) + n;
+  cur.carriedTo = carried;
 }
