@@ -72,7 +72,7 @@ export function GanttBar({
                 style={{ flex: segment.in_progress }}
               />
             )}
-            {segment.past > 0 && (
+            {allPast && (
               <div className="bg-muted h-full" style={{ flex: segment.past }} />
             )}
             {segment.todo > 0 && (
@@ -84,7 +84,7 @@ export function GanttBar({
           </div>
         </TooltipTrigger>
         <TooltipContent side="top" className="text-xs">
-          <div className="font-medium">{epicName}</div>
+          <div className="font-medium">{epicName}{segment.past > 0 && ` (${segment.total - segment.past}/${segment.total})`}</div>
           <div className="text-dim text-[11px]">
             {format(segment.startDate, "MMM d")} → {format(segment.endDate, "MMM d")}
           </div>
