@@ -1,26 +1,20 @@
-# Fix: Reg can't override the Overall (Proj) status in the ticket drawer
+# Let everyone change the Overall (Proj) status, in bulk and in the drawer
 
-## What the report shows
-- Reg was on a project page and couldn't change the Overall status in the ticket drawer.
-- Every request in his report failed outright (status 0), including the tickets, statuses and time-log loads. His connection to the database dropped while he tried, so no save could have worked at that moment.
-- In the drawer, only PM/BAs get the Overall status dropdown. Everyone else sees a read-only pill. If Reg isn't a PM/BA, the screen is behaving as designed.
-- When a save fails, the drawer briefly shows the new status and then quietly goes back to the old one. The only sign is a small error message, so it feels like the change "won't stick".
+## What's happening now
+- **Drawer:** only PM/BAs get the Overall status dropdown and the "Reset to auto" button. Everyone else, Reg included, sees a read-only pill. That's why Reg couldn't override it.
+- **Bulk:** the Status option in the bulk bar on the Tickets page already appears for any project member. It's hidden only from people who aren't on the project.
+- **Database:** any signed-in user is already allowed to save a ticket status, so this needs no database change.
 
-## Root cause
-I haven't confirmed it yet. I can't read the live database from here, so step 1 is to check it.
-
-## Steps
-1. **Investigate (read-only, no data changes):** look up Reg's role and try an override as a PM/BA on a Cousteau ticket. This shows which of these it is:
-   - a) Reg isn't a PM/BA, so this is expected behaviour.
-   - b) a dropped connection.
-   - c) a real save bug.
-2. **If (b) or (c): make failures visible and stop the snap-back.**
-   - If the save fails, put the old status back clearly.
-   - Show a clear error that says "Status not saved, check your connection" and has a Retry button.
-3. **If (c): fix the save itself.** Check that choosing a status keeps it marked "Set manually" and that the automatic status rule doesn't overwrite it. Any database change would be explained and approved first.
-4. **If (a):** leave it as it is unless you want developers to be able to override. That's your call: under the current rule only PM/BAs can override.
+## Changes
+1. **Drawer:** every user gets the Overall status dropdown. A manual choice is marked "Set manually", and every user can also use "Reset to auto".
+2. **Bulk:** the Status option shows for every signed-in user, on both the Tickets page and the Feedback page.
+3. **Failed saves:** if a status change doesn't save (Reg's report showed his connection dropping), the old status comes back and a clear "Status not saved" message appears with a Retry button. The status no longer quietly snaps back.
+4. Nothing else changes. Estimate edits, epics, versions, delete and the other PM/BA-only actions stay PM/BA-only, and status changes still send no notifications.
 
 ## Technical details
-- `src/features/tickets/detail/StatusBlock.tsx`: `setProjectStatus` patches optimistically but doesn't roll back on error. Add a rollback to the previous `status_id`/`project_status_override`, plus a toast with a Retry action.
-- Confirm that the `derive_ticket_status` trigger respects `project_status_override = true` on a direct `status_id` update (migration 20260424150138 flags overrides).
-- No schema changes planned. No notifications affected.
+- `src/features/tickets/detail/StatusBlock.tsx`:
+  - Render the Overall `Select` and "Reset to auto" for all users. `isPMBARole` keeps gating only the assign shortcut.
+  - Add a rollback of `status_id`/`project_status_override` and a toast with a Retry action when the save fails.
+- `src/features/tickets/ProjectTickets.tsx`: change `canEditStatus` to true for any signed-in user, not just project members with a role. `BulkActionsBar` already supports this.
+- Save a memory rule: every user can override the overall status.
+- No migrations, RLS or trigger changes.
