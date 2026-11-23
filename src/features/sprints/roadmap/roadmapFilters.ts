@@ -1,3 +1,4 @@
+import { acceptanceMatch } from "@/features/tickets/filters/applyFilters";
 import type { SprintDiscipline } from "../types";
 import type { Commitment, SprintLite } from "./cellRules";
 
@@ -11,6 +12,8 @@ export interface FilterTicket {
   current_fe_estimate: number;
   current_be_estimate: number;
   assignees: Array<{ user_id: string; slot: string }>;
+  has_acceptance_criteria?: boolean;
+  acceptance_criteria?: string | null;
 }
 
 export interface RoadmapFilters {
@@ -23,10 +26,12 @@ export interface RoadmapFilters {
   assignees: string[];
   /** "unfinished" | "not_planned" | `planned:<id>` | `committed:<id>` */
   sprint: string[];
+  /** "populated" | "none" */
+  acceptance?: string[];
 }
 
 export const emptyFilters: RoadmapFilters = {
-  epics: [], types: [], statuses: [], feStatuses: [], beStatuses: [], assignees: [], sprint: [],
+  epics: [], types: [], statuses: [], feStatuses: [], beStatuses: [], assignees: [], sprint: [], acceptance: [],
 };
 
 export interface FilterCtx {
@@ -90,6 +95,7 @@ export function applyFilters<T extends FilterTicket>(rows: T[], f: RoadmapFilter
       const ok = f.assignees.some((u) => (u === "unassigned" ? devs.length === 0 : devs.some((a) => a.user_id === u)));
       if (!ok) return false;
     }
+    if (!acceptanceMatch(t, f.acceptance)) return false;
     if (f.sprint.length && !f.sprint.some((k) => sprintMatch(t, k, ctx))) return false;
     return true;
   });

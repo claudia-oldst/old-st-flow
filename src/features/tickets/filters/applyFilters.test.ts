@@ -109,3 +109,18 @@ describe("source filter", () => {
     expect(out[0].external_source).toBe("thalamus");
   });
 });
+
+import { acceptanceMatch } from "./applyFilters";
+describe("acceptance criteria filter", () => {
+  const withAc = { has_acceptance_criteria: true };
+  const blank = { acceptance_criteria: "  \n " };
+  it("Populated keeps only tickets with criteria", () => {
+    expect(acceptanceMatch(withAc, ["populated"])).toBe(true);
+    expect(acceptanceMatch(blank, ["populated"])).toBe(false);
+  });
+  it("None keeps only empty or whitespace criteria", () => {
+    expect(acceptanceMatch(blank, ["none"])).toBe(true);
+    expect(acceptanceMatch({ has_acceptance_criteria: false }, ["none"])).toBe(true);
+    expect(acceptanceMatch(withAc, ["none"])).toBe(false);
+  });
+});

@@ -32,6 +32,8 @@ export interface TicketRow {
   actual_backend_hours: number;
   actual_project_hours: number;
   acceptance_criteria?: string | null;
+  /** Whether acceptance criteria text exists (list rows omit the text). */
+  has_acceptance_criteria?: boolean;
   position: number;
   created_at: string;
   updated_at?: string | null;
@@ -84,6 +86,7 @@ export function normalizeTicket(raw: any): TicketRow {
     actual_backend_hours: Number(raw.actual_backend_hours),
     actual_project_hours: Number(raw.actual_project_hours ?? 0),
     acceptance_criteria: Object.prototype.hasOwnProperty.call(raw, "acceptance_criteria") ? raw.acceptance_criteria ?? null : undefined,
+    has_acceptance_criteria: typeof raw.has_acceptance_criteria === "boolean" ? raw.has_acceptance_criteria : typeof raw.acceptance_criteria === "string" ? raw.acceptance_criteria.trim() !== "" : undefined,
     external_source: raw.external_source ?? null,
     position: raw.position,
     created_at: raw.created_at,

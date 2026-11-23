@@ -22,7 +22,8 @@ export type FilterSection =
   | "epic"
   | "assignee"
   | "version"
-  | "source";
+  | "source"
+  | "acceptance";
 
 const ALL_SECTIONS: FilterSection[] = [
   "type",
@@ -34,6 +35,7 @@ const ALL_SECTIONS: FilterSection[] = [
   "assignee",
   "version",
   "source",
+  "acceptance",
 ];
 
 // Re-export public API at original module path for existing imports.

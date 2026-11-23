@@ -15,6 +15,21 @@ export interface TicketFilters {
   health: HealthColor[];
   /** External origin, e.g. "thalamus" for converted Thalamus feedback. */
   sources?: string[];
+  /** "populated" | "none" */
+  acceptance?: AcceptanceFilter[];
+}
+
+export type AcceptanceFilter = "populated" | "none";
+
+/** True when the ticket has acceptance criteria; falls back to loaded text. */
+export function hasAcceptance(t: { has_acceptance_criteria?: boolean; acceptance_criteria?: string | null }): boolean {
+  if (typeof t.acceptance_criteria === "string") return t.acceptance_criteria.trim() !== "";
+  return t.has_acceptance_criteria === true;
+}
+
+export function acceptanceMatch(t: Parameters<typeof hasAcceptance>[0], sel: string[] | undefined): boolean {
+  if (!sel?.length || sel.length >= 2) return true;
+  return sel[0] === "populated" ? hasAcceptance(t) : !hasAcceptance(t);
 }
 
 export const EMPTY_FILTERS: TicketFilters = {
@@ -38,7 +53,8 @@ export function activeFilterCount(f: TicketFilters): number {
     f.assigneeIds.length +
     f.types.length +
     f.health.length +
-    (f.sources?.length ?? 0)
+    (f.sources?.length ?? 0) +
+    (f.acceptance?.length ?? 0)
   );
 }
 
@@ -75,6 +91,7 @@ export function applyFilters(tickets: TicketRow[], f: TicketFilters): TicketRow[
       }
     }
     if (f.sources?.length && !f.sources.includes(t.external_source ?? "")) return false;
+    if (!acceptanceMatch(t, f.acceptance)) return false;
     if (f.types.length && !f.types.includes(t.ticket_type)) return false;
     if (f.health.length) {
       const candidates: HealthColor[] = [];

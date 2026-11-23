@@ -97,6 +97,13 @@ export function AcceptanceCriteria({
       return toast.error(error.message);
     }
     qc.setQueryData(["ticketAC", ticketId], next);
+    // Keep list rows' "has criteria" flag in sync so filters react without a reload.
+    const has = (next ?? "").trim() !== "";
+    qc.setQueriesData<unknown>({ queryKey: ["projectTickets"] }, (old) =>
+      Array.isArray(old)
+        ? old.map((t) => (t && (t as { id?: string }).id === ticketId ? { ...t, has_acceptance_criteria: has } : t))
+        : old,
+    );
     void qc.invalidateQueries({ queryKey: ["ticketAC", ticketId] });
     toast.success("Acceptance criteria saved");
     onSaved();

@@ -144,6 +144,13 @@ export function FilterSections({
               </FilterSectionPrimitive>
             )}
 
+            {sections.includes("acceptance") && (
+              <FilterSectionPrimitive title="Acceptance criteria">
+                <FilterRow label="Populated" selected={filters.acceptance?.includes("populated") ?? false} onClick={() => toggle("acceptance", "populated")} />
+                <FilterRow label="None" selected={filters.acceptance?.includes("none") ?? false} onClick={() => toggle("acceptance", "none")} />
+              </FilterSectionPrimitive>
+            )}
+
             {sections.includes("assignee") && (
               <FilterSectionPrimitive title="Assignee">
                 {assigneeOptions.map((a) => (

@@ -31,7 +31,7 @@ const SORT = { col: "created_at", dir: "desc" } as const;
 const COLUMNS: ColKey[] = ["id", "title", "status", "assignees", "epic", "version", "fe", "be"];
 const COLUMN_OPTIONS: ColKey[] = [...COLUMNS, "created_at", "updated_at"];
 const GROUPS: GroupBy[] = ["none", "status", "epic", "version"];
-const FILTERS: FilterSection[] = ["status", "epic", "version"];
+const FILTERS: FilterSection[] = ["status", "epic", "version", "acceptance"];
 
 /** Thalamus Feedback inbox: unconverted Feedback tickets, using the standard toolbar, list + detail sheet. */
 export function ProjectFeedback({ projectId }: { projectId: string }) {

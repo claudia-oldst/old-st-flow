@@ -5,6 +5,8 @@ import type { AiTicketSearch } from "@/features/_shared/ai-search/useAiTicketSea
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
 import { DISCIPLINE_STATUS_LABEL } from "@/lib/types";
 import type { RoadmapFilters } from "./roadmapFilters";
+
+const AC_OPTS: MultiOption[] = [{ value: "populated", label: "Populated" }, { value: "none", label: "None" }];
 import { GROUP_LABEL, type GroupBy } from "./roadmapGroups";
 import { SprintColumnsPicker } from "./SprintColumnsPicker";
 import type { SprintLite } from "./cellRules";
@@ -53,6 +55,7 @@ export function RoadmapToolbar(p: Props) {
         <MultiSelectFilter filterStyle label="BE status" options={DISC_OPTS} selected={f.beStatuses} onChange={(v) => set({ beStatuses: v })} />
         <MultiSelectFilter filterStyle label="Assignee" options={p.options.assignees} selected={f.assignees} onChange={(v) => set({ assignees: v })} searchable />
         <MultiSelectFilter filterStyle label="Sprint" options={sprintOpts} selected={f.sprint} onChange={(v) => set({ sprint: v })} searchable />
+        <MultiSelectFilter filterStyle label="Acceptance criteria" options={AC_OPTS} selected={f.acceptance ?? []} onChange={(v) => set({ acceptance: v })} />
       </div>
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <span className="text-dimmer">Group by</span>
