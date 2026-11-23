@@ -44,9 +44,15 @@ export function StatusBlock({
   };
 
   const setProjectStatus = async (statusId: string) => {
+    const prev = { status_id: ticket.status_id, project_status_override: ticket.project_status_override };
     onLocalPatch?.({ status_id: statusId, project_status_override: true });
     const { error } = await supabase.from("tickets").update({ status_id: statusId, project_status_override: true }).eq("id", ticket.id);
-    if (error) return toast.error(error.message);
+    if (error) {
+      onLocalPatch?.(prev);
+      return toast.error("Status not saved, check your connection", {
+        action: { label: "Retry", onClick: () => void setProjectStatus(statusId) },
+      });
+    }
     onChange();
   };
 
@@ -87,8 +93,7 @@ export function StatusBlock({
 
       <div className={`flex flex-wrap items-center gap-3 ${isProj || isFeedback ? "" : "pt-3 hairline-t"}`}>
         <div className="w-16 text-xs font-medium text-dim">Overall</div>
-        {isPMBARole ? (
-          <Select value={ticket.status_id ?? undefined} onValueChange={setProjectStatus}>
+        <Select value={ticket.status_id ?? undefined} onValueChange={setProjectStatus}>
             <SelectTrigger className="h-8 w-56 text-xs" aria-label="Overall status">
               <SelectValue placeholder="Pick a status" />
             </SelectTrigger>
@@ -103,19 +108,11 @@ export function StatusBlock({
               ))}
             </SelectContent>
           </Select>
-        ) : status ? (
-          <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-surface-2 hairline text-xs">
-            <span className="h-2 w-2 rounded-full" style={{ background: status.color }} />
-            {status.name}
-          </span>
-        ) : (
-          <span className="text-xs text-dimmer">—</span>
-        )}
 
         {!isFeedback && (isProj || ticket.project_status_override ? (
           <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] bg-brand-gold/10 text-brand-gold ring-1 ring-brand-gold/30">
             <Pin className="h-3 w-3" /> Set manually
-            {!isProj && isPMBARole && (
+            {!isProj && (
               <Button
                 variant="ghost"
                 size="sm"

@@ -204,7 +204,7 @@ export function ProjectTickets({ projectId }: { projectId: string }) {
           selectedIds={Array.from(v.selectedIds)}
           onClear={v.clearSelection}
           canEdit={v.pmba}
-          canEditStatus={!!role}
+          canEditStatus
           onStartTimer={role ? () => { p.setTimerPreselect(Array.from(v.selectedIds)); p.setGroupTimerOpen(true); } : undefined}
         />
       )}
