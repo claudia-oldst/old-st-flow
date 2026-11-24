@@ -30,6 +30,7 @@ interface Payload {
   project_id?: string;
   sprint_id?: string;
   count?: number;
+  thread_reply?: boolean;
 }
 
 
@@ -376,12 +377,12 @@ async function handleCommentMention(admin: Admin, p: Payload, base: string | nul
   const snippet = excerpt(String(c.body ?? ""));
 
   const mrkdwn =
-    `:speech_balloon: *${esc(who)} mentioned you in a discussion*\n` +
+    (p.thread_reply ? `:speech_balloon: *${esc(who)} replied to a discussion thread you're in*\n` : `:speech_balloon: *${esc(who)} mentioned you in a discussion*\n`) +
     `${link(u.ticket, `${t.formatted_id} — ${t.title}`)} · ` +
     `${link(u.project, t.projects?.name ?? "project")}` +
     (snippet ? `\n>${esc(snippet).replace(/\n/g, "\n>")}` : "");
 
-  const text = `${who} mentioned you on ${t.formatted_id} — ${t.title}`;
+  const text = `${who} ${p.thread_reply ? "replied in a thread" : "mentioned you"} on ${t.formatted_id} — ${t.title}`;
 
   const blocks: unknown[] = [{ type: "section", text: { type: "mrkdwn", text: mrkdwn } }];
   if (u.ticket) {
