@@ -409,9 +409,23 @@ async function handleClosingWindow(admin: Admin, p: Payload, base: string | null
     .select("user_id, team_members(id, name, email, slack_user_id, role)")
     .eq("project_id", pr.id);
 
-  const pmbas = ((members ?? []) as Record<string, any>[])
-    .map((m) => m.team_members)
-    .filter((tm) => tm && ["PMBA", "Operations", "Director"].includes(tm.role));
+  // Operations and Director get the reminder for every project, assigned or not.
+  const { data: execs } = await admin
+    .from("team_members")
+    .select("id, name, email, slack_user_id, role")
+    .in("role", ["Operations", "Director"])
+    .eq("is_active", true);
+
+  const seen = new Set<string>();
+  const pmbas: Record<string, any>[] = [];
+  for (const tm of [
+    ...((members ?? []) as Record<string, any>[]).map((m) => m.team_members),
+    ...((execs ?? []) as Record<string, any>[]),
+  ]) {
+    if (!tm || !["PMBA", "Operations", "Director"].includes(tm.role) || seen.has(tm.id)) continue;
+    seen.add(tm.id);
+    pmbas.push(tm);
+  }
 
   const when = pr.closing_window_date
     ? new Date(`${pr.closing_window_date}T00:00:00Z`).toLocaleDateString("en-GB", {
