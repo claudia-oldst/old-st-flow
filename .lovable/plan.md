@@ -3,6 +3,8 @@
 ## What happens
 On the day a project's bug-fixing close date arrives, every active Operations user gets a Slack DM containing a ready-to-copy client message, personalised with the project name, the date and their own name:
 
+> **Subject:** {project_name}: Bug-fixing window closure
+>
 > Hi,
 >
 > I'm writing to confirm that our support window for **{project_name}** ends today, **{date}**.
