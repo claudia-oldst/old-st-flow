@@ -1,3 +1,4 @@
+import { hasPmbaRights } from "@/lib/types";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/store/currentUser";
@@ -19,7 +20,7 @@ export function useQuickProjects() {
   const load = useCallback(async () => {
     if (!user) return;
     let q = supabase.from("projects").select("id,name,acronym").eq("is_archived", false).order("name");
-    if (user.role !== "PMBA") {
+    if (!hasPmbaRights(user.role)) {
       const { data: mem } = await supabase.from("project_members").select("project_id").eq("user_id", user.id);
       const ids = (mem ?? []).map((r) => r.project_id);
       if (!ids.length) return setProjects([]);

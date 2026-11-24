@@ -1,3 +1,4 @@
+import { hasPmbaRights } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/store/currentUser";
@@ -9,7 +10,7 @@ import { useCurrentUser } from "@/store/currentUser";
  */
 export function useProjectAccess(projectId: string | undefined) {
   const user = useCurrentUser((s) => s.user);
-  const isPMBA = user?.role === "PMBA";
+  const isPMBA = hasPmbaRights(user?.role);
 
   const query = useQuery({
     queryKey: ["projectAccess", projectId, user?.id],

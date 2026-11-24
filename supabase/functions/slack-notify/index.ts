@@ -411,7 +411,7 @@ async function handleClosingWindow(admin: Admin, p: Payload, base: string | null
 
   const pmbas = ((members ?? []) as Record<string, any>[])
     .map((m) => m.team_members)
-    .filter((tm) => tm && tm.role === "PMBA");
+    .filter((tm) => tm && ["PMBA", "Operations", "Director"].includes(tm.role));
 
   const when = pr.closing_window_date
     ? new Date(`${pr.closing_window_date}T00:00:00Z`).toLocaleDateString("en-GB", {

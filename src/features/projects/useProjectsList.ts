@@ -1,3 +1,4 @@
+import { hasPmbaRights } from "@/lib/types";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeReload } from "@/hooks/useRealtimeReload";
@@ -43,7 +44,7 @@ export function useProjectsList(args: {
 
     // Non-PMBA users only see projects they're a member of.
     let allowedIds: string[] | null = null;
-    if (user.role !== "PMBA") {
+    if (!hasPmbaRights(user.role)) {
       const { data: mem } = await supabase
         .from("project_members")
         .select("project_id")

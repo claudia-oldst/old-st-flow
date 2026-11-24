@@ -23,7 +23,12 @@ export const DISCIPLINE_STATUS_COLOR: Record<DisciplineStatus, string> = {
 };
 
 /** Canonical ordering of roles for selectors / lists. */
-export const PROJECT_ROLES: ProjectRole[] = ["Frontend", "Backend", "Fullstack", "QA", "PMBA", "Design"];
+export const PROJECT_ROLES: ProjectRole[] = ["Frontend", "Backend", "Fullstack", "QA", "PMBA", "Operations", "Director", "Design"];
+
+/** Roles that currently carry full PM/BA rights. Change here to give them different rights later. */
+export const PMBA_LIKE_ROLES: readonly string[] = ["PMBA", "Operations", "Director"];
+export const hasPmbaRights = (role: string | null | undefined): boolean =>
+  !!role && PMBA_LIKE_ROLES.includes(role);
 
 /** Tailwind class strings for role chips/badges. */
 export const PROJECT_ROLE_COLORS: Record<ProjectRole, string> = {
@@ -33,6 +38,8 @@ export const PROJECT_ROLE_COLORS: Record<ProjectRole, string> = {
   QA: "bg-amber-500/15 text-amber-300 ring-amber-400/20",
   PMBA: "bg-pink-500/15 text-pink-300 ring-pink-400/20",
   Design: "bg-fuchsia-500/15 text-fuchsia-300 ring-fuchsia-400/20",
+  Operations: "bg-cyan-500/15 text-cyan-300 ring-cyan-400/20",
+  Director: "bg-orange-500/15 text-orange-300 ring-orange-400/20",
 };
 
 export type TeamMember = Database["public"]["Tables"]["team_members"]["Row"];

@@ -1,3 +1,4 @@
+import { hasPmbaRights } from "@/lib/types";
 import { insertTimeLogsOnce } from "@/features/timelog/save/insertTimeLogs";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -165,7 +166,7 @@ export function useLogTime({
 
   // Only PMBAs may set an original estimate. Everyone else treats a missing
   // estimate as a 0h baseline and requests an estimate revision instead.
-  const isPmbaUser = role === "PMBA" || user?.role === "PMBA";
+  const isPmbaUser = hasPmbaRights(role) || hasPmbaRights(user?.role);
   const missingEstimate = useMemo(() => {
     if (!isPmbaUser) return false;
     if (discipline === "FE") return !ticket.has_original_fe_estimate;

@@ -1,3 +1,4 @@
+import { hasPmbaRights } from "@/lib/types";
 import { useCurrentUser } from "@/store/currentUser";
 import type { ProjectRole } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";
@@ -44,7 +45,7 @@ export function useProjectRole(projectId: string | undefined): ProjectRole | nul
 
 /** True if the role grants PM/BA permissions (project-level OR global). */
 export function isPMBA(role: ProjectRole | null) {
-  return role === "PMBA";
+  return hasPmbaRights(role);
 }
 
 /**
@@ -54,5 +55,5 @@ export function isPMBA(role: ProjectRole | null) {
  * which remain PMBA-only via `isPMBA`.
  */
 export function canManageTickets(role: ProjectRole | null) {
-  return role === "PMBA" || role === "QA";
+  return hasPmbaRights(role) || role === "QA";
 }

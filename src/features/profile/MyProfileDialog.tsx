@@ -1,3 +1,4 @@
+import { hasPmbaRights } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Camera, Trash2 } from "lucide-react";
@@ -27,8 +28,8 @@ export function MyProfileDialog({ open, onOpenChange }: { open: boolean; onOpenC
   }, [open, user]);
 
   if (!user) return null;
-  const isPmba = user.role === "PMBA";
-  const roles = PROJECT_ROLES.filter((r) => isPmba || r !== "PMBA");
+  const isPmba = hasPmbaRights(user.role);
+  const roles = PROJECT_ROLES.filter((r) => isPmba || !hasPmbaRights(r));
 
   const save = async () => {
     if (!name.trim()) return toast.error("Name can't be empty");

@@ -1,3 +1,4 @@
+import { hasPmbaRights } from "@/lib/types";
 import { useState } from "react";
 import { Settings, Users, Layers, GitBranch } from "lucide-react";
 import { useCurrentUser } from "@/store/currentUser";
@@ -8,7 +9,7 @@ import { cn, PAGE_SHELL } from "@/lib/utils";
 
 export default function Admin() {
   const user = useCurrentUser((s) => s.user);
-  const isPMBA = user?.role === "PMBA";
+  const isPMBA = hasPmbaRights(user?.role);
   const [tab, setTab] = useState<"team" | "statuses" | "rules">("team");
   return (
     <div className={cn(PAGE_SHELL, "py-10")}>

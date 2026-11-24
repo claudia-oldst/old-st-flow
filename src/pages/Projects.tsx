@@ -1,3 +1,4 @@
+import { hasPmbaRights } from "@/lib/types";
 import { useCallback, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,7 +35,7 @@ export default function Projects() {
 
   const [open, setOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
-  const isPMBAUser = useCurrentUser((s) => s.user?.role === "PMBA");
+  const isPMBAUser = useCurrentUser((s) => hasPmbaRights(s.user?.role));
   const [name, setName] = useState("");
   const [acronym, setAcronym] = useState("");
   const [creating, setCreating] = useState(false);

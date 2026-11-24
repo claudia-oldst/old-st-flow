@@ -1255,6 +1255,8 @@ export type Database = {
         | "QA"
         | "PMBA"
         | "Design"
+        | "Operations"
+        | "Director"
       status_category: "backlog" | "active" | "dev done" | "done"
       ticket_type: "Standard" | "Bug" | "CR" | "Proj" | "Feedback"
     }
@@ -1407,6 +1409,8 @@ export const Constants = {
         "QA",
         "PMBA",
         "Design",
+        "Operations",
+        "Director",
       ],
       status_category: ["backlog", "active", "dev done", "done"],
       ticket_type: ["Standard", "Bug", "CR", "Proj", "Feedback"],

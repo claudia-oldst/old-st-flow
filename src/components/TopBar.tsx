@@ -1,3 +1,4 @@
+import { hasPmbaRights } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -174,7 +175,7 @@ function UserMenu() {
 
 export function TopBar() {
   const location = useLocation();
-  const isPMBA = useCurrentUser((s) => s.user?.role === "PMBA");
+  const isPMBA = useCurrentUser((s) => hasPmbaRights(s.user?.role));
   const quickProjects = useQuickProjects();
 
   const navItems = [

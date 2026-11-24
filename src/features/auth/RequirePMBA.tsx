@@ -1,3 +1,4 @@
+import { hasPmbaRights } from "@/lib/types";
 import type { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import { useCurrentUser } from "@/store/currentUser";
@@ -10,6 +11,6 @@ import { useCurrentUser } from "@/store/currentUser";
 export function RequirePMBA({ children }: { children: ReactNode }) {
   const user = useCurrentUser((s) => s.user);
   if (!user) return null;
-  if (user.role !== "PMBA") return <Navigate to="/" replace />;
+  if (!hasPmbaRights(user.role)) return <Navigate to="/" replace />;
   return <>{children}</>;
 }

@@ -16,3 +16,4 @@
 - Pickers (mentions, assigning, project team, sprints, CSV import) filter inactive team members via `src/lib/activeMembers.ts`; history displays keep showing them — why: archived people stay in records but can't be newly chosen.
 - Sprint commitments (`sprint_tickets`) are one row per sprint/ticket/discipline with no person; Roadmap cell rules live in `src/features/sprints/roadmap/cellRules.ts` and only write `sprint_tickets` + `tickets.planned_sprint_*` — why: people stay on assignees only and sprint edits never trigger assignment Slack messages.
 - The Sprints Roadmap renders through the Tickets page `TicketsList`, adding sprint cells via its `extraColumns` prop — why: one ticket table across the app, no sprint-only table.
+- PM/BA rights are checked via `hasPmbaRights` (`src/lib/types.ts`); Operations/Director map to the `PMBA` app_role in the DB sync trigger — why: one place to diverge their rights later. Estimate-revision Slack alerts stay strictly `PMBA`.
