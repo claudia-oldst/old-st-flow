@@ -1,5 +1,6 @@
 // Slack DM nudges for ticket assignments pending and rejected estimate revisions.
 // Invoked by database triggers via pg_net (see public.enqueue_slack_notify).
+import { closingDayEmail, formatClosingDate } from "./closingToday.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -460,6 +461,38 @@ async function handleClosingWindow(admin: Admin, p: Payload, base: string | null
   return j({ ok: true, event: "closing_window_reminder", notified: results });
 }
 
+/** Day-of closing: give every active Operations user a client-ready email to send. */
+async function handleClosingWindowToday(admin: Admin, p: Payload, base: string | null) {
+  if (!p.project_id) return j({ error: "missing project_id" }, 400);
+  const { data: project } = await admin
+    .from("projects").select("id, name, closing_window_date").eq("id", p.project_id).maybeSingle();
+  const pr = project as Record<string, any> | null;
+  if (!pr?.closing_window_date) return j({ error: "project not found" }, 404);
+  const { data: ops } = await admin
+    .from("team_members").select("id, name, email, slack_user_id, role")
+    .eq("role", "Operations").eq("is_active", true);
+  const date = formatClosingDate(pr.closing_window_date);
+  const projectUrl = base ? `${base.replace(/\/+$/, "")}/projects/${pr.id}` : null;
+  const results: string[] = [];
+  for (const op of (ops ?? []) as Record<string, any>[]) {
+    const { subject, body } = closingDayEmail(pr.name ?? "the project", date, op.name ?? "");
+    const intro = `:calendar: Support window for ${link(projectUrl, pr.name ?? "project")} ends today — here's the client message to send:`;
+    const quoted = `*Subject:* ${esc(subject)}\n\n${esc(body)}`.replace(/^/gm, ">");
+    const blocks: unknown[] = [
+      { type: "section", text: { type: "mrkdwn", text: intro } },
+      { type: "section", text: { type: "mrkdwn", text: quoted } },
+    ];
+    if (projectUrl) blocks.push({ type: "actions", elements: [linkButton("Open project", projectUrl)] });
+    try {
+      results.push(await dm(admin, pr.id as string, op, `Support window for ${pr.name} ends today`, blocks));
+    } catch (e) {
+      console.error("Ops DM failed:", (e as Error).message);
+      results.push("error");
+    }
+  }
+  return j({ ok: true, event: "closing_window_today", notified: results });
+}
+
 /** Post new Thalamus feedback to the project's Slack channel. */
 async function handleFeedbackCreated(admin: Admin, p: Payload, base: string | null) {
   if (!p.ticket_id) return j({ error: "missing ticket_id" }, 400);
@@ -542,6 +575,9 @@ Deno.serve(async (req) => {
     }
     if (payload.event === "closing_window_reminder") {
       return await handleClosingWindow(admin, payload, base);
+    }
+    if (payload.event === "closing_window_today") {
+      return await handleClosingWindowToday(admin, payload, base);
     }
     if (payload.event === "feedback_created") {
       return await handleFeedbackCreated(admin, payload, base);
