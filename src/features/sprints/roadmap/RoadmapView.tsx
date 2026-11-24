@@ -104,7 +104,7 @@ export function RoadmapView({ projectId, sprints, isPMBA }: { projectId: string;
         <RoadmapBulkBar count={selected.size} sprintNumber={v.working?.sprint_number} onSet={onBulk} onAssign={() => setBulkAssign(true)} onClear={() => setSel(new Set())} />
       )}
       {closed.dialog}
-      <TicketDetailSheet open={!!openTicket} onOpenChange={(o) => !o && setOpenId(null)} ticket={openTicket} projectId={projectId} onChange={() => {}} />
+      <TicketDetailSheet open={!!openTicket} onOpenChange={(o) => !o && setOpenId(null)} ticket={openTicket} projectId={projectId} />
       <BulkAssignDialog open={bulkAssign} onOpenChange={setBulkAssign} projectId={projectId} ticketIds={[...selected]} onSaved={() => {}} />
     </div>
   );

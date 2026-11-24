@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { patchEpicInCaches } from "@/features/tickets/ticketCachePatch";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
@@ -81,8 +82,8 @@ export function useProjectEpics(projectId: string | undefined) {
         .eq("id", id);
       if (error) return false;
       await qc.invalidateQueries({ queryKey });
-      await qc.invalidateQueries({ queryKey: ["projectTickets", projectId] });
-      await qc.invalidateQueries({ queryKey: ["projectTicketsPaged", projectId] });
+      // Loaded tickets pick up the new name from the realtime epic patch.
+      if (projectId) patchEpicInCaches(qc, projectId, id, trimmed);
       return true;
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps

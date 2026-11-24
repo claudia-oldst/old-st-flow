@@ -151,7 +151,7 @@ export function ProjectFeedback({ projectId }: { projectId: string }) {
         <BulkActionsBar projectId={projectId} selectedIds={Array.from(selectedIds)} onClear={clearSelection} canEdit feedback
           onConvert={() => setConvert(rows.filter((r) => selectedIds.has(r.id)))} />
       )}
-      <TicketDetailSheet open={!!open} onOpenChange={(o) => !o && setOpenId(null)} ticket={open} projectId={projectId} onChange={reload} />
+      <TicketDetailSheet open={!!open} onOpenChange={(o) => !o && setOpenId(null)} ticket={open} projectId={projectId} />
       {convert && (
         <ConvertFeedbackDialog open onOpenChange={(o) => !o && setConvert(null)} tickets={convert} onConverted={() => { setSelectedIds(new Set()); reload(); }} />
       )}

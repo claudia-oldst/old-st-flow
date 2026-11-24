@@ -1,6 +1,13 @@
 import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+export interface RealtimeChange {
+  table: string;
+  eventType: "INSERT" | "UPDATE" | "DELETE";
+  new: Record<string, unknown>;
+  old: Record<string, unknown>;
+}
+
 export interface RealtimeTable {
   table: string;
   filter?: string;
@@ -20,7 +27,7 @@ export interface RealtimeTable {
  */
 export function useRealtimeReload(
   tables: RealtimeTable[] | null | undefined,
-  onChange: () => void,
+  onChange: (changes: RealtimeChange[]) => void,
   enabled: boolean = true,
 ) {
   const key = tables ? JSON.stringify(tables) : "";
@@ -32,11 +39,20 @@ export function useRealtimeReload(
     if (!tables || tables.length === 0) return;
 
     let timer: ReturnType<typeof setTimeout> | null = null;
-    const fire = () => {
+    let batch: RealtimeChange[] = [];
+    const fire = (payload: any) => {
+      batch.push({
+        table: payload?.table ?? "",
+        eventType: payload?.eventType,
+        new: payload?.new ?? {},
+        old: payload?.old ?? {},
+      });
       if (timer) return;
       timer = setTimeout(() => {
         timer = null;
-        onChangeRef.current();
+        const changes = batch;
+        batch = [];
+        onChangeRef.current(changes);
       }, 50);
     };
 
@@ -50,7 +66,7 @@ export function useRealtimeReload(
         table: t.table,
       };
       if (t.filter) cfg.filter = t.filter;
-      ch.on("postgres_changes" as any, cfg, () => fire());
+      ch.on("postgres_changes" as any, cfg, (payload: unknown) => fire(payload));
     });
     ch.subscribe();
     return () => {

@@ -13,7 +13,7 @@ export function ProjectTicketsDialogs({
   projectId: string;
   p: ReturnType<typeof useProjectTicketsPage>;
 }) {
-  const { csv, tickets, role, reload, paged } = p;
+  const { csv, tickets, role, reload } = p;
   return (
     <>
       <StartGroupTimerDialog
@@ -63,10 +63,6 @@ export function ProjectTicketsDialogs({
         onOpenChange={(o) => !o && p.setOpenTicket(null)}
         ticket={p.openTicket}
         projectId={projectId}
-        onChange={() => {
-          reload();
-          paged.reload();
-        }}
       />
     </>
   );

@@ -60,7 +60,7 @@ export function ProjectChangeRequests({ projectId }: { projectId: string }) {
   const [hiddenCols, setHiddenCols] = useHiddenColumns("pulse:estimate-revisions:hidden-cols");
   const hiddenPos = hiddenPositions(CHANGE_COLUMNS, hiddenCols);
   const [openTicketId, setOpenTicketId] = useState<string | null>(null);
-  const { tickets: projectTickets, reload: reloadTickets } = useProjectTickets(projectId);
+  const { tickets: projectTickets } = useProjectTickets(projectId);
   const openTicket = useMemo(
     () => projectTickets.find((t) => t.id === openTicketId) ?? null,
     [projectTickets, openTicketId],
@@ -238,10 +238,7 @@ export function ProjectChangeRequests({ projectId }: { projectId: string }) {
         onOpenChange={(o) => !o && setOpenTicketId(null)}
         ticket={openTicket}
         projectId={projectId}
-        onChange={() => {
-          reloadTickets();
-          reload();
-        }}
+        onChange={reload}
       />
       <RejectEstimateRevisionDialog
         open={!!rejectTarget}

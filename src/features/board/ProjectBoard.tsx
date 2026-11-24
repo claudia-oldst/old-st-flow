@@ -227,7 +227,6 @@ export function ProjectBoard({
           onOpenChange={(o) => !o && setOpenTicket(null)}
           ticket={openTicket}
           projectId={projectId}
-          onChange={reload}
         />
       </div>
     </TooltipProvider>

@@ -149,7 +149,13 @@ export function useProjectTickets(projectId: string | undefined) {
       const run = (latestRun.get(projectId) ?? 0) + 1;
       latestRun.set(projectId, run);
       return fetchProjectTickets(projectId, {
-        onProgress: (result) => { if (latestRun.get(projectId) === run) qc.setQueryData(queryKey, result); },
+        // Partial pages only fill an empty list; a reload keeps the full old
+        // list on screen and swaps in the finished result once.
+        onProgress: (result) => {
+          if (latestRun.get(projectId) !== run) return;
+          if (qc.getQueryData<FetchResult>(queryKey)?.complete) return;
+          qc.setQueryData(queryKey, result);
+        },
       });
     },
     enabled: !!projectId,

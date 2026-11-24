@@ -1,4 +1,7 @@
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { queueTicketRefresh } from "./useTicketListRealtime";
+import { patchTicketInCaches } from "./ticketCachePatch";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { TicketRow } from "@/features/tickets/useProjectTickets";
@@ -25,11 +28,18 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   ticket: TicketRow | null;
   projectId: string;
-  onChange: () => void;
+  /** Extra refresh beyond the edited ticket row (which always updates in place). */
+  onChange?: () => void;
 }
 
-export function TicketDetailSheet({ open, onOpenChange, ticket: ticketProp, projectId, onChange }: Props) {
+export function TicketDetailSheet({ open, onOpenChange, ticket: ticketProp, projectId, onChange: onExtraChange }: Props) {
   const { ticket: liveTicket, setLiveTicket } = useLiveTicket(ticketProp, open);
+  const qc = useQueryClient();
+  // Refresh only this ticket's row in the lists, never the whole project.
+  const onChange = () => {
+    if (liveTicket) queueTicketRefresh(qc, projectId, [liveTicket.id]);
+    onExtraChange?.();
+  };
 
   const [activeTab, setActiveTab] = useState("status");
   useEffect(() => {
@@ -131,9 +141,10 @@ export function TicketDetailSheet({ open, onOpenChange, ticket: ticketProp, proj
                   setRequestOpen(true);
                 }}
                 onChange={onChange}
-                onLocalPatch={(patch) =>
-                  setLiveTicket((prev) => (prev ? { ...prev, ...patch } : prev))
-                }
+                onLocalPatch={(patch) => {
+                  setLiveTicket((prev) => (prev ? { ...prev, ...patch } : prev));
+                  if (liveTicket) patchTicketInCaches(qc, projectId, liveTicket.id, patch);
+                }}
                 onLogCount={setLogCount}
               />
             </TabsContent>

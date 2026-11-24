@@ -2,11 +2,14 @@ import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-const mocks = vi.hoisted(() => ({ rpc: vi.fn(), change: undefined as (() => void) | undefined }));
+const mocks = vi.hoisted(() => ({ rpc: vi.fn(), change: undefined as ((c: any[]) => void) | undefined }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: (...args: unknown[]) => mocks.rpc(...args) } }));
-vi.mock("@/hooks/useRealtimeReload", () => ({ useRealtimeReload: (_tables: unknown, change: () => void) => { mocks.change = change; } }));
+vi.mock("@/hooks/useRealtimeReload", () => ({ useRealtimeReload: (_tables: unknown, change: (c: any[]) => void) => { mocks.change = change; } }));
 import { useProjectTickets } from "./useProjectTickets";
-import { useTicketListRealtime } from "./useTicketListRealtime";
+import { PATCH_DEBOUNCE_MS, useTicketListRealtime } from "./useTicketListRealtime";
+import { mergeTicketRows } from "./ticketCachePatch";
+import { normalizeTicket } from "./useProjectTickets";
+const row = (id: string, position: number) => normalizeTicket({ id, position, ticket_number: position, title: id });
 function wrapper(client: QueryClient) {
   return ({ children }: { children: ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }
@@ -28,24 +31,41 @@ describe("ticket loading hooks", () => {
     expect(hook.result.current.loadedCount).toBe(201);
     expect(client.getQueryData(["projectTickets", "p"])).toMatchObject({ complete: true });
   });
-  it("debounces changes for three seconds, defers refresh during downloading, then refreshes once", async () => {
+  it("patches only the changed ticket in place without a full reload", async () => {
     vi.useFakeTimers();
     const client = new QueryClient();
+    const rows = [row("a", 1), row("b", 2), row("c", 3)];
+    client.setQueryData(["projectTickets", "px"], { tickets: rows, totalCount: 3, complete: true });
     const invalidate = vi.spyOn(client, "invalidateQueries");
-    renderHook(() => useTicketListRealtime("p", ["projectTickets", "p"]), { wrapper: wrapper(client) });
-    let finish: (() => void) | undefined;
-    const fetching = client.fetchQuery({ queryKey: ["projectTickets", "p"], queryFn: () => new Promise((resolve) => { finish = () => resolve({ complete: true }); }) });
-    await act(async () => {
-      mocks.change?.();
-      await vi.advanceTimersByTimeAsync(2000);
-      mocks.change?.();
-      await vi.advanceTimersByTimeAsync(2999);
-    });
+    mocks.rpc.mockImplementation((_n: string, args: { _filters: { ticketIds: string[] } }) => ({ abortSignal: () =>
+      Promise.resolve({ data: { rows: [{ ...row("b", 2), title: "Edited" }], total: 1 }, error: null }) }));
+    renderHook(() => useTicketListRealtime("px"), { wrapper: wrapper(client) });
+    await act(async () => { mocks.change?.([{ table: "tickets", eventType: "UPDATE", new: { id: "b" }, old: { id: "b" } }]); await vi.advanceTimersByTimeAsync(PATCH_DEBOUNCE_MS + 1); });
+    await vi.waitFor(() => expect((client.getQueryData(["projectTickets", "px"]) as any).tickets[1].title).toBe("Edited"));
+    const data = client.getQueryData(["projectTickets", "px"]) as any;
+    expect(data.tickets.map((t: any) => t.id)).toEqual(["a", "b", "c"]);
+    expect(mocks.rpc).toHaveBeenCalledTimes(1);
+    expect(mocks.rpc.mock.calls[0][1]._filters).toMatchObject({ ticketIds: ["b"], feedback: false });
     expect(invalidate).not.toHaveBeenCalled();
-    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
-    expect(invalidate).not.toHaveBeenCalled();
-    await act(async () => { finish?.(); await fetching; });
-    expect(invalidate).toHaveBeenCalledTimes(1);
+  });
+  it("adds a new ticket by position and removes a deleted one", () => {
+    const list = [row("a", 1), row("c", 3)];
+    const fresh = new Map([["b", row("b", 2)]]);
+    expect(mergeTicketRows(list, ["b", "c"], fresh).map((t) => t.id)).toEqual(["a", "b"]);
+  });
+  it("a reload never replaces a complete list with a partial page", async () => {
+    let finish: ((data: unknown) => void) | undefined;
+    mocks.rpc.mockImplementation((_name: string, args: { _page: number }) => ({ abortSignal: () => args._page === 1
+      ? Promise.resolve({ data: { rows: Array.from({ length: 200 }, (_, i) => ({ id: `n${i}` })), total: 201 }, error: null })
+      : new Promise((resolve) => { finish = resolve; }) }));
+    const client = new QueryClient();
+    client.setQueryData(["projectTickets", "p3"], { tickets: Array.from({ length: 300 }, (_, i) => row(`o${i}`, i)), totalCount: 300, complete: true });
+    const hook = renderHook(() => useProjectTickets("p3"), { wrapper: wrapper(client) });
+    await act(async () => { void hook.result.current.reload(); });
+    await waitFor(() => expect(finish).toBeDefined());
+    expect(hook.result.current.loadedCount).toBe(300);
+    await act(async () => { finish?.({ data: { rows: [{ id: "last" }], total: 201 }, error: null }); });
+    await waitFor(() => expect(hook.result.current.loadedCount).toBe(201));
   });
   it("keeps downloading after leaving the tab and shows no error on return", async () => {
     let finish: ((data: unknown) => void) | undefined;

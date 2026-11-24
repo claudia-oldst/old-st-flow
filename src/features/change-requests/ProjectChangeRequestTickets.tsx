@@ -1,3 +1,5 @@
+import { useQueryClient } from "@tanstack/react-query";
+import { queueTicketRefresh } from "@/features/tickets/useTicketListRealtime";
 import { useEffect, useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -42,6 +44,7 @@ export function ProjectChangeRequestTickets({ projectId }: { projectId: string }
   const role = useProjectRole(projectId);
   const canReview = isPMBA(role);
   const { tickets, reload } = useProjectTickets(projectId);
+  const qc = useQueryClient();
   const { epics } = useProjectEpics(projectId);
   const { discounts } = useEpicDiscounts(projectId);
   const discountByEpic = useMemo(() => discountTotalsByEpic(discounts), [discounts]);
@@ -171,7 +174,7 @@ export function ProjectChangeRequestTickets({ projectId }: { projectId: string }
       .eq("id", t.id);
     if (error) return toast.error(error.message);
     toast.success("CR approved");
-    reload();
+    queueTicketRefresh(qc, projectId, [t.id]);
   };
 
   const handleReject = async (t: TicketRow) => {
@@ -186,7 +189,7 @@ export function ProjectChangeRequestTickets({ projectId }: { projectId: string }
       .eq("id", t.id);
     if (error) return toast.error(error.message);
     toast.success("CR rejected");
-    reload();
+    queueTicketRefresh(qc, projectId, [t.id]);
   };
 
   return (
@@ -267,7 +270,6 @@ export function ProjectChangeRequestTickets({ projectId }: { projectId: string }
         projectId={projectId}
         open={!!openTicket}
         onOpenChange={(o) => !o && setOpenTicket(null)}
-        onChange={reload}
       />
     </div>
   );
