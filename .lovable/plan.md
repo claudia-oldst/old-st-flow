@@ -2,7 +2,8 @@
 
 ## What you will see
 - Admin > Team and project team role pickers offer two new roles: **Operations** and **Director**.
-- Anyone with either role can do everything a PM/BA can today: Admin pages, original estimates, approving revisions and CRs, converting Feedback, client billing/emails, sprint planning, seeing all projects, and receiving PM/BA Slack alerts (e.g. bug-fixing close reminders, feedback alerts).
+- Anyone with either role can do everything a PM/BA can today: Admin pages, original estimates, approving revisions and CRs, converting Feedback, client billing/emails, sprint planning, seeing all projects, and receiving PM/BA Slack alerts such as bug-fixing close reminders.
+- Exception: they do **not** receive estimate revision request Slack alerts; those stay PM/BA-only.
 - Their role label still shows as Operations or Director, so they can be given different rights later without another rework.
 - Non-PM/BA users still can't pick these roles for themselves in My profile.
 
@@ -12,7 +13,7 @@
 
 ## App changes
 - One shared "has PM/BA rights" check (PMBA, Operations, Director) replacing the ~12 places that test for "PMBA" directly (Admin, access guard, projects list, quick switcher, top bar, time logging, estimates, profile dialog, project role hooks).
-- Slack PM/BA recipient lookups use the same check.
+- The bug-fixing close reminder uses the shared check; the estimate revision alert keeps checking for PMBA only.
 - Role badges get labels/colours for the new roles.
 - Small test confirming Operations and Director have PM/BA rights and others don't.
 
