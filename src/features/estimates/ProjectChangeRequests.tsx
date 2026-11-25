@@ -50,7 +50,13 @@ export function ProjectChangeRequests({ projectId }: { projectId: string }) {
   const { discounts } = useEpicDiscounts(projectId);
   const discountByEpic = useMemo(() => discountTotalsByEpic(discounts), [discounts]);
 
-  const [statusFilter, setStatusFilter] = useState<string[]>(DEFAULT_REVIEW_STATUS);
+  // Slack "Review requests" links pass ?status=pending&from=YYYY-MM-DD (to = today).
+  const [linkParams] = useState(() => new URLSearchParams(window.location.search));
+  const linkFrom = /^\d{4}-\d{2}-\d{2}$/.test(linkParams.get("from") ?? "") ? linkParams.get("from") : null;
+  const [statusFilter, setStatusFilter] = useState<string[]>(() => {
+    const st = linkParams.get("status")?.split(",").filter((v) => STATUS_OPTIONS.some((o) => o.value === v));
+    return st && st.length ? st : DEFAULT_REVIEW_STATUS;
+  });
   const [requesterFilter, setRequesterFilter] = useState<string[] | null>(null);
   const [range, setRange] = useState<DateRange>(() => defaultRange());
   const [rangeInitialized, setRangeInitialized] = useState(false);
@@ -77,10 +83,10 @@ export function ProjectChangeRequests({ projectId }: { projectId: string }) {
       .maybeSingle()
       .then(({ data }) => {
         if (cancelled) return;
-        const sd = (data as any)?.start_date as string | null | undefined;
+        const sd = linkFrom ?? ((data as any)?.start_date as string | null | undefined);
         if (sd) {
-          const from = new Date(sd);
-          from.setHours(0, 0, 0, 0);
+          const [y, m, d] = sd.slice(0, 10).split("-").map(Number);
+          const from = new Date(y, m - 1, d, 0, 0, 0, 0);
           const to = new Date();
           to.setHours(23, 59, 59, 999);
           setRange({ from, to });

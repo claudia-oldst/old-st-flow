@@ -31,6 +31,7 @@ interface Payload {
   sprint_id?: string;
   count?: number;
   thread_reply?: boolean;
+  change_ids?: string[];
 }
 
 
@@ -280,6 +281,50 @@ async function handleEstimateRevision(admin: Admin, p: Payload, base: string | n
     }
   }
   return j({ ok: true, event: "estimate_revision_requested", notified: results });
+}
+
+async function handleEstimateBatch(admin: Admin, p: Payload, base: string | null) {
+  if (!p.project_id || !p.user_id || !p.change_ids?.length) return j({ error: "missing fields" }, 400);
+  const { data: rows } = await admin
+    .from("ticket_estimate_changes")
+    .select("id, created_at, discipline, previous_hours, new_hours, reason, status, tickets(id, formatted_id, title)")
+    .in("id", p.change_ids)
+    .order("created_at");
+  const pending = ((rows ?? []) as Record<string, any>[]).filter((r) => r.status === "pending");
+  if (!pending.length) return j({ ok: true, skipped: "none pending" });
+  const [{ data: project }, { data: requester }, { data: members }] = await Promise.all([
+    admin.from("projects").select("name").eq("id", p.project_id).maybeSingle(),
+    admin.from("team_members").select("name").eq("id", p.user_id).maybeSingle(),
+    admin.from("project_members")
+      .select("user_id, team_members(id, name, email, slack_user_id, role, is_active)")
+      .eq("project_id", p.project_id),
+  ]);
+  const pmbas = ((members ?? []) as Record<string, any>[])
+    .map((m) => m.team_members)
+    .filter((tm) => tm && tm.role === "PMBA" && tm.is_active !== false);
+  const b = base ? base.replace(/\/+$/, "") : null;
+  const from = String(pending[0].created_at).slice(0, 10);
+  const review = b ? `${b}/projects/${p.project_id}/change-requests?status=pending&from=${from}` : null;
+  const who = (requester as any)?.name ?? "A team member";
+  const items = pending.map((c) => {
+    const t = c.tickets ?? {};
+    const tUrl = b ? `${b}/projects/${p.project_id}?ticket=${t.id}` : null;
+    return `*Ticket:* ${link(tUrl, `${t.formatted_id ?? ""} — ${t.title ?? ""}`)}\n` +
+      `*Time request:* ${esc(String(c.discipline))} ${Number(c.previous_hours)}h → ${Number(c.new_hours)}h` +
+      (c.reason ? `\n*Reason:* ${esc(String(c.reason).slice(0, 300))}` : "");
+  });
+  const n = pending.length;
+  const header = `:hourglass_flowing_sand: *${esc(who)}* · ${n} estimate revision${n === 1 ? "" : "s"} to review on *${esc((project as any)?.name ?? "project")}*`;
+  const blocks: unknown[] = [{ type: "section", text: { type: "mrkdwn", text: header } }];
+  for (const it of items.slice(0, 40)) blocks.push({ type: "section", text: { type: "mrkdwn", text: it } });
+  if (review) blocks.push({ type: "actions", elements: [linkButton("Review requests", review)] });
+  const text = `${who} requested ${n} estimate revision${n === 1 ? "" : "s"}`;
+  const results: string[] = [];
+  for (const pmba of pmbas) {
+    try { results.push(await dm(admin, p.project_id, pmba, text, blocks)); }
+    catch (e) { console.error("PMBA DM failed:", (e as Error).message); results.push("error"); }
+  }
+  return j({ ok: true, event: "estimate_revisions_batch", notified: results });
 }
 
 async function handleEstimateRejected(admin: Admin, p: Payload, base: string | null) {
@@ -567,6 +612,9 @@ Deno.serve(async (req) => {
     }
     if (payload.event === "estimate_revision_requested") {
       return await handleEstimateRevision(admin, payload, base);
+    }
+    if (payload.event === "estimate_revisions_batch") {
+      return await handleEstimateBatch(admin, payload, base);
     }
     if (payload.event === "estimate_revision_rejected") {
       return await handleEstimateRejected(admin, payload, base);

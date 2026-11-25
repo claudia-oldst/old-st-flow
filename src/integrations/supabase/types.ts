@@ -772,6 +772,7 @@ export type Database = {
           discipline: Database["public"]["Enums"]["assignee_slot"]
           id: string
           new_hours: number
+          notified_at: string | null
           previous_hours: number
           reason: string | null
           status: string
@@ -786,6 +787,7 @@ export type Database = {
           discipline: Database["public"]["Enums"]["assignee_slot"]
           id?: string
           new_hours: number
+          notified_at?: string | null
           previous_hours: number
           reason?: string | null
           status?: string
@@ -800,6 +802,7 @@ export type Database = {
           discipline?: Database["public"]["Enums"]["assignee_slot"]
           id?: string
           new_hours?: number
+          notified_at?: string | null
           previous_hours?: number
           reason?: string | null
           status?: string
@@ -1183,6 +1186,7 @@ export type Database = {
         Returns: Json
       }
       notify_closing_window_due: { Args: never; Returns: undefined }
+      notify_pending_estimate_revisions: { Args: never; Returns: undefined }
       portal_billing_payload: {
         Args: {
           _cutoff: string
