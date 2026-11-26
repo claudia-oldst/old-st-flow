@@ -1,13 +1,12 @@
-# Thalamus internal feedback
+# Thalamus internal vs external feedback
 
-When Thalamus sends a report with `internal: true`:
-- The Feedback ticket is created as normal, with **Version = "Internal Feedback"**.
-- **No Slack message** is posted to the project's linked Slack channel.
-
-When `internal: false` (or the field is absent from older senders): unchanged — no version set, Slack channel alert sent.
+When Thalamus sends a report:
+- `internal: true` — Feedback ticket created with **Version = "Internal Feedback"**, and **no Slack message** to the project's linked channel.
+- `internal: false` — Feedback ticket created with **Version = "External - Thalamus"**, Slack channel alert sent as today.
+- Field missing (older senders) — treated as external.
 
 ## Technical details
-- `supabase/functions/thalamus-feedback/schema.ts`: add optional `internal: z.boolean().optional()` (optional so older payloads don't fail).
-- `index.ts`: set `version: "Internal Feedback"` on insert when internal; skip `notifySlack` when internal.
-- Add a small test for the internal/external branch; redeploy `thalamus-feedback`.
-- No database changes (`version` is an existing free-text ticket field).
+- `supabase/functions/thalamus-feedback/schema.ts`: add `internal: z.boolean().optional()`.
+- `index.ts`: set `version` on insert based on the flag; skip `notifySlack` when internal.
+- Small test for the version/Slack decision; redeploy `thalamus-feedback`.
+- No database changes (`version` is an existing ticket field).
