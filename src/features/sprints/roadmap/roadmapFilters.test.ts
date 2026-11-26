@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyFilters, emptyFilters, isSplit, isUnfinished, type FilterCtx, type FilterTicket } from "./roadmapFilters";
+import { applySprintFilter, isSplit, isUnfinished, type FilterCtx, type FilterTicket } from "./roadmapFilters";
 
 const S5 = { id: "s5", sprint_number: 5, start_date: "2026-11-02", end_date: "2026-11-15" };
 const S6 = { id: "s6", sprint_number: 6, start_date: "2026-11-16", end_date: "2026-11-29" };
@@ -27,6 +27,6 @@ describe("roadmap filters", () => {
   });
   it("shows Dev done and Proj tickets but always hides Feedback", () => {
     const rows = [t({ id: "a", status_id: "devdone" }), t({ id: "b", ticket_type: "Proj" }), t({ id: "c", ticket_type: "Feedback" }), t({ id: "d" })];
-    expect(applyFilters(rows, emptyFilters, ctx([])).map((r) => r.id)).toEqual(["a", "b", "d"]);
+    expect(applySprintFilter(rows, [], ctx([])).map((r) => r.id)).toEqual(["a", "b", "d"]);
   });
 });

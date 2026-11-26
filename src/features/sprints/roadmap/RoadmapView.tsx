@@ -9,7 +9,10 @@ import { useRoadmapMutations, type TicketPlan } from "./useRoadmapMutations";
 import { useClosedSprintConfirm } from "./useClosedSprintConfirm";
 import { isClosed, planCell, type CellState, type SprintLite } from "./cellRules";
 import { WorkingSprintBar } from "./WorkingSprintBar";
-import { RoadmapToolbar } from "./RoadmapToolbar";
+import { RoadmapSprintFilter } from "./RoadmapSprintFilter";
+import { SprintColumnsPicker } from "./SprintColumnsPicker";
+import { ProjectTicketsToolbar } from "@/features/tickets/project-tickets/ProjectTicketsToolbar";
+import { useColumnDisplayPrefs } from "@/features/tickets/useColumnDisplayPrefs";
 import { TicketsList } from "@/features/tickets/TicketsList";
 import { sprintColumns } from "./sprintColumns";
 import { RoadmapBulkBar, type BulkDisc } from "./RoadmapBulkBar";
@@ -58,9 +61,10 @@ export function RoadmapView({ projectId, sprints, isPMBA }: { projectId: string;
     const n = new Set(prev); ids.forEach((id) => (on ? n.add(id) : n.delete(id))); return n;
   }), []);
 
+  const colDisplay = useColumnDisplayPrefs();
   const toggleDev = (uid: string) => {
-    const a = v.filters.assignees;
-    v.setFilters({ ...v.filters, assignees: a.includes(uid) ? a.filter((x) => x !== uid) : [...a, uid] });
+    const a = v.filters.assigneeIds;
+    v.setFilters({ ...v.filters, assigneeIds: a.includes(uid) ? a.filter((x) => x !== uid) : [...a, uid] });
   };
 
   const openTicket = d.tickets.find((t) => t.id === openId) ?? null;
@@ -78,13 +82,20 @@ export function RoadmapView({ projectId, sprints, isPMBA }: { projectId: string;
       <WorkingSprintBar
         sprints={v.sorted} working={v.working} onPick={v.setWorking} today={d.today} members={d.members}
         totals={v.working && d.totalsBySprint.get(v.working.id)} caps={v.working && d.capsBySprint.get(v.working.id)}
-        activeDevIds={v.filters.assignees} onDevClick={toggleDev}
+        activeDevIds={v.filters.assigneeIds} onDevClick={toggleDev}
       />
-      <RoadmapToolbar
-        search={v.search} setSearch={v.setSearch} ai={v.ai} getCandidates={() => v.filtered}
-        filters={v.filters} setFilters={v.setFilters} options={v.options} sprints={v.sorted}
-        working={v.working} previous={v.previous} groupBy={v.groupBy} setGroupBy={v.setGroupBy}
-        cols={v.colIds} setCols={v.setCols}
+      <ProjectTicketsToolbar
+        projectId={projectId} tickets={d.tickets} filters={v.filters} setFilters={v.setFilters}
+        view="list" filterMine={false} groupBy={v.groupBy} setGroupBy={v.setGroupBy}
+        search={v.search} setSearch={v.setSearch} role={null} user={null}
+        ai={v.ai} getAiCandidates={() => v.filtered}
+        showViewToggle={false} showMineToggle={false} showAddButtons={false} showGroupTimer={false}
+        filterSections={["type", "status", "fe_status", "be_status", "health", "epic", "assignee", "version", "acceptance"]}
+        columnPrefs={colDisplay.prefs} setColumnPrefs={colDisplay.setPrefs} resetColumnPrefs={colDisplay.reset}
+        extras={<>
+          <RoadmapSprintFilter sprints={v.sorted} previous={v.previous} selected={v.sprintFilter} onChange={v.setSprintFilter} />
+          <SprintColumnsPicker sprints={v.sorted} workingId={v.working?.id} cols={v.colIds} setCols={v.setCols} />
+        </>}
       />
       {d.loading && <div className="text-[11px] text-dimmer">Loading more tickets…</div>}
       {v.rows.length === 0 ? (
@@ -92,7 +103,7 @@ export function RoadmapView({ projectId, sprints, isPMBA }: { projectId: string;
       ) : (
         <TicketsList
           tickets={v.rows} groupBy={v.groupBy} projectId={projectId} loadingMore={d.loading}
-          columns={["id", "title", "status", "dev_status", "fe", "be", "assignees"]}
+          columnPrefs={colDisplay.prefs}
           onOpen={(t) => setOpenId(t.id)}
           selectedIds={selected}
           onToggleSelect={(id) => setSelected([id], !selected.has(id))}

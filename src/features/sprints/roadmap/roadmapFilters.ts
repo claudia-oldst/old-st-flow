@@ -1,4 +1,3 @@
-import { acceptanceMatch } from "@/features/tickets/filters/applyFilters";
 import type { SprintDiscipline } from "../types";
 import type { Commitment, SprintLite } from "./cellRules";
 
@@ -16,23 +15,6 @@ export interface FilterTicket {
   acceptance_criteria?: string | null;
 }
 
-export interface RoadmapFilters {
-  epics: string[];
-  types: string[];
-  statuses: string[];
-  feStatuses: string[];
-  beStatuses: string[];
-  /** user ids, or "unassigned" */
-  assignees: string[];
-  /** "unfinished" | "not_planned" | `planned:<id>` | `committed:<id>` */
-  sprint: string[];
-  /** "populated" | "none" */
-  acceptance?: string[];
-}
-
-export const emptyFilters: RoadmapFilters = {
-  epics: [], types: [], statuses: [], feStatuses: [], beStatuses: [], assignees: [], sprint: [], acceptance: [],
-};
 
 export interface FilterCtx {
   working: SprintLite | undefined;
@@ -81,22 +63,7 @@ function sprintMatch(t: FilterTicket, key: string, ctx: FilterCtx): boolean {
   return true;
 }
 
-export function applyFilters<T extends FilterTicket>(rows: T[], f: RoadmapFilters, ctx: FilterCtx): T[] {
-  const any = (sel: string[], v: string) => sel.length === 0 || sel.includes(v);
-  return rows.filter((t) => {
-    if (t.ticket_type === "Feedback") return false;
-    if (!any(f.epics, t.epic_id == null ? "none" : String(t.epic_id))) return false;
-    if (!any(f.types, t.ticket_type)) return false;
-    if (!any(f.statuses, t.status_id ?? "")) return false;
-    if (f.feStatuses.length && !f.feStatuses.includes(hasHours(t, "FE") ? t.fe_status : "-")) return false;
-    if (f.beStatuses.length && !f.beStatuses.includes(hasHours(t, "BE") ? t.be_status : "-")) return false;
-    if (f.assignees.length) {
-      const devs = t.assignees.filter((a) => a.slot === "FE" || a.slot === "BE");
-      const ok = f.assignees.some((u) => (u === "unassigned" ? devs.length === 0 : devs.some((a) => a.user_id === u)));
-      if (!ok) return false;
-    }
-    if (!acceptanceMatch(t, f.acceptance)) return false;
-    if (f.sprint.length && !f.sprint.some((k) => sprintMatch(t, k, ctx))) return false;
-    return true;
-  });
+/** Roadmap-only rules on top of the shared Tickets filters: never Feedback, plus the sprint filter. */
+export function applySprintFilter<T extends FilterTicket>(rows: T[], sprint: string[], ctx: FilterCtx): T[] {
+  return rows.filter((t) => t.ticket_type !== "Feedback" && (!sprint.length || sprint.some((k) => sprintMatch(t, k, ctx))));
 }
