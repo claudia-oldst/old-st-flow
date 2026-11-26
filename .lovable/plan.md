@@ -47,11 +47,12 @@ My Timelogs                                   [ + Log time | v ]
 ```
 - One row per ticket: an entry with `"tickets": [a, b]` becomes two rows.
 - Start/end times fill hours and minutes automatically.
+- Project names use the best match: "Cousteau" picks "Project Cousteau"; acronyms like "COU" also work.
 - Skipped or unrecognised fields are left blank — never an error.
 - Save logs that one row and removes it; x discards it. No "Save all".
 
 ## Technical details
 - Frontend only, no database change. Rows reuse the existing inline log row and save through the normal logging flow (permissions, estimate-revision prompts unchanged).
 - Accepts a single object or an array; field names matched loosely (`ticket`/`tickets`, `reason`/`note`/`description`, `h`/`m`, `start time`/`end time`).
-- Projects/tickets matched by name/acronym and ticket number (e.g. COU-934); unmatched values stay blank.
+- Projects best-matched among the user's projects (exact, then acronym, then case-insensitive contains/word match, ignoring "Project" prefix; ties left blank); tickets matched and ticket number (e.g. COU-934); unmatched values stay blank.
 - New parser in its own small module with tests.
