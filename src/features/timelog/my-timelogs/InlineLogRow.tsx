@@ -19,6 +19,8 @@ import { InlineAllocationPanel, SingleOverflowNudge } from "./InlineAllocationPa
 import { capacityFor } from "@/features/timelog/useTicketCapacity";
 import { RequestMoreTimeDialog, type AdjustSlot } from "@/features/tickets/RequestMoreTimeDialog";
 import type { LogDiscipline } from "@/lib/types";
+import type { JsonLogDraft } from "./json/parseTimeLogJson";
+import { useApplyJsonDraft } from "./json/useApplyJsonDraft";
 
 const DISCIPLINE_TO_SLOT: Record<LogDiscipline, AdjustSlot> = {
   FE: "FE",
@@ -34,13 +36,17 @@ const DISCIPLINE_TO_SLOT: Record<LogDiscipline, AdjustSlot> = {
 export function InlineLogRow({
   onLogged,
   onCancel,
+  initial,
 }: {
   onLogged?: () => void;
   onCancel: () => void;
+  /** Prefill from "Log via JSON"; unmatched fields stay blank. */
+  initial?: JsonLogDraft;
 }) {
   const d = useInlineLogDraft(onLogged);
   const { data: projects = [] } = useMyProjects();
   const { data: tickets = [] } = useMyProjectTickets(d.projectId);
+  useApplyJsonDraft(d, initial, projects, tickets);
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && d.canSave) {

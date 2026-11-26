@@ -1,6 +1,14 @@
 import { useMemo, useState } from "react";
 import { subDays } from "date-fns";
-import { Clock, Plus } from "lucide-react";
+import { ChevronDown, Clock, FileJson, Plus } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { PasteTimeLogsDialog } from "@/features/timelog/my-timelogs/json/PasteTimeLogsDialog";
+import type { JsonLogDraft } from "@/features/timelog/my-timelogs/json/parseTimeLogJson";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -53,6 +61,9 @@ export default function MyTimelogs() {
   const [page, setPage] = useState(1);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [adding, setAdding] = useState(false);
+  const [pasteOpen, setPasteOpen] = useState(false);
+  const [jsonDrafts, setJsonDrafts] = useState<JsonLogDraft[]>([]);
+  const dropDraft = (key: string) => setJsonDrafts((prev) => prev.filter((x) => x.key !== key));
   const [editing, setEditing] = useState<{ log: TicketLogEntry; row: MyLogRow } | null>(null);
 
   const { logs, loading, reload } = useMyTimeLogs(range);
@@ -105,9 +116,31 @@ export default function MyTimelogs() {
           </h1>
           <p className="text-dim mt-1">Everything you have logged, across all projects.</p>
         </div>
-        <Button onClick={() => setAdding(true)} className="gap-1.5">
-          <Plus className="h-3.5 w-3.5" /> Log time
-        </Button>
+        <div className="flex items-center">
+          <Button onClick={() => setAdding(true)} className="gap-1.5 rounded-r-none">
+            <Plus className="h-3.5 w-3.5" /> Log time
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="rounded-l-none border-l border-primary-foreground/20 px-2" aria-label="More ways to log time">
+                <ChevronDown className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => setPasteOpen(true)} className="gap-2">
+                <FileJson className="h-3.5 w-3.5" /> Log via JSON…
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+        <PasteTimeLogsDialog
+          open={pasteOpen}
+          onOpenChange={setPasteOpen}
+          onDrafts={(list) => {
+            const stamp = Date.now();
+            setJsonDrafts((prev) => [...prev, ...list.map((x) => ({ ...x, key: `${stamp}-${x.key}` }))]);
+          }}
+        />
       </div>
 
       <div className="sticky top-14 z-30 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 mb-4 flex items-center gap-3 flex-wrap bg-background/85 backdrop-blur-md hairline-b">
@@ -155,6 +188,17 @@ export default function MyTimelogs() {
       </div>
 
       {adding && <InlineLogRow onLogged={reload} onCancel={() => setAdding(false)} />}
+      {jsonDrafts.map((x) => (
+        <InlineLogRow
+          key={x.key}
+          initial={x}
+          onLogged={() => {
+            dropDraft(x.key);
+            reload();
+          }}
+          onCancel={() => dropDraft(x.key)}
+        />
+      ))}
 
       <div className="flex items-center gap-3 mb-3 text-sm">
         <span className="font-mono text-foreground">{formatHours(totalHours)}</span>
