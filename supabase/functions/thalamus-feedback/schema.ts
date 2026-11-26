@@ -5,6 +5,7 @@ export const Body = z.object({
   project_id: z.string().uuid("project_id must be the project UUID from the Pulse URL"),
   acronym: z.string().min(1).max(20),
   type: z.string().optional().nullable(),
+  internal: z.boolean().optional().nullable(),
   title: z.string().max(500).optional().nullable(),
   screenshot: z.object({ url: z.string().url().nullable().optional() }).partial().optional().nullable(),
   recording: z.object({
@@ -16,3 +17,10 @@ export const Body = z.object({
     }, "recording.url must be a signed Supabase storage HTTPS URL"),
   }).optional().nullable(),
 }).passthrough();
+
+/** Internal reports get their own version and skip the project Slack channel. */
+export function intakeRouting(internal: boolean | null | undefined) {
+  return internal === true
+    ? { version: "Internal Feedback", notifySlack: false }
+    : { version: "External - Thalamus", notifySlack: true };
+}

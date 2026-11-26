@@ -2,7 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { json, postIntakeComment, rehostScreenshot, rehostRecording } from "../_shared/intake.ts";
 import { renderReport } from "./format.ts";
-import { Body } from "./schema.ts";
+import { Body, intakeRouting } from "./schema.ts";
 
 const THALAMUS_MEMBER_ID = "00000000-0000-0000-0000-0000000000b2";
 const SOURCE = "thalamus";
@@ -42,10 +42,12 @@ Deno.serve(async (req) => {
   if (projErr) return fail(projErr.message, 500);
   if (!project) return fail(`No active project found matching ID '${p.project_id}' and acronym '${p.acronym}'`, 404);
 
+  const routing = intakeRouting(p.internal);
   const { data: ticket, error } = await supabase.from("tickets").insert({
     project_id: project.id,
     title: ((p.title ?? "").trim() || "Untitled feedback").slice(0, 300),
     ticket_type: "Feedback",
+    version: routing.version,
     external_source: SOURCE,
     external_ref: ref,
     // Feedback starts at a 0h baseline; later time is an estimate revision.
@@ -60,7 +62,7 @@ Deno.serve(async (req) => {
   ]);
   const attachments = [...screenshots, ...recordings];
   await postIntakeComment(supabase, ticket.id, THALAMUS_MEMBER_ID, renderReport(p as never), attachments);
-  await notifySlack(supabase, ticket.id, project.slack_channel_id);
+  if (routing.notifySlack) await notifySlack(supabase, ticket.id, project.slack_channel_id);
   return respond(ticket, 201);
 });
 
