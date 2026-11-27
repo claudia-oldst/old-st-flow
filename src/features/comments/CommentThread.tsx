@@ -23,7 +23,7 @@ export function CommentThread({ thread, projectId, ticketId, onChanged }: Props)
         comment={thread}
         projectId={projectId}
         ticketId={ticketId}
-        onReply={user ? () => setReplying((v) => !v) : undefined}
+        onReply={user ? () => setReplying(true) : undefined}
         onChanged={onChanged}
       />
       {(thread.replies.length > 0 || replying) && (
@@ -34,6 +34,7 @@ export function CommentThread({ thread, projectId, ticketId, onChanged }: Props)
               comment={r}
               projectId={projectId}
               ticketId={ticketId}
+              onReply={user ? () => setReplying(true) : undefined}
               onChanged={onChanged}
               isReply
             />
