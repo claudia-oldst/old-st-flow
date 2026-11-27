@@ -1,11 +1,43 @@
-import { Check } from "lucide-react";
+import { useState } from "react";
+import { Check, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function FilterSection({ title, children }: { title: string; children: React.ReactNode }) {
+/** Collapsible filter group: title row toggles the options below it. */
+export function FilterSection({
+  title,
+  count = 0,
+  children,
+}: {
+  title: string;
+  /** Number of selected options in this group; shown when the group is collapsed. */
+  count?: number;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+
   return (
     <div className="p-2">
-      <div className="text-[10px] uppercase tracking-wider text-dimmer px-2 py-1">{title}</div>
-      <div className="space-y-0.5">{children}</div>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className={cn(
+          "w-full flex items-center gap-1.5 px-2 py-1 rounded-md text-left transition",
+          "text-[10px] uppercase tracking-wider hover:text-foreground",
+          count > 0 ? "text-foreground" : "text-dimmer"
+        )}
+      >
+        <ChevronRight
+          className={cn("h-3 w-3 shrink-0 transition-transform", open && "rotate-90")}
+        />
+        <span className="truncate">{title}</span>
+        {count > 0 && (
+          <span className="ml-auto inline-flex items-center justify-center h-4 min-w-[16px] px-1 rounded-full bg-foreground text-background text-[10px] font-mono">
+            {count}
+          </span>
+        )}
+      </button>
+      {open && <div className="space-y-0.5 mt-0.5">{children}</div>}
     </div>
   );
 }

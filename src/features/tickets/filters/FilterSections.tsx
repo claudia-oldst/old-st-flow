@@ -27,7 +27,7 @@ export function FilterSections({
   return (
     <div className="max-h-[70vh] overflow-y-auto divide-y divide-white/5">
             {sections.includes("type") && (
-              <FilterSectionPrimitive title="Type">
+              <FilterSectionPrimitive title="Type" count={filters.types.length}>
                 {TYPE_OPTS.map((tp) => (
                   <FilterRow
                     key={tp}
@@ -40,7 +40,7 @@ export function FilterSections({
             )}
 
             {sections.includes("status") && (
-              <FilterSectionPrimitive title="Status">
+              <FilterSectionPrimitive title="Status" count={filters.statusIds.length}>
                 {statuses.map((s) => (
                   <FilterRow
                     key={s.id}
@@ -54,7 +54,10 @@ export function FilterSections({
             )}
 
             {sections.includes("fe_status") && (
-              <FilterSectionPrimitive title="Dev status — Frontend">
+              <FilterSectionPrimitive
+                title="Dev status — Frontend"
+                count={filters.feStatuses.length}
+              >
                 {DISC_OPTS.map((s) => (
                   <FilterRow
                     key={s}
@@ -67,7 +70,10 @@ export function FilterSections({
             )}
 
             {sections.includes("be_status") && (
-              <FilterSectionPrimitive title="Dev status — Backend">
+              <FilterSectionPrimitive
+                title="Dev status — Backend"
+                count={filters.beStatuses.length}
+              >
                 {DISC_OPTS.map((s) => (
                   <FilterRow
                     key={s}
@@ -80,7 +86,7 @@ export function FilterSections({
             )}
 
             {sections.includes("health") && (
-              <FilterSectionPrimitive title="Estimate vs actual">
+              <FilterSectionPrimitive title="Estimate vs actual" count={filters.health.length}>
                 {HEALTH_OPTS.map((h) => (
                   <FilterRow
                     key={h.value}
@@ -94,7 +100,7 @@ export function FilterSections({
             )}
 
             {sections.includes("epic") && (
-              <FilterSectionPrimitive title="Epic">
+              <FilterSectionPrimitive title="Epic" count={filters.epicIds.length}>
                 {epics.map((e) => (
                   <FilterRow
                     key={e.id}
@@ -113,7 +119,7 @@ export function FilterSections({
             )}
 
             {sections.includes("version") && (
-              <FilterSectionPrimitive title="Version">
+              <FilterSectionPrimitive title="Version" count={filters.versions.length}>
                 {versionOptions.length === 0 && (
                   <div className="px-2 py-1.5 text-[11px] text-dimmer">No versions yet</div>
                 )}
@@ -135,7 +141,7 @@ export function FilterSections({
             )}
 
             {sections.includes("source") && (
-              <FilterSectionPrimitive title="Source">
+              <FilterSectionPrimitive title="Source" count={filters.sources?.length ?? 0}>
                 <FilterRow
                   label="Thalamus"
                   selected={filters.sources?.includes("thalamus") ?? false}
@@ -145,14 +151,17 @@ export function FilterSections({
             )}
 
             {sections.includes("acceptance") && (
-              <FilterSectionPrimitive title="Acceptance criteria">
+              <FilterSectionPrimitive
+                title="Acceptance criteria"
+                count={filters.acceptance?.length ?? 0}
+              >
                 <FilterRow label="Populated" selected={filters.acceptance?.includes("populated") ?? false} onClick={() => toggle("acceptance", "populated")} />
                 <FilterRow label="None" selected={filters.acceptance?.includes("none") ?? false} onClick={() => toggle("acceptance", "none")} />
               </FilterSectionPrimitive>
             )}
 
             {sections.includes("assignee") && (
-              <FilterSectionPrimitive title="Assignee">
+              <FilterSectionPrimitive title="Assignee" count={filters.assigneeIds.length}>
                 {assigneeOptions.map((a) => (
                   <FilterRow
                     key={a.id}
