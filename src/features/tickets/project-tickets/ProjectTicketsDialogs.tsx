@@ -62,6 +62,7 @@ export function ProjectTicketsDialogs({
         open={!!p.openTicket}
         onOpenChange={(o) => !o && p.setOpenTicket(null)}
         ticket={p.openTicket}
+        initialTab={p.initialTab}
         projectId={projectId}
       />
     </>

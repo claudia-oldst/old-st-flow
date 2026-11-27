@@ -1,6 +1,7 @@
 // Slack DM nudges for ticket assignments pending and rejected estimate revisions.
 // Invoked by database triggers via pg_net (see public.enqueue_slack_notify).
 import { closingDayEmail, formatClosingDate } from "./closingToday.ts";
+import { urls } from "./urls.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -122,16 +123,6 @@ function esc(s: string) {
 
 function link(url: string | null, label: string) {
   return url ? `<${url}|${esc(label)}>` : `*${esc(label)}*`;
-}
-
-function urls(base: string | null, projectId: string, ticketId: string) {
-  if (!base) return { project: null, ticket: null, changeRequests: null };
-  const b = base.replace(/\/+$/, "");
-  return {
-    project: `${b}/projects/${projectId}`,
-    ticket: `${b}/projects/${projectId}?ticket=${ticketId}`,
-    changeRequests: `${b}/projects/${projectId}/change-requests`,
-  };
 }
 
 function linkButton(text: string, url: string) {
@@ -423,15 +414,15 @@ async function handleCommentMention(admin: Admin, p: Payload, base: string | nul
 
   const mrkdwn =
     (p.thread_reply ? `:speech_balloon: *${esc(who)} replied to a discussion thread you're in*\n` : `:speech_balloon: *${esc(who)} mentioned you in a discussion*\n`) +
-    `${link(u.ticket, `${t.formatted_id} — ${t.title}`)} · ` +
+    `${link(u.discussion, `${t.formatted_id} — ${t.title}`)} · ` +
     `${link(u.project, t.projects?.name ?? "project")}` +
     (snippet ? `\n>${esc(snippet).replace(/\n/g, "\n>")}` : "");
 
   const text = `${who} ${p.thread_reply ? "replied in a thread" : "mentioned you"} on ${t.formatted_id} — ${t.title}`;
 
   const blocks: unknown[] = [{ type: "section", text: { type: "mrkdwn", text: mrkdwn } }];
-  if (u.ticket) {
-    blocks.push({ type: "actions", elements: [linkButton("Open discussion", u.ticket)] });
+  if (u.discussion) {
+    blocks.push({ type: "actions", elements: [linkButton("Open discussion", u.discussion)] });
   }
 
   const result = await dm(admin, t.project_id as string, member as any, text, blocks);

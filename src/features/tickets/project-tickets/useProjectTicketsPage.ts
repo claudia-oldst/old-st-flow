@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import { fetchTicketById } from "@/features/tickets/fetchTicketById";
+import { useTicketDeepLink } from "../detail/useTicketDeepLink";
 import { useCurrentUser } from "@/store/currentUser";
 import { useTimerStore } from "@/store/timer";
 import { useProjectTickets, type TicketRow } from "@/features/tickets/useProjectTickets";
@@ -27,7 +26,7 @@ export function useProjectTicketsPage(projectId: string) {
   const [addOpen, setAddOpen] = useState(false);
   const [copyOpen, setCopyOpen] = useState(false);
   const [initialTitles, setInitialTitles] = useState<string[] | undefined>(undefined);
-  const [openTicket, setOpenTicket] = useState<TicketRow | null>(null);
+  const { openTicket, setOpenTicket, initialTab } = useTicketDeepLink();
   const [groupTimerOpen, setGroupTimerOpen] = useState(false);
   const [timerPreselect, setTimerPreselect] = useState<string[] | undefined>(undefined);
   const activeTimer = useTimerStore((s) => s.active);
@@ -57,31 +56,6 @@ export function useProjectTicketsPage(projectId: string) {
     [v.filters, v.search, v.filterMine],
   );
   useEffect(() => setPage(1), [filterSig]);
-
-  // Deep link: /projects/:id?ticket=<uuid> opens that ticket's detail sheet.
-  const [searchParams, setSearchParams] = useSearchParams();
-  const deepTicketId = searchParams.get("ticket");
-  useEffect(() => {
-    if (!deepTicketId) return;
-    let cancelled = false;
-    (async () => {
-      const t = await fetchTicketById(deepTicketId);
-      if (!cancelled && t) setOpenTicket(t);
-      if (!cancelled) {
-        setSearchParams(
-          (prev) => {
-            const next = new URLSearchParams(prev);
-            next.delete("ticket");
-            return next;
-          },
-          { replace: true },
-        );
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [deepTicketId, setSearchParams]);
 
   const onImportClick = async () => {
     const ok = await csv.handleImport();
@@ -164,6 +138,7 @@ export function useProjectTicketsPage(projectId: string) {
     setInitialTitles,
     openTicket,
     setOpenTicket,
+    initialTab,
     groupTimerOpen,
     setGroupTimerOpen,
     timerPreselect,

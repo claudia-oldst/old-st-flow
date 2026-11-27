@@ -17,3 +17,8 @@
 - [x] Progress/counts and disable board drag during loading
 - [x] Tests: 20 focused tests passed; full suite has unrelated bulk-assignment setup failures and a Playwright spec collected by Vitest
 - [ ] Authenticated 3G verification — blocked by external unmanaged sign-in; no managed test session available
+
+# Slack discussion links
+- [x] Open discussion alerts directly in the ticket Discussion tab; keep normal ticket defaults
+- [x] Test links (9 focused tests passed) and deploy the updated Slack notification function
+- [ ] Signed-in Slack-to-Discussion check — blocked because the external Supabase backend cannot provide a managed test session

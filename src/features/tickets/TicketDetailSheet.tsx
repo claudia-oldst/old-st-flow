@@ -22,17 +22,19 @@ import { TicketDetailMeta } from "./detail/TicketDetailMeta";
 import { useTicketEditor } from "./detail/useTicketEditor";
 import { useLiveTicket } from "./detail/useLiveTicket";
 import { ConvertFeedbackDialog } from "@/features/feedback/ConvertFeedbackDialog";
+import type { TicketDetailTab } from "./detail/useTicketDeepLink";
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   ticket: TicketRow | null;
   projectId: string;
+  initialTab?: TicketDetailTab;
   /** Extra refresh beyond the edited ticket row (which always updates in place). */
   onChange?: () => void;
 }
 
-export function TicketDetailSheet({ open, onOpenChange, ticket: ticketProp, projectId, onChange: onExtraChange }: Props) {
+export function TicketDetailSheet({ open, onOpenChange, ticket: ticketProp, projectId, initialTab, onChange: onExtraChange }: Props) {
   const { ticket: liveTicket, setLiveTicket } = useLiveTicket(ticketProp, open);
   const qc = useQueryClient();
   // Refresh only this ticket's row in the lists, never the whole project.
@@ -43,8 +45,8 @@ export function TicketDetailSheet({ open, onOpenChange, ticket: ticketProp, proj
 
   const [activeTab, setActiveTab] = useState("status");
   useEffect(() => {
-    setActiveTab(liveTicket?.ticket_type === "Feedback" ? "discussion" : "status");
-  }, [liveTicket?.id, open]);
+    setActiveTab(initialTab ?? (liveTicket?.ticket_type === "Feedback" ? "discussion" : "status"));
+  }, [liveTicket?.id, open, initialTab]);
   const ac = useAcceptanceCriteria(liveTicket?.id, open && activeTab === "acceptance" && liveTicket?.acceptance_criteria === undefined);
   const parent = useParentTicket(liveTicket?.parent_ticket_id, open && liveTicket?.parent?.title === undefined);
   const ticket = liveTicket ? { ...liveTicket, parent: parent.data ?? liveTicket.parent } : null;
